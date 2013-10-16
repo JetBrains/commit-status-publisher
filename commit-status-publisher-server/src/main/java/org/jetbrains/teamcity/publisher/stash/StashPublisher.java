@@ -6,17 +6,11 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import jetbrains.buildServer.serverSide.WebLinks;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
-import org.apache.http.conn.ssl.TrustStrategy;
-import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.auth.BasicScheme;
@@ -26,7 +20,6 @@ import org.apache.http.protocol.BasicHttpContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.teamcity.publisher.BaseCommitStatusPublisher;
 
-import javax.net.ssl.*;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -34,7 +27,6 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
-import java.security.cert.X509Certificate;
 import java.util.Map;
 
 public class StashPublisher extends BaseCommitStatusPublisher {
@@ -112,49 +104,16 @@ public class StashPublisher extends BaseCommitStatusPublisher {
             new AuthScope(stashURI.getHost(), stashURI.getPort()),
             new UsernamePasswordCredentials(getUsername(), getPassword()));
 
-    TrustStrategy trust = new TrustSelfSignedStrategy();
-    X509HostnameVerifier verifier = new X509HostnameVerifier() {
-      public void verify(String host, SSLSocket ssl) throws IOException {
-      }
-
-      public void verify(String host, X509Certificate cert) throws SSLException {
-      }
-
-      public void verify(String host, String[] cns, String[] subjectAlts) throws SSLException {
-      }
-
-      public boolean verify(String s, SSLSession sslSession) {
-        return true;
-      }
-    };
-
-    SSLContext sslCtx = SSLContext.getInstance("SSL");
-    sslCtx.init(new KeyManager[]{}, new TrustManager[] {
-            new X509TrustManager() {
-              public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                return null;
-              }
-
-              public void checkClientTrusted(X509Certificate[] certs, String authType) {  }
-
-              public void checkServerTrusted(X509Certificate[] certs, String authType) {  }
-
-            }
-    }, new java.security.SecureRandom());
-    SSLSocketFactory socketFactory = new SSLSocketFactory(sslCtx, verifier);
-    Scheme https = new Scheme("https", stashURI.getPort(), socketFactory);
-
-    client.getConnectionManager().getSchemeRegistry().register(https);
-
     AuthCache authCache = new BasicAuthCache();
     authCache.put(new HttpHost(stashURI.getHost(), stashURI.getPort(), stashURI.getScheme()), new BasicScheme());
     BasicHttpContext ctx = new BasicHttpContext();
     ctx.setAttribute(ClientContext.AUTH_CACHE, authCache);
 
-    HttpPost post = new HttpPost(getBaseUrl() + "/rest/build-status/1.0/commits/" + commit);
+    String url = getBaseUrl() + "/rest/build-status/1.0/commits/" + commit;
+
+    HttpPost post = new HttpPost(url);
     post.setEntity(new StringEntity(data, ContentType.APPLICATION_JSON));
-    HttpResponse response = client.execute(post, ctx);
-    boolean pause = true;
+    client.execute(post, ctx);
   }
 
   String getBaseUrl() {
