@@ -50,7 +50,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     StringBuilder data = new StringBuilder();
     data.append("{")
             .append("\"state\":").append("\"").append("INPROGRESS").append("\",")
-            .append("\"key\":").append("\"").append(buildType.getExternalId()).append("\",")
+            .append("\"key\":").append("\"").append(buildType.getBuildTypeId()).append("\",")
             .append("\"name\":").append("\"").append(getBuildName(build)).append("\",")
             .append("\"url\":").append("\"").append(myLinks.getViewResultsUrl(build)).append("\",")
             .append("\"description\":").append("\"").append("Build started").append("\"")
@@ -77,7 +77,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     StringBuilder data = new StringBuilder();
     data.append("{")
             .append("\"state\":").append("\"").append(state).append("\",")
-            .append("\"key\":").append("\"").append(buildType.getExternalId()).append("\",")
+            .append("\"key\":").append("\"").append(buildType.getBuildTypeId()).append("\",")
             .append("\"name\":").append("\"").append(getBuildName(build)).append("\",")
             .append("\"url\":").append("\"").append(myLinks.getViewResultsUrl(build)).append("\",")
             .append("\"description\":").append("\"").append(description).append("\"")

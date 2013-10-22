@@ -6,12 +6,12 @@
   <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <properties>
-      <teamcity-version>8.0</teamcity-version>
+      <teamcity-version>7.1</teamcity-version>
   </properties>
   <repositories>
     <repository>
-        <id>JetBrains</id>
-        <url>http://repository.jetbrains.com/all</url>
+        <id>Evgeny Golding TeamCity</id>
+        <url>http://evgenyg.artifactoryonline.com/evgenyg/teamcity</url>
     </repository>
   </repositories>
   <build>
