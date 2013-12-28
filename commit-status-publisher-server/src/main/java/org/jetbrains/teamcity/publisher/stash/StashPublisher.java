@@ -70,7 +70,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     if (buildType == null)
       return;
     String state = build.getBuildStatus().isSuccessful() ? "SUCCESSFUL" : "FAILED";
-    String description = build.getBuildStatus().isSuccessful() ? "Successful build" : "Build failed";
+    String description = build.getStatusDescriptor().getText();
     StringBuilder data = new StringBuilder();
     data.append("{")
             .append("\"state\":").append("\"").append(state).append("\",")
