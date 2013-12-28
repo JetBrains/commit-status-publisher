@@ -1,6 +1,8 @@
 package org.jetbrains.teamcity.publisher;
 
 import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -18,11 +20,11 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   public void buildStarted(@NotNull SRunningBuild build) {
   }
 
-  public void buildFinished(@NotNull SRunningBuild build) {
+  public void buildFinished(@NotNull SFinishedBuild build) {
   }
 
   @Nullable
-  protected BuildRevision getBuildRevisionForVote(@NotNull SRunningBuild build) {
+  protected BuildRevision getBuildRevisionForVote(@NotNull SBuild build) {
     String vcsRootId = getVcsRootId();
     if (vcsRootId == null)
       return null;

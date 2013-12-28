@@ -1,10 +1,7 @@
 package org.jetbrains.teamcity.publisher.stash;
 
 import jetbrains.buildServer.BuildProblemData;
-import jetbrains.buildServer.serverSide.BuildRevision;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SRunningBuild;
-import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.serverSide.*;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -65,7 +62,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public void buildFinished(@NotNull SRunningBuild build) {
+  public void buildFinished(@NotNull SFinishedBuild build) {
     BuildRevision revision = getBuildRevisionForVote(build);
     if (revision == null)
       return;
@@ -91,7 +88,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     }
   }
 
-  private String getBuildName(SRunningBuild build) {
+  private String getBuildName(@NotNull SBuild build) {
     return build.getFullName() + " #" + build.getBuildNumber();
   }
 

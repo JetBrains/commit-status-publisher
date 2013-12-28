@@ -7,10 +7,13 @@ import org.jetbrains.annotations.NotNull;
 public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private final PublisherManager myPublisherManager;
+  private final BuildHistory myBuildHistory;
 
   public CommitStatusPublisherListener(@NotNull EventDispatcher<BuildServerListener> events,
-                                       @NotNull PublisherManager voterManager) {
+                                       @NotNull PublisherManager voterManager,
+                                       @NotNull BuildHistory buildHistory) {
     myPublisherManager = voterManager;
+    myBuildHistory = buildHistory;
     events.addListener(this);
   }
 
@@ -40,12 +43,16 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     if (buildType == null)
       return;
 
+    SFinishedBuild finishedBuild = myBuildHistory.findEntry(build.getBuildId());
+    if (finishedBuild == null)
+      return;
+
     for (SBuildFeatureDescriptor buildFeatureDescriptor : buildType.getResolvedSettings().getBuildFeatures()) {
       BuildFeature buildFeature = buildFeatureDescriptor.getBuildFeature();
       if (buildFeature instanceof CommitStatusPublisherFeature) {
         CommitStatusPublisher publisher = myPublisherManager.createPublisher(buildFeatureDescriptor.getParameters());
         if (publisher != null)
-          publisher.buildFinished(build);
+          publisher.buildFinished(finishedBuild);
       }
     }
   }

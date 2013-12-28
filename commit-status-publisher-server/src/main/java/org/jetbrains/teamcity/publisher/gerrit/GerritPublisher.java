@@ -1,10 +1,13 @@
 package org.jetbrains.teamcity.publisher.gerrit;
 
-import com.jcraft.jsch.*;
+import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.serverSide.Branch;
 import jetbrains.buildServer.serverSide.BuildRevision;
-import jetbrains.buildServer.serverSide.SRunningBuild;
+import jetbrains.buildServer.serverSide.SFinishedBuild;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.teamcity.publisher.BaseCommitStatusPublisher;
 
@@ -21,7 +24,7 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public void buildFinished(@NotNull SRunningBuild build) {
+  public void buildFinished(@NotNull SFinishedBuild build) {
     Branch branch = build.getBranch();
     if (branch == null || branch.isDefaultBranch())
       return;
