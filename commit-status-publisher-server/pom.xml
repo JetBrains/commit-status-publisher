@@ -17,57 +17,15 @@
     </dependency>
 
     <dependency>
-      <groupId>teamcity</groupId>
+      <groupId>org.jetbrains.teamcity</groupId>
       <artifactId>server-api</artifactId>
       <version>${teamcity-version}</version>
       <scope>provided</scope>
     </dependency>
 
     <dependency>
-      <groupId>teamcity</groupId>
-      <artifactId>annotations</artifactId>
-      <version>${teamcity-version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>teamcity</groupId>
-      <artifactId>spring</artifactId>
-      <version>${teamcity-version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>teamcity</groupId>
-      <artifactId>spring-webmvc</artifactId>
-      <version>${teamcity-version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>teamcity</groupId>
-      <artifactId>servlet-api</artifactId>
-      <version>${teamcity-version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>teamcity</groupId>
-      <artifactId>util</artifactId>
-      <version>${teamcity-version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>teamcity</groupId>
-      <artifactId>common-api</artifactId>
-      <version>${teamcity-version}</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>teamcity</groupId>
-      <artifactId>tests</artifactId>
+      <groupId>org.jetbrains.teamcity</groupId>
+      <artifactId>tests-support</artifactId>
       <version>${teamcity-version}</version>
       <scope>test</scope>
     </dependency>
