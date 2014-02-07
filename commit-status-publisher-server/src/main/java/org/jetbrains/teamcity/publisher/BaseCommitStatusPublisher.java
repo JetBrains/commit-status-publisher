@@ -1,9 +1,12 @@
 package org.jetbrains.teamcity.publisher;
 
+import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
+import jetbrains.buildServer.serverSide.SQueuedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
+import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,10 +20,25 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     myParams = params;
   }
 
+  public void buildQueued(@NotNull SQueuedBuild build) {
+  }
+
+  public void buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull User user, String comment) {
+  }
+
   public void buildStarted(@NotNull SRunningBuild build) {
   }
 
+  public void buildInterrupted(@NotNull SRunningBuild build) {
+  }
+
+  public void buildChangedStatus(@NotNull SRunningBuild build, Status oldStatus, Status newStatus) {
+  }
+
   public void buildFinished(@NotNull SFinishedBuild build) {
+  }
+
+  public void buildCommented(@NotNull SBuild build, @NotNull User user, @NotNull String comment) {
   }
 
   @Nullable
