@@ -46,10 +46,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     BuildRevision revision = getBuildRevisionForVote(build);
     if (revision == null)
       return;
-    SBuildType buildType = build.getBuildType();
-    if (buildType == null)
-      return;
-    vote(buildType, build, revision, StashBuildStatus.INPROGRESS, "Build started");
+    vote(build, revision, StashBuildStatus.INPROGRESS, "Build started");
   }
 
   @Override
@@ -57,12 +54,9 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     BuildRevision revision = getBuildRevisionForVote(build);
     if (revision == null)
       return;
-    SBuildType buildType = build.getBuildType();
-    if (buildType == null)
-      return;
     StashBuildStatus status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.SUCCESSFUL : StashBuildStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
-    vote(buildType, build, revision, status, description);
+    vote(build, revision, status, description);
   }
 
   @Override
@@ -70,12 +64,9 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     BuildRevision revision = getBuildRevisionForVote(build);
     if (revision == null)
       return;
-    SBuildType buildType = build.getBuildType();
-    if (buildType == null)
-      return;
     StashBuildStatus status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.SUCCESSFUL : StashBuildStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
-    vote(buildType, build, revision, status, description + " with a comment by " + user.getExtendedName() + ": \"" + comment + "\"");
+    vote(build, revision, status, description + " with a comment by " + user.getExtendedName() + ": \"" + comment + "\"");
   }
 
   @Override
@@ -83,10 +74,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     BuildRevision revision = getBuildRevisionForVote(build);
     if (revision == null)
       return;
-    SBuildType buildType = build.getBuildType();
-    if (buildType == null)
-      return;
-    vote(buildType, build, revision, StashBuildStatus.FAILED, build.getStatusDescriptor().getText());
+    vote(build, revision, StashBuildStatus.FAILED, build.getStatusDescriptor().getText());
   }
 
   @Override
@@ -94,21 +82,17 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     BuildRevision revision = getBuildRevisionForVote(build);
     if (revision == null)
       return;
-    SBuildType buildType = build.getBuildType();
-    if (buildType == null)
-      return;
-    vote(buildType, build, revision, StashBuildStatus.FAILED, build.getStatusDescriptor().getText());
+    vote(build, revision, StashBuildStatus.FAILED, build.getStatusDescriptor().getText());
   }
 
-  private void vote(@NotNull SBuildType buildType,
-                    @NotNull SBuild build,
+  private void vote(@NotNull SBuild build,
                     @NotNull BuildRevision revision,
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) {
     StringBuilder data = new StringBuilder();
     data.append("{")
             .append("\"state\":").append("\"").append(status).append("\",")
-            .append("\"key\":").append("\"").append(buildType.getExternalId()).append("\",")
+            .append("\"key\":").append("\"").append(build.getBuildId()).append("\",")
             .append("\"name\":").append("\"").append(getBuildName(build)).append("\",")
             .append("\"url\":").append("\"").append(myLinks.getViewResultsUrl(build)).append("\",")
             .append("\"description\":").append("\"").append(WebUtil.escapeForJavaScript(comment, false, false)).append("\"")
