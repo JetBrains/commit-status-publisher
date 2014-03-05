@@ -76,7 +76,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
             .append("\"key\":").append("\"").append(buildType.getExternalId()).append("\",")
             .append("\"name\":").append("\"").append(getBuildName(build)).append("\",")
             .append("\"url\":").append("\"").append(myLinks.getViewResultsUrl(build)).append("\",")
-            .append("\"description\":").append("\"").append(comment).append("\"")
+            .append("\"description\":").append("\"").append(WebUtil.escapeForJavaScript(comment, false, false)).append("\"")
             .append("}");
 
     try {
