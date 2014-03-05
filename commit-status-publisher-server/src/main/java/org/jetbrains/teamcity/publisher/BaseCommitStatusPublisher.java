@@ -30,6 +30,10 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   public void buildInterrupted(@NotNull SFinishedBuild build) {
   }
 
+  public void buildFailureDetected(@NotNull SRunningBuild build) {
+  }
+
+
   @Nullable
   protected BuildRevision getBuildRevisionForVote(@NotNull SBuild build) {
     String vcsRootId = getVcsRootId();

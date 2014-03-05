@@ -1,5 +1,6 @@
 package org.jetbrains.teamcity.publisher;
 
+import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.EventDispatcher;
@@ -81,6 +82,20 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     }
   }
 
+
+  @Override
+  public void buildChangedStatus(SRunningBuild build, Status oldStatus, Status newStatus) {
+    if (build == null)
+      return;
+
+    SBuildType buildType = build.getBuildType();
+    if (buildType == null)
+      return;
+
+    for (CommitStatusPublisher publisher : getPublishers(buildType)) {
+      publisher.buildFailureDetected(build);
+    }
+  }
 
   @NotNull
   private List<CommitStatusPublisher> getPublishers(@NotNull SBuildType buildType) {

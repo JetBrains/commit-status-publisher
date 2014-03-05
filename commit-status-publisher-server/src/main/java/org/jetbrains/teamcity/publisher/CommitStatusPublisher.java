@@ -15,4 +15,6 @@ public interface CommitStatusPublisher {
   void buildCommented(@NotNull SBuild build, @NotNull User user, @NotNull String comment);
 
   void buildInterrupted(@NotNull SFinishedBuild build);
+
+  void buildFailureDetected(@NotNull SRunningBuild build);
 }
