@@ -44,21 +44,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     SBuildType buildType = build.getBuildType();
     if (buildType == null)
       return;
-    StringBuilder data = new StringBuilder();
-    data.append("{")
-            .append("\"state\":").append("\"").append(StashBuildStatus.INPROGRESS).append("\",")
-            .append("\"key\":").append("\"").append(buildType.getExternalId()).append("\",")
-            .append("\"name\":").append("\"").append(getBuildName(build)).append("\",")
-            .append("\"url\":").append("\"").append(myLinks.getViewResultsUrl(build)).append("\",")
-            .append("\"description\":").append("\"").append("Build started").append("\"")
-            .append("}");
-
-    try {
-      vote(revision.getRevision(), data.toString());
-    } catch (Exception e) {
-      String problemId = "stash.publisher." + revision.getRoot().getId();
-      build.addBuildProblem(BuildProblemData.createBuildProblem(problemId, "stash.publisher", e.getMessage()));
-    }
+    vote(buildType, build, revision, StashBuildStatus.INPROGRESS, "Build started");
   }
 
   @Override
@@ -69,15 +55,23 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     SBuildType buildType = build.getBuildType();
     if (buildType == null)
       return;
-    StashBuildStatus state = build.getBuildStatus().isSuccessful() ? StashBuildStatus.SUCCESSFUL : StashBuildStatus.FAILED;
+    StashBuildStatus status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.SUCCESSFUL : StashBuildStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
+    vote(buildType, build, revision, status, description);
+  }
+
+  private void vote(@NotNull SBuildType buildType,
+                    @NotNull SBuild build,
+                    @NotNull BuildRevision revision,
+                    @NotNull StashBuildStatus status,
+                    @NotNull String comment) {
     StringBuilder data = new StringBuilder();
     data.append("{")
-            .append("\"state\":").append("\"").append(state).append("\",")
+            .append("\"state\":").append("\"").append(status).append("\",")
             .append("\"key\":").append("\"").append(buildType.getExternalId()).append("\",")
             .append("\"name\":").append("\"").append(getBuildName(build)).append("\",")
             .append("\"url\":").append("\"").append(myLinks.getViewResultsUrl(build)).append("\",")
-            .append("\"description\":").append("\"").append(description).append("\"")
+            .append("\"description\":").append("\"").append(comment).append("\"")
             .append("}");
 
     try {
@@ -88,12 +82,8 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     }
   }
 
-  private String getBuildName(@NotNull SBuild build) {
-    return build.getFullName() + " #" + build.getBuildNumber();
-  }
-
-  private void vote(@NotNull String commit,
-                    @NotNull String data) throws URISyntaxException, IOException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+  private void vote(@NotNull String commit, @NotNull String data) throws URISyntaxException, IOException,
+          UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
     URI stashURI = new URI(getBaseUrl());
 
     DefaultHttpClient client = new DefaultHttpClient();
@@ -111,6 +101,10 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     HttpPost post = new HttpPost(url);
     post.setEntity(new StringEntity(data, ContentType.APPLICATION_JSON));
     client.execute(post, ctx);
+  }
+
+  private String getBuildName(@NotNull SBuild build) {
+    return build.getFullName() + " #" + build.getBuildNumber();
   }
 
   String getBaseUrl() {
