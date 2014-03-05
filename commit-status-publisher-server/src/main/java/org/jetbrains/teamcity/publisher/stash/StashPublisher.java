@@ -2,10 +2,15 @@ package org.jetbrains.teamcity.publisher.stash;
 
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
+import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.entity.ContentType;
@@ -78,7 +83,8 @@ public class StashPublisher extends BaseCommitStatusPublisher {
       vote(revision.getRevision(), data.toString());
     } catch (Exception e) {
       String problemId = "stash.publisher." + revision.getRoot().getId();
-      build.addBuildProblem(BuildProblemData.createBuildProblem(problemId, "stash.publisher", e.getMessage()));
+      build.addBuildProblem(BuildProblemData.createBuildProblem(problemId, "stash.publisher",
+              "Error while publishing a commit status to Stash: " + e.getMessage()));
     }
   }
 
@@ -100,7 +106,10 @@ public class StashPublisher extends BaseCommitStatusPublisher {
 
     HttpPost post = new HttpPost(url);
     post.setEntity(new StringEntity(data, ContentType.APPLICATION_JSON));
-    client.execute(post, ctx);
+    HttpResponse response = client.execute(post, ctx);
+    StatusLine statusLine = response.getStatusLine();
+    if (statusLine.getStatusCode() >= 400)
+      throw new HttpResponseException(statusLine.getStatusCode(), statusLine.getReasonPhrase());
   }
 
   private String getBuildName(@NotNull SBuild build) {
