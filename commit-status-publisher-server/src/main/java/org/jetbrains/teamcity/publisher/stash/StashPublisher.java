@@ -42,46 +42,31 @@ public class StashPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public void buildStarted(@NotNull SRunningBuild build) {
-    BuildRevision revision = getBuildRevisionForVote(build);
-    if (revision == null)
-      return;
+  public void buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, StashBuildStatus.INPROGRESS, "Build started");
   }
 
   @Override
-  public void buildFinished(@NotNull SFinishedBuild build) {
-    BuildRevision revision = getBuildRevisionForVote(build);
-    if (revision == null)
-      return;
+  public void buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
     StashBuildStatus status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.SUCCESSFUL : StashBuildStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
     vote(build, revision, status, description);
   }
 
   @Override
-  public void buildCommented(@NotNull SBuild build, @NotNull User user, @NotNull String comment) {
-    BuildRevision revision = getBuildRevisionForVote(build);
-    if (revision == null)
-      return;
+  public void buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull User user, @NotNull String comment) {
     StashBuildStatus status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.SUCCESSFUL : StashBuildStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
     vote(build, revision, status, description + " with a comment by " + user.getExtendedName() + ": \"" + comment + "\"");
   }
 
   @Override
-  public void buildInterrupted(@NotNull SFinishedBuild build) {
-    BuildRevision revision = getBuildRevisionForVote(build);
-    if (revision == null)
-      return;
+  public void buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, StashBuildStatus.FAILED, build.getStatusDescriptor().getText());
   }
 
   @Override
-  public void buildFailureDetected(@NotNull SRunningBuild build) {
-    BuildRevision revision = getBuildRevisionForVote(build);
-    if (revision == null)
-      return;
+  public void buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, StashBuildStatus.FAILED, build.getStatusDescriptor().getText());
   }
 

@@ -18,36 +18,23 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     myParams = params;
   }
 
-  public void buildStarted(@NotNull SRunningBuild build) {
+  public void buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
   }
 
-  public void buildFinished(@NotNull SFinishedBuild build) {
+  public void buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
   }
 
-  public void buildCommented(@NotNull SBuild build, @NotNull User user, @NotNull String comment) {
+  public void buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull User user, @NotNull String comment) {
   }
 
-  public void buildInterrupted(@NotNull SFinishedBuild build) {
+  public void buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
   }
 
-  public void buildFailureDetected(@NotNull SRunningBuild build) {
+  public void buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
   }
-
 
   @Nullable
-  protected BuildRevision getBuildRevisionForVote(@NotNull SBuild build) {
-    String vcsRootId = getVcsRootId();
-    if (vcsRootId == null)
-      return null;
-    long parentRootId = Long.valueOf(vcsRootId);
-    for (BuildRevision revision : build.getRevisions()) {
-      if (parentRootId == revision.getRoot().getParentId())
-        return revision;
-    }
-    return null;
-  }
-
-  protected String getVcsRootId() {
+  public String getVcsRootId() {
     return myParams.get("vcsRootId");
   }
 }

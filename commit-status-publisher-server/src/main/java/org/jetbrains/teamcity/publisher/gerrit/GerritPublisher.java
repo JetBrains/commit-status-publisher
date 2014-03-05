@@ -24,13 +24,9 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public void buildFinished(@NotNull SFinishedBuild build) {
+  public void buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
     Branch branch = build.getBranch();
     if (branch == null || branch.isDefaultBranch())
-      return;
-
-    BuildRevision revision = getBuildRevisionForVote(build);
-    if (revision == null)
       return;
 
     String vote = build.getBuildStatus().isSuccessful() ? getSuccessVote() : getFailureVote();
