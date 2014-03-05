@@ -27,6 +27,9 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   public void buildCommented(@NotNull SBuild build, @NotNull User user, @NotNull String comment) {
   }
 
+  public void buildInterrupted(@NotNull SFinishedBuild build) {
+  }
+
   @Nullable
   protected BuildRevision getBuildRevisionForVote(@NotNull SBuild build) {
     String vcsRootId = getVcsRootId();

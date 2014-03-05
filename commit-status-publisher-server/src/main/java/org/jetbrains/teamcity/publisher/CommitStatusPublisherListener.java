@@ -6,6 +6,9 @@ import jetbrains.buildServer.util.EventDispatcher;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private final PublisherManager myPublisherManager;
@@ -27,13 +30,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     if (buildType == null)
       return;
 
-    for (SBuildFeatureDescriptor buildFeatureDescriptor : buildType.getResolvedSettings().getBuildFeatures()) {
-      BuildFeature buildFeature = buildFeatureDescriptor.getBuildFeature();
-      if (buildFeature instanceof CommitStatusPublisherFeature) {
-        CommitStatusPublisher publisher = myPublisherManager.createPublisher(buildFeatureDescriptor.getParameters());
-        if (publisher != null)
-          publisher.buildStarted(build);
-      }
+    for (CommitStatusPublisher publisher : getPublishers(buildType)) {
+      publisher.buildStarted(build);
     }
   }
 
@@ -49,13 +47,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     if (finishedBuild == null)
       return;
 
-    for (SBuildFeatureDescriptor buildFeatureDescriptor : buildType.getResolvedSettings().getBuildFeatures()) {
-      BuildFeature buildFeature = buildFeatureDescriptor.getBuildFeature();
-      if (buildFeature instanceof CommitStatusPublisherFeature) {
-        CommitStatusPublisher publisher = myPublisherManager.createPublisher(buildFeatureDescriptor.getParameters());
-        if (publisher != null)
-          publisher.buildFinished(finishedBuild);
-      }
+    for (CommitStatusPublisher publisher : getPublishers(buildType)) {
+      publisher.buildFinished(finishedBuild);
     }
   }
 
@@ -64,13 +57,42 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     SBuildType buildType = build.getBuildType();
     if (buildType == null)
       return;
+
+    for (CommitStatusPublisher publisher : getPublishers(buildType)) {
+      publisher.buildCommented(build, user, comment);
+    }
+  }
+
+  @Override
+  public void buildInterrupted(SRunningBuild build) {
+    if (build == null)
+      return;
+
+    SBuildType buildType = build.getBuildType();
+    if (buildType == null)
+      return;
+
+    SFinishedBuild finishedBuild = myBuildHistory.findEntry(build.getBuildId());
+    if (finishedBuild == null)
+      return;
+
+    for (CommitStatusPublisher publisher : getPublishers(buildType)) {
+      publisher.buildInterrupted(finishedBuild);
+    }
+  }
+
+
+  @NotNull
+  private List<CommitStatusPublisher> getPublishers(@NotNull SBuildType buildType) {
+    List<CommitStatusPublisher> publishers = new ArrayList<CommitStatusPublisher>();
     for (SBuildFeatureDescriptor buildFeatureDescriptor : buildType.getResolvedSettings().getBuildFeatures()) {
       BuildFeature buildFeature = buildFeatureDescriptor.getBuildFeature();
       if (buildFeature instanceof CommitStatusPublisherFeature) {
         CommitStatusPublisher publisher = myPublisherManager.createPublisher(buildFeatureDescriptor.getParameters());
         if (publisher != null)
-          publisher.buildCommented(build, user, comment);
+          publishers.add(publisher);
       }
     }
+    return publishers;
   }
 }
