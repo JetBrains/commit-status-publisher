@@ -1,8 +1,10 @@
 package org.jetbrains.teamcity.publisher;
 
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.EventDispatcher;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class CommitStatusPublisherListener extends BuildServerAdapter {
 
@@ -53,6 +55,21 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         CommitStatusPublisher publisher = myPublisherManager.createPublisher(buildFeatureDescriptor.getParameters());
         if (publisher != null)
           publisher.buildFinished(finishedBuild);
+      }
+    }
+  }
+
+  @Override
+  public void buildCommented(@NotNull SBuild build, @Nullable User user, @Nullable String comment) {
+    SBuildType buildType = build.getBuildType();
+    if (buildType == null)
+      return;
+    for (SBuildFeatureDescriptor buildFeatureDescriptor : buildType.getResolvedSettings().getBuildFeatures()) {
+      BuildFeature buildFeature = buildFeatureDescriptor.getBuildFeature();
+      if (buildFeature instanceof CommitStatusPublisherFeature) {
+        CommitStatusPublisher publisher = myPublisherManager.createPublisher(buildFeatureDescriptor.getParameters());
+        if (publisher != null)
+          publisher.buildCommented(build, user, comment);
       }
     }
   }

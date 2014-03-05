@@ -4,6 +4,7 @@ import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
+import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,6 +22,9 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   }
 
   public void buildFinished(@NotNull SFinishedBuild build) {
+  }
+
+  public void buildCommented(@NotNull SBuild build, @NotNull User user, @NotNull String comment) {
   }
 
   @Nullable
