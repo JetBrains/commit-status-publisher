@@ -46,7 +46,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
       return;
     StringBuilder data = new StringBuilder();
     data.append("{")
-            .append("\"state\":").append("\"").append("INPROGRESS").append("\",")
+            .append("\"state\":").append("\"").append(StashBuildStatus.INPROGRESS).append("\",")
             .append("\"key\":").append("\"").append(buildType.getExternalId()).append("\",")
             .append("\"name\":").append("\"").append(getBuildName(build)).append("\",")
             .append("\"url\":").append("\"").append(myLinks.getViewResultsUrl(build)).append("\",")
@@ -69,7 +69,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     SBuildType buildType = build.getBuildType();
     if (buildType == null)
       return;
-    String state = build.getBuildStatus().isSuccessful() ? "SUCCESSFUL" : "FAILED";
+    StashBuildStatus state = build.getBuildStatus().isSuccessful() ? StashBuildStatus.SUCCESSFUL : StashBuildStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
     StringBuilder data = new StringBuilder();
     data.append("{")
