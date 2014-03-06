@@ -10,8 +10,10 @@
   PublisherFeature = {
     showPublisherSettings: function() {
       var url = '${settingsUrl}?publisherId=' + $('publisherId').value;
-      $('publisherProperties').refresh = BS.Refreshable.createRefreshFunction('publisherProperties', url, 'false');
-      $('publisherProperties').refresh();
+      $j.get(url, function(xhr) {
+        $j("#publisherProperties").html(xhr);
+      });
+      return false;
     }
   };
 </script>

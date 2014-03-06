@@ -1,10 +1,10 @@
 <%@include file="publisherFeatureHeader.jsp"%>
 <tr>
   <td colspan="2">
-    <bs:refreshable containerId="publisherProperties" pageUrl="dynamic">
+    <div id="publisherProperties">
       <jsp:include page="${editedPublisherUrl}">
         <jsp:param name="propertiesBean" value="${propertiesBean}"/>
       </jsp:include>
-    </bs:refreshable>
+    </div>
   </td>
 </tr>
