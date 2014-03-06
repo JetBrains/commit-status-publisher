@@ -1,14 +1,15 @@
 package org.jetbrains.teamcity.publisher;
 
-import jetbrains.buildServer.serverSide.BuildRevision;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.SRunningBuild;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public interface CommitStatusPublisher {
+
+  void buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision);
+
+  void buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment);
 
   void buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision);
 

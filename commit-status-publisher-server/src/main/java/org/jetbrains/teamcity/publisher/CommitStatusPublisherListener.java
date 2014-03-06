@@ -109,9 +109,45 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     });
   }
 
+
+  @Override
+  public void buildTypeAddedToQueue(@NotNull final SQueuedBuild build) {
+    SBuildType buildType = build.getBuildType();
+    if (buildType == null)
+      return;
+
+    runForEveryPublisher(buildType, build, new QueuedBuildPublishTask() {
+      public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+        publisher.buildQueued(build, revision);
+      }
+    });
+  }
+
+  @Override
+  public void buildRemovedFromQueue(@NotNull final SQueuedBuild build, final User user, final String comment) {
+    SBuildType buildType = build.getBuildType();
+    if (buildType == null)
+      return;
+
+    runForEveryPublisher(buildType, build, new QueuedBuildPublishTask() {
+      public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+        publisher.buildRemovedFromQueue(build, revision, user, comment);
+      }
+    });
+  }
+
   private void runForEveryPublisher(@NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task) {
     for (CommitStatusPublisher publisher : getPublishers(buildType)) {
       BuildRevision revision = getBuildRevisionForVote(publisher, build);
+      if (revision == null)
+        continue;
+      task.run(publisher, revision);
+    }
+  }
+
+  private void runForEveryPublisher(@NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull QueuedBuildPublishTask task) {
+    for (CommitStatusPublisher publisher : getPublishers(buildType)) {
+      BuildRevision revision = getQueuedBuildRevisionForVote(buildType, publisher, build);
       if (revision == null)
         continue;
       task.run(publisher, revision);
@@ -145,7 +181,36 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     return null;
   }
 
+  @Nullable
+  private BuildRevision getQueuedBuildRevisionForVote(@NotNull SBuildType buildType,
+                                                      @NotNull CommitStatusPublisher publisher,
+                                                      @NotNull SQueuedBuild build) {
+    BuildPromotion p = build.getBuildPromotion();
+    SBuild b = p.getAssociatedBuild();
+    if (b != null) {
+      BuildRevision revision = getBuildRevisionForVote(publisher, b);
+      if (revision != null)
+        return revision;
+    }
+
+    String branchName = getBranchName(p);
+    BranchEx branch = ((BuildTypeEx) buildType).getBranch(branchName);
+    return getBuildRevisionForVote(publisher, branch.getDummyBuild());
+  }
+
+  @NotNull
+  private String getBranchName(@NotNull BuildPromotion p) {
+    Branch b = p.getBranch();
+    if (b == null)
+      return Branch.DEFAULT_BRANCH_NAME;
+    return b.getName();
+  }
+
   private static interface PublishTask {
+    public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision);
+  }
+
+  private static interface QueuedBuildPublishTask {
     public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision);
   }
 }
