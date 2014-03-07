@@ -90,7 +90,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
                     @NotNull BuildRevision revision,
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) {
-    String msg = createMessage(status, build.getBuildPromotion().getId(), getBuildName(build), myLinks.getViewResultsUrl(build), comment);
+    String msg = createMessage(status, build.getBuildPromotion().getBuildTypeExternalId(), getBuildName(build), myLinks.getViewResultsUrl(build), comment);
     try {
       vote(revision.getRevision(), msg);
     } catch (Exception e) {
@@ -104,7 +104,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
                     @NotNull BuildRevision revision,
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) {
-    String msg = createMessage(status, build.getBuildPromotion().getId(), getBuildName(build), myLinks.getQueuedBuildUrl(build), comment);
+    String msg = createMessage(status, build.getBuildPromotion().getBuildTypeExternalId(), getBuildName(build), myLinks.getQueuedBuildUrl(build), comment);
     try {
       vote(revision.getRevision(), msg);
     } catch (Exception e) {
@@ -116,7 +116,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
 
   @NotNull
   private String createMessage(@NotNull StashBuildStatus status,
-                               long id,
+                               @NotNull String id,
                                @NotNull String name,
                                @NotNull String url,
                                @NotNull String description) {
