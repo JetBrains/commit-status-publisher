@@ -1,23 +1,34 @@
 package org.jetbrains.teamcity.publisher.gerrit;
 
+import jetbrains.buildServer.ExtensionHolder;
+import jetbrains.buildServer.TeamCityExtension;
 import jetbrains.buildServer.serverSide.InvalidProperty;
+import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
+import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.teamcity.publisher.CommitStatusPublisher;
 import org.jetbrains.teamcity.publisher.CommitStatusPublisherSettings;
 
 import java.util.*;
 
 import static java.util.Arrays.asList;
+import static jetbrains.buildServer.ssh.ServerSshKeyManager.TEAMCITY_SSH_KEY_PROP;
 
 public class GerritSettings implements CommitStatusPublisherSettings {
 
   private final PluginDescriptor myDescriptor;
+  private final ExtensionHolder myExtensionHolder;
+  private final String[] myMandatoryProperties = new String[] {
+          "gerritServer", "gerritProject", "gerritUsername",
+          "successVote", "failureVote", TEAMCITY_SSH_KEY_PROP};
 
-  public GerritSettings(@NotNull PluginDescriptor descriptor) {
+
+  public GerritSettings(@NotNull PluginDescriptor descriptor,
+                        @NotNull ExtensionHolder extensionHolder) {
     myDescriptor = descriptor;
+    myExtensionHolder = extensionHolder;
   }
 
   @NotNull
@@ -45,7 +56,12 @@ public class GerritSettings implements CommitStatusPublisherSettings {
 
   @Nullable
   public GerritPublisher createPublisher(@NotNull Map<String, String> params) {
-    return new GerritPublisher(params);
+    Collection<ServerSshKeyManager> extensions = myExtensionHolder.getExtensions(ServerSshKeyManager.class);
+    if (extensions.isEmpty()) {
+      return new GerritPublisher(null, params);
+    } else {
+      return new GerritPublisher(extensions.iterator().next(), params);
+    }
   }
 
   @NotNull
@@ -59,7 +75,7 @@ public class GerritSettings implements CommitStatusPublisherSettings {
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
-        for (String mandatoryParam : asList("gerritServer", "gerritProject", "gerritUsername", "successVote", "failureVote")) {
+        for (String mandatoryParam : myMandatoryProperties) {
           if (params.get(mandatoryParam) == null)
             errors.add(new InvalidProperty(mandatoryParam, "must be specified"));
         }

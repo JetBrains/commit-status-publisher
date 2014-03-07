@@ -45,6 +45,7 @@ public class CommitStatusPublisherFeatureController extends BaseController {
     ModelAndView mv = publisherId != null ? createEditPublisherModel(publisherId) : createAddPublisherModel();
     mv.addObject("publisherSettingsUrl", myPublisherSettingsController.getUrl());
     mv.addObject("vcsRoots", getVcsRoots(request));
+    mv.addObject("projectId", getProjectId(request));
     return mv;
   }
 
@@ -73,6 +74,12 @@ public class CommitStatusPublisherFeatureController extends BaseController {
       roots.add(entry.getVcsRoot());
     }
     return roots;
+  }
+
+  @NotNull
+  private String getProjectId(@NotNull HttpServletRequest request) {
+    BuildTypeForm buildTypeForm = (BuildTypeForm) request.getAttribute("buildForm");
+    return buildTypeForm.getProject().getExternalId();
   }
 
   private List<CommitStatusPublisherSettings> getPublisherSettings(boolean newPublisher) {

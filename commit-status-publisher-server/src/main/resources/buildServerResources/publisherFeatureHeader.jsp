@@ -9,7 +9,7 @@
 <script type="text/javascript">
   PublisherFeature = {
     showPublisherSettings: function() {
-      var url = '${settingsUrl}?publisherId=' + $('publisherId').value;
+      var url = '${settingsUrl}?publisherId=' + $('publisherId').value  + "&projectId=${projectId}";
       $j.get(url, function(xhr) {
         $j("#publisherProperties").html(xhr);
       });
