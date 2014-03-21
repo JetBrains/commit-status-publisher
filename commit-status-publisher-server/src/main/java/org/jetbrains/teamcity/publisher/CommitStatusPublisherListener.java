@@ -129,6 +129,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     if (buildType == null)
       return;
 
+    if (user == null)
+      return;
+
     runForEveryPublisher(buildType, build, new QueuedBuildPublishTask() {
       public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
         publisher.buildRemovedFromQueue(build, revision, user, comment);
