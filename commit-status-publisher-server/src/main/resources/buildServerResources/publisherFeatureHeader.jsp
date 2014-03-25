@@ -9,9 +9,11 @@
 <script type="text/javascript">
   PublisherFeature = {
     showPublisherSettings: function() {
-      var url = '${settingsUrl}?publisherId=' + $('publisherId').value;
-      $('publisherProperties').refresh = BS.Refreshable.createRefreshFunction('publisherProperties', url, 'false');
-      $('publisherProperties').refresh();
+      var url = '${settingsUrl}?publisherId=' + $('publisherId').value  + "&projectId=${projectId}";
+      $j.get(url, function(xhr) {
+        $j("#publisherProperties").html(xhr);
+      });
+      return false;
     }
   };
 </script>

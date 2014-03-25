@@ -1,4 +1,5 @@
 <%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
+<%@ taglib prefix="admin" tagdir="/WEB-INF/tags/admin" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="l" tagdir="/WEB-INF/tags/layout" %>
 <%@ taglib prefix="forms" tagdir="/WEB-INF/tags/forms" %>
@@ -18,6 +19,14 @@
     <td>
       <props:textProperty name="gerritProject" style="width:18em;"/>
       <span class="error" id="error_gerritProject"></span>
+    </td>
+  </tr>
+
+  <tr>
+    <th><label for="teamcitySshKey">Ssh Key: <l:star/></label></th>
+    <td>
+      <admin:sshKeys projectId="${projectId}"/>
+      <span class="error" id="error_teamcitySshKey"></span>
     </td>
   </tr>
 

@@ -5,10 +5,11 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import jetbrains.buildServer.BuildProblemData;
-import jetbrains.buildServer.serverSide.Branch;
-import jetbrains.buildServer.serverSide.BuildRevision;
-import jetbrains.buildServer.serverSide.SFinishedBuild;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.ssh.ServerSshKeyManager;
+import jetbrains.buildServer.ssh.TeamCitySshKey;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.teamcity.publisher.BaseCommitStatusPublisher;
 
 import java.io.BufferedReader;
@@ -19,8 +20,12 @@ import java.util.Map;
 
 public class GerritPublisher extends BaseCommitStatusPublisher {
 
-  public GerritPublisher(@NotNull Map<String, String> params) {
+  private final ServerSshKeyManager mySshKeyManager;
+
+  public GerritPublisher(@Nullable ServerSshKeyManager sshKeyManager,
+                         @NotNull Map<String, String> params) {
     super(params);
+    mySshKeyManager = sshKeyManager;
   }
 
   @Override
@@ -38,21 +43,19 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
            .append(" -m \"").append(msg).append("\" ")
            .append(revision.getRevision());
     try {
-      runCommand(command.toString());
+      runCommand(build.getBuildType().getProject(), command.toString());
     } catch (Exception e) {
       String problemId = "gerrit.publisher." + revision.getRoot().getId();
       build.addBuildProblem(BuildProblemData.createBuildProblem(problemId, "gerrit.publisher", e.getMessage()));
     }
   }
 
-  private void runCommand(@NotNull String command) throws JSchException, IOException {
+  private void runCommand(@NotNull SProject project, @NotNull String command) throws JSchException, IOException {
     ChannelExec channel = null;
     Session session = null;
     try {
       JSch jsch = new JSch();
-      String home = System.getProperty("user.home");
-      home = home == null ? new File(".").getAbsolutePath() : new File(home).getAbsolutePath();
-      jsch.addIdentity(new File(new File(home, ".ssh"), "id_rsa").getAbsolutePath());
+      addKeys(jsch, project);
       session = jsch.getSession(getUsername(), getGerritServer(), 29418);
       session.setConfig("StrictHostKeyChecking", "no");
       session.connect();
@@ -74,6 +77,18 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
       if (session != null)
         session.disconnect();
     }
+  }
+
+  private void addKeys(@NotNull JSch jsch, @NotNull SProject project) throws JSchException {
+    String uploadedKeyId = myParams.get(ServerSshKeyManager.TEAMCITY_SSH_KEY_PROP);
+    if (uploadedKeyId != null && mySshKeyManager != null) {
+      TeamCitySshKey key = mySshKeyManager.getKey(project, uploadedKeyId);
+      if (key != null)
+        jsch.addIdentity(key.getName(), key.getPrivateKey(), null, null);
+    }
+    String home = System.getProperty("user.home");
+    home = home == null ? new File(".").getAbsolutePath() : new File(home).getAbsolutePath();
+    jsch.addIdentity(new File(new File(home, ".ssh"), "id_rsa").getAbsolutePath());
   }
 
   String getGerritServer() {

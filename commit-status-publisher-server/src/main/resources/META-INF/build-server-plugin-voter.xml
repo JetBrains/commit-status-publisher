@@ -3,10 +3,10 @@
 <beans default-autowire="constructor">
   <bean id="voterBuildFeature" class="org.jetbrains.teamcity.publisher.CommitStatusPublisherFeature"/>
   <bean id="voterBuildListener" class="org.jetbrains.teamcity.publisher.CommitStatusPublisherListener"/>
-  <bean id="gerritBuildVoter" class="org.jetbrains.teamcity.publisher.gerrit.GerritSettings"/>
   <bean id="voterSettingsController" class="org.jetbrains.teamcity.publisher.PublisherSettingsController"/>
   <bean class="org.jetbrains.teamcity.publisher.CommitStatusPublisherFeatureController"/>
   <bean class="org.jetbrains.teamcity.publisher.PublisherManager"/>
 
   <bean class="org.jetbrains.teamcity.publisher.stash.StashSettings"/>
+  <bean class="org.jetbrains.teamcity.publisher.gerrit.GerritSettings"/>
 </beans>

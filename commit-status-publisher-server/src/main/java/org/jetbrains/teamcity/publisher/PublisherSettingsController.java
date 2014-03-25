@@ -36,6 +36,7 @@ public class PublisherSettingsController extends BaseController {
     String publisherId = request.getParameter("publisherId");
     if (publisherId == null)
       return null;
+    request.setAttribute("projectId", request.getParameter("projectId"));
     CommitStatusPublisherSettings settings = myPublisherManager.findSettings(publisherId);
     if (settings == null)
       return null;
