@@ -5,7 +5,11 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import jetbrains.buildServer.BuildProblemData;
-import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.log.Loggers;
+import jetbrains.buildServer.serverSide.Branch;
+import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.serverSide.SFinishedBuild;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.ssh.TeamCitySshKey;
 import org.jetbrains.annotations.NotNull;
@@ -45,6 +49,7 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
     try {
       runCommand(build.getBuildType().getProject(), command.toString());
     } catch (Exception e) {
+      Loggers.SERVER.error("Error while running gerrit command '" + command + "'", e);
       String problemId = "gerrit.publisher." + revision.getRoot().getId();
       build.addBuildProblem(BuildProblemData.createBuildProblem(problemId, "gerrit.publisher", e.getMessage()));
     }
