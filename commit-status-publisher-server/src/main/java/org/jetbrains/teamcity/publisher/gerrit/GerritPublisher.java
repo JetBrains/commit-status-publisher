@@ -88,7 +88,9 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
     }
     String home = System.getProperty("user.home");
     home = home == null ? new File(".").getAbsolutePath() : new File(home).getAbsolutePath();
-    jsch.addIdentity(new File(new File(home, ".ssh"), "id_rsa").getAbsolutePath());
+    File defaultKey = new File(new File(home, ".ssh"), "id_rsa");
+    if (defaultKey.isFile())
+      jsch.addIdentity(defaultKey.getAbsolutePath());
   }
 
   String getGerritServer() {
