@@ -6,12 +6,10 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.log.Loggers;
-import jetbrains.buildServer.serverSide.Branch;
-import jetbrains.buildServer.serverSide.BuildRevision;
-import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.ssh.TeamCitySshKey;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.teamcity.publisher.BaseCommitStatusPublisher;
@@ -25,11 +23,14 @@ import java.util.Map;
 public class GerritPublisher extends BaseCommitStatusPublisher {
 
   private final ServerSshKeyManager mySshKeyManager;
+  private final WebLinks myLinks;
 
   public GerritPublisher(@Nullable ServerSshKeyManager sshKeyManager,
+                         @NotNull WebLinks links,
                          @NotNull Map<String, String> params) {
     super(params);
     mySshKeyManager = sshKeyManager;
+    myLinks = links;
   }
 
   @Override
@@ -39,7 +40,7 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
       return;
 
     String vote = build.getBuildStatus().isSuccessful() ? getSuccessVote() : getFailureVote();
-    String msg = build.getBuildStatus().isSuccessful() ? "Successful build" : "Failed build";
+    String msg = build.getStatusDescriptor().getText() + " " + myLinks.getViewResultsUrl(build);
 
     StringBuilder command = new StringBuilder();
     command.append("gerrit review --project ").append(getGerritProject())
