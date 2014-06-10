@@ -21,6 +21,8 @@ public interface CommitStatusPublisher {
 
   void buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision);
 
+  void buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision);
+
   @NotNull
   String getVcsRootId();
 }

@@ -36,6 +36,9 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   public void buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
   }
 
+  public void buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision) {
+  }
+
   @Nullable
   public String getVcsRootId() {
     return myParams.get("vcsRootId");

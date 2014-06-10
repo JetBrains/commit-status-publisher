@@ -1,5 +1,6 @@
 package org.jetbrains.teamcity.publisher;
 
+import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
@@ -109,6 +110,21 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     });
   }
 
+
+  @Override
+  public void buildProblemsChanged(@NotNull final SBuild build, @NotNull final List<BuildProblemData> before, @NotNull final List<BuildProblemData> after) {
+    SBuildType buildType = build.getBuildType();
+    if (buildType == null)
+      return;
+
+    if (!before.isEmpty() && after.isEmpty()) {
+      runForEveryPublisher(buildType, build, new PublishTask() {
+        public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+          publisher.buildMarkedAsSuccessful(build, revision);
+        }
+      });
+    }
+  }
 
   @Override
   public void buildTypeAddedToQueue(@NotNull final SQueuedBuild build) {

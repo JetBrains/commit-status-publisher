@@ -2,6 +2,8 @@ package org.jetbrains.teamcity.publisher.stash;
 
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.comments.Comment;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.http.HttpHost;
@@ -74,6 +76,11 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     StashBuildStatus status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.SUCCESSFUL : StashBuildStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
     vote(build, revision, status, description + " with a comment by " + user.getExtendedName() + ": \"" + comment + "\"");
+  }
+
+  @Override
+  public void buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision) {
+    vote(build, revision, StashBuildStatus.SUCCESSFUL, "Build marked as successful");
   }
 
   @Override
