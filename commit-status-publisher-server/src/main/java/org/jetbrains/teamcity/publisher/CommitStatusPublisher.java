@@ -15,7 +15,7 @@ public interface CommitStatusPublisher {
 
   void buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision);
 
-  void buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull User user, @NotNull String comment);
+  void buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull User user, @NotNull String comment, boolean buildInProgress);
 
   void buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision);
 

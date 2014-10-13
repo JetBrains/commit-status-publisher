@@ -15,12 +15,15 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private final PublisherManager myPublisherManager;
   private final BuildHistory myBuildHistory;
+  private final RunningBuildsManager myRunningBuilds;
 
   public CommitStatusPublisherListener(@NotNull EventDispatcher<BuildServerListener> events,
                                        @NotNull PublisherManager voterManager,
-                                       @NotNull BuildHistory buildHistory) {
+                                       @NotNull BuildHistory buildHistory,
+                                       @NotNull RunningBuildsManager runningBuilds) {
     myPublisherManager = voterManager;
     myBuildHistory = buildHistory;
+    myRunningBuilds = runningBuilds;
     events.addListener(this);
   }
 
@@ -66,9 +69,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     if (buildType == null)
       return;
 
+    final boolean inProgress = myRunningBuilds.findRunningBuildById(build.getBuildId()) != null;
+
     runForEveryPublisher(buildType, build, new PublishTask() {
       public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
-        publisher.buildCommented(build, revision, user, comment);
+        publisher.buildCommented(build, revision, user, comment, inProgress);
       }
     });
   }

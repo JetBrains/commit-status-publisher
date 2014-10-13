@@ -27,7 +27,7 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   public void buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
   }
 
-  public void buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull User user, @NotNull String comment) {
+  public void buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull User user, @NotNull String comment, boolean buildInProgress) {
   }
 
   public void buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {

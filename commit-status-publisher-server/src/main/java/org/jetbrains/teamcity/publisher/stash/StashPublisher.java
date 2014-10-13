@@ -72,8 +72,13 @@ public class StashPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public void buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull User user, @NotNull String comment) {
-    StashBuildStatus status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.SUCCESSFUL : StashBuildStatus.FAILED;
+  public void buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull User user, @NotNull String comment, boolean buildInProgress) {
+    StashBuildStatus status;
+    if (buildInProgress) {
+      status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.INPROGRESS : StashBuildStatus.FAILED;
+    } else {
+      status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.SUCCESSFUL : StashBuildStatus.FAILED;
+    }
     String description = build.getStatusDescriptor().getText();
     vote(build, revision, status, description + " with a comment by " + user.getExtendedName() + ": \"" + comment + "\"");
   }
