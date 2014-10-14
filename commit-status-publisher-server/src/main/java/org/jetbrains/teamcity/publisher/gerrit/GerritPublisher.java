@@ -1,5 +1,6 @@
 package org.jetbrains.teamcity.publisher.gerrit;
 
+import com.intellij.openapi.diagnostic.Logger;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
@@ -21,6 +22,8 @@ import java.io.InputStreamReader;
 import java.util.Map;
 
 public class GerritPublisher extends BaseCommitStatusPublisher {
+
+  private final static Logger LOG = Loggers.SERVER;
 
   private final ServerSshKeyManager mySshKeyManager;
   private final WebLinks myLinks;
@@ -50,7 +53,7 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
     try {
       runCommand(build.getBuildType().getProject(), command.toString());
     } catch (Exception e) {
-      Loggers.SERVER.error("Error while running gerrit command '" + command + "'", e);
+      error("Error while running gerrit command '" + command + "'", e);
       String problemId = "gerrit.publisher." + revision.getRoot().getId();
       build.addBuildProblem(BuildProblemData.createBuildProblem(problemId, "gerrit.publisher", e.getMessage()));
     }
@@ -67,22 +70,31 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
       session.connect();
       channel = (ChannelExec) session.openChannel("exec");
       channel.setCommand(command);
+      BufferedReader stdout = new BufferedReader(new InputStreamReader(channel.getInputStream()));
       BufferedReader stderr = new BufferedReader(new InputStreamReader(channel.getErrStream()));
+      log("Run command '" + command + "'");
       channel.connect();
-
-      String line;
-      StringBuilder details = new StringBuilder();
-      while ((line = stderr.readLine()) != null) {
-        details.append(line).append("\n");
-      }
-      if (details.length() > 0)
-        throw new IOException(details.toString());
+      String out = readFully(stderr);
+      String err = readFully(stderr);
+      log("Command '" + command + "' finished, stdout: '" + out + "', stderr: '" + err + "', exitCode: " + channel.getExitStatus());
+      if (err.length() > 0)
+        throw new IOException(err);
     } finally {
       if (channel != null)
         channel.disconnect();
       if (session != null)
         session.disconnect();
     }
+  }
+
+  @NotNull
+  private String readFully(@NotNull BufferedReader reader) throws IOException {
+    String line;
+    StringBuilder out = new StringBuilder();
+    while ((line = reader.readLine()) != null) {
+      out.append(line);
+    }
+    return out.toString();
   }
 
   private void addKeys(@NotNull JSch jsch, @NotNull SProject project) throws JSchException {
@@ -117,5 +129,17 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
 
   private String getFailureVote() {
     return myParams.get("failureVote");
+  }
+
+  private void log(@NotNull String message) {
+    if (TeamCityProperties.getBoolean("commitStatusPublisher.gerrit.enableInfoLog")) {
+      LOG.info(message);
+    } else {
+      LOG.debug(message);
+    }
+  }
+
+  private void error(@NotNull String message, @NotNull Exception error) {
+    Loggers.SERVER.error(message, error);
   }
 }
