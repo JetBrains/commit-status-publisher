@@ -1,9 +1,9 @@
 package org.jetbrains.teamcity.publisher.stash;
 
+import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.comments.Comment;
-import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.http.HttpHost;
@@ -35,6 +35,7 @@ import java.security.UnrecoverableKeyException;
 import java.util.Map;
 
 public class StashPublisher extends BaseCommitStatusPublisher {
+  private static final Logger LOG = Logger.getInstance(StashPublisher.class.getName());
 
   private final WebLinks myLinks;
 
@@ -106,9 +107,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     try {
       vote(revision.getRevision(), msg);
     } catch (Exception e) {
-      String problemId = "stash.publisher." + revision.getRoot().getId();
-      build.addBuildProblem(BuildProblemData.createBuildProblem(problemId, "stash.publisher",
-              "Error while publishing a commit status to Stash: " + e.getMessage()));
+      reportProblem(build.getBuildPromotion(), revision, e);
     }
   }
 
@@ -120,10 +119,23 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     try {
       vote(revision.getRevision(), msg);
     } catch (Exception e) {
-      String problemId = "stash.publisher." + revision.getRoot().getId();
-      ((BuildPromotionEx) build.getBuildPromotion()).addBuildProblem(BuildProblemData.createBuildProblem(problemId, "stash.publisher",
-              "Error while publishing a commit status to Stash: " + e.getMessage()));
+      reportProblem(build.getBuildPromotion(), revision, e);
     }
+  }
+
+  private void reportProblem(final BuildPromotion buildPromotion,
+                             final BuildRevision revision,
+                             final Exception e) {
+    //todo: throw known exception on known errors and for those only use message and log no stacktrace
+    final String logMessage = "Error while publishing a commit status to Stash : " + e.toString() +
+                              ", build: " + LogUtil.describe(buildPromotion) +
+                              ", VCS root: " + LogUtil.describe(revision.getRoot());
+    LOG.info(logMessage);
+    LOG.debug(logMessage, e);
+    String problemId = "stash.publisher." + revision.getRoot().getId();
+    final BuildProblemData buildProblem =
+      BuildProblemData.createBuildProblem(problemId, "stash.publisher", "Error while publishing a commit status to Stash: " + e.toString());
+    ((BuildPromotionEx)buildPromotion).addBuildProblem(buildProblem);
   }
 
   @NotNull
