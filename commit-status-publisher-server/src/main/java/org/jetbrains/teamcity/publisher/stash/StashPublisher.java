@@ -150,9 +150,15 @@ public class StashPublisher extends BaseCommitStatusPublisher {
             .append("\"key\":").append("\"").append(id).append("\",")
             .append("\"name\":").append("\"").append(name).append("\",")
             .append("\"url\":").append("\"").append(url).append("\",")
-            .append("\"description\":").append("\"").append(WebUtil.escapeForJavaScript(description, false, false)).append("\"")
+            .append("\"description\":").append("\"").append(escape(description)).append("\"")
             .append("}");
     return data.toString();
+  }
+
+  @NotNull
+  private String escape(@NotNull String str) {
+    String result = WebUtil.escapeForJavaScript(str, false, false);
+    return result.replaceAll("\\\\'", "'");
   }
 
   private void vote(@NotNull String commit, @NotNull String data) throws URISyntaxException, IOException,
