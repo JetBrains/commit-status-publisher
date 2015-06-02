@@ -15,6 +15,7 @@ import org.apache.http.client.AuthCache;
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.auth.BasicScheme;
@@ -166,23 +167,39 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     URI stashURI = new URI(getBaseUrl());
 
     DefaultHttpClient client = new DefaultHttpClient();
-    client.getCredentialsProvider().setCredentials(
-            new AuthScope(stashURI.getHost(), stashURI.getPort()),
-            new UsernamePasswordCredentials(getUsername(), getPassword()));
+    try {
+      client.getCredentialsProvider().setCredentials(
+              new AuthScope(stashURI.getHost(), stashURI.getPort()),
+              new UsernamePasswordCredentials(getUsername(), getPassword()));
 
-    AuthCache authCache = new BasicAuthCache();
-    authCache.put(new HttpHost(stashURI.getHost(), stashURI.getPort(), stashURI.getScheme()), new BasicScheme());
-    BasicHttpContext ctx = new BasicHttpContext();
-    ctx.setAttribute(ClientContext.AUTH_CACHE, authCache);
+      AuthCache authCache = new BasicAuthCache();
+      authCache.put(new HttpHost(stashURI.getHost(), stashURI.getPort(), stashURI.getScheme()), new BasicScheme());
+      BasicHttpContext ctx = new BasicHttpContext();
+      ctx.setAttribute(ClientContext.AUTH_CACHE, authCache);
 
-    String url = getBaseUrl() + "/rest/build-status/1.0/commits/" + commit;
+      String url = getBaseUrl() + "/rest/build-status/1.0/commits/" + commit;
 
-    HttpPost post = new HttpPost(url);
-    post.setEntity(new StringEntity(data, ContentType.APPLICATION_JSON));
-    HttpResponse response = client.execute(post, ctx);
-    StatusLine statusLine = response.getStatusLine();
-    if (statusLine.getStatusCode() >= 400)
-      throw new HttpResponseException(statusLine.getStatusCode(), statusLine.getReasonPhrase());
+      HttpPost post = new HttpPost(url);
+      try {
+        post.setEntity(new StringEntity(data, ContentType.APPLICATION_JSON));
+        HttpResponse response = client.execute(post, ctx);
+        try {
+          StatusLine statusLine = response.getStatusLine();
+          if (statusLine.getStatusCode() >= 400)
+            throw new HttpResponseException(statusLine.getStatusCode(), statusLine.getReasonPhrase());
+        } finally {
+          HttpClientUtils.closeQuietly(response);
+        }
+      } finally {
+        try {
+          post.releaseConnection();
+        } catch (Exception e) {
+          LOG.warn("Error releasing connection", e);
+        }
+      }
+    } finally {
+      HttpClientUtils.closeQuietly(client);
+    }
   }
 
   @NotNull
