@@ -69,6 +69,7 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
       session.setConfig("StrictHostKeyChecking", "no");
       session.connect();
       channel = (ChannelExec) session.openChannel("exec");
+      channel.setPty(false);
       channel.setCommand(command);
       BufferedReader stdout = new BufferedReader(new InputStreamReader(channel.getInputStream()));
       BufferedReader stderr = new BufferedReader(new InputStreamReader(channel.getErrStream()));
