@@ -17,18 +17,22 @@
 package org.jetbrains.teamcity.publisher.github;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.util.Pair;
 import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.teamcity.publisher.github.api.*;
 import org.jetbrains.teamcity.publisher.github.ui.UpdateChangesConstants;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -78,11 +82,15 @@ public class ChangeStatusUpdater {
   }
 
   @NotNull
-  public Handler getUpdateHandler(@NotNull Map<String, String> params) {
+  public Handler getUpdateHandler(@NotNull VcsRootInstance root, @NotNull Map<String, String> params) {
     final GitHubApi api = getGitHubApi(params);
 
-    final String repositoryOwner = params.get(C.getRepositoryOwnerKey());
-    final String repositoryName = params.get(C.getRepositoryNameKey());
+    GitHubRepo repo = getGitHubRepo(root.getProperty("url"));
+    if (repo == null)
+      return null;
+
+    final String repositoryOwner = repo.owner();
+    final String repositoryName = repo.repositoryName();
     @Nullable final String context = params.get(C.getContextKey());
     final boolean addComments = !StringUtil.isEmptyOrSpaces(params.get(C.getUseCommentsKey()));
     final boolean useGuestUrls = !StringUtil.isEmptyOrSpaces(params.get(C.getUseGuestUrlsKey()));
@@ -302,5 +310,52 @@ public class ChangeStatusUpdater {
     boolean shouldReportOnFinish();
     void scheduleChangeStarted(@NotNull final RepositoryVersion hash, @NotNull final SBuild build);
     void scheduleChangeCompeted(@NotNull final RepositoryVersion hash, @NotNull final SBuild build);
+  }
+
+
+  @Nullable
+  public static GitHubRepo getGitHubRepo(@NotNull String uri) {
+    URL url = null;
+    try {
+      url = new URL(uri);
+    } catch (MalformedURLException e) {
+      LOG.warn("Cannot parse GitHub repository url " + uri, e);
+      return null;
+    }
+
+    String path = url.getPath();
+    if (path == null) {
+      LOG.warn("Cannot parse GitHub repository url " + uri + ", path is empty");
+      return null;
+    }
+
+    if (path.startsWith("/"))
+      path = path.substring(1);
+    int idx = path.indexOf("/");
+    if (idx <= 0) {
+      LOG.warn("Cannot parse GitHub repository url " + uri);
+      return null;
+    }
+    String owner = path.substring(0, idx);
+    String repo = path.substring(idx + 1, path.length());
+    if (repo.endsWith(".git"))
+      repo = repo.substring(0, repo.length() - 4);
+    return new GitHubRepo(owner, repo);
+  }
+
+
+  private static class GitHubRepo extends Pair<String, String> {
+    public GitHubRepo(@NotNull String owner, @NotNull String repo) {
+      super(owner, repo);
+    }
+
+    @NotNull
+    public String owner() {
+      return first;
+    }
+    @NotNull
+    public String repositoryName() {
+      return second;
+    }
   }
 }

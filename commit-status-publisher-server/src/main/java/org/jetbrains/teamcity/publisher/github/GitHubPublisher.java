@@ -42,7 +42,11 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
 
 
   private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) {
-    final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(myParams);
+    final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), myParams);
+
+    if (h == null)
+      return;
+
     if (isStarting && !h.shouldReportOnStart()) return;
     if (!isStarting && !h.shouldReportOnFinish()) return;
 

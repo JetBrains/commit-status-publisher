@@ -94,9 +94,6 @@ public class GitHubSettings implements CommitStatusPublisherSettings {
           checkNotEmpty(p, c.getAccessTokenKey(), "Personal Access Token must be specified", result);
         }
 
-        checkNotEmpty(p, c.getRepositoryNameKey(), "Repository name must be specified", result);
-        checkNotEmpty(p, c.getRepositoryOwnerKey(), "Repository owner must be specified", result);
-
         if (!checkNotEmpty(p, c.getServerKey(), "GitHub api URL", result)) {
           final String url = "" + p.get(c.getServerKey());
           if (!ReferencesResolverUtil.mayContainReference(url) && !(url.startsWith("http://") || url.startsWith("https://"))) {

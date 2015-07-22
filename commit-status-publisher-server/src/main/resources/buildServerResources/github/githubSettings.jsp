@@ -136,23 +136,4 @@
     </props:selectSectionPropertyContent>
   </props:selectSectionProperty>
 </l:settingsGroup>
-
-<l:settingsGroup title="Repository">
-  <tr>
-    <th>Owner:<l:star/></th>
-    <td>
-      <props:textProperty name="${keys.repositoryOwnerKey}" className="longField"/>
-      <span class="error" id="error_${keys.repositoryOwnerKey}"></span>
-      <span class="smallNote">Specify GitHub repository owner name (user or organization)</span>
-    </td>
-  </tr>
-  <tr>
-    <th>Repository:<l:star/></th>
-    <td>
-      <props:textProperty name="${keys.repositoryNameKey}" className="longField"/>
-      <span class="error" id="error_${keys.repositoryNameKey}"></span>
-      <span class="smallNote">Specify GitHub repository name to push change statuses to</span>
-    </td>
-  </tr>
-</l:settingsGroup>
 </table>
