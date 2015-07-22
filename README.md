@@ -1,5 +1,5 @@
 TeamCity build feature publishing a commit status to an external
-system like Gerrit Code Review tool or Atlassian Stash.
+system like GitHub, Gerrit Code Review tool or Atlassian Stash.
 
 Builds:
 
