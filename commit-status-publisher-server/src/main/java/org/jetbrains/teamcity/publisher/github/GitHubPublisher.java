@@ -27,49 +27,34 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
 
   @Override
   public void buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
-    updateBuildStatus(build, true);
+    updateBuildStatus(build, revision, true);
   }
 
   @Override
   public void buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
-    updateBuildStatus(build, false);
+    updateBuildStatus(build, revision, false);
   }
 
   @Override
   public void buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
-    updateBuildStatus(build, false);
+    updateBuildStatus(build, revision, false);
   }
 
 
-  private void updateBuildStatus(@NotNull final SBuild build, boolean isStarting) {
+  private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) {
     final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(myParams);
     if (isStarting && !h.shouldReportOnStart()) return;
     if (!isStarting && !h.shouldReportOnFinish()) return;
 
-    final Collection<BuildRevision> changes = getLatestChangesHash(build);
-    if (changes.isEmpty()) {
+    if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
       LOG.warn("No revisions were found to update GitHub status. Please check you have Git VCS roots in the build configuration");
+      return;
     }
 
-    for (BuildRevision e : changes) {
-      if (isStarting) {
-        h.scheduleChangeStarted(e.getRepositoryVersion(), build);
-      } else {
-        h.scheduleChangeCompeted(e.getRepositoryVersion(), build);
-      }
+    if (isStarting) {
+      h.scheduleChangeStarted(revision.getRepositoryVersion(), build);
+    } else {
+      h.scheduleChangeCompeted(revision.getRepositoryVersion(), build);
     }
-  }
-
-
-  @NotNull
-  private Collection<BuildRevision> getLatestChangesHash(@NotNull final SBuild build) {
-    final Collection<BuildRevision> result = new ArrayList<BuildRevision>();
-    for (BuildRevision rev : build.getRevisions()) {
-      if (!"jetbrains.git".equals(rev.getRoot().getVcsName())) continue;
-
-      LOG.debug("Found revision to report status to GitHub: " + rev.getRevision() + ", branch: " + rev.getRepositoryVersion().getVcsBranch() + " from root " + rev.getRoot().getName());
-      result.add(rev);
-    }
-    return result;
   }
 }
