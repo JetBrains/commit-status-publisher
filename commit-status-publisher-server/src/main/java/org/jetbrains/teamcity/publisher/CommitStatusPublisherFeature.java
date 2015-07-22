@@ -1,5 +1,6 @@
 package org.jetbrains.teamcity.publisher;
 
+import com.intellij.openapi.util.text.StringUtil;
 import jetbrains.buildServer.serverSide.BuildFeature;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
@@ -63,6 +64,12 @@ public class CommitStatusPublisherFeature extends BuildFeature {
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
+        String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
+        if (StringUtil.isEmptyOrSpaces(vcsRootId)) {
+          errors.add(new InvalidProperty(Constants.VCS_ROOT_ID_PARAM, "Select a VCS root"));
+          return errors;
+        }
+
         String voterId = params.get("publisherId");
         if (DummyPublisherSettings.ID.equals(voterId)) {
           errors.add(new InvalidProperty("publisherId", "Select a publisher"));

@@ -5,6 +5,8 @@
 <%@ taglib prefix="bs" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
 <jsp:useBean id="propertiesBean" scope="request" type="jetbrains.buildServer.controllers.BasePropertiesBean"/>
+<jsp:useBean id="constants" class="org.jetbrains.teamcity.publisher.Constants" scope="request" />
+
 <c:url value="${publisherSettingsUrl}" var="settingsUrl"/>
 <script type="text/javascript">
   PublisherFeature = {
@@ -18,13 +20,14 @@
   };
 </script>
 <tr>
-  <th><label for="vcsRootId">VCS Root:&nbsp;<l:star/></label></th>
+  <th><label for="${constants.vcsRootIdParam}">VCS Root:&nbsp;<l:star/></label></th>
   <td>
-    <props:selectProperty name="vcsRootId">
+    <props:selectProperty name="${constants.vcsRootIdParam}">
       <c:forEach var="vcsRoot" items="${vcsRoots}">
         <props:option value="${vcsRoot.id}"><bs:trim maxlength="60"><c:out value="${vcsRoot.name}"/></bs:trim></props:option>
       </c:forEach>
     </props:selectProperty>
+    <span class="error" id="error_${constants.vcsRootIdParam}"></span>
   </td>
 </tr>
 <tr>

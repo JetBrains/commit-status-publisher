@@ -41,6 +41,6 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
 
   @Nullable
   public String getVcsRootId() {
-    return myParams.get("vcsRootId");
+    return myParams.get(Constants.VCS_ROOT_ID_PARAM);
   }
 }
