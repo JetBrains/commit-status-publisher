@@ -49,7 +49,7 @@ public class CommitStatusPublisherFeature extends BuildFeature {
   @NotNull
   @Override
   public String describeParameters(@NotNull Map<String, String> params) {
-    String publisherId = params.get("publisherId");
+    String publisherId = params.get(Constants.PUBLISHER_ID_PARAM);
     if (publisherId == null)
       return "";
     CommitStatusPublisherSettings settings = myPublisherManager.findSettings(publisherId);
@@ -70,12 +70,13 @@ public class CommitStatusPublisherFeature extends BuildFeature {
           return errors;
         }
 
-        String voterId = params.get("publisherId");
-        if (DummyPublisherSettings.ID.equals(voterId)) {
-          errors.add(new InvalidProperty("publisherId", "Select a publisher"));
+        String publisherId = params.get(Constants.PUBLISHER_ID_PARAM);
+        if (StringUtil.isEmptyOrSpaces(publisherId) || DummyPublisherSettings.ID.equals(publisherId)) {
+          errors.add(new InvalidProperty(Constants.PUBLISHER_ID_PARAM, "Select a publisher"));
           return errors;
         }
-        CommitStatusPublisherSettings settings = myPublisherManager.findSettings(voterId);
+
+        CommitStatusPublisherSettings settings = myPublisherManager.findSettings(publisherId);
         if (settings == null)
           return errors;
         PropertiesProcessor proc = settings.getParametersProcessor();

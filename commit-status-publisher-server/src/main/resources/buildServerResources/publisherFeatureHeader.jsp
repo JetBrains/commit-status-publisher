@@ -11,7 +11,7 @@
 <script type="text/javascript">
   PublisherFeature = {
     showPublisherSettings: function() {
-      var url = '${settingsUrl}?publisherId=' + $('publisherId').value  + "&projectId=${projectId}";
+      var url = '${settingsUrl}?${constants.publisherIdParam}=' + $('${constants.publisherIdParam}').value  + "&projectId=${projectId}";
       $j.get(url, function(xhr) {
         $j("#publisherProperties").html(xhr);
       });
@@ -31,13 +31,13 @@
   </td>
 </tr>
 <tr>
-  <th><label for="publisherId">Publisher:&nbsp;<l:star/></label></th>
+  <th><label for="${constants.publisherIdParam}">Publisher:&nbsp;<l:star/></label></th>
   <td>
-    <props:selectProperty name="publisherId" onchange="PublisherFeature.showPublisherSettings()">
+    <props:selectProperty name="${constants.publisherIdParam}" onchange="PublisherFeature.showPublisherSettings()">
       <c:forEach var="publisher" items="${publishers}">
         <props:option value="${publisher.id}"><c:out value="${publisher.name}"/></props:option>
       </c:forEach>
     </props:selectProperty>
-    <span class="error" id="error_publisherId"></span>
+    <span class="error" id="error_${constants.publisherIdParam}"></span>
   </td>
 </tr>

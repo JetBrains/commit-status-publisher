@@ -33,7 +33,7 @@ public class PublisherSettingsController extends BaseController {
   @Nullable
   @Override
   protected ModelAndView doHandle(@NotNull HttpServletRequest request, @NotNull HttpServletResponse response) throws Exception {
-    String publisherId = request.getParameter("publisherId");
+    String publisherId = request.getParameter(Constants.PUBLISHER_ID_PARAM);
     if (publisherId == null)
       return null;
     request.setAttribute("projectId", request.getParameter("projectId"));

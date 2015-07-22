@@ -18,7 +18,7 @@ public class PublisherManager {
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
-    String publisherId = params.get("publisherId");
+    String publisherId = params.get(Constants.PUBLISHER_ID_PARAM);
     if (publisherId == null)
       return null;
     CommitStatusPublisherSettings settings = myPublisherSettings.get(publisherId);
