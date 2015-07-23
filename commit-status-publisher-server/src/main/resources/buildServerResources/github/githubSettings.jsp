@@ -37,38 +37,12 @@
     </td>
   </tr>
 
-  <props:selectSectionProperty name="${keys.reportOnKey}" title="Report status on:">
-    <props:selectSectionPropertyContent value="${keys.reportOnStartAndFinishValue}" caption="Build start and finish">
-    </props:selectSectionPropertyContent>
-
-    <props:selectSectionPropertyContent value="${keys.reportOnStartValue}" caption="Build start only">
-    </props:selectSectionPropertyContent>
-
-    <props:selectSectionPropertyContent value="${keys.reportOnFinishValue}" caption="Build finish only">
-    </props:selectSectionPropertyContent>
-  </props:selectSectionProperty>
-
   <tr>
     <th><label for="${keys.useCommentsKey}">Use comments:</label></th>
     <td>
       <props:checkboxProperty name="${keys.useCommentsKey}"/>
       <label for="${keys.useCommentsKey}">Comment pull request with build details</label>
       <span class="error" id="error_${keys.useCommentsKey}"></span>
-    </td>
-  </tr>
-
-  <tr>
-    <th><label for="${keys.useGuestUrlsKey}">Use guest links:</label></th>
-    <td>
-      <props:checkboxProperty name="${keys.useGuestUrlsKey}"/>
-      <label for="${keys.useGuestUrlsKey}">Use Guest Links</label>
-      <span class="error" id="error_${keys.useGuestUrlsKey}"></span>
-      <span class="smallNote">
-        Makes generated TeamCity URLs automatically use guest login without the login form</span>
-      <div class="attentionComment">
-        Guest User should be enabled on the
-        <a href="<c:url value='/admin/admin.html?item=auth'/>" target="_blank">Server Configuration page</a>.
-      </div>
     </td>
   </tr>
 
@@ -84,17 +58,6 @@
   </tr>
 
 </l:settingsGroup>
-
-<tr>
-  <td colspan="2">
-    <div class="attentionComment">
-      TeamCity Server URL<bs:help file="Configuring+Server+URL"/> will be used in GitHub status.
-      Make sure this URL is specified correctly. To change it use the
-      <a href="<c:url value='/admin/admin.html?item=serverConfigGeneral'/>" target="_blank">Server Configuration
-        page</a>.
-    </div>
-  </td>
-</tr>
 
 <l:settingsGroup title="Authentication">
   <props:selectSectionProperty name="${keys.authenticationTypeKey}" title="Authentication Type">
