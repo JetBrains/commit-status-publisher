@@ -19,26 +19,6 @@
 <jsp:useBean id="keys" class="org.jetbrains.teamcity.publisher.github.ui.UpdateChangesConstants"/>
 
 <table style="width: 100%">
-<tr>
-  <td colspan="2">Specify GitHub repository name and credentials to push status updates to</td>
-</tr>
-<l:settingsGroup title="Main">
-  <tr>
-    <th>URL:<l:star/></th>
-    <td>
-      <props:textProperty name="${keys.serverKey}" className="longField"/>
-      <span class="error" id="error_${keys.serverKey}"></span>
-    <span class="smallNote">
-      Specify GitHub instance URL.
-      Use <strong>http(s)://[hostname]/api/v3</strong>
-      for <a href="https://support.enterprise.github.com/entries/21391237-Using-the-API" target="_blank">GitHub
-      Enterprise</a>
-    </span>
-    </td>
-  </tr>
-</l:settingsGroup>
-
-<l:settingsGroup title="Authentication">
   <props:selectSectionProperty name="${keys.authenticationTypeKey}" title="Authentication Type">
 
     <props:selectSectionPropertyContent value="${keys.authenticationTypePasswordValue}" caption="Password">
@@ -77,5 +57,18 @@
       </tr>
     </props:selectSectionPropertyContent>
   </props:selectSectionProperty>
-</l:settingsGroup>
+
+  <tr>
+    <th>URL:<l:star/></th>
+    <td>
+      <props:textProperty name="${keys.serverKey}" className="longField"/>
+      <span class="error" id="error_${keys.serverKey}"></span>
+    <span class="smallNote">
+      Specify GitHub instance URL.
+      Use <strong>http(s)://[hostname]/api/v3</strong>
+      for <a href="https://support.enterprise.github.com/entries/21391237-Using-the-API" target="_blank">GitHub
+      Enterprise</a>
+    </span>
+    </td>
+  </tr>
 </table>
