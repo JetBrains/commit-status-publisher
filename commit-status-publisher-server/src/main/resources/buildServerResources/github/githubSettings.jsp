@@ -36,16 +36,6 @@
     </span>
     </td>
   </tr>
-
-  <tr>
-    <th><label for="${keys.useCommentsKey}">Use comments:</label></th>
-    <td>
-      <props:checkboxProperty name="${keys.useCommentsKey}"/>
-      <label for="${keys.useCommentsKey}">Comment pull request with build details</label>
-      <span class="error" id="error_${keys.useCommentsKey}"></span>
-    </td>
-  </tr>
-
 </l:settingsGroup>
 
 <l:settingsGroup title="Authentication">
