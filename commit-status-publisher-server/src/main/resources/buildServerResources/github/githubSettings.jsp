@@ -46,17 +46,6 @@
     </td>
   </tr>
 
-  <tr>
-    <th>Context:</th>
-    <td>
-      <props:textProperty name="${keys.contextKey}" className="longField"/>
-      <span class="error" id="error_${keys.contextKey}"></span>
-      <span class="smallNote">
-        Specify GitHub status context. Leave blank for 'default'
-      </span>
-    </td>
-  </tr>
-
 </l:settingsGroup>
 
 <l:settingsGroup title="Authentication">

@@ -30,7 +30,6 @@ public class UpdateChangesConstants {
   public String getPasswordKey() { return Constants.SECURE_PROPERTY_PREFIX + "github_password"; }
   public String getRepositoryNameKey() { return "github_repo"; }
   public String getRepositoryOwnerKey() { return "github_owner"; }
-  public String getContextKey() { return "github_context"; }
   public String getReportOnKey() { return "github_report_on"; }
   public String getReportOnStartAndFinishValue() { return GitHubApiReportEvent.ON_START_AND_FINISH.getValue(); }
   public String getReportOnStartValue() { return GitHubApiReportEvent.ON_START.getValue(); }

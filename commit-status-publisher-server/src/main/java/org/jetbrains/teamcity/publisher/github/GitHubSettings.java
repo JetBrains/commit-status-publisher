@@ -45,7 +45,6 @@ public class GitHubSettings implements CommitStatusPublisherSettings {
     final Map<String, String> result = new HashMap<String, String>();
     final UpdateChangesConstants C = new UpdateChangesConstants();
     result.put(C.getServerKey(), GitHubApiFactory.DEFAULT_URL);
-    result.put(C.getContextKey(), "continuous-integration/teamcity");
     return result;
   }
 

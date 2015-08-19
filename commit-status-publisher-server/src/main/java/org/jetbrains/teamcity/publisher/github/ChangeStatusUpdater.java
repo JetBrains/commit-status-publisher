@@ -91,7 +91,7 @@ public class ChangeStatusUpdater {
 
     final String repositoryOwner = repo.owner();
     final String repositoryName = repo.repositoryName();
-    @Nullable final String context = params.get(C.getContextKey());
+    final String context = "continuous-integration/teamcity";
     final boolean addComments = !StringUtil.isEmptyOrSpaces(params.get(C.getUseCommentsKey()));
     final boolean useGuestUrls = !StringUtil.isEmptyOrSpaces(params.get(C.getUseGuestUrlsKey()));
 
