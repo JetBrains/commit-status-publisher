@@ -47,7 +47,7 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
 
     StringBuilder command = new StringBuilder();
     command.append("gerrit review --project ").append(getGerritProject())
-           .append(" --verified ").append(vote)
+           .append(" --label ").append(getGerritLabel()).append("=").append(vote)
            .append(" -m \"").append(msg).append("\" ")
            .append(revision.getRevision());
     try {
@@ -122,6 +122,10 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
 
   private String getUsername() {
     return myParams.get("gerritUsername");
+  }
+
+  private String getGerritLabel() {
+    return myParams.get("gerritLabel");
   }
 
   private String getSuccessVote() {

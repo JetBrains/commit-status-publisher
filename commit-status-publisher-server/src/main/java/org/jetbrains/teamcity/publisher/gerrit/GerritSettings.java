@@ -49,6 +49,7 @@ public class GerritSettings extends BaseCommitStatusSettings {
     params.add("gerritServer");
     params.add("gerritProject");
     params.add("gerritUsername");
+    params.add("gerritLabel");
     params.add("successVote");
     params.add("failureVote");
     params.add(TEAMCITY_SSH_KEY_PROP);
@@ -59,6 +60,7 @@ public class GerritSettings extends BaseCommitStatusSettings {
   @Nullable
   public Map<String, String> getDefaultParameters() {
     Map<String, String> params = new HashMap<String, String>();
+    params.put("gerritLabel", "Verified");
     params.put("successVote", "+1");
     params.put("failureVote", "-1");
     return params;

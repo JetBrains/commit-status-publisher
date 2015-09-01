@@ -31,6 +31,14 @@
   </tr>
 
   <tr>
+    <th><label for="gerritLabel">Gerrit label: <l:star/></label></th>
+    <td>
+      <props:textProperty name="gerritLabel" style="width:18em;"/>
+      <span class="error" id="error_gerritLabel"></span>
+    </td>
+  </tr>
+
+  <tr>
     <th><label for="successVote">Successful build vote: <l:star/></label></th>
     <td>
       <props:textProperty name="successVote" style="width:18em;"/>
