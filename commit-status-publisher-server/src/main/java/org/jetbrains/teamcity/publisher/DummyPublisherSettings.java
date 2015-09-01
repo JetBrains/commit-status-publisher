@@ -6,7 +6,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
-public class DummyPublisherSettings implements CommitStatusPublisherSettings {
+public class DummyPublisherSettings extends BaseCommitStatusSettings  {
   public static final String ID = "--";
 
   @NotNull
@@ -26,11 +26,6 @@ public class DummyPublisherSettings implements CommitStatusPublisherSettings {
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
-    return null;
-  }
-
-  @Nullable
-  public Map<String, String> getDefaultParameters() {
     return null;
   }
 

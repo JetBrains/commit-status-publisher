@@ -42,7 +42,7 @@ public class CommitStatusPublisherFeatureController extends BaseController {
   protected ModelAndView doHandle(@NotNull HttpServletRequest request, @NotNull HttpServletResponse response) throws Exception {
     BasePropertiesBean props = (BasePropertiesBean) request.getAttribute("propertiesBean");
     String publisherId = props.getProperties().get(Constants.PUBLISHER_ID_PARAM);
-    ModelAndView mv = publisherId != null ? createEditPublisherModel(publisherId) : createAddPublisherModel();
+    ModelAndView mv = publisherId != null ? createEditPublisherModel(publisherId, props) : createAddPublisherModel();
     mv.addObject("publisherSettingsUrl", myPublisherSettingsController.getUrl());
     mv.addObject("vcsRoots", getVcsRoots(request));
     mv.addObject("projectId", getProjectId(request));
@@ -57,12 +57,21 @@ public class CommitStatusPublisherFeatureController extends BaseController {
   }
 
   @NotNull
-  private ModelAndView createEditPublisherModel(@NotNull String publisherId) {
+  private ModelAndView createEditPublisherModel(@NotNull String publisherId, @NotNull BasePropertiesBean props) {
     ModelAndView mv = new ModelAndView(myDescriptor.getPluginResourcesPath("editPublisher.jsp"));
     mv.addObject("publishers", getPublisherSettings(false));
     CommitStatusPublisherSettings publisherSettings = myPublisherManager.findSettings(publisherId);
-    if (publisherSettings != null)
+    if (publisherSettings != null) {
       mv.addObject("editedPublisherUrl", publisherSettings.getEditSettingsUrl());
+
+      // Apply any property updates to upgrade the settings.
+      Map<String, String> updates = publisherSettings.getParameterUpgrades(props.getProperties());
+      if (updates != null) {
+        for (Map.Entry<String, String> update : updates.entrySet()) {
+          props.setProperty(update.getKey(), update.getValue());
+        }
+      }
+    }
     return mv;
   }
 

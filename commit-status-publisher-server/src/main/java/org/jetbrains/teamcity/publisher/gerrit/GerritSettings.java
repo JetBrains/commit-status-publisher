@@ -8,21 +8,17 @@ import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.teamcity.publisher.CommitStatusPublisherSettings;
+import org.jetbrains.teamcity.publisher.BaseCommitStatusSettings;
 
 import java.util.*;
 
 import static jetbrains.buildServer.ssh.ServerSshKeyManager.TEAMCITY_SSH_KEY_PROP;
 
-public class GerritSettings implements CommitStatusPublisherSettings {
+public class GerritSettings extends BaseCommitStatusSettings {
 
   private final PluginDescriptor myDescriptor;
   private final ExtensionHolder myExtensionHolder;
   private final WebLinks myLinks;
-  private final String[] myMandatoryProperties = new String[] {
-          "gerritServer", "gerritProject", "gerritUsername",
-          "successVote", "failureVote", TEAMCITY_SSH_KEY_PROP};
-
 
   public GerritSettings(@NotNull PluginDescriptor descriptor,
                         @NotNull ExtensionHolder extensionHolder,
@@ -48,6 +44,19 @@ public class GerritSettings implements CommitStatusPublisherSettings {
   }
 
   @Nullable
+  public Collection<String> getMandatoryParameters() {
+    final List<String> params = new ArrayList<String>();
+    params.add("gerritServer");
+    params.add("gerritProject");
+    params.add("gerritUsername");
+    params.add("successVote");
+    params.add("failureVote");
+    params.add(TEAMCITY_SSH_KEY_PROP);
+
+    return Collections.unmodifiableList(params);
+  }
+
+  @Nullable
   public Map<String, String> getDefaultParameters() {
     Map<String, String> params = new HashMap<String, String>();
     params.put("successVote", "+1");
@@ -57,6 +66,7 @@ public class GerritSettings implements CommitStatusPublisherSettings {
 
   @Nullable
   public GerritPublisher createPublisher(@NotNull Map<String, String> params) {
+    params = getUpdatedParametersForPublisher(params);
     Collection<ServerSshKeyManager> extensions = myExtensionHolder.getExtensions(ServerSshKeyManager.class);
     if (extensions.isEmpty()) {
       return new GerritPublisher(null, myLinks, params);
@@ -76,7 +86,7 @@ public class GerritSettings implements CommitStatusPublisherSettings {
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
-        for (String mandatoryParam : myMandatoryProperties) {
+        for (String mandatoryParam : getMandatoryParameters()) {
           if (params.get(mandatoryParam) == null)
             errors.add(new InvalidProperty(mandatoryParam, "must be specified"));
         }
