@@ -36,6 +36,8 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by Eugene Petrenko (eugene.petrenko@gmail.com)
@@ -315,6 +317,19 @@ public class ChangeStatusUpdater {
 
   @Nullable
   public static GitHubRepo getGitHubRepo(@NotNull String uri) {
+    if (uri.startsWith("git")) {
+      Pattern p = Pattern.compile("(?<p>git[s]?)@(?<h>[^/]+):(?<ug>[^/]+)/(?<r>[^/]+).git?");
+      Matcher m = p.matcher(uri);
+
+      if(!m.matches())
+        throw new IllegalArgumentException("Cannot parse GitHub repository url " + uri);
+
+      String userGroup = m.group("ug");
+      String repo = m.group("r");
+
+      return new GitHubRepo(userGroup, repo);
+    }
+
     URL url = null;
     try {
       url = new URL(uri);
