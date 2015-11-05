@@ -36,6 +36,8 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by Eugene Petrenko (eugene.petrenko@gmail.com)
@@ -44,6 +46,7 @@ import java.util.concurrent.ExecutorService;
 public class ChangeStatusUpdater {
   private static final Logger LOG = Loggers.SERVER;
   private static final UpdateChangesConstants C = new UpdateChangesConstants();
+  private static final Pattern SCP_PATTERN = Pattern.compile("git@[^:]+:([^/]+)/(.+)");
 
   private final ExecutorService myExecutor;
   @NotNull
@@ -81,7 +84,7 @@ public class ChangeStatusUpdater {
     }
   }
 
-  @NotNull
+  @Nullable
   public Handler getUpdateHandler(@NotNull VcsRootInstance root, @NotNull Map<String, String> params) {
     final GitHubApi api = getGitHubApi(params);
 
@@ -315,6 +318,19 @@ public class ChangeStatusUpdater {
 
   @Nullable
   public static GitHubRepo getGitHubRepo(@NotNull String uri) {
+    if (uri.startsWith("git@")) {
+      Matcher m = SCP_PATTERN.matcher(uri);
+      if(!m.matches()) {
+        LOG.warn("Cannot parse GitHub repository url " + uri);
+        return null;
+      }
+      String userGroup = m.group(1);
+      String repo = m.group(2);
+      if (repo.endsWith(".git"))
+        repo = repo.substring(0, repo.length() - 4);
+      return new GitHubRepo(userGroup, repo);
+    }
+
     URL url = null;
     try {
       url = new URL(uri);
@@ -344,7 +360,7 @@ public class ChangeStatusUpdater {
   }
 
 
-  private static class GitHubRepo extends Pair<String, String> {
+  public static class GitHubRepo extends Pair<String, String> {
     public GitHubRepo(@NotNull String owner, @NotNull String repo) {
       super(owner, repo);
     }
