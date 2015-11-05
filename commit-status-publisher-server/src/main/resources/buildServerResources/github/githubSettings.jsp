@@ -17,7 +17,7 @@
   ~ limitations under the License.
   --%>
 
-<jsp:useBean id="keys" class="org.jetbrains.teamcity.publisher.github.ui.UpdateChangesConstants"/>
+<jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants"/>
 
 <table style="width: 100%">
   <props:selectSectionProperty name="${keys.authenticationTypeKey}" title="Authentication Type">

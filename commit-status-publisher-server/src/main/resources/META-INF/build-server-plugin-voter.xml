@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
 <beans default-autowire="constructor">
-  <bean id="voterBuildFeature" class="org.jetbrains.teamcity.publisher.CommitStatusPublisherFeature"/>
-  <bean id="voterBuildListener" class="org.jetbrains.teamcity.publisher.CommitStatusPublisherListener"/>
-  <bean id="voterSettingsController" class="org.jetbrains.teamcity.publisher.PublisherSettingsController"/>
-  <bean class="org.jetbrains.teamcity.publisher.CommitStatusPublisherFeatureController"/>
-  <bean class="org.jetbrains.teamcity.publisher.PublisherManager"/>
+  <bean id="voterBuildFeature" class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature"/>
+  <bean id="voterBuildListener" class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherListener"/>
+  <bean id="voterSettingsController" class="jetbrains.buildServer.commitPublisher.PublisherSettingsController"/>
+  <bean class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeatureController"/>
+  <bean class="jetbrains.buildServer.commitPublisher.PublisherManager"/>
 
-  <bean class="org.jetbrains.teamcity.publisher.stash.StashSettings"/>
-  <bean class="org.jetbrains.teamcity.publisher.gerrit.GerritSettings"/>
+  <bean class="jetbrains.buildServer.commitPublisher.stash.StashSettings"/>
+  <bean class="jetbrains.buildServer.commitPublisher.gerrit.GerritSettings"/>
 
   <!-- github -->
-  <bean class="org.jetbrains.teamcity.publisher.github.ChangeStatusUpdater"/>
-  <bean class="org.jetbrains.teamcity.publisher.github.api.impl.GitHubApiFactoryImpl"/>
-  <bean class="org.jetbrains.teamcity.publisher.github.api.impl.HttpClientWrapperImpl" destroy-method="dispose"/>
-  <bean class="org.jetbrains.teamcity.publisher.github.GitHubSettings"/>
+  <bean class="jetbrains.buildServer.commitPublisher.github.ChangeStatusUpdater"/>
+  <bean class="jetbrains.buildServer.commitPublisher.github.api.impl.GitHubApiFactoryImpl"/>
+  <bean class="jetbrains.buildServer.commitPublisher.github.api.impl.HttpClientWrapperImpl" destroy-method="dispose"/>
+  <bean class="jetbrains.buildServer.commitPublisher.github.GitHubSettings"/>
 
 </beans>

@@ -5,7 +5,7 @@
 <%@ taglib prefix="bs" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
 <jsp:useBean id="propertiesBean" scope="request" type="jetbrains.buildServer.controllers.BasePropertiesBean"/>
-<jsp:useBean id="constants" class="org.jetbrains.teamcity.publisher.Constants" scope="request" />
+<jsp:useBean id="constants" class="jetbrains.buildServer.commitPublisher.Constants" scope="request" />
 
 <c:url value="${publisherSettingsUrl}" var="settingsUrl"/>
 <script type="text/javascript">
