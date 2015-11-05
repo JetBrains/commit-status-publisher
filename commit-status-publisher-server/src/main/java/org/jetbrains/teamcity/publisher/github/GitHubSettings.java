@@ -6,8 +6,8 @@ import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.teamcity.publisher.BaseCommitStatusSettings;
 import org.jetbrains.teamcity.publisher.CommitStatusPublisher;
-import org.jetbrains.teamcity.publisher.CommitStatusPublisherSettings;
 import org.jetbrains.teamcity.publisher.github.api.GitHubApiAuthenticationType;
 import org.jetbrains.teamcity.publisher.github.api.GitHubApiFactory;
 import org.jetbrains.teamcity.publisher.github.ui.UpdateChangesConstants;
@@ -17,7 +17,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-public class GitHubSettings implements CommitStatusPublisherSettings {
+public class GitHubSettings extends BaseCommitStatusSettings {
 
   private final ChangeStatusUpdater myUpdater;
 
@@ -50,6 +50,7 @@ public class GitHubSettings implements CommitStatusPublisherSettings {
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
+    params = getUpdatedParametersForPublisher(params);
     return new GitHubPublisher(myUpdater, params);
   }
 
