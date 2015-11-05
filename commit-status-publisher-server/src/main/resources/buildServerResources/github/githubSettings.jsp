@@ -1,5 +1,6 @@
 <%@ include file="/include-internal.jsp" %>
 <%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
+<%@ taglib prefix="l" tagdir="/WEB-INF/tags/layout" %>
 <%--
   ~ Copyright 2000-2012 JetBrains s.r.o.
   ~
@@ -23,7 +24,7 @@
 
     <props:selectSectionPropertyContent value="${keys.authenticationTypePasswordValue}" caption="Password">
       <tr>
-        <th>User Name<l:star/>:</th>
+        <th>User Name: <l:star/></th>
         <td>
           <props:textProperty name="${keys.userNameKey}" className="longField"/>
           <span class="error" id="error_${keys.userNameKey}"></span>
@@ -31,7 +32,7 @@
         </td>
       </tr>
       <tr>
-        <th>Password<l:star/>:</th>
+        <th>Password: <l:star/></th>
         <td>
           <props:passwordProperty name="${keys.passwordKey}" className="longField"/>
           <span class="error" id="error_${keys.passwordKey}"></span>
@@ -42,7 +43,7 @@
 
     <props:selectSectionPropertyContent value="${keys.authenticationTypeTokenValue}" caption="Access Token">
       <tr>
-        <th>Personal Access Token<l:star/>:</th>
+        <th>Personal Access Token: <l:star/></th>
         <td>
           <props:passwordProperty name="${keys.accessTokenKey}" className="longField"/>
           <span class="error" id="error_${keys.accessTokenKey}"></span>
@@ -59,7 +60,7 @@
   </props:selectSectionProperty>
 
   <tr>
-    <th>URL:<l:star/></th>
+    <th>URL: <l:star/></th>
     <td>
       <props:textProperty name="${keys.serverKey}" className="longField"/>
       <span class="error" id="error_${keys.serverKey}"></span>
