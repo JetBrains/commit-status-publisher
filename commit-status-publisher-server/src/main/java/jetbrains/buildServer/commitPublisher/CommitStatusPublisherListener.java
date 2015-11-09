@@ -28,10 +28,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   @Override
-  public void changesLoaded(final SRunningBuild build) {
-    if (build == null)
-      return;
-
+  public void changesLoaded(@NotNull final SRunningBuild build) {
     SBuildType buildType = build.getBuildType();
     if (buildType == null)
       return;
@@ -44,10 +41,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   @Override
-  public void buildFinished(SRunningBuild build) {
-    if (build == null)
-      return;
-
+  public void buildFinished(@NotNull SRunningBuild build) {
     SBuildType buildType = build.getBuildType();
     if (buildType == null)
       return;
@@ -79,10 +73,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   @Override
-  public void buildInterrupted(final SRunningBuild build) {
-    if (build == null)
-      return;
-
+  public void buildInterrupted(@NotNull SRunningBuild build) {
     SBuildType buildType = build.getBuildType();
     if (buildType == null)
       return;
@@ -100,10 +91,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
 
   @Override
-  public void buildChangedStatus(final SRunningBuild build, Status oldStatus, Status newStatus) {
-    if (build == null)
-      return;
-
+  public void buildChangedStatus(@NotNull final SRunningBuild build, Status oldStatus, Status newStatus) {
     SBuildType buildType = build.getBuildType();
     if (buildType == null)
       return;
