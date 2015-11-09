@@ -15,7 +15,7 @@ public interface CommitStatusPublisher {
 
   void buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision);
 
-  void buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull User user, @NotNull String comment, boolean buildInProgress);
+  void buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment, boolean buildInProgress);
 
   void buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision);
 
@@ -23,6 +23,9 @@ public interface CommitStatusPublisher {
 
   void buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision);
 
-  @NotNull
+  @Nullable
   String getVcsRootId();
+
+  @NotNull
+  String toString();
 }

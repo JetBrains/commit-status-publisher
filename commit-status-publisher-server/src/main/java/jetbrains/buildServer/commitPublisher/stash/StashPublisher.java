@@ -46,6 +46,11 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     myLinks = links;
   }
 
+  @NotNull
+  public String toString() {
+    return "stash";
+  }
+
   @Override
   public void buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, StashBuildStatus.INPROGRESS, "Build queued");
@@ -74,7 +79,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public void buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull User user, @NotNull String comment, boolean buildInProgress) {
+  public void buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment, boolean buildInProgress) {
     StashBuildStatus status;
     if (buildInProgress) {
       status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.INPROGRESS : StashBuildStatus.FAILED;
@@ -82,7 +87,10 @@ public class StashPublisher extends BaseCommitStatusPublisher {
       status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.SUCCESSFUL : StashBuildStatus.FAILED;
     }
     String description = build.getStatusDescriptor().getText();
-    vote(build, revision, status, description + " with a comment by " + user.getExtendedName() + ": \"" + comment + "\"");
+    if (user != null && comment != null) {
+      description += " with a comment by " + user.getExtendedName() + ": \"" + comment + "\"";
+    }
+    vote(build, revision, status, description);
   }
 
   @Override

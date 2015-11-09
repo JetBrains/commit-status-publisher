@@ -23,6 +23,11 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
     myUpdater = updater;
   }
 
+  @NotNull
+  public String toString() {
+    return "github";
+  }
+
   @Override
   public void buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
     updateBuildStatus(build, revision, true);

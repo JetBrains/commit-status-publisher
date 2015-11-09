@@ -7,7 +7,6 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
-import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.ssh.TeamCitySshKey;
@@ -22,7 +21,7 @@ import java.util.Map;
 
 public class GerritPublisher extends BaseCommitStatusPublisher {
 
-  private final static Logger LOG = Loggers.SERVER;
+  private final static Logger LOG = Logger.getInstance(GerritPublisher.class.getName());
 
   private final ServerSshKeyManager mySshKeyManager;
   private final WebLinks myLinks;
@@ -33,6 +32,11 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
     super(params);
     mySshKeyManager = sshKeyManager;
     myLinks = links;
+  }
+
+  @NotNull
+  public String toString() {
+    return "gerrit";
   }
 
   @Override
@@ -72,11 +76,11 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
       channel.setCommand(command);
       BufferedReader stdout = new BufferedReader(new InputStreamReader(channel.getInputStream()));
       BufferedReader stderr = new BufferedReader(new InputStreamReader(channel.getErrStream()));
-      log("Run command '" + command + "'");
+      LOG.debug("Run command '" + command + "'");
       channel.connect();
-      String out = readFully(stderr);
+      String out = readFully(stdout);
       String err = readFully(stderr);
-      log("Command '" + command + "' finished, stdout: '" + out + "', stderr: '" + err + "', exitCode: " + channel.getExitStatus());
+      LOG.info("Command '" + command + "' finished, stdout: '" + out + "', stderr: '" + err + "', exitCode: " + channel.getExitStatus());
       if (err.length() > 0)
         throw new IOException(err);
     } finally {
@@ -92,9 +96,9 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
     String line;
     StringBuilder out = new StringBuilder();
     while ((line = reader.readLine()) != null) {
-      out.append(line);
+      out.append(line).append("\n");
     }
-    return out.toString();
+    return out.toString().trim();
   }
 
   private void addKeys(@NotNull JSch jsch, @NotNull SProject project) throws JSchException {
@@ -131,15 +135,11 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
     return myParams.get("failureVote");
   }
 
-  private void log(@NotNull String message) {
-    if (TeamCityProperties.getBoolean("commitStatusPublisher.gerrit.enableInfoLog")) {
-      LOG.info(message);
-    } else {
-      LOG.debug(message);
-    }
-  }
-
   private void error(@NotNull String message, @NotNull Exception error) {
-    Loggers.SERVER.error(message, error);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(message, error);
+    } else {
+      LOG.error(message + ", " + error.getMessage());
+    }
   }
 }
