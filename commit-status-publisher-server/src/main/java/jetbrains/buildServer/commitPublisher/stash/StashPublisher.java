@@ -31,7 +31,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -227,7 +226,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     try {
       entity.writeTo(out);
-      String str = out.toString(StandardCharsets.UTF_8.name());
+      String str = out.toString("UTF-8");
       LOG.debug("Stash response: " + str);
       JsonElement json = new JsonParser().parse(str);
       if (!json.isJsonObject())
