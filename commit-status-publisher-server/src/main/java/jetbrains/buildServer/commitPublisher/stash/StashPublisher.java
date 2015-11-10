@@ -1,18 +1,20 @@
 package jetbrains.buildServer.commitPublisher.stash;
 
+import com.google.gson.*;
 import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.BuildProblemData;
+import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
+import jetbrains.buildServer.log.LogUtil;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.web.util.WebUtil;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
-import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.client.utils.HttpClientUtils;
@@ -24,11 +26,12 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.protocol.BasicHttpContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -135,15 +138,30 @@ public class StashPublisher extends BaseCommitStatusPublisher {
   private void reportProblem(final BuildPromotion buildPromotion,
                              final BuildRevision revision,
                              final Exception e) {
-    //todo: throw known exception on known errors and for those only use message and log no stacktrace
-    final String logMessage = "Error while publishing a commit status to Stash : " + e.toString() +
-                              ", build: " + LogUtil.describe(buildPromotion) +
-                              ", VCS root: " + LogUtil.describe(revision.getRoot());
+    String logMessage;
+    String problemText;
+    if (e instanceof StashException) {
+      StashException se = (StashException) e;
+      logMessage = "Error while publishing commit status to Stash for promotion " + LogUtil.describe(buildPromotion) +
+              ", response code: " + se.getStatusCode() +
+              ", reason: " + se.getReason();
+      problemText = "Error while publishing commit status to Stash, response code: " + se.getStatusCode() +
+              ", reason: " + se.getReason();
+      String msg = se.getStashMessage();
+      if (msg != null) {
+        logMessage += ", message: '" + msg + "'";
+        problemText += ", message: '" + msg + "'";
+      }
+    } else {
+      logMessage = "Error while publishing commit status to Stash for promotion " + LogUtil.describe(buildPromotion) +
+              " " + e.toString();
+      problemText = "Error while publishing commit status to Stash " + e.toString();
+    }
     LOG.info(logMessage);
     LOG.debug(logMessage, e);
+
     String problemId = "stash.publisher." + revision.getRoot().getId();
-    final BuildProblemData buildProblem =
-      BuildProblemData.createBuildProblem(problemId, "stash.publisher", "Error while publishing a commit status to Stash: " + e.toString());
+    BuildProblemData buildProblem = BuildProblemData.createBuildProblem(problemId, "stash.publisher", problemText);
     ((BuildPromotionEx)buildPromotion).addBuildProblem(buildProblem);
   }
 
@@ -171,7 +189,7 @@ public class StashPublisher extends BaseCommitStatusPublisher {
   }
 
   private void vote(@NotNull String commit, @NotNull String data) throws URISyntaxException, IOException,
-          UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+          UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, StashException {
     URI stashURI = new URI(getBaseUrl());
 
     DefaultHttpClient client = new DefaultHttpClient();
@@ -193,11 +211,43 @@ public class StashPublisher extends BaseCommitStatusPublisher {
       response = client.execute(post, ctx);
       StatusLine statusLine = response.getStatusLine();
       if (statusLine.getStatusCode() >= 400)
-        throw new HttpResponseException(statusLine.getStatusCode(), statusLine.getReasonPhrase());
+        throw new StashException(statusLine.getStatusCode(), statusLine.getReasonPhrase(), parseErrorMessage(response));
     } finally {
       HttpClientUtils.closeQuietly(response);
       releaseConnection(post);
       HttpClientUtils.closeQuietly(client);
+    }
+  }
+
+  @Nullable
+  private String parseErrorMessage(@NotNull HttpResponse response) {
+    HttpEntity entity = response.getEntity();
+    if (entity == null)
+      return null;
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    try {
+      entity.writeTo(out);
+      String str = out.toString(StandardCharsets.UTF_8.name());
+      LOG.debug("Stash response: " + str);
+      JsonElement json = new JsonParser().parse(str);
+      if (!json.isJsonObject())
+        return null;
+      JsonObject jsonObj = json.getAsJsonObject();
+      JsonElement errors = jsonObj.get("errors");
+      if (errors == null || !errors.isJsonArray())
+        return null;
+      JsonArray errorsArray = errors.getAsJsonArray();
+      if (errorsArray.size() == 0)
+        return null;
+      JsonElement error = errorsArray.get(0);
+      if (error == null || !error.isJsonObject())
+        return null;
+      JsonElement msg = error.getAsJsonObject().get("message");
+      return msg != null ? msg.getAsString() : null;
+    } catch (IOException e) {
+      return null;
+    } catch (JsonSyntaxException e) {
+      return null;
     }
   }
 
@@ -231,5 +281,30 @@ public class StashPublisher extends BaseCommitStatusPublisher {
 
   private String getPassword() {
     return myParams.get("secure:stashPassword");
+  }
+
+
+  private static class StashException extends Exception {
+    private final int myStatusCode;
+    private final String myReason;
+    private final String myMessage;
+    public StashException(int statusCode, String reason, @Nullable String message) {
+      myStatusCode = statusCode;
+      myReason = reason;
+      myMessage = message;
+    }
+
+    public int getStatusCode() {
+      return myStatusCode;
+    }
+
+    public String getReason() {
+      return myReason;
+    }
+
+    @Nullable
+    public String getStashMessage() {
+      return myMessage;
+    }
   }
 }
