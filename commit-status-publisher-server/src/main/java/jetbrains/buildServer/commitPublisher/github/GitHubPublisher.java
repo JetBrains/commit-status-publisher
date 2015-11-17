@@ -1,19 +1,18 @@
 package jetbrains.buildServer.commitPublisher.github;
 
 import com.intellij.openapi.diagnostic.Logger;
-import jetbrains.buildServer.log.Loggers;
+import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import org.jetbrains.annotations.NotNull;
-import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 
 import java.util.Map;
 
 public class GitHubPublisher extends BaseCommitStatusPublisher {
 
-  private static final Logger LOG = Loggers.SERVER;
+  private static final Logger LOG = Logger.getInstance(GitHubPublisher.class.getName());
 
   private final ChangeStatusUpdater myUpdater;
 

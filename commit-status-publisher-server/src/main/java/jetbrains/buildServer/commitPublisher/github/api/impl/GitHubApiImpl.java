@@ -18,11 +18,10 @@ package jetbrains.buildServer.commitPublisher.github.api.impl;
 
 import com.google.gson.Gson;
 import com.intellij.openapi.diagnostic.Logger;
-import jetbrains.buildServer.commitPublisher.github.api.impl.data.*;
-import jetbrains.buildServer.log.Loggers;
-import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
+import jetbrains.buildServer.commitPublisher.github.api.impl.data.*;
+import jetbrains.buildServer.util.FileUtil;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpRequest;
@@ -53,7 +52,7 @@ import java.util.regex.Pattern;
  *         Date: 05.09.12 23:39
  */
 public abstract class GitHubApiImpl implements GitHubApi {
-  private static final Logger LOG = Loggers.SERVER;
+  private static final Logger LOG = Logger.getInstance(GitHubApiImpl.class.getName());
   private static final Pattern PULL_REQUEST_BRANCH = Pattern.compile("/?refs/pull/(\\d+)/(.*)");
 
   private final HttpClientWrapper myClient;

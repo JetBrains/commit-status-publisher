@@ -17,7 +17,6 @@
 package jetbrains.buildServer.commitPublisher.github.api.impl;
 
 import com.intellij.openapi.diagnostic.Logger;
-import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.version.ServerVersionHolder;
@@ -61,7 +60,7 @@ import java.security.cert.X509Certificate;
  * Date: 11.08.11 16:24
  */
 public class HttpClientWrapperImpl implements HttpClientWrapper {
-  private final Logger LOG = Loggers.SERVER;
+  private final Logger LOG = Logger.getInstance(HttpClientWrapperImpl.class.getName());
 
   private final HttpClient myClient;
 

@@ -19,7 +19,7 @@ package jetbrains.buildServer.commitPublisher.github;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Pair;
 import jetbrains.buildServer.commitPublisher.github.api.*;
-import jetbrains.buildServer.log.Loggers;
+import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
@@ -28,7 +28,6 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -44,7 +43,7 @@ import java.util.regex.Pattern;
  * Date: 06.09.12 3:29
  */
 public class ChangeStatusUpdater {
-  private static final Logger LOG = Loggers.SERVER;
+  private static final Logger LOG = Logger.getInstance(ChangeStatusUpdater.class.getName());
   private static final UpdateChangesConstants C = new UpdateChangesConstants();
   private static final Pattern SCP_PATTERN = Pattern.compile("git@[^:]+:([^/]+)/(.+)");
 
