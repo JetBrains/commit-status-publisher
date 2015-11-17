@@ -38,6 +38,8 @@ import java.security.UnrecoverableKeyException;
 import java.util.Map;
 
 public class StashPublisher extends BaseCommitStatusPublisher {
+  private static final String PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
+
   private static final Logger LOG = Logger.getInstance(StashPublisher.class.getName());
 
   private final WebLinks myLinks;
@@ -55,17 +57,21 @@ public class StashPublisher extends BaseCommitStatusPublisher {
 
   @Override
   public void buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) {
-    vote(build, revision, StashBuildStatus.INPROGRESS, "Build queued");
+    if (TeamCityProperties.getBoolean(PUBLISH_QUEUED_BUILD_STATUS)) {
+      vote(build, revision, StashBuildStatus.INPROGRESS, "Build queued");
+    }
   }
 
   @Override
   public void buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) {
-    StringBuilder description = new StringBuilder("Build removed from queue");
-    if (user != null)
-      description.append(" by ").append(user.getName());
-    if (comment != null)
-      description.append(" with comment \"").append(comment).append("\"");
-    vote(build, revision, StashBuildStatus.FAILED, "Build removed from queue");
+    if (TeamCityProperties.getBoolean(PUBLISH_QUEUED_BUILD_STATUS)) {
+      StringBuilder description = new StringBuilder("Build removed from queue");
+      if (user != null)
+        description.append(" by ").append(user.getName());
+      if (comment != null)
+        description.append(" with comment \"").append(comment).append("\"");
+      vote(build, revision, StashBuildStatus.FAILED, description.toString());
+    }
   }
 
   @Override
