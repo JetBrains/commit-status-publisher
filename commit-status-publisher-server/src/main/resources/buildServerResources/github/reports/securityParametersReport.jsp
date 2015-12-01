@@ -12,7 +12,7 @@
             <c:out value="${buildType.fullName}"/>
         </jsp:attribute>
     </authz:authorize>
-    has secure parameters and builds pull request in VCS root<bs:s val="${fn:length(roots)}"/><c:if test="${fn:length(roots) > 1}">:</c:if>
+    has secure parameters which will be accessible in pull request builds from VCS root<bs:s val="${fn:length(roots)}"/><c:if test="${fn:length(roots) > 1}">:</c:if>
     <c:choose>
         <c:when test="${fn:length(roots) > 1}">
             <c:forEach var="root" items="${roots}">
