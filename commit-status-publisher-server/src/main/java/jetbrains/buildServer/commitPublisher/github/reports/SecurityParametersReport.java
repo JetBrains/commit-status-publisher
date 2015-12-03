@@ -56,7 +56,7 @@ public class SecurityParametersReport extends HealthStatusReport {
         Map<String, Object> data = new HashMap<String, Object>();
         data.put("buildType", bt);
         data.put("roots", pullRequestRoots);
-        consumer.consumeGlobal(new HealthStatusItem(REPORT_TYPE + bt.getExternalId(), CATEGORY, data));
+        consumer.consumeForBuildType(bt, new HealthStatusItem(REPORT_TYPE + bt.getExternalId(), CATEGORY, data));
       }
     }
   }
