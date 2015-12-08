@@ -43,4 +43,8 @@ public class DummyPublisherSettings implements CommitStatusPublisherSettings {
   public PropertiesProcessor getParametersProcessor() {
     return null;
   }
+
+  public boolean isEnabled() {
+    return true;
+  }
 }

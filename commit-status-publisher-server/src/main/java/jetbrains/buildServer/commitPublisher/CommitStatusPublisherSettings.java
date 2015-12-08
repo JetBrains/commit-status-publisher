@@ -29,4 +29,5 @@ public interface CommitStatusPublisherSettings {
   @Nullable
   public PropertiesProcessor getParametersProcessor();
 
+  boolean isEnabled();
 }

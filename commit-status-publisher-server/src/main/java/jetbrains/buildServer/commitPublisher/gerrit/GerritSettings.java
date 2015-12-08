@@ -84,4 +84,8 @@ public class GerritSettings implements CommitStatusPublisherSettings {
       }
     };
   }
+
+  public boolean isEnabled() {
+    return true;
+  }
 }

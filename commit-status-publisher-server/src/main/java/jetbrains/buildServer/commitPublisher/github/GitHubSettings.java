@@ -104,4 +104,8 @@ public class GitHubSettings implements CommitStatusPublisherSettings {
       }
     };
   }
+
+  public boolean isEnabled() {
+    return true;
+  }
 }

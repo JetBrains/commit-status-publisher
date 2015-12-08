@@ -18,4 +18,7 @@
   <bean class="jetbrains.buildServer.commitPublisher.github.reports.SecurityParametersReport"/>
   <bean class="jetbrains.buildServer.commitPublisher.github.reports.SecurityParametersReportPageExtension"/>
 
+  <!-- upsource -->
+  <bean class="jetbrains.buildServer.commitPublisher.upsource.UpsourceSettings"/>
+
 </beans>

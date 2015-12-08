@@ -35,7 +35,10 @@ public class PublisherManager {
   @NotNull
   List<CommitStatusPublisherSettings> getAllPublisherSettings() {
     List<CommitStatusPublisherSettings> settings = new ArrayList<CommitStatusPublisherSettings>();
-    settings.addAll(myPublisherSettings.values());
+    for (CommitStatusPublisherSettings s : myPublisherSettings.values()) {
+      if (s.isEnabled())
+        settings.add(s);
+    }
     Collections.sort(settings, new Comparator<CommitStatusPublisherSettings>() {
       public int compare(CommitStatusPublisherSettings o1, CommitStatusPublisherSettings o2) {
         return o1.getName().compareTo(o2.getName());
