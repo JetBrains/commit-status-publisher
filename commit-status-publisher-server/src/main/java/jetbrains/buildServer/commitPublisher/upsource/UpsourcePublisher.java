@@ -8,6 +8,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
+import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.httpclient.URI;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -18,16 +19,23 @@ import org.apache.http.client.AuthCache;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.client.utils.HttpClientUtils;
+import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.BasicAuthCache;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.*;
 import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.protocol.HttpContext;
+import org.apache.http.ssl.SSLContexts;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -129,15 +137,16 @@ public class UpsourcePublisher extends BaseCommitStatusPublisher {
     String url = myParams.get(Constants.UPSOURCE_SERVER_URL);
     URI upsourceURI = new URI(url);
 
-    DefaultHttpClient client = new DefaultHttpClient();
+    BasicCredentialsProvider credentials = new BasicCredentialsProvider();
+    credentials.setCredentials(new AuthScope(upsourceURI.getHost(), upsourceURI.getPort()),
+            new UsernamePasswordCredentials(myParams.get(Constants.UPSOURCE_USERNAME),
+                    myParams.get(Constants.UPSOURCE_PASSWORD)));
+
+    CloseableHttpClient client = createHttpClientBuilder().setDefaultCredentialsProvider(credentials).build();
+
     HttpPost post = null;
     HttpResponse response = null;
     try {
-      client.getCredentialsProvider().setCredentials(
-              new AuthScope(upsourceURI.getHost(), upsourceURI.getPort()),
-              new UsernamePasswordCredentials(myParams.get(Constants.UPSOURCE_USERNAME),
-                      myParams.get(Constants.UPSOURCE_PASSWORD)));
-
       AuthCache authCache = new BasicAuthCache();
       authCache.put(new HttpHost(upsourceURI.getHost(), upsourceURI.getPort(), upsourceURI.getScheme()), new BasicScheme());
       BasicHttpContext ctx = new BasicHttpContext();
@@ -161,6 +170,34 @@ public class UpsourcePublisher extends BaseCommitStatusPublisher {
       }
       HttpClientUtils.closeQuietly(client);
     }
+  }
+
+
+  @NotNull
+  private HttpClientBuilder createHttpClientBuilder() {
+    SSLContext sslcontext = SSLContexts.createSystemDefault();
+    SSLSocketFactory sslsf = new SSLSocketFactory(sslcontext) {
+      @Override
+      public Socket connectSocket(
+              int connectTimeout,
+              Socket socket,
+              HttpHost host,
+              InetSocketAddress remoteAddress,
+              InetSocketAddress localAddress,
+              HttpContext context) throws IOException {
+        if (socket instanceof SSLSocket) {
+          try {
+            PropertyUtils.setProperty(socket, "host", host.getHostName());
+          } catch (NoSuchMethodException ex) {
+          } catch (IllegalAccessException ex) {
+          } catch (InvocationTargetException ex) {
+          }
+        }
+        return super.connectSocket(connectTimeout, socket, host, remoteAddress, localAddress, context);
+      }
+    };
+
+    return HttpClients.custom().setSSLSocketFactory(sslsf);
   }
 
 
