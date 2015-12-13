@@ -17,7 +17,8 @@
 package jetbrains.buildServer.commitPublisher.github;
 
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.util.Pair;
+import jetbrains.buildServer.commitPublisher.GitRepository;
+import jetbrains.buildServer.commitPublisher.GitRepositoryHelper;
 import jetbrains.buildServer.commitPublisher.github.api.*;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.messages.Status;
@@ -35,8 +36,6 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Created by Eugene Petrenko (eugene.petrenko@gmail.com)
@@ -45,7 +44,6 @@ import java.util.regex.Pattern;
 public class ChangeStatusUpdater {
   private static final Logger LOG = Logger.getInstance(ChangeStatusUpdater.class.getName());
   private static final UpdateChangesConstants C = new UpdateChangesConstants();
-  private static final Pattern SCP_PATTERN = Pattern.compile("git@[^:]+:([^/]+)/(.+)");
 
   private final ExecutorService myExecutor;
   @NotNull
@@ -87,7 +85,7 @@ public class ChangeStatusUpdater {
   public Handler getUpdateHandler(@NotNull VcsRootInstance root, @NotNull Map<String, String> params) {
     final GitHubApi api = getGitHubApi(params);
 
-    GitHubRepo repo = getGitHubRepo(root.getProperty("url"));
+    GitRepository repo = GitRepositoryHelper.getRepositoryDetails(root.getProperty("url"));
     if (repo == null)
       return null;
 
@@ -306,65 +304,5 @@ public class ChangeStatusUpdater {
     boolean shouldReportOnFinish();
     void scheduleChangeStarted(@NotNull final RepositoryVersion hash, @NotNull final SBuild build);
     void scheduleChangeCompeted(@NotNull final RepositoryVersion hash, @NotNull final SBuild build);
-  }
-
-
-  @Nullable
-  public static GitHubRepo getGitHubRepo(@NotNull String uri) {
-    if (uri.startsWith("git@")) {
-      Matcher m = SCP_PATTERN.matcher(uri);
-      if(!m.matches()) {
-        LOG.warn("Cannot parse GitHub repository url " + uri);
-        return null;
-      }
-      String userGroup = m.group(1);
-      String repo = m.group(2);
-      if (repo.endsWith(".git"))
-        repo = repo.substring(0, repo.length() - 4);
-      return new GitHubRepo(userGroup, repo);
-    }
-
-    URL url = null;
-    try {
-      url = new URL(uri);
-    } catch (MalformedURLException e) {
-      LOG.warn("Cannot parse GitHub repository url " + uri, e);
-      return null;
-    }
-
-    String path = url.getPath();
-    if (path == null) {
-      LOG.warn("Cannot parse GitHub repository url " + uri + ", path is empty");
-      return null;
-    }
-
-    if (path.startsWith("/"))
-      path = path.substring(1);
-    int idx = path.indexOf("/");
-    if (idx <= 0) {
-      LOG.warn("Cannot parse GitHub repository url " + uri);
-      return null;
-    }
-    String owner = path.substring(0, idx);
-    String repo = path.substring(idx + 1, path.length());
-    if (repo.endsWith(".git"))
-      repo = repo.substring(0, repo.length() - 4);
-    return new GitHubRepo(owner, repo);
-  }
-
-
-  public static class GitHubRepo extends Pair<String, String> {
-    public GitHubRepo(@NotNull String owner, @NotNull String repo) {
-      super(owner, repo);
-    }
-
-    @NotNull
-    public String owner() {
-      return first;
-    }
-    @NotNull
-    public String repositoryName() {
-      return second;
-    }
   }
 }
