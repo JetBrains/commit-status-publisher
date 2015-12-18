@@ -116,10 +116,11 @@ public class UpsourcePublisher extends BaseCommitStatusPublisher {
         }
       }
     }
+    String buildName = build.getFullName() + " #" + build.getBuildNumber();
     String payload = createPayload(myParams.get(Constants.UPSOURCE_PROJECT_ID),
             build.getBuildTypeExternalId(),
             status,
-            build.getFullName(),
+            buildName,
             url,
             description,
             revision.getRevision(),
