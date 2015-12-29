@@ -9,14 +9,14 @@ import java.net.URL;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class GitRepositoryHelper {
-  private static final Logger LOG = Logger.getInstance(GitRepositoryHelper.class.getName());
-  private static final Pattern SCP_PATTERN = Pattern.compile("(?:ssh://)?git@[^:]+:([^/]+)/(.+)");
+public class GitRepositoryParser {
+  private static final Logger LOG = Logger.getInstance(GitRepositoryParser.class.getName());
+  private static final Pattern SSH_PATTERN = Pattern.compile("(?:ssh://)?git@[^:]+:([^/]+)/(.+)");
 
   @Nullable
-  public static GitRepository getRepositoryDetails(@NotNull String uri) {
+  public static Repository parseRepository(@NotNull String uri) {
     if (uri.startsWith("git@") || uri.startsWith("ssh://")) {
-      Matcher m = SCP_PATTERN.matcher(uri);
+      Matcher m = SSH_PATTERN.matcher(uri);
       if(!m.matches()) {
         LOG.warn("Cannot parse Git repository url " + uri);
         return null;
@@ -25,7 +25,7 @@ public class GitRepositoryHelper {
       String repo = m.group(2);
       if (repo.endsWith(".git"))
         repo = repo.substring(0, repo.length() - 4);
-      return new GitRepository(userGroup, repo);
+      return new Repository(userGroup, repo);
     }
 
     URL url;
@@ -53,6 +53,6 @@ public class GitRepositoryHelper {
     String repo = path.substring(idx + 1, path.length());
     if (repo.endsWith(".git"))
       repo = repo.substring(0, repo.length() - 4);
-    return new GitRepository(owner, repo);
+    return new Repository(owner, repo);
   }
 }

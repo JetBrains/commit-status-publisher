@@ -17,8 +17,8 @@
 package jetbrains.buildServer.commitPublisher.github;
 
 import com.intellij.openapi.diagnostic.Logger;
-import jetbrains.buildServer.commitPublisher.GitRepository;
-import jetbrains.buildServer.commitPublisher.GitRepositoryHelper;
+import jetbrains.buildServer.commitPublisher.Repository;
+import jetbrains.buildServer.commitPublisher.GitRepositoryParser;
 import jetbrains.buildServer.commitPublisher.github.api.*;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.messages.Status;
@@ -31,8 +31,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -85,7 +83,10 @@ public class ChangeStatusUpdater {
   public Handler getUpdateHandler(@NotNull VcsRootInstance root, @NotNull Map<String, String> params) {
     final GitHubApi api = getGitHubApi(params);
 
-    GitRepository repo = GitRepositoryHelper.getRepositoryDetails(root.getProperty("url"));
+    String url = root.getProperty("url");
+    if (url == null)
+      return null;
+    Repository repo = GitRepositoryParser.parseRepository(url);
     if (repo == null)
       return null;
 

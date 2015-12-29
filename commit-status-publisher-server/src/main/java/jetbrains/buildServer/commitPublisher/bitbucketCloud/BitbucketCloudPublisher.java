@@ -1,12 +1,14 @@
 package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
-import com.google.gson.*;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.commitPublisher.GitRepository;
-import jetbrains.buildServer.commitPublisher.GitRepositoryHelper;
+import jetbrains.buildServer.commitPublisher.Repository;
 import jetbrains.buildServer.log.LogUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
@@ -104,8 +106,11 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
                     @NotNull String comment) {
     String msg = createMessage(status, build.getBuildPromotion().getBuildTypeId(), getBuildName(build), myLinks.getViewResultsUrl(build), comment);
     try {
-      GitRepository gitRepository = getRespositoryDetails(revision);
-      vote(revision.getRevision(), msg, gitRepository);
+      final VcsRootInstance root = revision.getRoot();
+      Repository repository = BitbucketCloudRepositoryParser.parseRepository(root);
+      if (repository == null)
+        throw new Exception("Cannot parse repository from VCS root url " + root);
+      vote(revision.getRevision(), msg, repository);
     } catch (Exception e) {
       reportProblem(build.getBuildPromotion(), revision, e);
     }
@@ -131,7 +136,7 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
     } else {
       logMessage = "Error while publishing commit status to Bitbucket Cloud for promotion " + LogUtil.describe(buildPromotion) +
               " " + e.toString();
-      problemText = "Error while publishing commit status to Bitbucket Cloud " + e.toString();
+      problemText = "Error while publishing commit status to Bitbucket Cloud: " + e.toString();
     }
     LOG.info(logMessage);
     LOG.debug(logMessage, e);
@@ -164,12 +169,7 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
     return result.replaceAll("\\\\'", "'");
   }
 
-  private GitRepository getRespositoryDetails(@NotNull BuildRevision revision) {
-    VcsRootInstance root = revision.getRoot();
-    return GitRepositoryHelper.getRepositoryDetails(root.getProperty("url"));
-  }
-
-  private void vote(@NotNull String commit, @NotNull String data, @NotNull GitRepository gitRepository) throws URISyntaxException, IOException,
+  private void vote(@NotNull String commit, @NotNull String data, @NotNull Repository repository) throws URISyntaxException, IOException,
           UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, BitBucketException {
     URI bitBucketURI = new URI(getBaseUrl());
 
@@ -189,7 +189,7 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
       BasicHttpContext ctx = new BasicHttpContext();
       ctx.setAttribute(ClientContext.AUTH_CACHE, authCache);
 
-      String url = getBaseUrl() + "2.0/repositories/" + gitRepository.owner() + "/" + gitRepository.repositoryName() + "/commit/" + commit + "/statuses/build";
+      String url = getBaseUrl() + "2.0/repositories/" + repository.owner() + "/" + repository.repositoryName() + "/commit/" + commit + "/statuses/build";
 
       LOG.debug(url);
 

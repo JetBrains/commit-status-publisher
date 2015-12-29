@@ -3,8 +3,8 @@ package jetbrains.buildServer.commitPublisher;
 import com.intellij.openapi.util.Pair;
 import org.jetbrains.annotations.NotNull;
 
-public class GitRepository extends Pair<String, String> {
-  public GitRepository(@NotNull String owner, @NotNull String repo) {
+public class Repository extends Pair<String, String> {
+  public Repository(@NotNull String owner, @NotNull String repo) {
     super(owner, repo);
   }
 

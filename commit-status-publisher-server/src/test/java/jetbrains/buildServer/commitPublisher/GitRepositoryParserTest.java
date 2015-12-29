@@ -10,7 +10,7 @@ import static org.assertj.core.api.BDDAssertions.then;
 
 @SuppressWarnings("ConstantConditions")
 @Test
-public class GitRepositoryHelperTest {
+public class GitRepositoryParserTest {
 
   @TestFor(issues = "TW-43075")
   public void parse_scp_like_urls() {
@@ -19,7 +19,7 @@ public class GitRepositoryHelperTest {
             "ssh://git@github.com:owner/repository.git");
 
     for(String url : urls) {
-      GitRepository repo = GitRepositoryHelper.getRepositoryDetails(url);
+      Repository repo = GitRepositoryParser.parseRepository(url);
       then(repo.owner()).isEqualTo("owner");
       then(repo.repositoryName()).isEqualTo("repository");
     }
@@ -28,7 +28,7 @@ public class GitRepositoryHelperTest {
 
   @TestFor(issues = "TW-43075")
   public void parse_scp_like_urls_ghe() {
-    GitRepository repo = GitRepositoryHelper.getRepositoryDetails("git@ghe.server:owner/repository.git");
+    Repository repo = GitRepositoryParser.parseRepository("git@ghe.server:owner/repository.git");
     then(repo.owner()).isEqualTo("owner");
     then(repo.repositoryName()).isEqualTo("repository");
   }
@@ -41,7 +41,7 @@ public class GitRepositoryHelperTest {
             "https://owner@bitbucket.org/owner/repository.git",
             "https://bitbucket.org/owner/repository.git");
     for(String url : urls) {
-      GitRepository repo = GitRepositoryHelper.getRepositoryDetails(url);
+      Repository repo = GitRepositoryParser.parseRepository(url);
       then(repo.owner()).isEqualTo("owner");
       then(repo.repositoryName()).isEqualTo("repository");
     }
