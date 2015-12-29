@@ -102,7 +102,7 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
                     @NotNull BuildRevision revision,
                     @NotNull BitbucketCloudBuildStatus status,
                     @NotNull String comment) {
-    String msg = createMessage(status, build.getBuildPromotion().getBuildTypeExternalId(), getBuildName(build), myLinks.getViewResultsUrl(build), comment);
+    String msg = createMessage(status, build.getBuildPromotion().getBuildTypeId(), getBuildName(build), myLinks.getViewResultsUrl(build), comment);
     try {
       GitRepository gitRepository = getRespositoryDetails(revision);
       vote(revision.getRevision(), msg, gitRepository);
