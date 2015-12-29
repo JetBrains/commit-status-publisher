@@ -41,8 +41,6 @@ import java.security.UnrecoverableKeyException;
 import java.util.Map;
 
 public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
-  private static final String PUBLISH_QUEUED_BUILD_STATUS = "teamcity.bitbucketCloudCommitStatusPublisher.publishQueuedBuildStatus";
-
   private static final Logger LOG = Logger.getInstance(BitbucketCloudPublisher.class.getName());
 
   private final WebLinks myLinks;
@@ -58,26 +56,6 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
     return "bitbucketCloud";
   }
 
-  @Override
-  public void buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) {
-    if (TeamCityProperties.getBoolean(PUBLISH_QUEUED_BUILD_STATUS)) {
-      vote(build, revision, BitbucketCloudBuildStatus.INPROGRESS, "Build queued");
-    }
-  }
-
-  @Override
-  public void buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) {
-    if (TeamCityProperties.getBoolean(PUBLISH_QUEUED_BUILD_STATUS)) {
-      StringBuilder description = new StringBuilder("Build removed from queue");
-      if (user != null)
-        description.append(" by ").append(user.getName());
-      if (comment != null)
-        description.append(" with comment \"").append(comment).append("\"");
-      vote(build, revision, BitbucketCloudBuildStatus.FAILED, description.toString());
-    }
-  }
-
-  @Override
   public void buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, BitbucketCloudBuildStatus.INPROGRESS, "Build started");
   }
@@ -124,19 +102,6 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
                     @NotNull BitbucketCloudBuildStatus status,
                     @NotNull String comment) {
     String msg = createMessage(status, build.getBuildPromotion().getBuildTypeExternalId(), getBuildName(build), myLinks.getViewResultsUrl(build), comment);
-    try {
-      GitRepository gitRepository = getRespositoryDetails(revision);
-      vote(revision.getRevision(), msg, gitRepository);
-    } catch (Exception e) {
-      reportProblem(build.getBuildPromotion(), revision, e);
-    }
-  }
-
-  private void vote(@NotNull SQueuedBuild build,
-                    @NotNull BuildRevision revision,
-                    @NotNull BitbucketCloudBuildStatus status,
-                    @NotNull String comment) {
-    String msg = createMessage(status, build.getBuildPromotion().getBuildTypeExternalId(), getBuildName(build), myLinks.getQueuedBuildUrl(build), comment);
     try {
       GitRepository gitRepository = getRespositoryDetails(revision);
       vote(revision.getRevision(), msg, gitRepository);
@@ -287,11 +252,6 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
   @NotNull
   private String getBuildName(@NotNull SBuild build) {
     return build.getFullName() + " #" + build.getBuildNumber();
-  }
-
-  @NotNull
-  private String getBuildName(@NotNull SQueuedBuild build) {
-    return build.getBuildType().getName();
   }
 
   String getBaseUrl() { return "https://api.bitbucket.org/";  }
