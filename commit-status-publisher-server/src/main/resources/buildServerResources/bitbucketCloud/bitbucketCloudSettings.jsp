@@ -4,18 +4,19 @@
 <%@ taglib prefix="forms" tagdir="/WEB-INF/tags/forms" %>
 <%@ taglib prefix="bs" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
+<jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
 <table style="width: 100%">
   <tr>
-    <th><label for="bitbucketUsername">BitBucket username: <l:star/></label></th>
+    <th><label for="${keys.bitbucketCloudUsername}">BitBucket username: <l:star/></label></th>
     <td>
-      <props:textProperty name="bitbucketUsername" style="width:18em;"/>
+      <props:textProperty name="${keys.bitbucketCloudUsername}" style="width:18em;"/>
     </td>
   </tr>
 
   <tr>
-    <th><label for="secure:bitbucketPassword">BitBucket password: <l:star/></label></th>
+    <th><label for="${keys.bitbucketCloudPassword}">BitBucket password: <l:star/></label></th>
     <td>
-      <props:passwordProperty name="secure:bitbucketPassword" style="width:18em;"/>
+      <props:passwordProperty name="${keys.bitbucketCloudPassword}" style="width:18em;"/>
     </td>
   </tr>
 </table>

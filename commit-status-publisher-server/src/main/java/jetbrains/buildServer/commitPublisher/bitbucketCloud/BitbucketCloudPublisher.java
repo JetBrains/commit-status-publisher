@@ -4,6 +4,7 @@ import com.google.gson.*;
 import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
+import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.GitRepository;
 import jetbrains.buildServer.commitPublisher.GitRepositoryHelper;
 import jetbrains.buildServer.log.LogUtil;
@@ -257,11 +258,11 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
   String getBaseUrl() { return "https://api.bitbucket.org/";  }
 
   private String getUsername() {
-    return myParams.get("bitbucketUsername");
+    return myParams.get(Constants.BITBUCKET_CLOUD_USERNAME);
   }
 
   private String getPassword() {
-    return myParams.get("secure:bitbucketPassword");
+    return myParams.get(Constants.BITBUCKET_CLOUD_PASSWORD);
   }
 
 

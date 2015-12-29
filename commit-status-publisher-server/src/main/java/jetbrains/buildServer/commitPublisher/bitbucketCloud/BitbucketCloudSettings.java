@@ -2,6 +2,7 @@ package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
+import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.WebLinks;
@@ -62,11 +63,11 @@ public class BitbucketCloudSettings implements CommitStatusPublisherSettings {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
 
-        if (StringUtil.isEmptyOrSpaces(params.get("bitbucketUsername")))
-          errors.add(new InvalidProperty("bitbucketUsername", "must be specified"));
+        if (StringUtil.isEmptyOrSpaces(params.get(Constants.BITBUCKET_CLOUD_USERNAME)))
+          errors.add(new InvalidProperty(Constants.BITBUCKET_CLOUD_USERNAME, "must be specified"));
 
-        if (StringUtil.isEmptyOrSpaces(params.get("secure:bitbucketPassword")))
-          errors.add(new InvalidProperty("secure:bitbucketPassword", "must be specified"));
+        if (StringUtil.isEmptyOrSpaces(params.get(Constants.BITBUCKET_CLOUD_PASSWORD)))
+          errors.add(new InvalidProperty(Constants.BITBUCKET_CLOUD_PASSWORD, "must be specified"));
 
         return errors;
       }

@@ -33,6 +33,9 @@ public class Constants {
   public static final String GITHUB_PASSWORD = "github_password";
   public static final String GITHUB_TOKEN = "secure:github_access_token";
 
+  public static final String BITBUCKET_CLOUD_USERNAME = "bitbucketUsername";
+  public static final String BITBUCKET_CLOUD_PASSWORD = "secure:bitbucketPassword";
+
   @NotNull
   public String getVcsRootIdParam() {
     return VCS_ROOT_ID_PARAM;
@@ -106,5 +109,15 @@ public class Constants {
   @NotNull
   public String getGerritFailureVote() {
     return GERRIT_FAILURE_VOTE;
+  }
+
+  @NotNull
+  public String getBitbucketCloudUsername() {
+    return BITBUCKET_CLOUD_USERNAME;
+  }
+
+  @NotNull
+  public String getBitbucketCloudPassword() {
+    return BITBUCKET_CLOUD_PASSWORD;
   }
 }
