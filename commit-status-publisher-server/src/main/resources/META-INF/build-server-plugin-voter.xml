@@ -8,6 +8,7 @@
   <bean class="jetbrains.buildServer.commitPublisher.PublisherManager"/>
 
   <bean class="jetbrains.buildServer.commitPublisher.stash.StashSettings"/>
+  <bean class="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.gerrit.GerritSettings"/>
 
   <!-- github -->
