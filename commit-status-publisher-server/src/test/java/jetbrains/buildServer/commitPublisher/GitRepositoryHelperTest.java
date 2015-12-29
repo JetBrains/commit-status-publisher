@@ -16,12 +16,9 @@ public class GitRepositoryHelperTest {
   public void parse_scp_like_urls() {
     List<String> urls = Arrays.asList(
             "git@github.com:owner/repository.git",
-            "ssh://git@github.com:owner/repository.git",
-            "https://owner@bitbucket.org/owner/repository.git"
-    );
+            "ssh://git@github.com:owner/repository.git");
 
-    for(String url : urls)
-    {
+    for(String url : urls) {
       GitRepository repo = GitRepositoryHelper.getRepositoryDetails(url);
       then(repo.owner()).isEqualTo("owner");
       then(repo.repositoryName()).isEqualTo("repository");
@@ -36,4 +33,17 @@ public class GitRepositoryHelperTest {
     then(repo.repositoryName()).isEqualTo("repository");
   }
 
+
+  public void parse_http_urls() {
+    List<String> urls = Arrays.asList(
+            "https://owner@github.com/owner/repository.git",
+            "https://github.com/owner/repository.git",
+            "https://owner@bitbucket.org/owner/repository.git",
+            "https://bitbucket.org/owner/repository.git");
+    for(String url : urls) {
+      GitRepository repo = GitRepositoryHelper.getRepositoryDetails(url);
+      then(repo.owner()).isEqualTo("owner");
+      then(repo.repositoryName()).isEqualTo("repository");
+    }
+  }
 }
