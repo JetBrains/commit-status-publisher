@@ -222,17 +222,24 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
       if (!json.isJsonObject())
         return null;
       JsonObject jsonObj = json.getAsJsonObject();
-      JsonElement errors = jsonObj.get("errors");
-      if (errors == null || !errors.isJsonArray())
-        return null;
-      JsonArray errorsArray = errors.getAsJsonArray();
-      if (errorsArray.size() == 0)
-        return null;
-      JsonElement error = errorsArray.get(0);
+      JsonElement error = jsonObj.get("error");
       if (error == null || !error.isJsonObject())
         return null;
-      JsonElement msg = error.getAsJsonObject().get("message");
-      return msg != null ? msg.getAsString() : null;
+
+      final JsonObject errorObj = error.getAsJsonObject();
+      JsonElement msg = errorObj.get("message");
+      if (msg == null)
+        return null;
+      StringBuilder result = new StringBuilder(msg.getAsString());
+      JsonElement fields = errorObj.get("fields");
+      if (fields != null && fields.isJsonObject()) {
+        result.append(". ");
+        JsonObject fieldsObj = fields.getAsJsonObject();
+        for (Map.Entry<String, JsonElement> e : fieldsObj.entrySet()) {
+          result.append("Field '").append(e.getKey()).append("': ").append(e.getValue().getAsString());
+        }
+      }
+      return result.toString();
     } catch (IOException e) {
       return null;
     } catch (JsonSyntaxException e) {
