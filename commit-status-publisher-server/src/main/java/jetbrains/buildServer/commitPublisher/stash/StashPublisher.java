@@ -4,6 +4,7 @@ import com.google.gson.*;
 import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
+import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.log.LogUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
@@ -277,15 +278,15 @@ public class StashPublisher extends BaseCommitStatusPublisher {
   }
 
   String getBaseUrl() {
-    return myParams.get("stashBaseUrl");
+    return myParams.get(Constants.STASH_BASE_URL);
   }
 
   private String getUsername() {
-    return myParams.get("stashUsername");
+    return myParams.get(Constants.STASH_USERNAME);
   }
 
   private String getPassword() {
-    return myParams.get("secure:stashPassword");
+    return myParams.get(Constants.STASH_PASSWORD);
   }
 
 

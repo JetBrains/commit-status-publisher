@@ -94,21 +94,15 @@ public class ChangeStatusUpdater {
     final String repositoryOwner = repo.owner();
     final String repositoryName = repo.repositoryName();
     final String context = "continuous-integration/teamcity";
-    final boolean addComments = !StringUtil.isEmptyOrSpaces(params.get(C.getUseCommentsKey()));
-    final boolean useGuestUrls = !StringUtil.isEmptyOrSpaces(params.get(C.getUseGuestUrlsKey()));
+    final boolean addComments = false;
 
-    final GitHubApiReportEvent reportEvent = GitHubApiReportEvent.parse(params.get(C.getReportOnKey()));
-    final boolean shouldReportOnStart = reportEvent == GitHubApiReportEvent.ON_START_AND_FINISH || reportEvent == GitHubApiReportEvent.ON_START;
-    final boolean shouldReportOnFinish = reportEvent == GitHubApiReportEvent.ON_START_AND_FINISH || reportEvent == GitHubApiReportEvent.ON_FINISH;
+    final boolean shouldReportOnStart = true;
+    final boolean shouldReportOnFinish = true;
 
     return new Handler() {
       @NotNull
       private String getViewResultsUrl(@NotNull final SBuild build) {
-        final String url = myWeb.getViewResultsUrl(build);
-        if (useGuestUrls) {
-          return url + (url.contains("?") ? "&" : "?") + "guest=1";
-        }
-        return url;
+        return myWeb.getViewResultsUrl(build);
       }
 
       public boolean shouldReportOnStart() {

@@ -1,6 +1,7 @@
 package jetbrains.buildServer.commitPublisher.stash;
 
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
+import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.WebLinks;
@@ -61,8 +62,8 @@ public class StashSettings implements CommitStatusPublisherSettings {
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
-        if (params.get("stashBaseUrl") == null)
-          errors.add(new InvalidProperty("stashBaseUrl", "must be specified"));
+        if (params.get(Constants.STASH_BASE_URL) == null)
+          errors.add(new InvalidProperty(Constants.STASH_BASE_URL, "must be specified"));
         return errors;
       }
     };

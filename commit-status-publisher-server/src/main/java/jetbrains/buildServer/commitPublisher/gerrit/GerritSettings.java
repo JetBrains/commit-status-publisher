@@ -1,6 +1,7 @@
 package jetbrains.buildServer.commitPublisher.gerrit;
 
 import jetbrains.buildServer.ExtensionHolder;
+import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.WebLinks;
@@ -20,8 +21,8 @@ public class GerritSettings implements CommitStatusPublisherSettings {
   private final ExtensionHolder myExtensionHolder;
   private final WebLinks myLinks;
   private final String[] myMandatoryProperties = new String[] {
-          "gerritServer", "gerritProject", "gerritUsername",
-          "successVote", "failureVote", TEAMCITY_SSH_KEY_PROP};
+          Constants.GERRIT_SERVER, Constants.GERRIT_PROJECT, Constants.GERRIT_USERNAME,
+          Constants.GERRIT_SUCCESS_VOTE, Constants.GERRIT_FAILURE_VOTE, TEAMCITY_SSH_KEY_PROP};
 
 
   public GerritSettings(@NotNull PluginDescriptor descriptor,
@@ -50,8 +51,8 @@ public class GerritSettings implements CommitStatusPublisherSettings {
   @Nullable
   public Map<String, String> getDefaultParameters() {
     Map<String, String> params = new HashMap<String, String>();
-    params.put("successVote", "+1");
-    params.put("failureVote", "-1");
+    params.put(Constants.GERRIT_SUCCESS_VOTE, "+1");
+    params.put(Constants.GERRIT_FAILURE_VOTE, "-1");
     return params;
   }
 

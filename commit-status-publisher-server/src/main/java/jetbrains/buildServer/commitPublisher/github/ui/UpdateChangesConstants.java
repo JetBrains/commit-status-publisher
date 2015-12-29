@@ -16,28 +16,19 @@
 
 package jetbrains.buildServer.commitPublisher.github.ui;
 
-import jetbrains.buildServer.agent.Constants;
+import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
-import jetbrains.buildServer.commitPublisher.github.api.GitHubApiReportEvent;
 
 /**
  * Created by Eugene Petrenko (eugene.petrenko@gmail.com)
  * Date: 05.09.12 23:26
  */
 public class UpdateChangesConstants {
-  public String getServerKey() { return "github_host"; }
-  public String getUserNameKey() { return "github_username"; }
-  public String getPasswordKey() { return Constants.SECURE_PROPERTY_PREFIX + "github_password"; }
-  public String getRepositoryNameKey() { return "github_repo"; }
-  public String getRepositoryOwnerKey() { return "github_owner"; }
-  public String getReportOnKey() { return "github_report_on"; }
-  public String getReportOnStartAndFinishValue() { return GitHubApiReportEvent.ON_START_AND_FINISH.getValue(); }
-  public String getReportOnStartValue() { return GitHubApiReportEvent.ON_START.getValue(); }
-  public String getReportOnFinishValue() { return GitHubApiReportEvent.ON_FINISH.getValue(); }
-  public String getUseCommentsKey() { return "github_comments"; }
-  public String getUseGuestUrlsKey() { return "github_guest"; }
-  public String getAccessTokenKey() { return Constants.SECURE_PROPERTY_PREFIX + "github_access_token"; }
-  public String getAuthenticationTypeKey() { return "github_authentication_type";}
+  public String getServerKey() { return Constants.GITHUB_SERVER; }
+  public String getUserNameKey() { return Constants.GITHUB_USERNAME; }
+  public String getPasswordKey() { return Constants.GITHUB_PASSWORD; }
+  public String getAccessTokenKey() { return Constants.GITHUB_TOKEN; }
+  public String getAuthenticationTypeKey() { return Constants.GITHUB_AUTH_TYPE;}
   public String getAuthenticationTypePasswordValue() { return GitHubApiAuthenticationType.PASSWORD_AUTH.getValue();}
   public String getAuthenticationTypeTokenValue() { return GitHubApiAuthenticationType.TOKEN_AUTH.getValue();}
 }

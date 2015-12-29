@@ -7,6 +7,7 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
+import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.ssh.TeamCitySshKey;
@@ -116,23 +117,23 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
   }
 
   String getGerritServer() {
-    return myParams.get("gerritServer");
+    return myParams.get(Constants.GERRIT_SERVER);
   }
 
   String getGerritProject() {
-    return myParams.get("gerritProject");
+    return myParams.get(Constants.GERRIT_PROJECT);
   }
 
   private String getUsername() {
-    return myParams.get("gerritUsername");
+    return myParams.get(Constants.GERRIT_USERNAME);
   }
 
   private String getSuccessVote() {
-    return myParams.get("successVote");
+    return myParams.get(Constants.GERRIT_SUCCESS_VOTE);
   }
 
   private String getFailureVote() {
-    return myParams.get("failureVote");
+    return myParams.get(Constants.GERRIT_FAILURE_VOTE);
   }
 
   private void error(@NotNull String message, @NotNull Exception error) {
