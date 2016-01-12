@@ -2,6 +2,7 @@ package jetbrains.buildServer.commitPublisher.upsource;
 
 import com.google.gson.Gson;
 import com.intellij.openapi.diagnostic.Logger;
+import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.*;
@@ -129,7 +130,7 @@ public class UpsourcePublisher extends BaseCommitStatusPublisher {
     try {
       publish(payload);
     } catch (Exception e) {
-      reportProblem(build, e);
+      reportProblem(build, revision, e);
     }
   }
 
@@ -228,10 +229,13 @@ public class UpsourcePublisher extends BaseCommitStatusPublisher {
   }
 
 
-  private void reportProblem(@NotNull SBuild build, @NotNull Exception e) {
+  private void reportProblem(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull Exception e) {
     String msg = "Error while publishing status to upsource, build " + LogUtil.describe(build) +
             ", " + e.toString();
     LOG.warn(msg);
     LOG.debug(msg, e);
+    String problemId = "upsource.publisher." + revision.getRoot().getId();
+    BuildProblemData buildProblem = BuildProblemData.createBuildProblem(problemId, "upsource.publisher", msg);
+    ((BuildPromotionEx)build.getBuildPromotion()).addBuildProblem(buildProblem);
   }
 }
