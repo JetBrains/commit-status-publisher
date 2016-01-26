@@ -9,7 +9,7 @@
     <tr>
         <th><label for="${keys.upsourceServerUrl}">Upsource url: <l:star/></label></th>
         <td>
-            <props:textProperty name="${keys.upsourceServerUrl}" style="width:18em;"/>
+            <props:textProperty name="${keys.upsourceServerUrl}" style="width:18em;"/> <span id="hubAppsControl"></span>
             <span class="error" id="error_${keys.upsourceServerUrl}"></span>
         </td>
     </tr>
@@ -36,4 +36,9 @@
         </td>
     </tr>
 </table>
+<script type="text/javascript">
+if (BS.HubApplicationsPopup) {
+  BS.ajaxUpdater($('hubAppsControl'), '<c:url value="/hubPlugin/applicationsControl.html?applicationName=Upsource"/>');
+}
+</script>
 
