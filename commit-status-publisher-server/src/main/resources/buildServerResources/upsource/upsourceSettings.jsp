@@ -38,7 +38,9 @@
 </table>
 <script type="text/javascript">
 if (BS.HubApplicationsPopup) {
-  BS.ajaxUpdater($('hubAppsControl'), '<c:url value="/hubPlugin/applicationsControl.html?applicationName=Upsource"/>');
+  BS.HubApplicationsPopup.installControl('hubAppsControl', 'Upsource', function(service) {
+    $('${keys.upsourceServerUrl}').value = service.homeUrl;
+  });
 }
 </script>
 
