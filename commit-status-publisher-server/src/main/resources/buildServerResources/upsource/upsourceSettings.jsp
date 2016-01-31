@@ -15,9 +15,9 @@
     </tr>
 
     <tr>
-        <th><label for="${keys.upsourceProjectId}">Upsource project: <l:star/></label></th>
+        <th><label for="${keys.upsourceProjectId}">Upsource project ID: <l:star/></label></th>
         <td>
-            <props:textProperty name="${keys.upsourceProjectId}" style="width:18em;"/>
+            <props:textProperty name="${keys.upsourceProjectId}" style="width:18em;"/> <span id="hubProjectsControl"></span>
             <span class="error" id="error_${keys.upsourceProjectId}"></span>
         </td>
     </tr>
@@ -40,7 +40,13 @@
 if (BS.HubApplicationsPopup) {
   BS.HubApplicationsPopup.installControl('hubAppsControl', 'Upsource', function(service) {
     $('${keys.upsourceServerUrl}').value = service.homeUrl;
+    $('${keys.upsourceServerUrl}')._serviceId = service.id;
   });
+
+  BS.HubServiceProjectsPopup.installControl('hubProjectsControl',
+          function() { return $('${keys.upsourceServerUrl}')._serviceId; },
+          function(project) { $('${keys.upsourceProjectId}').value = project.key; }
+  );
 }
 </script>
 
