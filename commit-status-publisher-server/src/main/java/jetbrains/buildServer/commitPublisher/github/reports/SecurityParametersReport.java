@@ -15,12 +15,6 @@ public class SecurityParametersReport extends HealthStatusReport {
   private static final ItemCategory CATEGORY = new ItemCategory("githubPullRequestSecurityParamsCategory",
           "Security parameters used in configuration building pull requests", ItemSeverity.WARN);
 
-  private final ProjectManager myProjectManager;
-
-  public SecurityParametersReport(@NotNull ProjectManager projectManager) {
-    myProjectManager = projectManager;
-  }
-
   @NotNull
   @Override
   public String getType() {
@@ -40,11 +34,16 @@ public class SecurityParametersReport extends HealthStatusReport {
   }
 
   @Override
+  public boolean canReportItemsFor(@NotNull HealthStatusScope healthStatusScope) {
+    return !healthStatusScope.globalItems();
+  }
+
+  @Override
   public void report(@NotNull HealthStatusScope scope, @NotNull HealthStatusItemConsumer consumer) {
     if (!isEnabled())
       return;
 
-    for (SBuildType bt : myProjectManager.getActiveBuildTypes()) {
+    for (SBuildType bt : scope.getBuildTypes()) {
       if (!hasSecureParameters(bt))
         continue;
       List<VcsRootInstance> pullRequestRoots = new ArrayList<VcsRootInstance>();
