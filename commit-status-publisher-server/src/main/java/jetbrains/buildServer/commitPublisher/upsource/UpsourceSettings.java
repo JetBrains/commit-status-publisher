@@ -59,7 +59,7 @@ public class UpsourceSettings implements CommitStatusPublisherSettings {
 
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
-    return "Upsource";
+    return "Upsource URL: " + params.get(Constants.UPSOURCE_SERVER_URL) + ", Upsource project ID: " + params.get(Constants.UPSOURCE_PROJECT_ID);
   }
 
   @Nullable
