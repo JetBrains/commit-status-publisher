@@ -15,14 +15,14 @@
   </tr>
 
   <tr>
-    <th><label for="${keys.stashUsername}">Stash username: <l:star/></label></th>
+    <th><label for="${keys.stashUsername}">Username: <l:star/></label></th>
     <td>
       <props:textProperty name="${keys.stashUsername}" style="width:18em;"/>
     </td>
   </tr>
 
   <tr>
-    <th><label for="${keys.stashPassword}">Stash password: <l:star/></label></th>
+    <th><label for="${keys.stashPassword}">Password: <l:star/></label></th>
     <td>
       <props:passwordProperty name="${keys.stashPassword}" style="width:18em;"/>
     </td>

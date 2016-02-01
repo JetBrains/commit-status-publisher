@@ -24,7 +24,7 @@
 
     <props:selectSectionPropertyContent value="${keys.authenticationTypePasswordValue}" caption="Password">
       <tr>
-        <th><label for="${keys.userNameKey}">User Name: <l:star/></label></th>
+        <th><label for="${keys.userNameKey}">Username: <l:star/></label></th>
         <td>
           <props:textProperty name="${keys.userNameKey}" className="longField"/>
           <span class="error" id="error_${keys.userNameKey}"></span>
@@ -65,10 +65,8 @@
       <props:textProperty name="${keys.serverKey}" className="longField"/>
       <span class="error" id="error_${keys.serverKey}"></span>
     <span class="smallNote">
-      Specify GitHub instance URL.
-      Use <strong>http(s)://[hostname]/api/v3</strong>
-      for <a href="https://support.enterprise.github.com/entries/21391237-Using-the-API" target="_blank">GitHub
-      Enterprise</a>
+      Specify GitHub URL. Use <strong>http(s)://[hostname]/api/v3</strong>
+      for <a href="https://support.enterprise.github.com/entries/21391237-Using-the-API" target="_blank">GitHub Enterprise</a>
     </span>
     </td>
   </tr>

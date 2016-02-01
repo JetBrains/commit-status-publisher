@@ -24,7 +24,7 @@
   </tr>
 
   <tr>
-    <th><label for="${keys.sshKey}">Ssh Key: <l:star/></label></th>
+    <th><label for="${keys.sshKey}">SSH Key: <l:star/></label></th>
     <td>
       <admin:sshKeys projectId="${projectId}"/>
       <span class="error" id="error_${keys.sshKey}"></span>

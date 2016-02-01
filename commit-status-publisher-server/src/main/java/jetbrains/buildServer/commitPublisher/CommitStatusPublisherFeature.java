@@ -14,6 +14,7 @@ import java.util.Map;
 
 public class CommitStatusPublisherFeature extends BuildFeature {
 
+  public static final String TYPE = "commit-status-publisher";
   private final CommitStatusPublisherFeatureController myController;
   private final PublisherManager myPublisherManager;
 
@@ -26,7 +27,7 @@ public class CommitStatusPublisherFeature extends BuildFeature {
   @NotNull
   @Override
   public String getType() {
-    return "commit-status-publisher";
+    return TYPE;
   }
 
   @NotNull
@@ -66,13 +67,13 @@ public class CommitStatusPublisherFeature extends BuildFeature {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
         String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
         if (StringUtil.isEmptyOrSpaces(vcsRootId)) {
-          errors.add(new InvalidProperty(Constants.VCS_ROOT_ID_PARAM, "Select a VCS root"));
+          errors.add(new InvalidProperty(Constants.VCS_ROOT_ID_PARAM, "Choose a VCS root"));
           return errors;
         }
 
         String publisherId = params.get(Constants.PUBLISHER_ID_PARAM);
         if (StringUtil.isEmptyOrSpaces(publisherId) || DummyPublisherSettings.ID.equals(publisherId)) {
-          errors.add(new InvalidProperty(Constants.PUBLISHER_ID_PARAM, "Select a publisher"));
+          errors.add(new InvalidProperty(Constants.PUBLISHER_ID_PARAM, "Choose a publisher"));
           return errors;
         }
 

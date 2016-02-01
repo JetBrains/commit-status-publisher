@@ -7,7 +7,7 @@
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
 <table style="width: 100%">
   <tr>
-    <th><label for="${keys.bitbucketCloudUsername}">BitBucket username: <l:star/></label></th>
+    <th><label for="${keys.bitbucketCloudUsername}">Username: <l:star/></label></th>
     <td>
       <props:textProperty name="${keys.bitbucketCloudUsername}" style="width:18em;"/>
       <span class="error" id="error_${keys.bitbucketCloudUsername}"></span>
@@ -15,7 +15,7 @@
   </tr>
 
   <tr>
-    <th><label for="${keys.bitbucketCloudPassword}">BitBucket password: <l:star/></label></th>
+    <th><label for="${keys.bitbucketCloudPassword}">Password: <l:star/></label></th>
     <td>
       <props:passwordProperty name="${keys.bitbucketCloudPassword}" style="width:18em;"/>
       <span class="error" id="error_${keys.bitbucketCloudPassword}"></span>

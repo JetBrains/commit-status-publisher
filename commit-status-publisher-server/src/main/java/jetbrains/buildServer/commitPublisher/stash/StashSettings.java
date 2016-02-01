@@ -33,7 +33,7 @@ public class StashSettings implements CommitStatusPublisherSettings {
 
   @NotNull
   public String getName() {
-    return "Atlassian Stash";
+    return "BitBucket Server (Atlassian Stash)";
   }
 
   @Nullable
@@ -54,7 +54,7 @@ public class StashSettings implements CommitStatusPublisherSettings {
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
     StashPublisher voter = (StashPublisher) createPublisher(params);
-    return "Atlassian Stash " + voter.getBaseUrl();
+    return getName() + " " + voter.getBaseUrl();
   }
 
   @Nullable

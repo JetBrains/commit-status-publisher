@@ -16,7 +16,7 @@ public class DummyPublisherSettings implements CommitStatusPublisherSettings {
 
   @NotNull
   public String getName() {
-    return "--Select publisher--";
+    return "--Choose publisher--";
   }
 
   @Nullable
