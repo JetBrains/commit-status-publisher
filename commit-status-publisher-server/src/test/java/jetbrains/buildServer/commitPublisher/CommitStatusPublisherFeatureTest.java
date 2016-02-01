@@ -34,16 +34,16 @@ public class CommitStatusPublisherFeatureTest {
   public void should_not_allow_to_save_feature_without_selected_vcs_root() {
     PropertiesProcessor processor = myFeature.getParametersProcessor();
     Collection<InvalidProperty> errors = processor.process(map(Constants.PUBLISHER_ID_PARAM, "somePublisherId"));
-    then(errors).extracting("propertyName", "invalidReason").contains(tuple(Constants.VCS_ROOT_ID_PARAM, "Select a VCS root"));
+    then(errors).extracting("propertyName", "invalidReason").contains(tuple(Constants.VCS_ROOT_ID_PARAM, "Choose a VCS root"));
   }
 
 
   public void should_not_allow_to_save_feature_without_publisher_selected() {
     PropertiesProcessor processor = myFeature.getParametersProcessor();
     Collection<InvalidProperty> errors = processor.process(map(Constants.VCS_ROOT_ID_PARAM, "someRootId"));
-    then(errors).extracting("propertyName", "invalidReason").contains(tuple(Constants.PUBLISHER_ID_PARAM, "Select a publisher"));
+    then(errors).extracting("propertyName", "invalidReason").contains(tuple(Constants.PUBLISHER_ID_PARAM, "Choose a publisher"));
 
     errors = processor.process(map(Constants.VCS_ROOT_ID_PARAM, "someRootId", Constants.PUBLISHER_ID_PARAM, DummyPublisherSettings.ID));
-    then(errors).extracting("propertyName", "invalidReason").contains(tuple(Constants.PUBLISHER_ID_PARAM, "Select a publisher"));
+    then(errors).extracting("propertyName", "invalidReason").contains(tuple(Constants.PUBLISHER_ID_PARAM, "Choose a publisher"));
   }
 }
