@@ -42,13 +42,12 @@ if (BS.HubApplicationsPopup) {
   BS.HubApplicationsPopup.installControl('hubAppsControl', 'Upsource', function(service) {
     $('${keys.upsourceServerUrl}').value = service.homeUrl;
     $('${keys.upsourceUsername}').value = '<c:out value="${currentUser.username}"/>';
-    var serviceId = service.id;
-
-    BS.HubServiceProjectsPopup.installControl('hubProjectsControl',
-              function() { return serviceId; },
-              function(project) { $('${keys.upsourceProjectId}').value = project.key; }
-    );
   });
+
+  BS.HubServiceProjectsPopup.installControl('hubProjectsControl',
+    function() { return 'applicationName:Upsource and homeUrl:"' + $('${keys.upsourceServerUrl}').value + '"'; },
+    function(project) { $('${keys.upsourceProjectId}').value = project.key; }
+  );
 }
 </script>
 
