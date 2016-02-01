@@ -224,11 +224,28 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
               ": VCS root is not specified");
       return null;
     }
-    long parentRootId = Long.valueOf(vcsRootId);
+
+    try {
+      long parentRootId = Long.valueOf(vcsRootId);
+      return findRevisionByInternalId(build, parentRootId);
+    } catch (NumberFormatException e) {
+      // external id
+      for (BuildRevision revision : build.getRevisions()) {
+        if (vcsRootId.equals(revision.getRoot().getParent().getExternalId()))
+          return revision;
+      }
+    }
+
+    return null;
+  }
+
+  @Nullable
+  private BuildRevision findRevisionByInternalId(@NotNull SBuild build, long vcsRootId) {
     for (BuildRevision revision : build.getRevisions()) {
-      if (parentRootId == revision.getRoot().getParentId())
+      if (vcsRootId == revision.getRoot().getParentId())
         return revision;
     }
+
     return null;
   }
 
