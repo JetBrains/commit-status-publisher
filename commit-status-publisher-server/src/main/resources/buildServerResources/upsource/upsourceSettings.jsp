@@ -5,6 +5,7 @@
 <%@ taglib prefix="bs" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
+<jsp:useBean id="currentUser" type="jetbrains.buildServer.users.SUser" scope="request"/>
 <table style="width: 100%">
     <tr>
         <th><label for="${keys.upsourceServerUrl}">Upsource url: <l:star/></label></th>
@@ -40,13 +41,14 @@
 if (BS.HubApplicationsPopup) {
   BS.HubApplicationsPopup.installControl('hubAppsControl', 'Upsource', function(service) {
     $('${keys.upsourceServerUrl}').value = service.homeUrl;
-    $('${keys.upsourceServerUrl}')._serviceId = service.id;
-  });
+    $('${keys.upsourceUsername}').value = '<c:out value="${currentUser.username}"/>';
+    var serviceId = service.id;
 
-  BS.HubServiceProjectsPopup.installControl('hubProjectsControl',
-          function() { return $('${keys.upsourceServerUrl}')._serviceId; },
-          function(project) { $('${keys.upsourceProjectId}').value = project.key; }
-  );
+    BS.HubServiceProjectsPopup.installControl('hubProjectsControl',
+              function() { return serviceId; },
+              function(project) { $('${keys.upsourceProjectId}').value = project.key; }
+    );
+  });
 }
 </script>
 

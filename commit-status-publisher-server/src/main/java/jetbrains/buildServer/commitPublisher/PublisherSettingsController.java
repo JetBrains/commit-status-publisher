@@ -4,6 +4,7 @@ import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.controllers.BasePropertiesBean;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
+import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.web.servlet.ModelAndView;
@@ -43,8 +44,10 @@ public class PublisherSettingsController extends BaseController {
     String settingsUrl = settings.getEditSettingsUrl();
     Map<String, String> params = settings.getDefaultParameters() != null ? settings.getDefaultParameters() : Collections.<String, String>emptyMap();
     request.setAttribute("propertiesBean", new BasePropertiesBean(params));
+    request.setAttribute("currentUser", SessionUser.getUser(request));
     if (settingsUrl != null)
       request.getRequestDispatcher(settings.getEditSettingsUrl()).include(request, response);
+
     return null;
   }
 }
