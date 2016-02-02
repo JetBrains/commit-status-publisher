@@ -39,7 +39,7 @@ public class UpsourceSettings implements CommitStatusPublisherSettings {
 
   @NotNull
   public String getName() {
-    return "Upsource";
+    return "JetBrains Upsource";
   }
 
   @Nullable
