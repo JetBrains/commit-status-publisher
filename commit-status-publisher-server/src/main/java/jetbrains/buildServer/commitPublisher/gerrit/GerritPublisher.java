@@ -41,6 +41,11 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
+  public String getId() {
+    return Constants.GERRIT_PUBLISHER_ID;
+  }
+
+  @Override
   public void buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
     Branch branch = build.getBranch();
     if (branch == null || branch.isDefaultBranch())

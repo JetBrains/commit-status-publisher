@@ -74,6 +74,11 @@ public class UpsourcePublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
+  public String getId() {
+    return Constants.UPSOURCE_PUBLISHER_ID;
+  }
+
+  @Override
   public void buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
     publish(build, revision, UpsourceStatus.IN_PROGRESS, "Build started");
   }

@@ -28,4 +28,6 @@ public interface CommitStatusPublisher {
 
   @NotNull
   String toString();
+
+  String getId();
 }

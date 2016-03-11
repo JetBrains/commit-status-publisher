@@ -59,6 +59,11 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
     return "bitbucketCloud";
   }
 
+  @Override
+  public String getId() {
+    return Constants.BITBUCKET_PUBLISHER_ID;
+  }
+
   public void buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, BitbucketCloudBuildStatus.INPROGRESS, "Build started");
   }

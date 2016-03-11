@@ -2,6 +2,7 @@ package jetbrains.buildServer.commitPublisher.github;
 
 import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
+import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
@@ -25,6 +26,11 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
   @NotNull
   public String toString() {
     return "github";
+  }
+
+  @Override
+  public String getId() {
+    return Constants.GITHUB_PUBLISHER_ID;
   }
 
   @Override

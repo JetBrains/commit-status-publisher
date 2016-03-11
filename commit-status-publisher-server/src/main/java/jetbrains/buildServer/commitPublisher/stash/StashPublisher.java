@@ -57,6 +57,11 @@ public class StashPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
+  public String getId() {
+    return Constants.STASH_PUBLISHER_ID;
+  }
+
+  @Override
   public void buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) {
     if (TeamCityProperties.getBoolean(PUBLISH_QUEUED_BUILD_STATUS)) {
       vote(build, revision, StashBuildStatus.INPROGRESS, "Build queued");
