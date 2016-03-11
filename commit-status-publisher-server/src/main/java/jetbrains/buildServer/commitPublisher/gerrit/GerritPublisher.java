@@ -74,7 +74,7 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
     try {
       JSch jsch = new JSch();
       addKeys(jsch, project);
-      session = jsch.getSession(getUsername(), getGerritServer(), 29418);
+      session = createSession(jsch);
       session.setConfig("StrictHostKeyChecking", "no");
       session.connect();
       channel = (ChannelExec) session.openChannel("exec");
@@ -94,6 +94,18 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
         channel.disconnect();
       if (session != null)
         session.disconnect();
+    }
+  }
+
+  private Session createSession(@NotNull JSch jsch) throws JSchException {
+    String server = getGerritServer();
+    int idx = server.indexOf(":");
+    if (idx != -1) {
+      String host = server.substring(0, idx);
+      int port = Integer.valueOf(server.substring(idx + 1, server.length()));
+      return jsch.getSession(getUsername(), host, port);
+    } else {
+      return jsch.getSession(getUsername(), server, 29418);
     }
   }
 
