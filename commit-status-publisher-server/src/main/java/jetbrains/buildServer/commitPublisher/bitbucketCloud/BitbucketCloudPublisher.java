@@ -5,11 +5,10 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.intellij.openapi.diagnostic.Logger;
-import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.Constants;
+import jetbrains.buildServer.commitPublisher.PublishError;
 import jetbrains.buildServer.commitPublisher.Repository;
-import jetbrains.buildServer.log.LogUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -64,19 +63,21 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
     return Constants.BITBUCKET_PUBLISHER_ID;
   }
 
-  public void buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, BitbucketCloudBuildStatus.INPROGRESS, "Build started");
+    return true;
   }
 
   @Override
-  public void buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
     BitbucketCloudBuildStatus status = build.getBuildStatus().isSuccessful() ? BitbucketCloudBuildStatus.SUCCESSFUL : BitbucketCloudBuildStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
     vote(build, revision, status, description);
+    return true;
   }
 
   @Override
-  public void buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment, boolean buildInProgress) {
+  public boolean buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment, boolean buildInProgress) {
     BitbucketCloudBuildStatus status;
     if (buildInProgress) {
       status = build.getBuildStatus().isSuccessful() ? BitbucketCloudBuildStatus.INPROGRESS : BitbucketCloudBuildStatus.FAILED;
@@ -88,21 +89,25 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
       description += " with a comment by " + user.getExtendedName() + ": \"" + comment + "\"";
     }
     vote(build, revision, status, description);
+    return true;
   }
 
   @Override
-  public void buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision) {
+  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, BitbucketCloudBuildStatus.SUCCESSFUL, "Build marked as successful");
+    return true;
   }
 
   @Override
-  public void buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, BitbucketCloudBuildStatus.FAILED, build.getStatusDescriptor().getText());
+    return true;
   }
 
   @Override
-  public void buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, BitbucketCloudBuildStatus.FAILED, build.getStatusDescriptor().getText());
+    return true;
   }
 
   private void vote(@NotNull SBuild build,
@@ -114,41 +119,12 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
       final VcsRootInstance root = revision.getRoot();
       Repository repository = BitbucketCloudRepositoryParser.parseRepository(root);
       if (repository == null)
-        throw new Exception("Cannot parse repository from VCS root url " + root);
+        throw new PublishError("Cannot parse repository from VCS root url " + root.getName());
       vote(revision.getRevision(), msg, repository);
     } catch (Exception e) {
-      reportProblem(build.getBuildPromotion(), revision, e);
+      throw new PublishError("Cannot publish status to Bitbucket Cloud for VCS root " +
+              revision.getRoot().getName() + ": " + getMessage(e), e);
     }
-  }
-
-  private void reportProblem(final BuildPromotion buildPromotion,
-                             final BuildRevision revision,
-                             final Exception e) {
-    String logMessage;
-    String problemText;
-    if (e instanceof BitBucketException) {
-      BitBucketException se = (BitBucketException) e;
-      logMessage = "Error while publishing commit status to Bitbucket Cloud for promotion " + LogUtil.describe(buildPromotion) +
-              ", response code: " + se.getStatusCode() +
-              ", reason: " + se.getReason();
-      problemText = "Error while publishing commit status to Bitbucket Cloud, response code: " + se.getStatusCode() +
-              ", reason: " + se.getReason();
-      String msg = se.getStashMessage();
-      if (msg != null) {
-        logMessage += ", message: '" + msg + "'";
-        problemText += ", message: '" + msg + "'";
-      }
-    } else {
-      logMessage = "Error while publishing commit status to Bitbucket Cloud for promotion " + LogUtil.describe(buildPromotion) +
-              " " + e.toString();
-      problemText = "Error while publishing commit status to Bitbucket Cloud: " + e.toString();
-    }
-    LOG.info(logMessage);
-    LOG.debug(logMessage, e);
-
-    String problemId = "bitbucketCloud.publisher." + revision.getRoot().getId();
-    BuildProblemData buildProblem = BuildProblemData.createBuildProblem(problemId, "bitbucketCloud.publisher", problemText);
-    ((BuildPromotionEx)buildPromotion).addBuildProblem(buildProblem);
   }
 
   @NotNull
@@ -297,8 +273,24 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
     }
 
     @Nullable
-    public String getStashMessage() {
+    public String getBitbucketMessage() {
       return myMessage;
+    }
+  }
+
+
+  @NotNull
+  private String getMessage(@NotNull Exception e) {
+    if (e instanceof BitBucketException) {
+      BitBucketException se = (BitBucketException) e;
+      String result = "response code: " + se.getStatusCode() + ", reason: " + se.getReason();
+      String msg = se.getBitbucketMessage();
+      if (msg != null) {
+        result += ", message: '" + msg + "'";
+      }
+      return result;
+    } else {
+      return e.toString();
     }
   }
 }

@@ -2,11 +2,10 @@ package jetbrains.buildServer.commitPublisher.upsource;
 
 import com.google.gson.Gson;
 import com.intellij.openapi.diagnostic.Logger;
-import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.Constants;
+import jetbrains.buildServer.commitPublisher.PublishError;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
 import org.apache.commons.beanutils.PropertyUtils;
@@ -79,30 +78,35 @@ public class UpsourcePublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public void buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
     publish(build, revision, UpsourceStatus.IN_PROGRESS, "Build started");
+    return true;
   }
 
   @Override
-  public void buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
     UpsourceStatus status = build.getBuildStatus().isSuccessful() ? UpsourceStatus.SUCCESS : UpsourceStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
     publish(build, revision, status, description);
+    return true;
   }
 
   @Override
-  public void buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
     publish(build, revision, UpsourceStatus.FAILED, build.getStatusDescriptor().getText());
+    return true;
   }
 
   @Override
-  public void buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
     publish(build, revision, UpsourceStatus.FAILED, build.getStatusDescriptor().getText());
+    return true;
   }
 
   @Override
-  public void buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision) {
+  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision) {
     publish(build, revision, UpsourceStatus.SUCCESS, build.getStatusDescriptor().getText());
+    return true;
   }
 
   private void publish(@NotNull SBuild build,
@@ -135,7 +139,8 @@ public class UpsourcePublisher extends BaseCommitStatusPublisher {
     try {
       publish(payload);
     } catch (Exception e) {
-      reportProblem(build, revision, e);
+      throw new PublishError("Cannot publish status to Upsource for VCS root " +
+              revision.getRoot().getName() + ": " + e.toString(), e);
     }
   }
 
@@ -231,16 +236,5 @@ public class UpsourcePublisher extends BaseCommitStatusPublisher {
     if (commitDate != null)
       data.put(REVISION_DATE_FIELD, commitDate.toString());
     return myGson.toJson(data);
-  }
-
-
-  private void reportProblem(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull Exception e) {
-    String msg = "Error while publishing status to upsource, build " + LogUtil.describe(build) +
-            ", " + e.toString();
-    LOG.warn(msg);
-    LOG.debug(msg, e);
-    String problemId = "upsource.publisher." + revision.getRoot().getId();
-    BuildProblemData buildProblem = BuildProblemData.createBuildProblem(problemId, "upsource.publisher", msg);
-    ((BuildPromotionEx)build.getBuildPromotion()).addBuildProblem(buildProblem);
   }
 }

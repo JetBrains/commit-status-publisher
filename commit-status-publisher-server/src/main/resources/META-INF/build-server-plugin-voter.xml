@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
 <beans default-autowire="constructor">
+  <bean id="problems" class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems"/>
   <bean id="voterBuildFeature" class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature"/>
   <bean id="voterBuildListener" class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherListener"/>
   <bean id="voterSettingsController" class="jetbrains.buildServer.commitPublisher.PublisherSettingsController"/>

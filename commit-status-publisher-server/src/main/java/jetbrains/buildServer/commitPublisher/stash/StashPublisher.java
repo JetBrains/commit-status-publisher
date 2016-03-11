@@ -2,10 +2,9 @@ package jetbrains.buildServer.commitPublisher.stash;
 
 import com.google.gson.*;
 import com.intellij.openapi.diagnostic.Logger;
-import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.log.LogUtil;
+import jetbrains.buildServer.commitPublisher.PublishError;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.web.util.WebUtil;
@@ -62,14 +61,16 @@ public class StashPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public void buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) {
     if (TeamCityProperties.getBoolean(PUBLISH_QUEUED_BUILD_STATUS)) {
       vote(build, revision, StashBuildStatus.INPROGRESS, "Build queued");
+      return true;
     }
+    return false;
   }
 
   @Override
-  public void buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) {
+  public boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) {
     if (TeamCityProperties.getBoolean(PUBLISH_QUEUED_BUILD_STATUS)) {
       StringBuilder description = new StringBuilder("Build removed from queue");
       if (user != null)
@@ -77,23 +78,27 @@ public class StashPublisher extends BaseCommitStatusPublisher {
       if (comment != null)
         description.append(" with comment \"").append(comment).append("\"");
       vote(build, revision, StashBuildStatus.FAILED, description.toString());
+      return true;
     }
+    return false;
   }
 
   @Override
-  public void buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, StashBuildStatus.INPROGRESS, "Build started");
+    return true;
   }
 
   @Override
-  public void buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
     StashBuildStatus status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.SUCCESSFUL : StashBuildStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
     vote(build, revision, status, description);
+    return true;
   }
 
   @Override
-  public void buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment, boolean buildInProgress) {
+  public boolean buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment, boolean buildInProgress) {
     StashBuildStatus status;
     if (buildInProgress) {
       status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.INPROGRESS : StashBuildStatus.FAILED;
@@ -105,21 +110,25 @@ public class StashPublisher extends BaseCommitStatusPublisher {
       description += " with a comment by " + user.getExtendedName() + ": \"" + comment + "\"";
     }
     vote(build, revision, status, description);
+    return true;
   }
 
   @Override
-  public void buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision) {
+  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, StashBuildStatus.SUCCESSFUL, "Build marked as successful");
+    return true;
   }
 
   @Override
-  public void buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, StashBuildStatus.FAILED, build.getStatusDescriptor().getText());
+    return true;
   }
 
   @Override
-  public void buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, StashBuildStatus.FAILED, build.getStatusDescriptor().getText());
+    return true;
   }
 
   private void vote(@NotNull SBuild build,
@@ -130,7 +139,8 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     try {
       vote(revision.getRevision(), msg);
     } catch (Exception e) {
-      reportProblem(build.getBuildPromotion(), revision, e);
+      throw new PublishError("Cannot publish status to Upsource for VCS root " +
+              revision.getRoot().getName() + ": " + getMessage(e), e);
     }
   }
 
@@ -142,38 +152,9 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     try {
       vote(revision.getRevision(), msg);
     } catch (Exception e) {
-      reportProblem(build.getBuildPromotion(), revision, e);
+      throw new PublishError("Cannot publish status to Upsource for VCS root " +
+              revision.getRoot().getName() + ": " + getMessage(e), e);
     }
-  }
-
-  private void reportProblem(final BuildPromotion buildPromotion,
-                             final BuildRevision revision,
-                             final Exception e) {
-    String logMessage;
-    String problemText;
-    if (e instanceof StashException) {
-      StashException se = (StashException) e;
-      logMessage = "Error while publishing commit status to Stash for promotion " + LogUtil.describe(buildPromotion) +
-              ", response code: " + se.getStatusCode() +
-              ", reason: " + se.getReason();
-      problemText = "Error while publishing commit status to Stash, response code: " + se.getStatusCode() +
-              ", reason: " + se.getReason();
-      String msg = se.getStashMessage();
-      if (msg != null) {
-        logMessage += ", message: '" + msg + "'";
-        problemText += ", message: '" + msg + "'";
-      }
-    } else {
-      logMessage = "Error while publishing commit status to Stash for promotion " + LogUtil.describe(buildPromotion) +
-              " " + e.toString();
-      problemText = "Error while publishing commit status to Stash " + e.toString();
-    }
-    LOG.info(logMessage);
-    LOG.debug(logMessage, e);
-
-    String problemId = "stash.publisher." + revision.getRoot().getId();
-    BuildProblemData buildProblem = BuildProblemData.createBuildProblem(problemId, "stash.publisher", problemText);
-    ((BuildPromotionEx)buildPromotion).addBuildProblem(buildProblem);
   }
 
   @NotNull
@@ -316,6 +297,21 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     @Nullable
     public String getStashMessage() {
       return myMessage;
+    }
+  }
+
+  @NotNull
+  private String getMessage(@NotNull Exception e) {
+    if (e instanceof StashException) {
+      StashException se = (StashException) e;
+      String result = "response code: " + se.getStatusCode() + ", reason: " + se.getReason();
+      String msg = se.getStashMessage();
+      if (msg != null) {
+        result += ", message: '" + msg + "'";
+      }
+      return result;
+    } else {
+      return e.toString();
     }
   }
 }

@@ -5,6 +5,8 @@ import org.jetbrains.annotations.NotNull;
 
 public class Constants {
 
+  public final static String COMMIT_STATUS_PUBLISHER_PROBLEM_TYPE = "COMMIT_STATUS_PUBLISHER_PROBLEM";
+
   public static final String VCS_ROOT_ID_PARAM = "vcsRootId";
   public static final String PUBLISHER_ID_PARAM = "publisherId";
 

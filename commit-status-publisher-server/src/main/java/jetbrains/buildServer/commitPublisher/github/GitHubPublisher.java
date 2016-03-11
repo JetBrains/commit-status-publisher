@@ -34,18 +34,21 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public void buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
     updateBuildStatus(build, revision, true);
+    return true;
   }
 
   @Override
-  public void buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
     updateBuildStatus(build, revision, false);
+    return true;
   }
 
   @Override
-  public void buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
     updateBuildStatus(build, revision, false);
+    return true;
   }
 
 

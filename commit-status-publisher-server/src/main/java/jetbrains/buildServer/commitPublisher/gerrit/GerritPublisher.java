@@ -5,9 +5,9 @@ import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.Constants;
+import jetbrains.buildServer.commitPublisher.PublishError;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.ssh.TeamCitySshKey;
@@ -46,10 +46,10 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public void buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
     Branch branch = build.getBranch();
     if (branch == null || branch.isDefaultBranch())
-      return;
+      return false;
 
     String vote = build.getBuildStatus().isSuccessful() ? getSuccessVote() : getFailureVote();
     String msg = build.getStatusDescriptor().getText() + " " + myLinks.getViewResultsUrl(build);
@@ -61,10 +61,10 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
            .append(revision.getRevision());
     try {
       runCommand(build.getBuildType().getProject(), command.toString());
+      return true;
     } catch (Exception e) {
-      error("Error while running gerrit command '" + command + "'", e);
-      String problemId = "gerrit.publisher." + revision.getRoot().getId();
-      build.addBuildProblem(BuildProblemData.createBuildProblem(problemId, "gerrit.publisher", e.getMessage()));
+      throw new PublishError("Cannot publish status to Upsource for VCS root " +
+              revision.getRoot().getName() + ": " + e.toString(), e);
     }
   }
 
@@ -139,13 +139,5 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
 
   private String getFailureVote() {
     return myParams.get(Constants.GERRIT_FAILURE_VOTE);
-  }
-
-  private void error(@NotNull String message, @NotNull Exception error) {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug(message, error);
-    } else {
-      LOG.error(message + ", " + error.getMessage());
-    }
   }
 }
