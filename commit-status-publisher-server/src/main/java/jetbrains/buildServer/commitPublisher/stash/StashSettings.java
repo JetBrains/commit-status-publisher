@@ -28,7 +28,7 @@ public class StashSettings implements CommitStatusPublisherSettings {
 
   @NotNull
   public String getId() {
-    return "atlassianStashPublisher";
+    return Constants.STASH_PUBLISHER_ID;
   }
 
   @NotNull

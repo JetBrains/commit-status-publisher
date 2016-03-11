@@ -34,7 +34,7 @@ public class UpsourceSettings implements CommitStatusPublisherSettings {
 
   @NotNull
   public String getId() {
-    return "upsourcePublisher";
+    return Constants.UPSOURCE_PUBLISHER_ID;
   }
 
   @NotNull

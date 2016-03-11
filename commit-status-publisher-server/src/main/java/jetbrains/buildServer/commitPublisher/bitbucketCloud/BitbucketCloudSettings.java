@@ -29,7 +29,7 @@ public class BitbucketCloudSettings implements CommitStatusPublisherSettings {
 
   @NotNull
   public String getId() {
-    return "bitbucketCloudPublisher";
+    return Constants.BITBUCKET_PUBLISHER_ID;
   }
 
   @NotNull

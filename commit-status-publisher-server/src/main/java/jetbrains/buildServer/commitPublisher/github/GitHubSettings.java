@@ -1,6 +1,7 @@
 package jetbrains.buildServer.commitPublisher.github;
 
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
+import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
@@ -27,7 +28,7 @@ public class GitHubSettings implements CommitStatusPublisherSettings {
 
   @NotNull
   public String getId() {
-    return "githubStatusPublisher";
+    return Constants.GITHUB_PUBLISHER_ID;
   }
 
   @NotNull

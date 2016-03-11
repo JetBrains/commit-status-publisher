@@ -35,7 +35,7 @@ public class GerritSettings implements CommitStatusPublisherSettings {
 
   @NotNull
   public String getId() {
-    return "gerritStatusPublisher";
+    return Constants.GERRIT_PUBLISHER_ID;
   }
 
   @NotNull
