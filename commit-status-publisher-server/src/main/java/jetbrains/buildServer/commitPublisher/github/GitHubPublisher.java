@@ -15,7 +15,7 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
 
   private static final Logger LOG = Logger.getInstance(GitHubPublisher.class.getName());
 
-  private final ChangeStatusUpdater myUpdater;
+  protected final ChangeStatusUpdater myUpdater;
 
   public GitHubPublisher(@NotNull ChangeStatusUpdater updater,
                          @NotNull Map<String, String> params) {

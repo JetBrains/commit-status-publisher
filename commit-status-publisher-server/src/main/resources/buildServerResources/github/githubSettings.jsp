@@ -70,4 +70,14 @@
     </span>
     </td>
   </tr>
+  <tr>
+    <th><label for="${keys.contextKey}">Context name: <l:star/></label></th>
+    <td>
+      <props:textProperty name="${keys.contextKey}" className="longField"/>
+      <span class="error" id="error_${keys.contextKey}"></span>
+    <span class="smallNote">
+      If not specified, 'continuous-integration/teamcity' will be used.
+    </span>
+    </td>
+  </tr>
 </table>

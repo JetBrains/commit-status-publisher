@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.Repository;
 import jetbrains.buildServer.commitPublisher.GitRepositoryParser;
 import jetbrains.buildServer.commitPublisher.github.api.*;
+import jetbrains.buildServer.commitPublisher.github.api.impl.GitHubCommitStatusFormatterImpl;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -40,20 +41,26 @@ import java.util.concurrent.ExecutorService;
  * Date: 06.09.12 3:29
  */
 public class ChangeStatusUpdater {
+
+  public static final String DEFAULT_CONTEXT = "continuous-integration/teamcity";
+
   private static final Logger LOG = Logger.getInstance(ChangeStatusUpdater.class.getName());
   private static final UpdateChangesConstants C = new UpdateChangesConstants();
 
-  private final ExecutorService myExecutor;
+  protected final ExecutorService myExecutor;
   @NotNull
-  private final GitHubApiFactory myFactory;
-  private final WebLinks myWeb;
+  protected final GitHubApiFactory myFactory;
+  protected final WebLinks myWeb;
+  protected final GitCommitStatusFormatter myStatusFormatter;
 
   public ChangeStatusUpdater(@NotNull final ExecutorServices services,
                              @NotNull final GitHubApiFactory factory,
+                             @NotNull final GitCommitStatusFormatter statusFormatter,
                              @NotNull final WebLinks web) {
     myFactory = factory;
     myWeb = web;
     myExecutor = services.getLowPriorityExecutorService();
+    myStatusFormatter = statusFormatter;
   }
 
   @NotNull
@@ -68,11 +75,11 @@ public class ChangeStatusUpdater {
       case PASSWORD_AUTH:
         final String username = params.get(C.getUserNameKey());
         final String password = params.get(C.getPasswordKey());
-        return myFactory.openGitHubForUser(serverUrl, username, password);
+        return myFactory.openWithCredentials(serverUrl, username, password);
 
       case TOKEN_AUTH:
         final String token = params.get(C.getAccessTokenKey());
-        return myFactory.openGitHubForToken(serverUrl, token);
+        return myFactory.openWithToken(serverUrl, token);
 
       default:
         throw new IllegalArgumentException("Failed to parse authentication type:" + authenticationType);
@@ -82,6 +89,7 @@ public class ChangeStatusUpdater {
   @Nullable
   public Handler getUpdateHandler(@NotNull VcsRootInstance root, @NotNull Map<String, String> params) {
     final GitHubApi api = getGitHubApi(params);
+    final String context = params.get(C.getContextKey());
 
     String url = root.getProperty("url");
     if (url == null)
@@ -92,7 +100,6 @@ public class ChangeStatusUpdater {
 
     final String repositoryOwner = repo.owner();
     final String repositoryName = repo.repositoryName();
-    final String context = "continuous-integration/teamcity";
     final boolean addComments = false;
 
     final boolean shouldReportOnStart = true;
@@ -113,14 +120,14 @@ public class ChangeStatusUpdater {
       }
 
       public void scheduleChangeStarted(@NotNull RepositoryVersion version, @NotNull SBuild build) {
-        scheduleChangeUpdate(version, build, "Started TeamCity Build " + build.getFullName(), GitHubChangeState.Pending);
+        scheduleChangeUpdate(version, build, "Started TeamCity Build " + build.getFullName(), GitChangeState.Running);
       }
 
       public void scheduleChangeCompeted(@NotNull RepositoryVersion version, @NotNull SBuild build) {
         LOG.debug("Status :" + build.getStatusDescriptor().getStatus().getText());
         LOG.debug("Status Priority:" + build.getStatusDescriptor().getStatus().getPriority());
 
-        final GitHubChangeState status = getGitHubChangeState(build);
+        final GitChangeState status = getGitChangeState(build);
         final String text = getGitHubChangeText(build);
         scheduleChangeUpdate(version, build, "Finished TeamCity Build " + build.getFullName() + " " + text, status);
       }
@@ -136,23 +143,23 @@ public class ChangeStatusUpdater {
       }
 
       @NotNull
-      private GitHubChangeState getGitHubChangeState(@NotNull final SBuild build) {
+      private GitChangeState getGitChangeState(@NotNull final SBuild build) {
         final Status status = build.getStatusDescriptor().getStatus();
         final byte priority = status.getPriority();
 
         if (priority == Status.NORMAL.getPriority()) {
-          return GitHubChangeState.Success;
+          return GitChangeState.Success;
         } else if (priority == Status.FAILURE.getPriority()) {
-          return GitHubChangeState.Failure;
+          return GitChangeState.Failure;
         } else {
-          return GitHubChangeState.Error;
+          return GitChangeState.Error;
         }
       }
 
       private void scheduleChangeUpdate(@NotNull final RepositoryVersion version,
                                         @NotNull final SBuild build,
                                         @NotNull final String message,
-                                        @NotNull final GitHubChangeState status) {
+                                        @NotNull final GitChangeState status) {
         LOG.info("Scheduling GitHub status update for " +
                 "hash: " + version.getVersion() + ", " +
                 "branch: " + version.getVcsBranch() + ", " +
@@ -272,7 +279,7 @@ public class ChangeStatusUpdater {
                       repositoryOwner,
                       repositoryName,
                       hash,
-                      status,
+                      myStatusFormatter.getStatus(status),
                       getViewResultsUrl(build),
                       message,
                       context
@@ -287,7 +294,7 @@ public class ChangeStatusUpdater {
                         repositoryOwner,
                         repositoryName,
                         hash,
-                        getComment(version, build, status != GitHubChangeState.Pending, hash)
+                        getComment(version, build, status != GitChangeState.Pending, hash)
                 );
                 LOG.info("Added comment to GitHub commit: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
               } catch (IOException e) {

@@ -19,7 +19,6 @@ package jetbrains.buildServer.commitPublisher.github.api.impl;
 import com.google.gson.Gson;
 import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
-import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.*;
 import jetbrains.buildServer.util.FileUtil;
 import org.apache.http.HttpEntity;
@@ -55,9 +54,9 @@ public abstract class GitHubApiImpl implements GitHubApi {
   private static final Logger LOG = Logger.getInstance(GitHubApiImpl.class.getName());
   private static final Pattern PULL_REQUEST_BRANCH = Pattern.compile("/?refs/pull/(\\d+)/(.*)");
 
-  private final HttpClientWrapper myClient;
-  private final GitHubApiPaths myUrls;
-  private final Gson myGson = new Gson();
+  protected final HttpClientWrapper myClient;
+  protected final GitHubApiPaths myUrls;
+  protected final Gson myGson = new Gson();
 
   public GitHubApiImpl(@NotNull final HttpClientWrapper client,
                        @NotNull final GitHubApiPaths urls
@@ -67,7 +66,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
   }
 
   @Nullable
-  private static String getPullRequestId(@NotNull String repoName,
+  protected String getPullRequestId(@NotNull String repoName,
                                          @NotNull String branchName) {
     final Matcher matcher = PULL_REQUEST_BRANCH.matcher(branchName);
     if (!matcher.matches()) {
@@ -112,12 +111,12 @@ public abstract class GitHubApiImpl implements GitHubApi {
   public void setChangeStatus(@NotNull final String repoOwner,
                               @NotNull final String repoName,
                               @NotNull final String hash,
-                              @NotNull final GitHubChangeState status,
+                              @NotNull final String status,
                               @NotNull final String targetUrl,
                               @NotNull final String description,
                               @Nullable final String context) throws IOException {
-    final GSonEntity requestEntity = new GSonEntity(myGson, new CommitStatus(status.getState(), targetUrl, description, context));
-    final HttpPost post = new HttpPost(myUrls.getStatusUrl(repoOwner, repoName, hash));
+    final GSonEntity requestEntity = new GSonEntity(myGson, new CommitStatus(status, targetUrl, description, context));
+    final HttpPost post = new HttpPost(myUrls.setStatusUrl(repoOwner, repoName, hash));
     try {
       post.setEntity(requestEntity);
       includeAuthentication(post);

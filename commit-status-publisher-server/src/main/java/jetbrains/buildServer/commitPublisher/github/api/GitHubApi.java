@@ -34,7 +34,7 @@ public interface GitHubApi {
   void setChangeStatus(@NotNull String repoOwner,
                        @NotNull String repositoryName,
                        @NotNull String hash,
-                       @NotNull GitHubChangeState status,
+                       @NotNull String status,
                        @NotNull String targetUrl,
                        @NotNull String description,
                        @Nullable String context) throws IOException;
