@@ -50,6 +50,7 @@ public class ChangeStatusUpdater extends jetbrains.buildServer.commitPublisher.g
                              @NotNull final GitLabCommitStatusFormatterImpl statusFormatter,
                              @NotNull final WebLinks web) {
     super(services, factory, statusFormatter, web);
+    name = "GitLab";
   }
 
 /*

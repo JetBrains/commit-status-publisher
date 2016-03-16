@@ -32,6 +32,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -52,6 +53,7 @@ public class ChangeStatusUpdater {
   protected final GitHubApiFactory myFactory;
   protected final WebLinks myWeb;
   protected final GitCommitStatusFormatter myStatusFormatter;
+  protected String name = "GitHub";
 
   public ChangeStatusUpdater(@NotNull final ExecutorServices services,
                              @NotNull final GitHubApiFactory factory,
@@ -67,7 +69,7 @@ public class ChangeStatusUpdater {
   private GitHubApi getGitHubApi(@NotNull Map<String, String> params) {
     final String serverUrl = params.get(C.getServerKey());
     if (serverUrl == null || StringUtil.isEmptyOrSpaces(serverUrl)) {
-      throw new IllegalArgumentException("Failed to read GitHub URL from the feature settings");
+      throw new IllegalArgumentException("Failed to read " + name + " URL from the feature settings");
     }
 
     final GitHubApiAuthenticationType authenticationType = GitHubApiAuthenticationType.parse(params.get(C.getAuthenticationTypeKey()));
@@ -102,21 +104,18 @@ public class ChangeStatusUpdater {
     final String repositoryName = repo.repositoryName();
     final boolean addComments = false;
 
-    final boolean shouldReportOnStart = true;
-    final boolean shouldReportOnFinish = true;
-
     return new Handler() {
       @NotNull
       private String getViewResultsUrl(@NotNull final SBuild build) {
         return myWeb.getViewResultsUrl(build);
       }
 
-      public boolean shouldReportOnStart() {
-        return shouldReportOnStart;
+      public void scheduleChangeEnQueued(@NotNull RepositoryVersion version, @NotNull SQueuedBuild build) {
+        scheduleChangeUpdate(version, null, "Enqueued TeamCity Build " + build.getItemId() + " + of type " + build.getBuildTypeId(), GitChangeState.Pending);
       }
 
-      public boolean shouldReportOnFinish() {
-        return shouldReportOnFinish;
+      public void scheduleChangeDeQueued(@NotNull RepositoryVersion version, @NotNull SQueuedBuild build) {
+        scheduleChangeUpdate(version, null, "Removed from queue TeamCity Build " + build.getItemId() + " + of type " + build.getBuildTypeId(), GitChangeState.Canceled);
       }
 
       public void scheduleChangeStarted(@NotNull RepositoryVersion version, @NotNull SBuild build) {
@@ -156,17 +155,21 @@ public class ChangeStatusUpdater {
         }
       }
 
+      private Serializable getBuildId(@Nullable SBuild build){
+        return build == null ? "<null>" : build.getBuildId();
+      }
+
       private void scheduleChangeUpdate(@NotNull final RepositoryVersion version,
-                                        @NotNull final SBuild build,
+                                        @Nullable final SBuild build,
                                         @NotNull final String message,
                                         @NotNull final GitChangeState status) {
-        LOG.info("Scheduling GitHub status update for " +
+        LOG.info("Scheduling " + name + " status update for " +
                 "hash: " + version.getVersion() + ", " +
                 "branch: " + version.getVcsBranch() + ", " +
-                "buildId: " + build.getBuildId() + ", " +
+                "buildId: " + getBuildId(build) + ", " +
                 "status: " + status);
 
-        myExecutor.submit(ExceptionUtil.catchAll("set change status on github", new Runnable() {
+        myExecutor.submit(ExceptionUtil.catchAll("set change status on  " + name + " ", new Runnable() {
           @NotNull
           private String getFailureText(@Nullable final TestFailureInfo failureInfo) {
             final String no_data = "<no details avaliable>";
@@ -258,11 +261,11 @@ public class ChangeStatusUpdater {
                 if (hash == null) {
                   throw new IOException("Failed to find head hash for commit from " + vcsBranch);
                 }
-                LOG.info("Resolved GitHub change commit for " + vcsBranch + " to point to pull request head for " +
+                LOG.info("Resolved " + name + " change commit for " + vcsBranch + " to point to pull request head for " +
                         "hash: " + version.getVersion() + ", " +
                         "newHash: " + hash + ", " +
                         "branch: " + version.getVcsBranch() + ", " +
-                        "buildId: " + build.getBuildId() + ", " +
+                        "buildId: " + getBuildId(build) + ", " +
                         "status: " + status);
                 return hash;
               } catch (IOException e) {
@@ -280,13 +283,13 @@ public class ChangeStatusUpdater {
                       repositoryName,
                       hash,
                       myStatusFormatter.getStatus(status),
-                      getViewResultsUrl(build),
+                      (build == null ? null : getViewResultsUrl(build)),
                       message,
                       context
               );
-              LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
+              LOG.info("Updated " + name + " status for hash: " + hash + ", buildId: " + getBuildId(build) + ", status: " + status);
             } catch (IOException e) {
-              LOG.warn("Failed to update GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status + ". " + e.getMessage(), e);
+              LOG.warn("Failed to update " + name + " status for hash: " + hash + ", buildId: " + getBuildId(build) + ", status: " + status + ". " + e.getMessage(), e);
             }
             if (addComments) {
               try {
@@ -296,9 +299,9 @@ public class ChangeStatusUpdater {
                         hash,
                         getComment(version, build, status != GitChangeState.Pending, hash)
                 );
-                LOG.info("Added comment to GitHub commit: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
+                LOG.info("Added comment to " + name + " commit: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
               } catch (IOException e) {
-                LOG.warn("Failed add GitHub comment for branch: " + version.getVcsBranch() + ", buildId: " + build.getBuildId() + ", status: " + status + ". " + e.getMessage(), e);
+                LOG.warn("Failed add " + name + " comment for branch: " + version.getVcsBranch() + ", buildId: " + getBuildId(build) + ", status: " + status + ". " + e.getMessage(), e);
               }
             }
           }
@@ -308,8 +311,8 @@ public class ChangeStatusUpdater {
   }
 
   public static interface Handler {
-    boolean shouldReportOnStart();
-    boolean shouldReportOnFinish();
+    void scheduleChangeEnQueued(@NotNull final RepositoryVersion hash, @NotNull final SQueuedBuild build);
+    void scheduleChangeDeQueued(@NotNull final RepositoryVersion hash, @NotNull final SQueuedBuild build);
     void scheduleChangeStarted(@NotNull final RepositoryVersion hash, @NotNull final SBuild build);
     void scheduleChangeCompeted(@NotNull final RepositoryVersion hash, @NotNull final SBuild build);
   }

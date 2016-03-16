@@ -20,11 +20,10 @@ import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.github.GitHubPublisher;
-import jetbrains.buildServer.serverSide.BuildRevision;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.SRunningBuild;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
@@ -36,6 +35,19 @@ public class GitLabPublisher extends GitHubPublisher {
   public GitLabPublisher(@NotNull ChangeStatusUpdater updater,
                          @NotNull Map<String, String> params) {
     super(updater, params);
+  }
+
+  @Override
+  public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) {
+    final jetbrains.buildServer.commitPublisher.github.ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), myParams);
+    h.scheduleChangeEnQueued(revision.getRepositoryVersion(), build);
+    return true;
+  }
+
+  public boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) {
+    final jetbrains.buildServer.commitPublisher.github.ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), myParams);
+    h.scheduleChangeDeQueued(revision.getRepositoryVersion(), build);
+    return false;
   }
 
   @NotNull

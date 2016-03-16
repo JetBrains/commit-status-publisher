@@ -112,7 +112,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
                               @NotNull final String repoName,
                               @NotNull final String hash,
                               @NotNull final String status,
-                              @NotNull final String targetUrl,
+                              @Nullable final String targetUrl,
                               @NotNull final String description,
                               @Nullable final String context) throws IOException {
     final GSonEntity requestEntity = new GSonEntity(myGson, new CommitStatus(status, targetUrl, description, context));

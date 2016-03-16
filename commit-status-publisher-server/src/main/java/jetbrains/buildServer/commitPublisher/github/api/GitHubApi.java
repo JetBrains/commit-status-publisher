@@ -35,7 +35,7 @@ public interface GitHubApi {
                        @NotNull String repositoryName,
                        @NotNull String hash,
                        @NotNull String status,
-                       @NotNull String targetUrl,
+                       @Nullable String targetUrl,
                        @NotNull String description,
                        @Nullable String context) throws IOException;
 

@@ -17,10 +17,21 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
 
   protected final ChangeStatusUpdater myUpdater;
 
+  private final boolean shouldReportOnStart = true;
+  private final boolean shouldReportOnFinish = true;
+
   public GitHubPublisher(@NotNull ChangeStatusUpdater updater,
                          @NotNull Map<String, String> params) {
     super(params);
     myUpdater = updater;
+  }
+
+  public boolean shouldReportOnStart() {
+    return shouldReportOnStart;
+  }
+
+  public boolean shouldReportOnFinish() {
+    return shouldReportOnFinish;
   }
 
   @NotNull
@@ -52,14 +63,14 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
 
-  private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) {
+  protected void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) {
     final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), myParams);
 
     if (h == null)
       return;
 
-    if (isStarting && !h.shouldReportOnStart()) return;
-    if (!isStarting && !h.shouldReportOnFinish()) return;
+    if (isStarting && !shouldReportOnStart()) return;
+    if (!isStarting && !shouldReportOnFinish()) return;
 
     if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
       LOG.warn("No revisions were found to update GitHub status. Please check you have Git VCS roots in the build configuration");
