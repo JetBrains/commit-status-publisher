@@ -77,6 +77,6 @@ public class UpsourceSettings implements CommitStatusPublisherSettings {
   }
 
   public boolean isEnabled() {
-    return TeamCityProperties.getBoolean("teamcity.commitStatusPublisher.upsourceEnabled");
+    return TeamCityProperties.getBooleanOrTrue("teamcity.commitStatusPublisher.upsourceEnabled");
   }
 }
