@@ -41,7 +41,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     if (buildType == null)
       return;
 
-    runForEveryPublisher(event, buildType, build, (publisher, revision) -> publisher.buildStarted(build, revision));
+    runForEveryPublisher(event, buildType, build, new PublishTask() {
+      @Override
+      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+        return publisher.buildStarted(build, revision);
+      }
+    });
   }
 
   @Override
@@ -57,7 +62,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       return;
     }
 
-    runForEveryPublisher(event, buildType, build, (publisher, revision) -> publisher.buildFinished(finishedBuild, revision));
+    runForEveryPublisher(event, buildType, build, new PublishTask() {
+      @Override
+      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+        return publisher.buildFinished(finishedBuild, revision);
+      }
+    });
   }
 
   @Override
@@ -69,8 +79,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
     final boolean inProgress = myRunningBuilds.findRunningBuildById(build.getBuildId()) != null;
 
-    runForEveryPublisher(event, buildType, build, (publisher, revision) ->
-            publisher.buildCommented(build, revision, user, comment, inProgress));
+    runForEveryPublisher(event, buildType, build, new PublishTask() {
+      @Override
+      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+        return publisher.buildCommented(build, revision, user, comment, inProgress);
+      }
+    });
   }
 
   @Override
@@ -86,7 +100,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       return;
     }
 
-    runForEveryPublisher(event, buildType, build, (publisher, revision) -> publisher.buildInterrupted(finishedBuild, revision));
+    runForEveryPublisher(event, buildType, build, new PublishTask() {
+      @Override
+      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+        return publisher.buildInterrupted(finishedBuild, revision);
+      }
+    });
   }
 
 
@@ -97,7 +116,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     if (buildType == null)
       return;
 
-    runForEveryPublisher(event, buildType, build, (publisher, revision) -> publisher.buildFailureDetected(build, revision));
+    runForEveryPublisher(event, buildType, build, new PublishTask() {
+      @Override
+      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+        return publisher.buildFailureDetected(build, revision);
+      }
+    });
   }
 
 
@@ -109,7 +133,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       return;
 
     if (!before.isEmpty() && after.isEmpty()) {
-      runForEveryPublisher(event, buildType, build, (publisher, revision) -> publisher.buildMarkedAsSuccessful(build, revision));
+      runForEveryPublisher(event, buildType, build, new PublishTask() {
+        @Override
+        public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+          return publisher.buildMarkedAsSuccessful(build, revision);
+        }
+      });
     }
   }
 
@@ -120,7 +149,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     if (buildType == null)
       return;
 
-    runForEveryPublisherQueued(event, buildType, build, (publisher, revision) -> publisher.buildQueued(build, revision));
+    runForEveryPublisherQueued(event, buildType, build, new PublishTask() {
+      @Override
+      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+        return publisher.buildQueued(build, revision);
+      }
+    });
   }
 
   @Override
@@ -133,7 +167,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     if (user == null)
       return;
 
-    runForEveryPublisherQueued(event, buildType, build, (publisher, revision) -> publisher.buildRemovedFromQueue(build, revision, user, comment));
+    runForEveryPublisherQueued(event, buildType, build, new PublishTask() {
+      @Override
+      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+        return publisher.buildRemovedFromQueue(build, revision, user, comment);
+      }
+    });
   }
 
   private void runForEveryPublisher(@NotNull String event, @NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task) {

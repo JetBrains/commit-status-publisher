@@ -14,7 +14,7 @@ import java.util.concurrent.locks.Lock;
 public class CommitStatusPublisherProblems {
 
   private final SystemProblemNotification myProblems;
-  private final ConcurrentHashMap<BuildTypePublisher, SystemProblemTicket> myTickets = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<BuildTypePublisher, SystemProblemTicket> myTickets = new ConcurrentHashMap<BuildTypePublisher, SystemProblemTicket>();
   private final Striped<Lock> myLocks = Striped.lazyWeakLock(256);
 
   public CommitStatusPublisherProblems(@NotNull SystemProblemNotification systemProblems) {
