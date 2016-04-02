@@ -9,7 +9,7 @@ public enum GitHubApiReportEvent {
   ON_START("on start"),
   ON_FINISH("on finish");
 
-  private final String myValue;
+  protected final String myValue;
 
   GitHubApiReportEvent(@NotNull final String value) {
     myValue = value;

@@ -38,6 +38,9 @@ public class Constants {
   public static final String GITHUB_USERNAME = "github_username";
   public static final String GITHUB_PASSWORD = "github_password";
   public static final String GITHUB_TOKEN = "secure:github_access_token";
+  public static final String GITHUB_CONTEXT = "github_context";
+
+  public static final String GITLAB_PUBLISHER_ID = "gitlabStatusPublisher";
 
   public static final String BITBUCKET_PUBLISHER_ID = "bitbucketCloudPublisher";
   public static final String BITBUCKET_CLOUD_USERNAME = "bitbucketUsername";

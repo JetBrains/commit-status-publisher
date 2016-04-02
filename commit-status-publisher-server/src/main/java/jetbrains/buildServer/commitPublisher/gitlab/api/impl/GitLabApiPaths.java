@@ -14,56 +14,52 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.commitPublisher.github.api.impl;
+package jetbrains.buildServer.commitPublisher.gitlab.api.impl;
 
 import org.jetbrains.annotations.NotNull;
+import jetbrains.buildServer.commitPublisher.github.api.impl.GitHubApiPaths;
 
 /**
- * Created by Eugene Petrenko (eugene.petrenko@gmail.com)
- * Date: 19.04.13 19:17
+ * Created by github.com/justmara on 15.03.2016.
  */
-public class GitHubApiPaths {
-  protected final String myUrl;
+public class GitLabApiPaths extends GitHubApiPaths {
 
-  public GitHubApiPaths(@NotNull String url) {
-    while (url.endsWith("/")) url = url.substring(0, url.length() - 1);
-    myUrl = url;
+  public GitLabApiPaths(@NotNull String url) {
+    super(url);
   }
 
   @NotNull
   public String getCommitInfo(@NotNull final String repoOwner,
                               @NotNull final String repoName,
                               @NotNull final String hash) {
-    // /repos/:owner/:repo/git/commits/:sha
-    return myUrl + "/repos/" + repoOwner + "/" + repoName + "/git/commits/" + hash;
+    return myUrl + "/projects/" + repoOwner + "%2F" + repoName + "/repository/commits/" + hash;
   }
 
   @NotNull
   public String getStatusUrl(@NotNull final String ownerName,
                              @NotNull final String repoName,
                              @NotNull final String hash) {
-    return myUrl + "/repos/" + ownerName + "/" + repoName + "/statuses/" + hash;
+    return myUrl + "/projects/" + ownerName + "%2F" + repoName + "/repository/commits/" + hash + "/statuses";
   }
 
   @NotNull
   public String setStatusUrl(@NotNull final String ownerName,
                              @NotNull final String repoName,
                              @NotNull final String hash) {
-    return getStatusUrl(ownerName, repoName, hash);
+    return myUrl + "/projects/" + ownerName + "%2F" + repoName + "/statuses/" + hash;
   }
 
   @NotNull
   public String getPullRequestInfo(@NotNull final String repoOwner,
                                    @NotNull final String repoName,
                                    @NotNull final String pullRequestId) {
-    return myUrl + "/repos/" + repoOwner + "/" + repoName + "/pulls/" + pullRequestId;
+    return myUrl + "/projects/" + repoOwner + "%2F" + repoName + "/merge_requests/" + pullRequestId;
   }
 
   @NotNull
   public String getAddCommentUrl(@NotNull final String ownerName,
                                  @NotNull final String repoName,
                                  @NotNull final String hash) {
-    ///repos/:owner/:repo/commits/:sha/comments
-    return myUrl + "/repos/" + ownerName + "/" + repoName + "/commits/" + hash + "/comments";
+    return myUrl + "/projects/" + ownerName + "%2F" + repoName + "/repository/commits/" + hash + "/comments";
   }
 }

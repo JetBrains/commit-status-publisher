@@ -13,12 +13,30 @@
   <bean class="jetbrains.buildServer.commitPublisher.gerrit.GerritSettings"/>
 
   <!-- github -->
-  <bean class="jetbrains.buildServer.commitPublisher.github.ChangeStatusUpdater"/>
-  <bean class="jetbrains.buildServer.commitPublisher.github.api.impl.GitHubApiFactoryImpl"/>
+  <bean id="gitHubCommitStatusFormatterImpl"  class="jetbrains.buildServer.commitPublisher.github.api.impl.GitHubCommitStatusFormatterImpl"/>
+  <bean id="githubChangeStatusUpdater" class="jetbrains.buildServer.commitPublisher.github.ChangeStatusUpdater">
+      <constructor-arg index="1" ref="gitHubApiFactoryImpl"/>
+      <constructor-arg index="2" ref="gitHubCommitStatusFormatterImpl"/>
+  </bean>
+  <bean id="gitHubApiFactoryImpl" class="jetbrains.buildServer.commitPublisher.github.api.impl.GitHubApiFactoryImpl"/>
   <bean class="jetbrains.buildServer.commitPublisher.github.api.impl.HttpClientWrapperImpl" destroy-method="dispose"/>
-  <bean class="jetbrains.buildServer.commitPublisher.github.GitHubSettings"/>
+  <bean class="jetbrains.buildServer.commitPublisher.github.GitHubSettings">
+      <constructor-arg ref="githubChangeStatusUpdater"/>
+  </bean>
   <bean class="jetbrains.buildServer.commitPublisher.github.reports.SecurityParametersReport"/>
   <bean class="jetbrains.buildServer.commitPublisher.github.reports.SecurityParametersReportPageExtension"/>
+
+  <!-- gitlab -->
+  <bean id="gitLabCommitStatusFormatterImpl"  class="jetbrains.buildServer.commitPublisher.gitlab.api.impl.GitLabCommitStatusFormatterImpl"/>
+  <bean class="jetbrains.buildServer.commitPublisher.gitlab.api.impl.GitLabCommitStatusFormatterImpl"/>
+  <bean id="gitlabChangeStatusUpdater" class="jetbrains.buildServer.commitPublisher.gitlab.ChangeStatusUpdater">
+    <constructor-arg index="1" ref="gitLabApiFactoryImpl"/>
+    <constructor-arg index="2" ref="gitLabCommitStatusFormatterImpl"/>
+  </bean>
+  <bean id="gitLabApiFactoryImpl" class="jetbrains.buildServer.commitPublisher.gitlab.api.impl.GitLabApiFactoryImpl"/>
+  <bean class="jetbrains.buildServer.commitPublisher.gitlab.GitLabSettings">
+      <constructor-arg ref="gitlabChangeStatusUpdater"/>
+  </bean>
 
   <!-- upsource -->
   <bean class="jetbrains.buildServer.commitPublisher.upsource.UpsourceSettings"/>

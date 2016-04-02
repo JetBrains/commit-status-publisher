@@ -20,7 +20,7 @@ import java.util.Map;
 
 public class GitHubSettings implements CommitStatusPublisherSettings {
 
-  private final ChangeStatusUpdater myUpdater;
+  protected final ChangeStatusUpdater myUpdater;
 
   public GitHubSettings(@NotNull ChangeStatusUpdater updater) {
     myUpdater = updater;
@@ -46,6 +46,7 @@ public class GitHubSettings implements CommitStatusPublisherSettings {
     final Map<String, String> result = new HashMap<String, String>();
     final UpdateChangesConstants C = new UpdateChangesConstants();
     result.put(C.getServerKey(), GitHubApiFactory.DEFAULT_URL);
+    result.put(C.getContextKey(), ChangeStatusUpdater.DEFAULT_CONTEXT);
     return result;
   }
 

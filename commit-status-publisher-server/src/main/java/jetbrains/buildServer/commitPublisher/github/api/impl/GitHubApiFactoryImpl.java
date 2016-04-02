@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
  * Date: 06.09.12 2:54
  */
 public class GitHubApiFactoryImpl implements GitHubApiFactory {
-  private final HttpClientWrapper myWrapper;
+  protected final HttpClientWrapper myWrapper;
 
   public GitHubApiFactoryImpl(@NotNull final HttpClientWrapper wrapper) {
     myWrapper = wrapper;
@@ -37,9 +37,9 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
 
 
   @NotNull
-  public GitHubApi openGitHubForUser(@NotNull final String url,
-                                     @NotNull final String username,
-                                     @NotNull final String password) {
+  public GitHubApi openWithCredentials(@NotNull final String url,
+                                       @NotNull final String username,
+                                       @NotNull final String password) {
     return new GitHubApiImpl(myWrapper, new GitHubApiPaths(url)){
       @Override
       protected void setAuthentication(@NotNull HttpRequest request) throws AuthenticationException {
@@ -49,8 +49,8 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
   }
 
   @NotNull
-  public GitHubApi openGitHubForToken(@NotNull final String url,
-                                      @NotNull final String token) {
+  public GitHubApi openWithToken(@NotNull final String url,
+                                 @NotNull final String token) {
     return new GitHubApiImpl(myWrapper, new GitHubApiPaths(url)){
       @Override
       protected void setAuthentication(@NotNull HttpRequest request) throws AuthenticationException {
