@@ -147,7 +147,7 @@ public class UpsourcePublisher extends BaseCommitStatusPublisher {
   @NotNull
   private String getRevision(@NotNull BuildRevision revision) {
     String mappingID = myParams.get(Constants.UPSOURCE_MAPPING_ID);
-    if(mappingID.length() > 0)
+    if(mappingID != null && mappingID.length() > 0)
     {
       return mappingID+'-'+revision.getRevision();
     }
