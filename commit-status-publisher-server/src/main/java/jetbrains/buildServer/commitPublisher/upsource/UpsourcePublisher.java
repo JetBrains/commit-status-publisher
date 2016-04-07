@@ -133,7 +133,7 @@ public class UpsourcePublisher extends BaseCommitStatusPublisher {
             buildName,
             url,
             description,
-            revision.getRevision(),
+            getRevision(revision),
             commitMessage,
             commitDate);
     try {
@@ -142,6 +142,17 @@ public class UpsourcePublisher extends BaseCommitStatusPublisher {
       throw new PublishError("Cannot publish status to Upsource for VCS root " +
               revision.getRoot().getName() + ": " + e.toString(), e);
     }
+  }
+
+  @NotNull
+  private String getRevision(@NotNull BuildRevision revision) {
+    String mappingID = myParams.get(Constants.UPSOURCE_MAPPING_ID);
+    if(mappingID.length() > 0)
+    {
+      return mappingID+'-'+revision.getRevision();
+    }
+
+    return revision.getRevision();
   }
 
 
