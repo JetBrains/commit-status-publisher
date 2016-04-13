@@ -33,7 +33,7 @@ public class StashSettings implements CommitStatusPublisherSettings {
 
   @NotNull
   public String getName() {
-    return "BitBucket Server (Atlassian Stash)";
+    return "Bitbucket Server (Atlassian Stash)";
   }
 
   @Nullable
