@@ -43,6 +43,12 @@ public class Constants {
   public static final String BITBUCKET_CLOUD_USERNAME = "bitbucketUsername";
   public static final String BITBUCKET_CLOUD_PASSWORD = "secure:bitbucketPassword";
 
+  public static final String DEVEO_PUBLISHER_ID = "deveoPublisher";
+  public static final String DEVEO_PLUGIN_KEY = "deveoPluginKey";
+  public static final String DEVEO_COMPANY_KEY = "deveoCompanyKey";
+  public static final String DEVEO_API_HOSTNAME = "deveoApiHostname";
+  public static final String DEVEO_ACCOUNT_KEY = "deveoAccountKey";
+
   @NotNull
   public String getVcsRootIdParam() {
     return VCS_ROOT_ID_PARAM;
@@ -126,5 +132,25 @@ public class Constants {
   @NotNull
   public String getBitbucketCloudPassword() {
     return BITBUCKET_CLOUD_PASSWORD;
+  }
+
+  @NotNull
+  public String getDeveoPluginKey() {
+    return DEVEO_PLUGIN_KEY;
+  }
+
+  @NotNull
+  public String getDeveoCompanyKey() {
+    return DEVEO_COMPANY_KEY;
+  }
+
+  @NotNull
+  public String getDeveoApiHostname() {
+    return DEVEO_API_HOSTNAME;
+  }
+
+  @NotNull
+  public String getDeveoAccountKey() {
+    return DEVEO_ACCOUNT_KEY;
   }
 }

@@ -10,6 +10,7 @@
 
   <bean class="jetbrains.buildServer.commitPublisher.stash.StashSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudSettings"/>
+  <bean class="jetbrains.buildServer.commitPublisher.deveo.DeveoSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.gerrit.GerritSettings"/>
 
   <!-- github -->
