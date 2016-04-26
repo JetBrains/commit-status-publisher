@@ -16,7 +16,9 @@ public class GitRepositoryParserTest {
   public void parse_scp_like_urls() {
     List<String> urls = Arrays.asList(
             "git@github.com:owner/repository.git",
-            "ssh://git@github.com:owner/repository.git");
+            "ssh://git@github.com:owner/repository.git",
+            "ssh://git@bitbucket.org/owner/repository.git",
+            "ssh://git@bitbucket.org/owner/repository");
 
     for(String url : urls) {
       Repository repo = GitRepositoryParser.parseRepository(url);
