@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 
 public class GitRepositoryParser {
   private static final Logger LOG = Logger.getInstance(GitRepositoryParser.class.getName());
-  private static final Pattern SSH_PATTERN = Pattern.compile("(?:ssh://)?git@[^:]+:([^/]+)/(.+)");
+  private static final Pattern SSH_PATTERN = Pattern.compile("(?:ssh://)?git@[^:]+[:/]([^/]+)/(.+)");
 
   @Nullable
   public static Repository parseRepository(@NotNull String uri) {
