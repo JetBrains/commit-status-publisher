@@ -76,13 +76,6 @@ public class GitlabPublisher extends BaseCommitStatusPublisher {
   }
 
 
-  @Override
-  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
-    publish(build, revision, GitlabBuildStatus.FAILED, build.getStatusDescriptor().getText());
-    return true;
-  }
-
-
   private void publish(@NotNull SBuild build,
                        @NotNull BuildRevision revision,
                        @NotNull GitlabBuildStatus status,
