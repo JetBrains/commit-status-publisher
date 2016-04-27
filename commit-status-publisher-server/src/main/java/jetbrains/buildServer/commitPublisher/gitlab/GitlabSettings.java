@@ -17,12 +17,9 @@ import java.util.Map;
 public class GitlabSettings implements CommitStatusPublisherSettings {
 
   private final WebLinks myLinks;
-  private final RepositoryStateManager myRepositoryStateManager;
 
-  public GitlabSettings(@NotNull WebLinks links,
-                        @NotNull RepositoryStateManager repositoryStateManager) {
+  public GitlabSettings(@NotNull WebLinks links) {
     myLinks = links;
-    myRepositoryStateManager = repositoryStateManager;
   }
 
   @NotNull
@@ -52,7 +49,7 @@ public class GitlabSettings implements CommitStatusPublisherSettings {
   @NotNull
   @Override
   public GitlabPublisher createPublisher(@NotNull Map<String, String> params) {
-    return new GitlabPublisher(myLinks, myRepositoryStateManager, params);
+    return new GitlabPublisher(myLinks, params);
   }
 
   @NotNull

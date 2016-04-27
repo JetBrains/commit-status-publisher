@@ -26,14 +26,11 @@ public class GitlabPublisher extends BaseCommitStatusPublisher {
   private static final Logger LOG = Logger.getInstance(GitlabPublisher.class.getName());
 
   private final WebLinks myLinks;
-  private final RepositoryStateManager myRepositoryStateManager;
 
   public GitlabPublisher(@NotNull WebLinks links,
-                         @NotNull RepositoryStateManager repositoryStateManager,
                          @NotNull Map<String, String> params) {
     super(params);
     myLinks = links;
-    myRepositoryStateManager = repositoryStateManager;
   }
 
 
@@ -94,8 +91,8 @@ public class GitlabPublisher extends BaseCommitStatusPublisher {
     Repository repository = parseRepository(root);
     if (repository == null)
       throw new PublishError("Cannot parse repository from VCS root url " + root.getName());
-    BuildChangesLoaderContext.getVcsBranchName(myRepositoryStateManager, build.getBranch(), build.getBuildType(), root);
-    String message = createMessage(status, build, root, myLinks.getViewResultsUrl(build), description);
+
+    String message = createMessage(status, build, revision, myLinks.getViewResultsUrl(build), description);
     try {
       publish(revision.getRevision(), message, repository);
     } catch (Exception e) {
@@ -131,21 +128,20 @@ public class GitlabPublisher extends BaseCommitStatusPublisher {
   @NotNull
   private String createMessage(@NotNull GitlabBuildStatus status,
                                @NotNull SBuild build,
-                               @NotNull VcsRootInstance root,
+                               @NotNull BuildRevision revision,
                                @NotNull String url,
                                @NotNull String description) {
-    SBuildType buildType = build.getBuildType();
-    String ref = null;
-    if (buildType != null) {
-      ref = BuildChangesLoaderContext.getVcsBranchName(myRepositoryStateManager, build.getBranch(), build.getBuildType(), root);
-      if (ref.startsWith(REFS_HEADS)) {
-        ref = ref.substring(REFS_HEADS.length());
-      } else if (ref.startsWith(REFS_TAGS)) {
-        ref = ref.substring(REFS_TAGS.length());
-      } else {
-        ref = null;
-      }
+
+    RepositoryVersion repositoryVersion = revision.getRepositoryVersion();
+    String ref = repositoryVersion.getVcsBranch();
+    if (ref.startsWith(REFS_HEADS)) {
+      ref = ref.substring(REFS_HEADS.length());
+    } else if (ref.startsWith(REFS_TAGS)) {
+      ref = ref.substring(REFS_TAGS.length());
+    } else {
+      ref = null;
     }
+
     StringBuilder result = new StringBuilder();
     result.append("{").append("\"state\":").append("\"").append(status.getName()).append("\",")
             .append("\"name\":").append("\"").append(build.getBuildTypeName()).append("\",")
