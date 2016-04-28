@@ -4,8 +4,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.vcs.VcsRootInstance;
-import jetbrains.buildServer.vcs.impl.BuildChangesLoaderContext;
-import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -127,12 +125,14 @@ public class GitlabPublisher extends BaseCommitStatusPublisher {
 
     RepositoryVersion repositoryVersion = revision.getRepositoryVersion();
     String ref = repositoryVersion.getVcsBranch();
-    if (ref.startsWith(REFS_HEADS)) {
-      ref = ref.substring(REFS_HEADS.length());
-    } else if (ref.startsWith(REFS_TAGS)) {
-      ref = ref.substring(REFS_TAGS.length());
-    } else {
-      ref = null;
+    if (ref != null) {
+      if (ref.startsWith(REFS_HEADS)) {
+        ref = ref.substring(REFS_HEADS.length());
+      } else if (ref.startsWith(REFS_TAGS)) {
+        ref = ref.substring(REFS_TAGS.length());
+      } else {
+        ref = null;
+      }
     }
 
     StringBuilder result = new StringBuilder();
