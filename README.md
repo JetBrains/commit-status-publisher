@@ -4,8 +4,8 @@ TeamCity build feature publishing a commit status to an external
 system like GitHub, Gerrit Code Review tool, Bitbucket Cloud or
 Atlassian Stash.
 
-## Builds
-
+## Download
+Get plugin from the latest build corresponding to your TeamCity version (download commit-status-publisher.zip from the latest successful build's artifacts):
 - [TeamCity 10] (https://teamcity.jetbrains.com/viewType.html?buildTypeId=TeamCityPluginsByJetBrains_CommitStatusPublisher_Master) ![](http://teamcity.jetbrains.com/app/rest/builds/buildType:TeamCityPluginsByJetBrains_CommitStatusPublisher_Master/statusIcon)
 - [TeamCity 8.0.x-9.1.x](https://teamcity.jetbrains.com/viewType.html?buildTypeId=TeamCityPluginsByJetBrains_CommitStatusPublisher_91) ![](http://teamcity.jetbrains.com/app/rest/builds/buildType:TeamCityPluginsByJetBrains_CommitStatusPublisher_91/statusIcon)
 - [TeamCity 7.1.x](http://teamcity.jetbrains.com/viewType.html?buildTypeId=TeamCityPluginsByJetBrains_CommitStatusPublisher_71) ![](http://teamcity.jetbrains.com/app/rest/builds/buildType:TeamCityPluginsByJetBrains_Unsorted_CommitStatusPublisher71/statusIcon)
