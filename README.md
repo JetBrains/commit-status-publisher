@@ -1,7 +1,7 @@
 #Teamcity Commit Status Publisher
 
 TeamCity build feature publishing a commit status to an external
-system like GitHub, Gerrit Code Review tool, Bitbucket Cloud or
+system like JetBrains Upsource, GitHub, Gerrit Code Review tool, Bitbucket Cloud or
 Atlassian Stash.
 
 ## Download
