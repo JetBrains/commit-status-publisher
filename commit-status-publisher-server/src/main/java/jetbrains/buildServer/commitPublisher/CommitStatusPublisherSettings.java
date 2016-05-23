@@ -20,6 +20,14 @@ public interface CommitStatusPublisherSettings {
   @Nullable
   Map<String, String> getDefaultParameters();
 
+  /**
+   * Transforms parameters of the publisher before they are shown in UI
+   * @param params parameters to transform
+   * @return map of transformed parameters or null if no transformation is needed
+   */
+  @Nullable
+  Map<String, String> transformParameters(@NotNull Map<String, String> params);
+
   @Nullable
   CommitStatusPublisher createPublisher(@NotNull Map<String, String> params);
 

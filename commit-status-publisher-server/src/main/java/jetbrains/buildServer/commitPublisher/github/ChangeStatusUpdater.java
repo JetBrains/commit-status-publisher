@@ -17,6 +17,7 @@
 package jetbrains.buildServer.commitPublisher.github;
 
 import com.intellij.openapi.diagnostic.Logger;
+import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.Repository;
 import jetbrains.buildServer.commitPublisher.GitRepositoryParser;
 import jetbrains.buildServer.commitPublisher.github.api.*;
@@ -67,7 +68,10 @@ public class ChangeStatusUpdater {
     switch (authenticationType) {
       case PASSWORD_AUTH:
         final String username = params.get(C.getUserNameKey());
-        final String password = params.get(C.getPasswordKey());
+        String password = params.get(C.getPasswordKey());
+        if (password == null) {
+          password = params.get(Constants.GITHUB_PASSWORD_DEPRECATED);
+        }
         return myFactory.openGitHubForUser(serverUrl, username, password);
 
       case TOKEN_AUTH:

@@ -43,10 +43,22 @@ public class CommitStatusPublisherFeatureController extends BaseController {
     BasePropertiesBean props = (BasePropertiesBean) request.getAttribute("propertiesBean");
     String publisherId = props.getProperties().get(Constants.PUBLISHER_ID_PARAM);
     ModelAndView mv = publisherId != null ? createEditPublisherModel(publisherId) : createAddPublisherModel();
+    if (publisherId != null)
+      transformParameters(props, publisherId, mv);
     mv.addObject("publisherSettingsUrl", myPublisherSettingsController.getUrl());
     mv.addObject("vcsRoots", getVcsRoots(request));
     mv.addObject("projectId", getProjectId(request));
     return mv;
+  }
+
+  private void transformParameters(@NotNull BasePropertiesBean props, @NotNull String publisherId, @NotNull ModelAndView mv) {
+    CommitStatusPublisherSettings publisherSettings = myPublisherManager.findSettings(publisherId);
+    if (publisherSettings == null)
+      return;
+    Map<String, String> transformed = publisherSettings.transformParameters(props.getProperties());
+    if (transformed != null) {
+      mv.addObject("propertiesBean", new BasePropertiesBean(transformed));
+    }
   }
 
   @NotNull

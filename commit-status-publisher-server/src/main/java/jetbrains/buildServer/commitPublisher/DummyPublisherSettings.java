@@ -34,6 +34,12 @@ public class DummyPublisherSettings implements CommitStatusPublisherSettings {
     return null;
   }
 
+  @Nullable
+  @Override
+  public Map<String, String> transformParameters(@NotNull Map<String, String> params) {
+    return null;
+  }
+
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
     return "";

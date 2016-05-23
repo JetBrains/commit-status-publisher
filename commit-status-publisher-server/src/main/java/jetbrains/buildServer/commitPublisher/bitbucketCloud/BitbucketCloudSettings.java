@@ -48,6 +48,12 @@ public class BitbucketCloudSettings implements CommitStatusPublisherSettings {
   }
 
   @Nullable
+  @Override
+  public Map<String, String> transformParameters(@NotNull Map<String, String> params) {
+    return null;
+  }
+
+  @Nullable
   public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
     return new BitbucketCloudPublisher(myLinks, params);
   }
