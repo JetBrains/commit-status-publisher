@@ -5,7 +5,6 @@ import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.WebLinks;
-import jetbrains.buildServer.vcs.impl.RepositoryStateManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,6 +42,12 @@ public class GitlabSettings implements CommitStatusPublisherSettings {
   @Nullable
   @Override
   public Map<String, String> getDefaultParameters() {
+    return null;
+  }
+
+  @Nullable
+  @Override
+  public Map<String, String> transformParameters(@NotNull Map<String, String> params) {
     return null;
   }
 

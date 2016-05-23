@@ -47,6 +47,12 @@ public class StashSettings implements CommitStatusPublisherSettings {
   }
 
   @Nullable
+  @Override
+  public Map<String, String> transformParameters(@NotNull Map<String, String> params) {
+    return null;
+  }
+
+  @Nullable
   public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
     return new StashPublisher(myLinks, params);
   }

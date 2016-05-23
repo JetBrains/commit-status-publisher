@@ -57,6 +57,12 @@ public class GerritSettings implements CommitStatusPublisherSettings {
   }
 
   @Nullable
+  @Override
+  public Map<String, String> transformParameters(@NotNull Map<String, String> params) {
+    return null;
+  }
+
+  @Nullable
   public GerritPublisher createPublisher(@NotNull Map<String, String> params) {
     Collection<ServerSshKeyManager> extensions = myExtensionHolder.getExtensions(ServerSshKeyManager.class);
     if (extensions.isEmpty()) {

@@ -50,6 +50,20 @@ public class GitHubSettings implements CommitStatusPublisherSettings {
   }
 
   @Nullable
+  @Override
+  public Map<String, String> transformParameters(@NotNull Map<String, String> params) {
+    String securePwd = params.get(Constants.GITHUB_PASSWORD);
+    String deprecatedPwd = params.get(Constants.GITHUB_PASSWORD_DEPRECATED);
+    if (securePwd == null && deprecatedPwd != null) {
+      Map<String, String> result = new HashMap<String, String>(params);
+      result.remove(Constants.GITHUB_PASSWORD_DEPRECATED);
+      result.put(Constants.GITHUB_PASSWORD, deprecatedPwd);
+      return result;
+    }
+    return null;
+  }
+
+  @Nullable
   public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
     return new GitHubPublisher(myUpdater, params);
   }
