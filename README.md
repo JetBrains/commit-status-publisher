@@ -1,8 +1,11 @@
 #Teamcity Commit Status Publisher
 
+
 TeamCity [build feature](https://confluence.jetbrains.com/display/TCDL/Adding+Build+Features) publishing a commit status to an external
 system like JetBrains Upsource, GitHub, Gerrit Code Review tool, Bitbucket Cloud or
 Atlassian Stash.
+
+The plugin is compatible with TeamCity 7.1.x and later and **[is bundled] (https://confluence.jetbrains.com/display/TCD10/Commit+Status+Publisher) since TeamCity 10.x**
 
 ## Download
 Get plugin from the latest build corresponding to your TeamCity version (download commit-status-publisher.zip from the latest successful build's artifacts):
@@ -14,7 +17,7 @@ Found a bug? File [an issue](https://youtrack.jetbrains.com/newIssue?project=TW&
 
 ## Local plugin build
 
-To build the plugin locally run the
+To build the plugin locally, run the
 ```
 mvn package
 ```
@@ -23,3 +26,5 @@ command in the root directory.
 The target directory of the project root will contain the
 commit-status-publisher.zip file, which is ready [to be installed]
 (https://confluence.jetbrains.com/display/TCDL/Installing+Additional+Plugins).
+
+Once the plugin is installed, add the Commit Status Publisher  [build feature](https://confluence.jetbrains.com/display/TCDL/Adding+Build+Features) to your build configuration.
