@@ -1,6 +1,6 @@
 #Teamcity Commit Status Publisher
 
-TeamCity build feature publishing a commit status to an external
+TeamCity [build feature](https://confluence.jetbrains.com/display/TCDL/Adding+Build+Features) publishing a commit status to an external
 system like JetBrains Upsource, GitHub, Gerrit Code Review tool, Bitbucket Cloud or
 Atlassian Stash.
 
