@@ -49,6 +49,12 @@ public class GitlabSettings implements CommitStatusPublisherSettings {
     return null;
   }
 
+  @Nullable
+  @Override
+  public Map<String, String> transformParameters(@NotNull Map<String, String> params) {
+    return null;
+  }
+
   @NotNull
   @Override
   public GitlabPublisher createPublisher(@NotNull Map<String, String> params) {
