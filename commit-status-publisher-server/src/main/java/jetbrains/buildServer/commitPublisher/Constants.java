@@ -34,6 +34,10 @@ public class Constants {
 
   public static final String GITHUB_PUBLISHER_ID = "githubStatusPublisher";
   public static final String GITHUB_SERVER = "github_host";
+  public static final String GITHUB_FAILONSIZE = "github_failonsize";
+  public static final String GITHUB_ARTIFACTS = "github_artifacts";
+  public static final String GITHUB_BYTES = "github_bytes";
+  public static final String GITHUB_PCT = "github_pct";
   public static final String GITHUB_AUTH_TYPE = "github_authentication_type";
   public static final String GITHUB_USERNAME = "github_username";
   public static final String GITHUB_PASSWORD = "secure:github_password";

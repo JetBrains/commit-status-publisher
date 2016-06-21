@@ -70,4 +70,46 @@
     </span>
     </td>
   </tr>
+
+  <tr>
+    <th><label for="${keys.failOnSizeKey}">Fail on size: </label></th>
+    <td>
+      <props:checkboxProperty name="${keys.failOnSizeKey}"/>
+    <span class="smallNote">
+      Mark this build as a failure in GitHub based on a size too big error
+    </span>
+    </td>
+  </tr>
+
+  <tr>
+    <th><label for="${keys.bytesKey}">Max Bytes Change: </label></th>
+    <td>
+      <props:textProperty name="${keys.bytesKey}" className="longField"/>
+    <span class="smallNote">
+      Maximum size increase in bytes before a warning shows up. Blank is disabled
+    </span>
+    </td>
+  </tr>
+
+  <tr>
+    <th><label for="${keys.pctKey}">Max Percent Change: </label></th>
+    <td>
+      <props:textProperty name="${keys.pctKey}" className="longField"/>
+    <span class="smallNote">
+      Maximum size in percent increase before a warning shows up. Blank is disabled
+    </span>
+    </td>
+  </tr>
+
+  <tr>
+    <th><label for="${keys.artifactsKey}">Artifacts:</label></th>
+    <td>
+      <props:multilineProperty name="${keys.artifactsKey}" linkTitle="Artifacts" cols="47" rows="3"/>
+      <span class="error" id="error_${keys.artifactsKey}"></span>
+    <span class="smallNote">
+      Specify a <strong> UNIQUE </strong> match for each file you wish to track size
+    </span>
+    </td>
+  </tr>
+
 </table>

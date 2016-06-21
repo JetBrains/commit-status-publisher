@@ -20,11 +20,15 @@ import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.Repository;
 import jetbrains.buildServer.commitPublisher.GitRepositoryParser;
+import jetbrains.buildServer.commitPublisher.github.BuildSizeChange;
 import jetbrains.buildServer.commitPublisher.github.api.*;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode;
+import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts;
+import jetbrains.buildServer.serverSide.artifacts.BuildArtifact;
 import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -86,6 +90,8 @@ public class ChangeStatusUpdater {
   @Nullable
   public Handler getUpdateHandler(@NotNull VcsRootInstance root, @NotNull Map<String, String> params) {
     final GitHubApi api = getGitHubApi(params);
+    final BuildSizeChange buildSize = new BuildSizeChange(params);
+    final String artifacts = params.get(C.getArtifactsKey());
 
     String url = root.getProperty("url");
     if (url == null)
@@ -96,8 +102,7 @@ public class ChangeStatusUpdater {
 
     final String repositoryOwner = repo.owner();
     final String repositoryName = repo.repositoryName();
-    final String context = "continuous-integration/teamcity";
-    final boolean addComments = false;
+    final String context = "continuous-integration/teamcity/";
 
     final boolean shouldReportOnStart = true;
     final boolean shouldReportOnFinish = true;
@@ -144,8 +149,10 @@ public class ChangeStatusUpdater {
         final Status status = build.getStatusDescriptor().getStatus();
         final byte priority = status.getPriority();
 
-        if (priority == Status.NORMAL.getPriority()) {
+        if (priority == Status.NORMAL.getPriority() && !buildSize.hasSizeFailure(build)) {
           return GitHubChangeState.Success;
+        } else if (priority == Status.NORMAL.getPriority()) {
+          return GitHubChangeState.Failure;
         } else if (priority == Status.FAILURE.getPriority()) {
           return GitHubChangeState.Failure;
         } else {
@@ -175,7 +182,6 @@ public class ChangeStatusUpdater {
             return stacktrace;
           }
 
-          @NotNull
           private String getFriendlyDuration(final long seconds) {
             long second = seconds % 60;
             long minute = (seconds / 60) % 60;
@@ -187,7 +193,6 @@ public class ChangeStatusUpdater {
           @NotNull
           private String getComment(@NotNull RepositoryVersion version,
                                     @NotNull SBuild build,
-                                    boolean completed,
                                     @NotNull String hash) {
             final StringBuilder comment = new StringBuilder();
             comment.append("TeamCity ");
@@ -201,16 +206,10 @@ public class ChangeStatusUpdater {
             comment.append(getViewResultsUrl(build));
             comment.append(") ");
 
-            if (completed) {
-              comment.append("outcome was **").append(build.getStatusDescriptor().getStatus().getText()).append("**");
-            } else {
-              comment.append("is now running");
-            }
-
-            comment.append("\n");
+            comment.append("outcome was **").append(build.getStatusDescriptor().getStatus().getText()).append("**\n");
 
             final String text = build.getStatusDescriptor().getText();
-            if (completed && text != null) {
+            if (text != null) {
               comment.append("Summary: ");
               comment.append(text);
               comment.append(" Build time: ");
@@ -240,6 +239,15 @@ public class ChangeStatusUpdater {
                   }
                   comment.append("```\n");
                 }
+              }
+            }
+
+            if (artifacts != null && !artifacts.isEmpty()) {
+              comment.append("\n");
+              if (build.getBuildStatus() != Status.NORMAL) {
+                comment.append("Build status is not normal, not calculating artifact size\n");
+              } else {
+                comment.append(buildSize.getComment(build));
               }
             }
 
@@ -279,19 +287,19 @@ public class ChangeStatusUpdater {
                       status,
                       getViewResultsUrl(build),
                       message,
-                      context
+                      context + build.getParametersProvider().get("system.teamcity.buildType.id")
               );
               LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
             } catch (IOException e) {
               LOG.warn("Failed to update GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status + ". " + e.getMessage(), e);
             }
-            if (addComments) {
+            if (status != GitHubChangeState.Pending) {
               try {
                 api.postComment(
                         repositoryOwner,
                         repositoryName,
                         hash,
-                        getComment(version, build, status != GitHubChangeState.Pending, hash)
+                        getComment(version, build, hash)
                 );
                 LOG.info("Added comment to GitHub commit: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
               } catch (IOException e) {
