@@ -73,13 +73,18 @@ public class UpsourceSettings implements CommitStatusPublisherSettings {
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
-        if (StringUtil.isEmpty(params.get(Constants.UPSOURCE_SERVER_URL)))
-          errors.add(new InvalidProperty(Constants.UPSOURCE_SERVER_URL, "must be specified"));
-        if (StringUtil.isEmpty(params.get(Constants.UPSOURCE_PROJECT_ID)))
-          errors.add(new InvalidProperty(Constants.UPSOURCE_PROJECT_ID, "must be specified"));
+        checkContains(params, Constants.UPSOURCE_SERVER_URL, errors);
+        checkContains(params, Constants.UPSOURCE_PROJECT_ID, errors);
+        checkContains(params, Constants.UPSOURCE_USERNAME, errors);
+        checkContains(params, Constants.UPSOURCE_PASSWORD, errors);
         return errors;
       }
     };
+  }
+
+  private void checkContains(@NotNull Map<String, String> params, @NotNull String key, @NotNull List<InvalidProperty> errors) {
+    if (StringUtil.isEmpty(params.get(key)))
+      errors.add(new InvalidProperty(key, "must be specified"));
   }
 
   public boolean isEnabled() {
