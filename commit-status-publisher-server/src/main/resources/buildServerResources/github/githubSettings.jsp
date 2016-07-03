@@ -28,7 +28,7 @@
         <td>
           <props:textProperty name="${keys.userNameKey}" className="longField"/>
           <span class="error" id="error_${keys.userNameKey}"></span>
-          <span class="smallNote">Specify GitHub user name</span>
+          <span class="smallNote">GitHub username</span>
         </td>
       </tr>
       <tr>
@@ -36,7 +36,7 @@
         <td>
           <props:passwordProperty name="${keys.passwordKey}" className="longField"/>
           <span class="error" id="error_${keys.passwordKey}"></span>
-          <span class="smallNote">Specify GitHub password</span>
+          <span class="smallNote">GitHub password</span>
         </td>
       </tr>
     </props:selectSectionPropertyContent>
@@ -48,7 +48,7 @@
           <props:passwordProperty name="${keys.accessTokenKey}" className="longField"/>
           <span class="error" id="error_${keys.accessTokenKey}"></span>
           <span class="smallNote">
-            Specify a GitHub <a href="https://github.com/settings/applications" target="_blank">Personal Access Token</a>
+            GitHub <a href="https://github.com/settings/applications" target="_blank">Personal Access Token</a>
             <br />
             It is required to have the following permissions:
             <strong><em>repo:status</em></strong> and
@@ -65,7 +65,7 @@
       <props:textProperty name="${keys.serverKey}" className="longField"/>
       <span class="error" id="error_${keys.serverKey}"></span>
     <span class="smallNote">
-      Specify GitHub URL. Use <strong>http(s)://[hostname]/api/v3</strong>
+      GitHub URL, format <strong>http(s)://[hostname]/api/v3</strong>
       for <a href="https://support.enterprise.github.com/entries/21391237-Using-the-API" target="_blank">GitHub Enterprise</a>
     </span>
     </td>

@@ -10,6 +10,7 @@
     <th><label for="${keys.bitbucketCloudUsername}">Username: <l:star/></label></th>
     <td>
       <props:textProperty name="${keys.bitbucketCloudUsername}" style="width:18em;"/>
+      <span class="smallNote">Bitbucket username</span>
       <span class="error" id="error_${keys.bitbucketCloudUsername}"></span>
     </td>
   </tr>
@@ -18,6 +19,7 @@
     <th><label for="${keys.bitbucketCloudPassword}">Password: <l:star/></label></th>
     <td>
       <props:passwordProperty name="${keys.bitbucketCloudPassword}" style="width:18em;"/>
+      <span class="smallNote">Bitbucket password</span>
       <span class="error" id="error_${keys.bitbucketCloudPassword}"></span>
     </td>
   </tr>

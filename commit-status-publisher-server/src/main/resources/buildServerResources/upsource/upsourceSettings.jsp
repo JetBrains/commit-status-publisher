@@ -8,17 +8,19 @@
 <jsp:useBean id="currentUser" type="jetbrains.buildServer.users.SUser" scope="request"/>
 <table style="width: 100%">
     <tr>
-        <th><label for="${keys.upsourceServerUrl}">Upsource url: <l:star/></label></th>
+        <th><label for="${keys.upsourceServerUrl}">Upsource URL: <l:star/></label></th>
         <td>
             <props:textProperty name="${keys.upsourceServerUrl}" style="width:18em;"/> <span id="hubAppsControl"></span>
+            <span class="smallNote">Upsource URL</span>
             <span class="error" id="error_${keys.upsourceServerUrl}"></span>
         </td>
     </tr>
 
     <tr>
-        <th><label for="${keys.upsourceProjectId}">Upsource project ID: <l:star/></label></th>
+        <th><label for="${keys.upsourceProjectId}">Upsource Project ID: <l:star/></label></th>
         <td>
             <props:textProperty name="${keys.upsourceProjectId}" style="width:18em;"/> <span id="hubProjectsControl"></span>
+            <span class="smallNote">Upsource Project ID</span>
             <span class="error" id="error_${keys.upsourceProjectId}"></span>
         </td>
     </tr>
@@ -27,6 +29,7 @@
         <th><label for="${keys.upsourceUsername}">Username: <l:star/></label></th>
         <td>
             <props:textProperty name="${keys.upsourceUsername}" style="width:18em;"/>
+            <span class="smallNote">Upsource username</span>
         </td>
     </tr>
 
@@ -34,6 +37,7 @@
         <th><label for="${keys.upsourcePassword}">Password: <l:star/></label></th>
         <td>
             <props:passwordProperty name="${keys.upsourcePassword}" style="width:18em;"/>
+            <span class="smallNote">Upsource password</span>
         </td>
     </tr>
 </table>

@@ -8,18 +8,47 @@
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
 <table style="width: 100%">
   <tr>
-    <th><label for="${keys.gerritServer}">Gerrit server: <l:star/></label></th>
+    <th><label for="${keys.gerritServer}">Gerrit Server: <l:star/></label></th>
     <td>
       <props:textProperty name="${keys.gerritServer}" style="width:18em;"/>
+      <span class="smallNote">Format: <strong>host</strong> or <strong>host:port</strong></span>
       <span class="error" id="error_${keys.gerritServer}"></span>
     </td>
   </tr>
 
   <tr>
-    <th><label for="${keys.gerritProject}">Gerrit project: <l:star/></label></th>
+    <th><label for="${keys.gerritProject}">Gerrit Project: <l:star/></label></th>
     <td>
       <props:textProperty name="${keys.gerritProject}" style="width:18em;"/>
+      <span class="smallNote">Gerrit project name</span>
       <span class="error" id="error_${keys.gerritProject}"></span>
+    </td>
+  </tr>
+
+  <tr>
+    <th><label for="${keys.gerritSuccessVote}">Successful Build Vote: <l:star/></label></th>
+    <td>
+      <props:textProperty name="${keys.gerritSuccessVote}" style="width:18em;"/>
+      <span class="smallNote">Vote in case of successful build</span>
+      <span class="error" id="error_${keys.gerritSuccessVote}"></span>
+    </td>
+  </tr>
+
+  <tr>
+    <th><label for="${keys.gerritFailureVote}">Failed Build Vote: <l:star/></label></th>
+    <td>
+      <props:textProperty name="${keys.gerritFailureVote}" style="width:18em;"/>
+      <span class="smallNote">Vote in case of failed build</span>
+      <span class="error" id="error_${keys.gerritFailureVote}"></span>
+    </td>
+  </tr>
+
+  <tr>
+    <th><label for="${keys.gerritUsername}">Gerrit Username: <l:star/></label></th>
+    <td>
+      <props:textProperty name="${keys.gerritUsername}" style="width:18em;"/>
+      <span class="smallNote">Gerrit username</span>
+      <span class="error" id="error_${keys.gerritUsername}"></span>
     </td>
   </tr>
 
@@ -31,27 +60,4 @@
     </td>
   </tr>
 
-  <tr>
-    <th><label for="${keys.gerritSuccessVote}">Successful build vote: <l:star/></label></th>
-    <td>
-      <props:textProperty name="${keys.gerritSuccessVote}" style="width:18em;"/>
-      <span class="error" id="error_${keys.gerritSuccessVote}"></span>
-    </td>
-  </tr>
-
-  <tr>
-    <th><label for="${keys.gerritFailureVote}">Failed build vote: <l:star/></label></th>
-    <td>
-      <props:textProperty name="${keys.gerritFailureVote}" style="width:18em;"/>
-      <span class="error" id="error_${keys.gerritFailureVote}"></span>
-    </td>
-  </tr>
-
-  <tr>
-    <th><label for="${keys.gerritUsername}">Gerrit username: <l:star/></label></th>
-    <td>
-      <props:textProperty name="${keys.gerritUsername}" style="width:18em;"/>
-      <span class="error" id="error_${keys.gerritUsername}"></span>
-    </td>
-  </tr>
 </table>
