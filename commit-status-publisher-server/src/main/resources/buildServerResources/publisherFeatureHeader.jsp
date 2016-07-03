@@ -7,6 +7,7 @@
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
 <jsp:useBean id="propertiesBean" scope="request" type="jetbrains.buildServer.controllers.BasePropertiesBean"/>
 <jsp:useBean id="constants" class="jetbrains.buildServer.commitPublisher.Constants" scope="request" />
+<jsp:useBean id="buildForm" type="jetbrains.buildServer.controllers.admin.projects.EditableBuildTypeSettingsForm" scope="request"/>
 
 <c:url value="${publisherSettingsUrl}" var="settingsUrl"/>
 <script type="text/javascript">
@@ -17,6 +18,7 @@
       $j.get(url, function(xhr) {
         $j('#publisherSettingsProgress').hide();
         $j("#publisherProperties").html(xhr);
+        BS.AvailableParams.attachPopups('settingsId=${buildForm.settingsId}', 'textProperty', 'multilineProperty');
       });
       return false;
     }
