@@ -11,15 +11,21 @@ import java.util.regex.Pattern;
 
 public class GitRepositoryParser {
   private static final Logger LOG = Logger.getInstance(GitRepositoryParser.class.getName());
-  private static final Pattern SSH_PATTERN = Pattern.compile("(?:ssh://)?git@[^:]+[:/]([^/]+)/(.+)");
+  //git@host:user/repo
+  private static final Pattern SCP_PATTERN = Pattern.compile("git@[^:]+[:]([^/]+)/(.+)");
+  //ssh://git@host/user/repo
+  private static final Pattern SSH_PATTERN = Pattern.compile("ssh://(?:git@)?[^:]+[:/]([^/]+)/(.+)");
 
   @Nullable
   public static Repository parseRepository(@NotNull String uri) {
     if (uri.startsWith("git@") || uri.startsWith("ssh://")) {
-      Matcher m = SSH_PATTERN.matcher(uri);
-      if(!m.matches()) {
-        LOG.warn("Cannot parse Git repository url " + uri);
-        return null;
+      Matcher m = SCP_PATTERN.matcher(uri);
+      if (!m.matches()) {
+        m = SSH_PATTERN.matcher(uri);
+        if (!m.matches()) {
+          LOG.warn("Cannot parse Git repository url " + uri);
+          return null;
+        }
       }
       String userGroup = m.group(1);
       String repo = m.group(2);

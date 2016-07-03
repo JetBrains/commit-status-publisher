@@ -12,16 +12,18 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public class GitRepositoryParserTest {
 
-  @TestFor(issues = "TW-43075")
+  @TestFor(issues = {"TW-43075", "TW-45758"})
   public void parse_scp_like_urls() {
     List<String> urls = Arrays.asList(
             "git@github.com:owner/repository.git",
             "ssh://git@github.com:owner/repository.git",
             "ssh://git@bitbucket.org/owner/repository.git",
-            "ssh://git@bitbucket.org/owner/repository");
+            "ssh://git@bitbucket.org/owner/repository",
+            "ssh://bitbucket.org/owner/repository");
 
     for(String url : urls) {
       Repository repo = GitRepositoryParser.parseRepository(url);
+      then(repo).overridingErrorMessage("Failed to parse url " + url).isNotNull();
       then(repo.owner()).isEqualTo("owner");
       then(repo.repositoryName()).isEqualTo("repository");
     }
