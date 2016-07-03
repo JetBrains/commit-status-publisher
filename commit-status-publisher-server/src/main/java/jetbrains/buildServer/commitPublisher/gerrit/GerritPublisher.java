@@ -52,7 +52,10 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
       return false;
 
     String vote = build.getBuildStatus().isSuccessful() ? getSuccessVote() : getFailureVote();
-    String msg = build.getStatusDescriptor().getText() + " " + myLinks.getViewResultsUrl(build);
+    String msg = build.getFullName() +
+            " #" + build.getBuildNumber() +
+            ": " + build.getStatusDescriptor().getText() +
+            " " + myLinks.getViewResultsUrl(build);
 
     StringBuilder command = new StringBuilder();
     command.append("gerrit review --project ").append(getGerritProject())
