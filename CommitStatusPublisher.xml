@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dsl-extension kind="buildFeature" type="commit-status-publisher" generateDslJar="true">
+    <class name="CommitStatusPublisher" />
+    <function name="commitStatusPublisher" description="Adds 'Commit Status Publisher' build feature"/>
+    <params>
+        <param name="vcsRootId" dslName="vcsRootExtId" ref="VCS_ROOT" />
+        <param name="publisherId" dslName="publisher" type="compound">
+            <option name="bitbucketCloud" value="bitbucketCloudPublisher">
+                <param name="bitbucketUsername" dslName="userName" />
+                <param name="secure:bitbucketPassword" dslName="password" />
+            </option>
+            <option name="bitbucketServer" value="atlassianStashPublisher">
+                <param name="stashBaseUrl" dslName="url" />
+                <param name="stashUsername" dslName="userName" />
+                <param name="secure:stashPassword" dslName="password" />
+            </option>
+            <option name="gerrit" value="gerritStatusPublisher">
+                <param name="gerritServer" dslName="server" />
+                <param name="gerritProject" dslName="gerritProject" />
+                <param name="failureVote" />
+                <param name="successVote" />
+                <param name="gerritUsername" dslName="userName" />
+                <param name="teamcitySshKey" dslName="uploadedKey" />
+            </option>
+            <option name="github" value="githubStatusPublisher">
+                <param name="github_host" dslName="githubUrl" />
+                <param name="github_authentication_type" dslName="authType" type="compound">
+                    <option name="personalToken" value="token">
+                        <param name="secure:github_access_token" dslName="token" />
+                    </option>
+                    <option name="password" value="password">
+                        <param name="github_username" dslName="userName" />
+                        <param name="secure:github_password" dslName="password" />
+                    </option>
+                </param>
+            </option>
+            <option name="gitlab" value="gitlabStatusPublisher">
+                <param name="gitlabApiUrl" />
+                <param name="secure:gitlabAccessToken" dslName="accessToken" />
+            </option>
+            <option name="upsource" value="upsourcePublisher">
+                <param name="upsourceServerUrl" dslName="serverUrl" />
+                <param name="upsourceProjectId" dslName="projectId" />
+                <param name="upsourceUsername" dslName="userName" />
+                <param name="secure:upsourcePassword" dslName="password" />
+            </option>
+        </param>
+    </params>
+    <types>
+        <enum name="FileEncoding">
+            <option name="AUTODETECT" value="autodetect"/>
+            <option name="ASCII" value="US-ASCII"/>
+            <option name="UTF_8" value="UTF-8"/>
+            <option name="UTF_16BE" value="UTF-16BE"/>
+            <option name="UTF_16LE" value="UTF-16LE"/>
+            <option name="CUSTOM" value="custom"/>
+        </enum>
+    </types>
+</dsl-extension>

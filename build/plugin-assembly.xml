@@ -10,6 +10,10 @@
          <source>target/teamcity-plugin.xml</source>
          <outputDirectory>/</outputDirectory>
      </file>
+      <file>
+          <source>../CommitStatusPublisher.xml</source>
+          <outputDirectory>/kotlin-dsl/</outputDirectory>
+      </file>
   </files>
   <moduleSets>
     <moduleSet>
