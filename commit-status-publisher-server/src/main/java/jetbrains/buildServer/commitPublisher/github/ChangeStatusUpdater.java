@@ -100,6 +100,7 @@ public class ChangeStatusUpdater {
     final String context = StringUtil.isEmpty(ctx) ? "continuous-integration/teamcity" : ctx;
     final boolean addComments = false;
 
+    final boolean shouldReportOnQueued = true;
     final boolean shouldReportOnStart = true;
     final boolean shouldReportOnFinish = true;
 
@@ -107,6 +108,11 @@ public class ChangeStatusUpdater {
       @NotNull
       private String getViewResultsUrl(@NotNull final SBuild build) {
         return myWeb.getViewResultsUrl(build);
+      }
+
+      @NotNull
+      private String getViewResultsUrl(@NotNull final SQueuedBuild build) {
+        return myWeb.getQueuedBuildUrl(build);
       }
 
       public boolean shouldReportOnStart() {
@@ -117,17 +123,31 @@ public class ChangeStatusUpdater {
         return shouldReportOnFinish;
       }
 
+      public boolean shouldReportOnQueued() {
+        return shouldReportOnQueued;
+      }
+
       public void scheduleChangeStarted(@NotNull RepositoryVersion version, @NotNull SBuild build) {
         scheduleChangeUpdate(version, build, "TeamCity build started", GitHubChangeState.Pending);
       }
 
-      public void scheduleChangeCompeted(@NotNull RepositoryVersion version, @NotNull SBuild build) {
+      public void scheduleChangeCompleted(@NotNull RepositoryVersion version, @NotNull SBuild build) {
         LOG.debug("Status :" + build.getStatusDescriptor().getStatus().getText());
         LOG.debug("Status Priority:" + build.getStatusDescriptor().getStatus().getPriority());
 
         final GitHubChangeState status = getGitHubChangeState(build);
         final String text = getGitHubChangeText(build);
         scheduleChangeUpdate(version, build, text, status);
+      }
+
+      @Override
+      public void scheduleChangeQueued(@NotNull RepositoryVersion version, @NotNull SQueuedBuild build) {
+        scheduleChangeUpdate(version, build, "Queued TeamCity Build " + build.getBuildType(), GitHubChangeState.Pending);
+      }
+
+      @Override
+      public void scheduleChangeRemovedFromQueue(@NotNull RepositoryVersion version, @NotNull SQueuedBuild build) {
+        scheduleChangeUpdate(version, build, "TeamCity Build was removed from queue", GitHubChangeState.Error);
       }
 
       @NotNull
@@ -151,6 +171,60 @@ public class ChangeStatusUpdater {
         } else {
           return GitHubChangeState.Error;
         }
+      }
+
+      @NotNull
+      private String resolveCommitHash(RepositoryVersion version, String buildId, String status) {
+        final String vcsBranch = version.getVcsBranch();
+        if (vcsBranch != null && api.isPullRequestMergeBranch(vcsBranch)) {
+          try {
+            final String hash = api.findPullRequestCommit(repositoryOwner, repositoryName, vcsBranch);
+            if (hash == null) {
+              throw new IOException("Failed to find head hash for commit from " + vcsBranch);
+            }
+            LOG.info("Resolved GitHub change commit for " + vcsBranch + " to point to pull request head for " +
+                    "hash: " + version.getVersion() + ", " +
+                    "newHash: " + hash + ", " +
+                    "branch: " + version.getVcsBranch() + ", " +
+                    "buildId: " + buildId + ", " +
+                    "status: " + status);
+            return hash;
+          } catch (IOException e) {
+            LOG.warn("Failed to find status update hash for " + vcsBranch + " for repository " + repositoryName);
+          }
+        }
+        return version.getVersion();
+      }
+
+      private void scheduleChangeUpdate(@NotNull final RepositoryVersion version,
+                                        @NotNull final SQueuedBuild build,
+                                        @NotNull final String message,
+                                        @NotNull final GitHubChangeState status) {
+        LOG.info("Scheduling GitHub status update for queued build " +
+                "hash: " + version.getVersion() + ", " +
+                "branch: " + version.getVcsBranch() + ", " +
+                "buildId: " + build.getItemId() + ", " +
+                "status: " + status);
+        myExecutor.submit(ExceptionUtil.catchAll("set change status on github", new Runnable() {
+          @Override
+          public void run() {
+            final String hash = resolveCommitHash(version, build.getItemId(), status.toString());
+            try {
+              api.setChangeStatus(
+                      repositoryOwner,
+                      repositoryName,
+                      hash,
+                      status,
+                      getViewResultsUrl(build),
+                      message,
+                      context
+              );
+              LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getItemId() + ", status: " + status);
+            } catch (IOException e) {
+              LOG.warn("Failed to update GitHub status for hash: " + hash + ", buildId: " + build.getItemId() + ", status: " + status + ". " + e.getMessage(), e);
+            }
+          }
+        }));
       }
 
       private void scheduleChangeUpdate(@NotNull final RepositoryVersion version,
@@ -246,31 +320,8 @@ public class ChangeStatusUpdater {
             return comment.toString();
           }
 
-          @NotNull
-          private String resolveCommitHash() {
-            final String vcsBranch = version.getVcsBranch();
-            if (vcsBranch != null && api.isPullRequestMergeBranch(vcsBranch)) {
-              try {
-                final String hash = api.findPullRequestCommit(repositoryOwner, repositoryName, vcsBranch);
-                if (hash == null) {
-                  throw new IOException("Failed to find head hash for commit from " + vcsBranch);
-                }
-                LOG.info("Resolved GitHub change commit for " + vcsBranch + " to point to pull request head for " +
-                        "hash: " + version.getVersion() + ", " +
-                        "newHash: " + hash + ", " +
-                        "branch: " + version.getVcsBranch() + ", " +
-                        "buildId: " + build.getBuildId() + ", " +
-                        "status: " + status);
-                return hash;
-              } catch (IOException e) {
-                LOG.warn("Failed to find status update hash for " + vcsBranch + " for repository " + repositoryName);
-              }
-            }
-            return version.getVersion();
-          }
-
           public void run() {
-            final String hash = resolveCommitHash();
+            final String hash = resolveCommitHash(version, String.valueOf(build.getBuildId()), status.toString());
             boolean prMergeBranch = !hash.equals(version.getVersion());
             try {
               api.setChangeStatus(
@@ -305,10 +356,13 @@ public class ChangeStatusUpdater {
     };
   }
 
-  public static interface Handler {
+  public interface Handler {
     boolean shouldReportOnStart();
     boolean shouldReportOnFinish();
+    boolean shouldReportOnQueued();
     void scheduleChangeStarted(@NotNull final RepositoryVersion hash, @NotNull final SBuild build);
-    void scheduleChangeCompeted(@NotNull final RepositoryVersion hash, @NotNull final SBuild build);
+    void scheduleChangeCompleted(@NotNull final RepositoryVersion hash, @NotNull final SBuild build);
+    void scheduleChangeQueued(@NotNull final RepositoryVersion version, @NotNull final SQueuedBuild build);
+    void scheduleChangeRemovedFromQueue(@NotNull final RepositoryVersion version, @NotNull final SQueuedBuild build);
   }
 }

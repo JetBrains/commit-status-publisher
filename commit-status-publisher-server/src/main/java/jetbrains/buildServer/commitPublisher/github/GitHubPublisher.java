@@ -6,6 +6,7 @@ import java.util.Map;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,6 +35,18 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
   @Override
   public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
     updateBuildStatus(build, revision, true);
+    return true;
+  }
+
+  @Override
+  public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) {
+    updateBuildStatus(build, revision, true);
+    return true;
+  }
+
+  @Override
+  public boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) {
+    updateBuildStatus(build, revision, false);
     return true;
   }
 
@@ -67,7 +80,32 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
     if (isStarting) {
       h.scheduleChangeStarted(revision.getRepositoryVersion(), build);
     } else {
-      h.scheduleChangeCompeted(revision.getRepositoryVersion(), build);
+      h.scheduleChangeCompleted(revision.getRepositoryVersion(), build);
+    }
+  }
+
+  /**
+   * Called when a build is queued or unqueued.
+   * @param build the queued build
+   * @param revision the revision
+   * @param isAdded true if the build has just been queued; false if the build has just been unqueued
+     */
+  private void updateBuildStatus(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, boolean isAdded) {
+    final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), myParams);
+
+    if (h == null || !h.shouldReportOnQueued()) {
+      return;
+    }
+
+    if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
+      LOG.warn("No revisions were found to update GitHub status. Please check you have Git VCS roots in the build configuration");
+      return;
+    }
+
+    if (isAdded) {
+      h.scheduleChangeQueued(revision.getRepositoryVersion(), build);
+    } else {
+      h.scheduleChangeRemovedFromQueue(revision.getRepositoryVersion(), build);
     }
   }
 
