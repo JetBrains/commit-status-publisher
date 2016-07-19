@@ -1,15 +1,16 @@
 package jetbrains.buildServer.commitPublisher.gerrit;
 
 import jetbrains.buildServer.ExtensionHolder;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 
 import java.util.*;
 
@@ -75,7 +76,7 @@ public class GerritSettings implements CommitStatusPublisherSettings {
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
     GerritPublisher publisher = createPublisher(params);
-    return "Gerrit " + publisher.getGerritServer() + "/" + publisher.getGerritProject();
+    return "Gerrit " + WebUtil.escapeXml(publisher.getGerritServer()) + "/" + WebUtil.escapeXml(publisher.getGerritProject());
   }
 
   @Nullable

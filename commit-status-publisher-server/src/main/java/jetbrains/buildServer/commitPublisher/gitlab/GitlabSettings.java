@@ -5,6 +5,7 @@ import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -64,7 +65,7 @@ public class GitlabSettings implements CommitStatusPublisherSettings {
     GitlabPublisher publisher = createPublisher(params);
     String url = publisher.getApiUrl();
     if (url != null)
-      result += " " + url;
+      result += " " + WebUtil.escapeXml(url);
     return result;
   }
 

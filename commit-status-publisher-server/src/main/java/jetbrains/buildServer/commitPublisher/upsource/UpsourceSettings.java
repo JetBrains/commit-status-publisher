@@ -10,6 +10,7 @@ import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -65,7 +66,11 @@ public class UpsourceSettings implements CommitStatusPublisherSettings {
 
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
-    return "Upsource URL: " + params.get(Constants.UPSOURCE_SERVER_URL) + ", Upsource project ID: " + params.get(Constants.UPSOURCE_PROJECT_ID);
+    String serverUrl = params.get(Constants.UPSOURCE_SERVER_URL);
+    String projectId = params.get(Constants.UPSOURCE_PROJECT_ID);
+    if (serverUrl == null || projectId == null)
+      return getName();
+    return "Upsource URL: " + WebUtil.escapeXml(serverUrl) + ", Upsource project ID: " + WebUtil.escapeXml(projectId);
   }
 
   @Nullable

@@ -1,14 +1,15 @@
 package jetbrains.buildServer.commitPublisher.stash;
 
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -60,7 +61,8 @@ public class StashSettings implements CommitStatusPublisherSettings {
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
     StashPublisher voter = (StashPublisher) createPublisher(params);
-    return getName() + " " + voter.getBaseUrl();
+    String url = voter.getBaseUrl();
+    return getName() + (url != null ? " " + WebUtil.escapeXml(url) : "");
   }
 
   @Nullable
