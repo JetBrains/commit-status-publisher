@@ -110,7 +110,7 @@ public class GitlabPublisher extends BaseCommitStatusPublisher {
     HttpPost post = null;
     HttpResponse response = null;
     try {
-      String url = getApiUrl() + "/projects/" + repository.owner() + "%2F" + repository.repositoryName() + "/statuses/" + commit;
+      String url = getApiUrl() + "/projects/" + getProjectID(repository) + "/statuses/" + commit;
       LOG.debug("Request url: " + url + ", message: " + data);
       post = new HttpPost(url);
       post.addHeader("PRIVATE-TOKEN", getPrivateToken());
@@ -175,6 +175,14 @@ public class GitlabPublisher extends BaseCommitStatusPublisher {
     }
   }
 
+  @NotNull
+  private String getProjectID(@NotNull Repository repository) {
+	  String projectID = myParams.get(Constants.GITLAB_PROJECT_ID);
+	  if (projectID != null) {
+		  return projectID;
+	  }
+	  return repository.owner() + "%2F" + repository.repositoryName();
+  }
 
   String getApiUrl() {
     return myParams.get(Constants.GITLAB_API_URL);

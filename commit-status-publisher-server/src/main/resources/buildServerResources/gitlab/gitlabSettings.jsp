@@ -15,6 +15,17 @@
     </tr>
 
     <tr>
+        <th><label for="${keys.gitlabProjectID}">Project ID: <l:star/></label></th>
+        <td>
+            <props:textProperty name="${keys.gitlabProjectID}" style="width:18em;"/>
+            <span class="smallNote">
+                Optional: Provide it when you are using CE or EE
+            </span>
+            <span class="error" id="error_${keys.gitlabProjectID}"></span>
+        </td>
+    </tr>
+
+    <tr>
         <th><label for="${keys.gitlabToken}">Private Token: <l:star/></label></th>
         <td>
             <props:passwordProperty name="${keys.gitlabToken}" style="width:18em;"/>
