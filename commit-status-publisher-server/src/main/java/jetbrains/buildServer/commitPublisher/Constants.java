@@ -46,6 +46,8 @@ public class Constants {
 
   public static final String GITLAB_PUBLISHER_ID = "gitlabStatusPublisher";
   public static final String GITLAB_API_URL = "gitlabApiUrl";
+  public static final String GITLAB_GROUP_NAME = "gitlabGroupName";
+  public static final String GITLAB_PROJECT_NAME = "gitlabProjectName";
   public static final String GITLAB_TOKEN = "secure:gitlabAccessToken";
 
 
@@ -143,6 +145,12 @@ public class Constants {
   public String getGitlabServer() {
     return GITLAB_API_URL;
   }
+
+  @NotNull
+  public String getGitlabGroup() { return GITLAB_GROUP_NAME; }
+
+  @NotNull
+  public String getGitlabProject() { return  GITLAB_PROJECT_NAME; }
 
   @NotNull
   public String getGitlabToken() {
