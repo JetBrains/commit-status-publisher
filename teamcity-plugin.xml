@@ -5,8 +5,6 @@
     <display-name>Commit Status Publisher</display-name>
     <version>@Version@</version>
     <description>Publish commit status to external system</description>
-    <download-url>http://teamcity.jetbrains.com/viewType.html?buildTypeId=TeamCityPluginsByJetBrains_Unsorted_CommitStatusPublisher</download-url>
-    <email>dmitry.neverov@jetbrains.com</email>
     <vendor>
       <name>JetBrains, s.r.o.</name>
       <url>http://www.jetbrains.com</url>
