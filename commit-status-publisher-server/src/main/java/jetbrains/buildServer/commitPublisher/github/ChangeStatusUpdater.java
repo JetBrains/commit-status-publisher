@@ -271,6 +271,7 @@ public class ChangeStatusUpdater {
 
           public void run() {
             final String hash = resolveCommitHash();
+            boolean prMergeBranch = !hash.equals(version.getVersion());
             try {
               api.setChangeStatus(
                       repositoryOwner,
@@ -279,7 +280,7 @@ public class ChangeStatusUpdater {
                       status,
                       getViewResultsUrl(build),
                       message,
-                      context
+                      prMergeBranch ? context + " - merge" : context
               );
               LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
             } catch (IOException e) {
