@@ -39,6 +39,8 @@ public class Constants {
   public static final String GITHUB_PASSWORD = "secure:github_password";
   public static final String GITHUB_PASSWORD_DEPRECATED = "github_password";
   public static final String GITHUB_TOKEN = "secure:github_access_token";
+  public static final String GITHUB_CUSTOM_CONTEXT_BUILD_PARAM = "teamcity.commitStatusPublisher.githubContext";
+  public static final String GITHUB_CONTEXT = "github_context";
 
   public static final String BITBUCKET_PUBLISHER_ID = "bitbucketCloudPublisher";
   public static final String BITBUCKET_CLOUD_USERNAME = "bitbucketUsername";
