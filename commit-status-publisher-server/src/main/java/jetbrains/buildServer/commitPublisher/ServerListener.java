@@ -8,30 +8,42 @@ import org.jetbrains.annotations.NotNull;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ServerListener {
+public class ServerListener  extends ConfigActionsServerAdapter implements CustomSettingsMapper  {
 
   public ServerListener(@NotNull EventDispatcher<ConfigActionsServerListener> dispatcher) {
-    dispatcher.addListener(new ConfigActionsServerAdapter() {
-      @Override
-      public void vcsRootExternalIdChanged(@NotNull ConfigAction cause, @NotNull SVcsRoot vcsRoot, @NotNull String oldExternalId, @NotNull String newExternalId) {
-        super.vcsRootExternalIdChanged(cause, vcsRoot, oldExternalId, newExternalId);
-        SProject vcsRootProject = vcsRoot.getProject();
-        for (SBuildType bt: vcsRootProject.getBuildTypes()) {
-          if (updatedFeatures(oldExternalId, newExternalId, bt)) {
-            bt.persist(cause);
-          }
-        }
-
-        for (BuildTypeTemplate tpl: vcsRootProject.getBuildTypeTemplates()) {
-          if (updatedFeatures(oldExternalId, newExternalId, tpl)) {
-            tpl.persist(cause);
-          }
-        }
-      }
-    });
+    dispatcher.addListener(this);
   }
 
-  private boolean updatedFeatures(@NotNull String oldExternalId, @NotNull String newExternalId, @NotNull BuildTypeSettings btSettings) {
+  @Override
+  public void vcsRootExternalIdChanged(@NotNull ConfigAction cause, @NotNull SVcsRoot vcsRoot, @NotNull String oldExternalId, @NotNull String newExternalId) {
+    super.vcsRootExternalIdChanged(cause, vcsRoot, oldExternalId, newExternalId);
+    SProject vcsRootProject = vcsRoot.getProject();
+    for (SBuildType bt: vcsRootProject.getBuildTypes()) {
+      if (updateFeatures(oldExternalId, newExternalId, bt)) {
+        bt.persist(cause);
+      }
+    }
+
+    for (BuildTypeTemplate tpl: vcsRootProject.getBuildTypeTemplates()) {
+      if (updateFeatures(oldExternalId, newExternalId, tpl)) {
+        tpl.persist(cause);
+      }
+    }
+  }
+
+  @Override
+  public void mapData(@NotNull CopiedObjects copiedObjects) {
+    Map<SVcsRoot, SVcsRoot> mappedRoots = copiedObjects.getCopiedVcsRootsMap();
+    if (mappedRoots.isEmpty()) return;
+
+    for (BuildTypeSettings bt: copiedObjects.getCopiedSettingsMap().values()) {
+      for (Map.Entry<SVcsRoot, SVcsRoot> e: mappedRoots.entrySet()) {
+        updateFeatures(e.getKey().getExternalId(), e.getValue().getExternalId(), bt);
+      }
+    }
+  }
+
+  private static boolean updateFeatures(@NotNull String oldExternalId, @NotNull String newExternalId, @NotNull BuildTypeSettings btSettings) {
     boolean updated = false;
     for (SBuildFeatureDescriptor bf: btSettings.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE)) {
       if (oldExternalId.equals(bf.getParameters().get(Constants.VCS_ROOT_ID_PARAM))) {
