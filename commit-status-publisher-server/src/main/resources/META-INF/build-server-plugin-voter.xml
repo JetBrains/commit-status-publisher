@@ -20,6 +20,8 @@
   <bean class="jetbrains.buildServer.commitPublisher.github.GitHubSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.github.reports.SecurityParametersReport"/>
   <bean class="jetbrains.buildServer.commitPublisher.github.reports.SecurityParametersReportPageExtension"/>
+  <bean class="jetbrains.buildServer.commitPublisher.reports.MissingVcsRootsReport"/>
+  <bean class="jetbrains.buildServer.commitPublisher.reports.MissingVcsRootsReportPageExtension"/>
 
   <!-- upsource -->
   <bean class="jetbrains.buildServer.commitPublisher.upsource.UpsourceSettings"/>

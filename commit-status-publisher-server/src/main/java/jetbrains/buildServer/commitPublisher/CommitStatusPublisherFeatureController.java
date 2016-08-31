@@ -3,6 +3,8 @@ package jetbrains.buildServer.commitPublisher;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.controllers.BasePropertiesBean;
 import jetbrains.buildServer.controllers.admin.projects.BuildTypeForm;
+import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootEntry;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
@@ -21,11 +23,14 @@ public class CommitStatusPublisherFeatureController extends BaseController {
   private final PluginDescriptor myDescriptor;
   private final PublisherManager myPublisherManager;
   private final PublisherSettingsController myPublisherSettingsController;
+  private final ProjectManager myProjectManager;
 
-  public CommitStatusPublisherFeatureController(@NotNull WebControllerManager controllerManager,
+  public CommitStatusPublisherFeatureController(@NotNull ProjectManager projectManager,
+                                                @NotNull WebControllerManager controllerManager,
                                                 @NotNull PluginDescriptor descriptor,
                                                 @NotNull PublisherManager publisherManager,
                                                 @NotNull PublisherSettingsController publisherSettingsController) {
+    myProjectManager = projectManager;
     myDescriptor = descriptor;
     myPublisherManager = publisherManager;
     myPublisherSettingsController = publisherSettingsController;
@@ -46,7 +51,26 @@ public class CommitStatusPublisherFeatureController extends BaseController {
     if (publisherId != null)
       transformParameters(props, publisherId, mv);
     mv.addObject("publisherSettingsUrl", myPublisherSettingsController.getUrl());
-    mv.addObject("vcsRoots", getVcsRoots(request));
+    List<VcsRoot> vcsRoots = getVcsRoots(request);
+    mv.addObject("vcsRoots", vcsRoots);
+    Map <String, String> params = props.getProperties();
+    if (params.containsKey(Constants.VCS_ROOT_ID_PARAM)) {
+      String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
+      boolean bingo = false;
+      for (VcsRoot vcs: vcsRoots) {
+        if (vcs instanceof SVcsRoot && ((SVcsRoot) vcs).getExternalId().equals(vcsRootId)) {
+          bingo = true;
+          break;
+        }
+      }
+      if(!bingo) {
+        mv.addObject("hasMissingVcsRoot", true);
+        VcsRoot vcsRoot = myProjectManager.findVcsRootByExternalId(vcsRootId);
+        if (null != vcsRoot) {
+          mv.addObject("missingVcsRoot", vcsRoot);
+        }
+      }
+    }
     mv.addObject("projectId", getProjectId(request));
     return mv;
   }
