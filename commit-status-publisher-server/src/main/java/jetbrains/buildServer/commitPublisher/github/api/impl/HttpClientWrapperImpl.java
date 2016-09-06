@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.version.ServerVersionHolder;
+import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
@@ -44,10 +45,14 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
+import org.apache.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 
+import javax.net.ssl.SSLSocket;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ProxySelector;
+import java.net.Socket;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -80,7 +85,21 @@ public class HttpClientWrapperImpl implements HttpClientWrapper {
       public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
         return !TeamCityProperties.getBoolean("teamcity.github.verify.ssl.certificate");
       }
-    });
+    }) {
+      @Override
+      public Socket connectSocket(int connectTimeout, Socket socket,
+              HttpHost host, InetSocketAddress remoteAddress,
+              InetSocketAddress localAddress, HttpContext context) throws IOException {
+        if (socket instanceof SSLSocket) {
+          try {
+            PropertyUtils.setProperty(socket, "host", host.getHostName());
+          } catch (Exception ex) {
+            LOG.warn(String.format("A host name is not passed to SSL connection for the purpose of supporting SNI due to the following exception: %s", ex.toString()));
+          }
+        }
+        return super.connectSocket(connectTimeout, socket, host, remoteAddress, localAddress, context);
+      }
+    };
     schemaRegistry.register(new Scheme("https", 443, sslSocketFactory));
 
     final DefaultHttpClient httpclient = new DefaultHttpClient(new ThreadSafeClientConnManager(schemaRegistry), ps);
