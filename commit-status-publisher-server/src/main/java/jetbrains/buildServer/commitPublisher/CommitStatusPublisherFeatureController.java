@@ -55,17 +55,35 @@ public class CommitStatusPublisherFeatureController extends BaseController {
     mv.addObject("vcsRoots", vcsRoots);
     Map <String, String> params = props.getProperties();
     if (params.containsKey(Constants.VCS_ROOT_ID_PARAM)) {
+      Long internalId;
       String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
+      try {
+        internalId = Long.valueOf(vcsRootId);
+      } catch (NumberFormatException ex) {
+        internalId = null;
+      }
       boolean bingo = false;
       for (VcsRoot vcs: vcsRoots) {
-        if (vcs instanceof SVcsRoot && ((SVcsRoot) vcs).getExternalId().equals(vcsRootId)) {
+        if (!(vcs instanceof SVcsRoot)) continue;
+        SVcsRoot sVcs = (SVcsRoot) vcs;
+        if (sVcs.getExternalId().equals(vcsRootId)) {
+          bingo = true;
+          break;
+        }
+        if (null != internalId && internalId.equals(sVcs.getId())) {
+          props.setProperty(Constants.VCS_ROOT_ID_PARAM, sVcs.getExternalId());
           bingo = true;
           break;
         }
       }
       if(!bingo) {
         mv.addObject("hasMissingVcsRoot", true);
-        VcsRoot vcsRoot = myProjectManager.findVcsRootByExternalId(vcsRootId);
+        VcsRoot vcsRoot;
+        if (null != internalId) {
+          vcsRoot = myProjectManager.findVcsRootById(internalId);
+        } else {
+          vcsRoot = myProjectManager.findVcsRootByExternalId(vcsRootId);
+        }
         if (null != vcsRoot) {
           mv.addObject("missingVcsRoot", vcsRoot);
         }

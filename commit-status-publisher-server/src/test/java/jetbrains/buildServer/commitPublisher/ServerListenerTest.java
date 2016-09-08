@@ -25,6 +25,7 @@ public class ServerListenerTest extends BaseJMockTestCase {
   private SBuildFeatureDescriptor myFeatureDescriptor;
 
   private static final String MY_VCS_ID = "MY_VCS_ID";
+  private static final long MY_VCS_INTERNAL_ID = 42;
 
   @BeforeMethod
   public void setUp() throws Exception {
@@ -35,11 +36,10 @@ public class ServerListenerTest extends BaseJMockTestCase {
     myProject = m.mock(SProject.class);
     myBT = m.mock(SBuildType.class);
     myFeatureDescriptor = new FakeFeatureDescriptor();
-
-    myFeatureDescriptor.getParameters().put(Constants.VCS_ROOT_ID_PARAM, MY_VCS_ID);
   }
 
   public void must_change_vcs_root_external_id_if_renamed() {
+    myFeatureDescriptor.getParameters().put(Constants.VCS_ROOT_ID_PARAM, MY_VCS_ID);
     List<ConfigActionsServerListener> listeners = myDispatcher.getListeners();
     assertEquals(1, listeners.size());
     ConfigActionsServerListener casl = listeners.get(0);
@@ -73,6 +73,7 @@ public class ServerListenerTest extends BaseJMockTestCase {
 
 
   public void must_change_vcs_root_external_id_if_copied() {
+    myFeatureDescriptor.getParameters().put(Constants.VCS_ROOT_ID_PARAM, MY_VCS_ID);
     List<ConfigActionsServerListener> listeners = myDispatcher.getListeners();
     assertEquals(1, listeners.size());
     ConfigActionsServerListener casl = listeners.get(0);
@@ -99,6 +100,9 @@ public class ServerListenerTest extends BaseJMockTestCase {
 
       oneOf(myVcsRoot).getExternalId();
       will(returnValue(MY_VCS_ID));
+      oneOf(myVcsRoot).getId();
+      will(returnValue(MY_VCS_INTERNAL_ID));
+
       oneOf(vcsRootCopy).getExternalId();
       will(returnValue(MY_VCS_ID + "_COPIED"));
 
@@ -116,6 +120,52 @@ public class ServerListenerTest extends BaseJMockTestCase {
     m.assertIsSatisfied();
   }
 
+  public void must_change_vcs_root_internal_id_to_external_if_copied() {
+    myFeatureDescriptor.getParameters().put(Constants.VCS_ROOT_ID_PARAM, String.valueOf(MY_VCS_INTERNAL_ID));
+    List<ConfigActionsServerListener> listeners = myDispatcher.getListeners();
+    assertEquals(1, listeners.size());
+    ConfigActionsServerListener casl = listeners.get(0);
+
+    assertTrue(casl instanceof CustomSettingsMapper);
+    CustomSettingsMapper csm = (CustomSettingsMapper) casl;
+
+    final CopiedObjects copiedObjects = m.mock(CopiedObjects.class);
+
+    final SVcsRoot vcsRootCopy = m.mock(SVcsRoot.class, "VcsRootCopy");
+    final SBuildType btCopy = m.mock(SBuildType.class, "BTCopy");
+
+    m.checking(new Expectations() {{
+
+      oneOf(copiedObjects).getCopiedVcsRootsMap();
+      will(returnValue(new HashMap<SVcsRoot, SVcsRoot>() {{
+        put(myVcsRoot, vcsRootCopy);
+      }}));
+
+      oneOf(copiedObjects).getCopiedSettingsMap();
+      will(returnValue(new HashMap<BuildTypeSettings, BuildTypeSettings>() {{
+        put(myBT, btCopy);
+      }}));
+
+      oneOf(myVcsRoot).getExternalId();
+      will(returnValue(MY_VCS_ID));
+      oneOf(myVcsRoot).getId();
+      will(returnValue(MY_VCS_INTERNAL_ID));
+      oneOf(vcsRootCopy).getExternalId();
+      will(returnValue(MY_VCS_ID + "_COPIED"));
+
+      oneOf(btCopy).getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE);
+      will(returnValue(Collections.singletonList(myFeatureDescriptor)));
+
+      oneOf(btCopy).updateBuildFeature(myFeatureDescriptor.getId(), CommitStatusPublisherFeature.TYPE,
+              new HashMap<String, String>() {{
+                put(Constants.VCS_ROOT_ID_PARAM, MY_VCS_ID + "_COPIED");
+              }});
+    }});
+
+    csm.mapData(copiedObjects);
+
+    m.assertIsSatisfied();
+  }
 
   private class TestEventDispatcher extends EventDispatcher<ConfigActionsServerListener> {
     TestEventDispatcher() {
