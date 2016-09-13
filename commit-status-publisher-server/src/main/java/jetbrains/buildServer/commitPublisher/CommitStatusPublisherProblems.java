@@ -8,6 +8,9 @@ import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotification
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemTicket;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 
@@ -42,6 +45,36 @@ public class CommitStatusPublisherProblems {
       SystemProblemTicket ticket = myTickets.get(new BuildTypePublisher(buildType, publisher.getId()));
       if (ticket != null)
         ticket.cancel();
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  void clearObsoleteProblems(@NotNull SBuildType buildType, @NotNull List<? extends CommitStatusPublisher> exceptForThese) {
+    if (myTickets.isEmpty()) return;
+
+    Set<String> publisherIdsToKeep = new HashSet<String>();
+    for (CommitStatusPublisher publisher: exceptForThese) {
+      publisherIdsToKeep.add(publisher.getId());
+    }
+    Set<String> publisherIdsToRemove = new HashSet<String>();
+    for (BuildTypePublisher btpub: myTickets.keySet()) {
+      String pubId = btpub.getSecond();
+      if (!publisherIdsToKeep.contains(pubId)) {
+        publisherIdsToRemove.add(pubId);
+      }
+    }
+
+    if (publisherIdsToRemove.isEmpty())  return;
+
+    Lock lock = myLocks.get(buildType);
+    lock.lock();
+    try {
+      for (String pubId: publisherIdsToRemove) {
+        SystemProblemTicket ticket = myTickets.get(new BuildTypePublisher(buildType, pubId));
+        if (ticket != null)
+          ticket.cancel();
+      }
     } finally {
       lock.unlock();
     }

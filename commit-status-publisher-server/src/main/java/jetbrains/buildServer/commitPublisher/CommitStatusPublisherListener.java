@@ -187,6 +187,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       }
       runTask(event, buildType, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision);
     }
+    myProblems.clearObsoleteProblems(buildType, publishers);
   }
 
   private void runForEveryPublisherQueued(@NotNull String event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task) {
@@ -201,6 +202,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       }
       runTask(event, buildType, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision);
     }
+    myProblems.clearObsoleteProblems(buildType, publishers);
   }
 
   private void runTask(@NotNull String event,
