@@ -12,19 +12,30 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public class GitRepositoryParserTest {
 
-  @TestFor(issues = {"TW-43075", "TW-45758"})
+  @TestFor(issues = {"TW-43075", "TW-45758", "TW-46969"})
   public void parse_scp_like_urls() {
+    parse_scp_like_urls_ex("owner");
+  }
+
+  @TestFor(issues = {"TW-43075", "TW-45758", "TW-46969"})
+  public void parse_scp_like_urls_numerical_owner() {
+    parse_scp_like_urls_ex("777");
+  }
+
+  private void parse_scp_like_urls_ex(String owner) {
     List<String> urls = Arrays.asList(
-            "git@github.com:owner/repository.git",
-            "ssh://git@github.com:owner/repository.git",
-            "ssh://git@bitbucket.org/owner/repository.git",
-            "ssh://git@bitbucket.org/owner/repository",
-            "ssh://bitbucket.org/owner/repository");
+            "git@github.com:%s/repository.git",
+            "ssh://git@github.com:%s/repository.git",
+            "ssh://git@bitbucket.org/%s/repository.git",
+            "ssh://git@bitbucket.org/%s/repository",
+            "ssh://git@altssh.bitbucket.org:443/%s/repository.git",
+            "ssh://bitbucket.org/%s/repository");
 
     for(String url : urls) {
-      Repository repo = GitRepositoryParser.parseRepository(url);
-      then(repo).overridingErrorMessage("Failed to parse url " + url).isNotNull();
-      then(repo.owner()).isEqualTo("owner");
+      String urlWithOwner = String.format(url, owner);
+      Repository repo = GitRepositoryParser.parseRepository(urlWithOwner);
+      then(repo).overridingErrorMessage("Failed to parse url " + urlWithOwner).isNotNull();
+      then(repo.owner()).isEqualTo(owner);
       then(repo.repositoryName()).isEqualTo("repository");
     }
   }
