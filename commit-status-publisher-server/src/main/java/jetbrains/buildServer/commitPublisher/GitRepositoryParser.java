@@ -14,7 +14,7 @@ public class GitRepositoryParser {
   //git@host:user/repo
   private static final Pattern SCP_PATTERN = Pattern.compile("git@[^:]+[:]([^/]+)/(.+)");
   //ssh://git@host/user/repo
-  private static final Pattern SSH_PATTERN = Pattern.compile("ssh://(?:git@)?[^:]+:?[0-9]*[:/]([^/]+)/(.+)");
+  private static final Pattern SSH_PATTERN = Pattern.compile("ssh://(?:git@)?[^:]+(?::[0-9]+)?[:/]([^/:]+)/(.+)");
 
   @Nullable
   public static Repository parseRepository(@NotNull String uri) {

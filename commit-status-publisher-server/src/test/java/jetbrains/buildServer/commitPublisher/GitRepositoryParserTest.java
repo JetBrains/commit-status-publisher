@@ -40,6 +40,18 @@ public class GitRepositoryParserTest {
     }
   }
 
+  public void fails_to_parse_malformed_urls() {
+    List<String> urls = Arrays.asList(
+            "git@github.com/repository.git",
+            "ssh://git@bitbucket.org:owner:777/repository.git",
+            "ssh://git@bitbucket.org::owner/repository.git");
+
+    for(String url : urls) {
+      then(GitRepositoryParser.parseRepository(url)).isNull();
+    }
+  }
+
+
 
   @TestFor(issues = "TW-43075")
   public void parse_scp_like_urls_ghe() {
