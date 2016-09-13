@@ -17,6 +17,7 @@ import java.util.concurrent.locks.Lock;
 public class CommitStatusPublisherProblems {
 
   private final SystemProblemNotification myProblems;
+  private final ConcurrentHashMap<String, Object> myPublisherIds = new ConcurrentHashMap<String, Object>();
   private final ConcurrentHashMap<BuildTypePublisher, SystemProblemTicket> myTickets = new ConcurrentHashMap<BuildTypePublisher, SystemProblemTicket>();
   private final Striped<Lock> myLocks = Striped.lazyWeakLock(256);
 
@@ -29,6 +30,8 @@ public class CommitStatusPublisherProblems {
     Lock lock = myLocks.get(buildType);
     lock.lock();
     try {
+      if (!myPublisherIds.contains(publisher.getId()))
+        myPublisherIds.put(publisher.getId(), new Object());
       clearProblem(buildType, publisher);
       SystemProblem problem = new SystemProblem(problemDescription, null, Constants.COMMIT_STATUS_PUBLISHER_PROBLEM_TYPE, null);
       myTickets.put(new BuildTypePublisher(buildType, publisher.getId()), myProblems.raiseProblem(buildType, problem));
@@ -57,13 +60,8 @@ public class CommitStatusPublisherProblems {
     for (CommitStatusPublisher publisher: exceptForThese) {
       publisherIdsToKeep.add(publisher.getId());
     }
-    Set<String> publisherIdsToRemove = new HashSet<String>();
-    for (BuildTypePublisher btpub: myTickets.keySet()) {
-      String pubId = btpub.getSecond();
-      if (!publisherIdsToKeep.contains(pubId)) {
-        publisherIdsToRemove.add(pubId);
-      }
-    }
+    Set<String> publisherIdsToRemove = new HashSet<String>(myPublisherIds.keySet());
+    publisherIdsToRemove.removeAll(publisherIdsToKeep);
 
     if (publisherIdsToRemove.isEmpty())  return;
 
