@@ -58,7 +58,7 @@ public class MissingVcsRootsReport extends HealthStatusReport {
         VcsRoot vcsRoot = vcs.getVcsRoot();
         if (vcsRoot instanceof SVcsRoot) {
           vcsRootIds.add(((SVcsRoot)vcsRoot).getExternalId());
-          vcsRootInternalIds.add(((SVcsRoot) vcs).getId());
+          vcsRootInternalIds.add(vcsRoot.getId());
         }
       }
       Collection<SBuildFeatureDescriptor> features = bt.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE);
