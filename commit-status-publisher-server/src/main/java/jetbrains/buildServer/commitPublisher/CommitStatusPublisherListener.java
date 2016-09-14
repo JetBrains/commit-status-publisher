@@ -10,8 +10,9 @@ import jetbrains.buildServer.util.EventDispatcher;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CommitStatusPublisherListener extends BuildServerAdapter {
 
@@ -176,33 +177,35 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private void runForEveryPublisher(@NotNull String event, @NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task) {
-    List<CommitStatusPublisher> publishers = getPublishers(buildType);
-    LOG.debug("Event: " + event + ", build " + LogUtil.describe(build) + ", publishers: " + publishers);
-    for (CommitStatusPublisher publisher : publishers) {
+    Map<String, CommitStatusPublisher> publishers = getPublishers(buildType);
+    LOG.debug("Event: " + event + ", build " + LogUtil.describe(build) + ", publishers: " + publishers.values());
+    for (Map.Entry<String, CommitStatusPublisher> pubEntry : publishers.entrySet()) {
+      CommitStatusPublisher publisher = pubEntry.getValue();
       BuildRevision revision = getBuildRevisionForVote(event, publisher, build);
       if (revision == null) {
         LOG.info("Event: " + event + ", build " + LogUtil.describe(build) + ", cannot find revision for publisher " +
                 publisher + ", skip it");
         continue;
       }
-      runTask(event, buildType, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision);
+      runTask(event, buildType, build.getBuildPromotion(), LogUtil.describe(build), task, pubEntry.getKey(), publisher, revision);
     }
-    myProblems.clearObsoleteProblems(buildType, publishers);
+    myProblems.clearObsoleteProblems(buildType, publishers.keySet());
   }
 
   private void runForEveryPublisherQueued(@NotNull String event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task) {
-    List<CommitStatusPublisher> publishers = getPublishers(buildType);
-    LOG.debug("Event: " + event + ", build " + LogUtil.describe(build) + ", publishers: " + publishers);
-    for (CommitStatusPublisher publisher : publishers) {
+    Map<String, CommitStatusPublisher> publishers = getPublishers(buildType);
+    LOG.debug("Event: " + event + ", build " + LogUtil.describe(build) + ", publishers: " + publishers.values());
+    for (Map.Entry<String, CommitStatusPublisher> pubEntry : publishers.entrySet()) {
+      CommitStatusPublisher publisher = pubEntry.getValue();
       BuildRevision revision = getQueuedBuildRevisionForVote(event, buildType, publisher, build);
       if (revision == null) {
         LOG.info("Event: " + event + ", build " + LogUtil.describe(build) + ", cannot find revision for publisher " +
                 publisher + ", skip it");
         continue;
       }
-      runTask(event, buildType, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision);
+      runTask(event, buildType, build.getBuildPromotion(), LogUtil.describe(build), task, pubEntry.getKey(), publisher, revision);
     }
-    myProblems.clearObsoleteProblems(buildType, publishers);
+    myProblems.clearObsoleteProblems(buildType, publishers.keySet());
   }
 
   private void runTask(@NotNull String event,
@@ -210,14 +213,15 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
                        @NotNull BuildPromotion promotion,
                        @NotNull String buildDescription,
                        @NotNull PublishTask task,
+                       @NotNull String buildFeatureId,
                        @NotNull CommitStatusPublisher publisher,
                        @NotNull BuildRevision revision) {
     try {
       if (task.run(publisher, revision))
-        myProblems.clearProblem(buildType, publisher);
+        myProblems.clearProblem(buildType, buildFeatureId);
     } catch (Throwable t) {
       LOG.warnAndDebugDetails("Error while running publisher " + publisher + ", event " + event + ", build " + buildDescription + ", revision " + revision, t);
-      reportProblem(buildType, publisher, buildDescription, t);
+      reportProblem(buildType, buildFeatureId, buildDescription, t);
       if (shouldFailBuild(buildType)) {
         String problemId = "commitStatusPublisher." + publisher.getId() + "." + revision.getRoot().getId();
         String problemDescription = t instanceof PublishError ? t.getMessage() : t.toString();
@@ -226,16 +230,15 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       }
     }
   }
-
   @NotNull
-  private List<CommitStatusPublisher> getPublishers(@NotNull SBuildType buildType) {
-    List<CommitStatusPublisher> publishers = new ArrayList<CommitStatusPublisher>();
+  private Map<String, CommitStatusPublisher> getPublishers(@NotNull SBuildType buildType) {
+    Map<String, CommitStatusPublisher> publishers = new LinkedHashMap<String, CommitStatusPublisher>();
     for (SBuildFeatureDescriptor buildFeatureDescriptor : buildType.getResolvedSettings().getBuildFeatures()) {
       BuildFeature buildFeature = buildFeatureDescriptor.getBuildFeature();
       if (buildFeature instanceof CommitStatusPublisherFeature) {
         CommitStatusPublisher publisher = myPublisherManager.createPublisher(buildFeatureDescriptor.getParameters());
         if (publisher != null)
-          publishers.add(publisher);
+          publishers.put(buildFeatureDescriptor.getId(), publisher);
       }
     }
     return publishers;
@@ -323,7 +326,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private void reportProblem(@NotNull SBuildType buildType,
-                             @NotNull CommitStatusPublisher publisher,
+                             @NotNull String buildFeatureId,
                              @NotNull String buildDescription,
                              @NotNull Throwable t) {
     String description = "Publish status error in build " + buildDescription + ": ";
@@ -332,7 +335,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     } else {
       description += t.toString();
     }
-    myProblems.reportProblem(buildType, publisher, description);
+    myProblems.reportProblem(buildType, buildFeatureId, description);
   }
 
 

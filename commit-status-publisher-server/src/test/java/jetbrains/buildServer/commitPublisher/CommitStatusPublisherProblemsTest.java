@@ -19,9 +19,11 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public class CommitStatusPublisherProblemsTest extends BaseJMockTestCase {
 
+  private final static String FEATURE_1 = "PUBLISH_BUILD_FEATURE_1";
+  private final static String FEATURE_2 = "PUBLISH_BUILD_FEATURE_2";
+
   private CommitStatusPublisherProblems myProblems;
   private SystemProblemNotificationEngine myProblemEngine;
-  private MockPublisher myPublisher;
   private SBuildType myBuildType;
   private VcsManagerEx myVcsManager;
 
@@ -34,36 +36,30 @@ public class CommitStatusPublisherProblemsTest extends BaseJMockTestCase {
     myProblemEngine.setVcsManager(myVcsManager);
     myProblems = new CommitStatusPublisherProblems(myProblemEngine);
     myBuildType = m.mock(SBuildType.class);
-    myPublisher = new MockPublisher("MockPublisher1");
-  }
-
-  public void must_add_and_delete_problems() {
     m.checking(new Expectations() {{
       allowing(myBuildType).getBuildTypeId();
       will(returnValue("BT1"));
+      allowing(myBuildType).getInternalId();
+      will(returnValue("BT1_Internal"));
       allowing(myVcsManager).findVcsRoots(Collections.<Long>emptyList());
     }});
-    myProblems.reportProblem(myBuildType, myPublisher, "Some problem description");
+  }
+
+  public void must_add_and_delete_problems() {
+    myProblems.reportProblem(myBuildType, FEATURE_1, "Some problem description");
     then(myProblemEngine.getProblems(myBuildType).size()).isEqualTo(1);
-    myProblems.clearProblem(myBuildType, myPublisher);
+    myProblems.clearProblem(myBuildType, FEATURE_1);
     then(myProblemEngine.getProblems(myBuildType).size()).isEqualTo(0);
   }
 
   public void must_clear_obsolete_problems() {
-    m.checking(new Expectations() {{
-      allowing(myBuildType).getBuildTypeId();
-      will(returnValue("BT1"));
-      allowing(myVcsManager).findVcsRoots(Collections.<Long>emptyList());
-    }});
-
     final String PUB1_P1 = "First issue of publisher 1";
     final String PUB2_P1 = "First issue of publisher 2";
     final String PUB2_P2 = "Second issue of publisher 2";
 
-    MockPublisher secondPublisher = new MockPublisher("MockPublisher2");
-    myProblems.reportProblem(myBuildType, secondPublisher, PUB2_P1);
-    myProblems.reportProblem(myBuildType, myPublisher, PUB1_P1);
-    myProblems.reportProblem(myBuildType, secondPublisher, PUB2_P2);
+    myProblems.reportProblem(myBuildType, FEATURE_2, PUB2_P1);
+    myProblems.reportProblem(myBuildType, FEATURE_1, PUB1_P1);
+    myProblems.reportProblem(myBuildType, FEATURE_2, PUB2_P2);
     Collection<SystemProblemEntry> problems = myProblemEngine.getProblems(myBuildType);
     then(problems.size()).isEqualTo(2);
     for (SystemProblemEntry pe: problems) {
@@ -72,10 +68,10 @@ public class CommitStatusPublisherProblemsTest extends BaseJMockTestCase {
       if(!description.equals(PUB1_P1))
         then(description).isEqualTo(PUB2_P2);
     }
-    myProblems.clearObsoleteProblems(myBuildType, Collections.singletonList(myPublisher));
+    myProblems.clearObsoleteProblems(myBuildType, Collections.singletonList(FEATURE_1));
     Collection<SystemProblemEntry> remainingProblems = myProblemEngine.getProblems(myBuildType);
     then(remainingProblems.size()).isEqualTo(1);
-    then(remainingProblems.iterator().next().getProblem().getDescription()).isEqualTo("First issue of publisher 1");
+    then(remainingProblems.iterator().next().getProblem().getDescription()).isEqualTo(PUB1_P1);
   }
 
 }
