@@ -246,6 +246,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   @Nullable
   private BuildRevision getBuildRevisionForVote(@NotNull String event, @NotNull CommitStatusPublisher publisher, @NotNull SBuild build) {
+
+    if (build.getBuildPromotion().isFailedToCollectChanges()) return null;
+
     String vcsRootId = publisher.getVcsRootId();
     if (vcsRootId == null) {
       LOG.info("Event: " + event + ", build " + LogUtil.describe(build) + ", publisher " + publisher +

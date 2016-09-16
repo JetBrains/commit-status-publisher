@@ -59,7 +59,7 @@ public class MockPublisher implements CommitStatusPublisher {
   @Nullable
   @Override
   public String getVcsRootId() {
-    return null;
+    return "MyVcsRootId";
   }
 
   @Override
