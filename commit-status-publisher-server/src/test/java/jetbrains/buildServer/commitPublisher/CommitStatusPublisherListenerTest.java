@@ -15,7 +15,7 @@ import java.util.*;
 import static org.assertj.core.api.BDDAssertions.then;
 
 @Test
-public class CommitStatusPiublisherListenerTest extends CommitStatusPublisherTestBase {
+public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTestBase {
 
   private static final String PUBLISHER_ID = "MockPublisherId";
 
@@ -26,7 +26,7 @@ public class CommitStatusPiublisherListenerTest extends CommitStatusPublisherTes
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    final PublisherManager myPublisherManager = new PublisherManager(Arrays.<CommitStatusPublisherSettings>asList(new CommitStatusPiublisherListenerTest.MockPublisherSettings()));
+    final PublisherManager myPublisherManager = new PublisherManager(Collections.<CommitStatusPublisherSettings>singletonList(new CommitStatusPublisherListenerTest.MockPublisherSettings()));
     final BuildHistory history = m.mock(BuildHistory.class);
     myListener = new CommitStatusPublisherListener(EventDispatcher.create(BuildServerListener.class), myPublisherManager, history, myRBManager, myProblems);
     myPublisher = new MockPublisherRegisterFailure();
@@ -59,8 +59,7 @@ public class CommitStatusPiublisherListenerTest extends CommitStatusPublisherTes
     then(myPublisher.isFailureReceived()).isTrue();
   }
 
-  // ignore for now, switch to public to turn the test on when TW-46999 is fixed
-  protected void should_not_publish_failure_if_marked_successful() {
+  public void should_not_publish_failure_if_marked_successful() {
     mockChangesCollected();
 
     myListener.buildChangedStatus(myRunningBuild, Status.FAILURE, Status.NORMAL);
@@ -73,9 +72,7 @@ public class CommitStatusPiublisherListenerTest extends CommitStatusPublisherTes
       allowing(myBuildPromotion).isFailedToCollectChanges();
       will(returnValue(false));
 
-      allowing(myRunningBuild).getRevisions(); will(returnValue(new ArrayList() {{
-        add(myRevision);
-      }} ));
+      allowing(myRunningBuild).getRevisions(); will(returnValue(Collections.singletonList(myRevision)));
     }});
   }
 
@@ -95,11 +92,11 @@ public class CommitStatusPiublisherListenerTest extends CommitStatusPublisherTes
 
     private boolean myFailureReceived = false;
 
-    public MockPublisherRegisterFailure() {
+    MockPublisherRegisterFailure() {
       super(PUBLISHER_ID);
     }
 
-    public boolean isFailureReceived() { return myFailureReceived; }
+    boolean isFailureReceived() { return myFailureReceived; }
 
     @Override
     public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
@@ -111,6 +108,7 @@ public class CommitStatusPiublisherListenerTest extends CommitStatusPublisherTes
 
   private class MockPublisherSettings extends DummyPublisherSettings {
     @Override
+    @NotNull
     public String getId() {
       return PUBLISHER_ID;
     }

@@ -8,9 +8,9 @@ import org.jetbrains.annotations.Nullable;
 /**
  * @author anton.zamolotskikh, 13/09/16.
  */
-public class MockPublisher implements CommitStatusPublisher {
+class MockPublisher implements CommitStatusPublisher {
 
-  String myType;
+  private String myType;
 
   public MockPublisher(String publisherType) {
     myType = publisherType;

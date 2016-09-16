@@ -113,6 +113,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   @Override
   public void buildChangedStatus(@NotNull final SRunningBuild build, Status oldStatus, Status newStatus) {
     String event = "buildChangedStatus";
+
+    if (oldStatus.isFailed() || !newStatus.isFailed()) // we are supposed to report failures only
+      return;
+
     SBuildType buildType = getBuildType(event, build);
     if (buildType == null)
       return;
