@@ -114,8 +114,8 @@ public class StashPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision) {
-    vote(build, revision, StashBuildStatus.SUCCESSFUL, "Build marked as successful");
+  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) {
+    vote(build, revision, buildInProgress ? StashBuildStatus.INPROGRESS : StashBuildStatus.SUCCESSFUL, "Build marked as successful");
     return true;
   }
 

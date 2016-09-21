@@ -77,13 +77,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     SBuildType buildType = getBuildType(event, build);
     if (buildType == null)
       return;
-
-    final boolean inProgress = myRunningBuilds.findRunningBuildById(build.getBuildId()) != null;
-
     runForEveryPublisher(event, buildType, build, new PublishTask() {
       @Override
       public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
-        return publisher.buildCommented(build, revision, user, comment, inProgress);
+        return publisher.buildCommented(build, revision, user, comment, isBuildInProgress(build));
       }
     });
   }
@@ -141,7 +138,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       runForEveryPublisher(event, buildType, build, new PublishTask() {
         @Override
         public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
-          return publisher.buildMarkedAsSuccessful(build, revision);
+          return publisher.buildMarkedAsSuccessful(build, revision, isBuildInProgress(build));
         }
       });
     }
@@ -345,6 +342,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myProblems.reportProblem(buildType, buildFeatureId, description);
   }
 
+  private boolean isBuildInProgress(SBuild build) {
+    return myRunningBuilds.findRunningBuildById(build.getBuildId()) != null;
+  }
 
   private boolean shouldFailBuild(@NotNull SBuildType buildType) {
     return Boolean.valueOf(buildType.getParameters().get("teamcity.commitStatusPublisher.failBuildOnPublishError"));

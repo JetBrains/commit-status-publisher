@@ -104,8 +104,8 @@ public class UpsourcePublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision) {
-    publish(build, revision, UpsourceStatus.SUCCESS, build.getStatusDescriptor().getText());
+  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) {
+    publish(build, revision, buildInProgress ? UpsourceStatus.IN_PROGRESS : UpsourceStatus.SUCCESS, "Build marked as successful");
     return true;
   }
 

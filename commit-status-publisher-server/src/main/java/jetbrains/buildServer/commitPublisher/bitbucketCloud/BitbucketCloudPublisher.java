@@ -93,8 +93,8 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision) {
-    vote(build, revision, BitbucketCloudBuildStatus.SUCCESSFUL, "Build marked as successful");
+  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) {
+    vote(build, revision, buildInProgress ? BitbucketCloudBuildStatus.INPROGRESS : BitbucketCloudBuildStatus.SUCCESSFUL, "Build marked as successful");
     return true;
   }
 

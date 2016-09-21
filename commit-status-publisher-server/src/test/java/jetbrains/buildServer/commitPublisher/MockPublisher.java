@@ -52,7 +52,7 @@ class MockPublisher implements CommitStatusPublisher {
   }
 
   @Override
-  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision) {
+  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildMarkedAsSuccessful) {
     return false;
   }
 

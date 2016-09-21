@@ -43,7 +43,7 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     return false;
   }
 
-  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision) {
+  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) {
     return false;
   }
 
