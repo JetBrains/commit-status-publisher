@@ -61,6 +61,12 @@ public class GitlabPublisher extends BaseCommitStatusPublisher {
 
 
   @Override
+  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+    publish(build, revision, GitlabBuildStatus.FAILED, build.getStatusDescriptor().getText());
+    return true;
+  }
+
+  @Override
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) {
     publish(build, revision, buildInProgress ? GitlabBuildStatus.RUNNING : GitlabBuildStatus.SUCCESS, "Build marked as successful");
     return true;
