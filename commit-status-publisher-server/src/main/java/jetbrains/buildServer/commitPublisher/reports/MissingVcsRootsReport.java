@@ -73,7 +73,7 @@ public class MissingVcsRootsReport extends HealthStatusReport {
             } catch (NumberFormatException ex) {
               internalId = null;
             }
-            if (!(vcsRootIds.contains(vcsRootId)) || (null != internalId && vcsRootInternalIds.contains(internalId))) {
+            if (!(vcsRootIds.contains(vcsRootId) || (null != internalId && vcsRootInternalIds.contains(internalId)))) {
               String identity = REPORT_TYPE + "_BT_" + bt.getInternalId() + "_FEATURE_" + feature.getId();
               HashMap<String, Object> additionalData = new HashMap<String, Object>();
               additionalData.put("buildType", bt);
