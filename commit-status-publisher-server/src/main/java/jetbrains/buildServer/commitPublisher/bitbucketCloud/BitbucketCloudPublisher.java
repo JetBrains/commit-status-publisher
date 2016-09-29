@@ -44,7 +44,7 @@ import java.util.Map;
 
 public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
   private static final Logger LOG = Logger.getInstance(BitbucketCloudPublisher.class.getName());
-
+  private String myBaseUrl = "https://api.bitbucket.org/";
   private final WebLinks myLinks;
 
   public BitbucketCloudPublisher(@NotNull WebLinks links,
@@ -243,7 +243,13 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
     return build.getFullName() + " #" + build.getBuildNumber();
   }
 
-  String getBaseUrl() { return "https://api.bitbucket.org/";  }
+  String getBaseUrl() { return myBaseUrl;  }
+
+  /**
+   * Used for testing only at the moments
+   * @param url - new base URL to replace the default one
+   */
+  void setBaseUrl(String url) { myBaseUrl = url; }
 
   private String getUsername() {
     return myParams.get(Constants.BITBUCKET_CLOUD_USERNAME);

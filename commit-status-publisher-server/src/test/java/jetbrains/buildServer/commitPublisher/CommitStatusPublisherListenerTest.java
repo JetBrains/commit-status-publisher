@@ -15,7 +15,7 @@ import java.util.*;
 import static org.assertj.core.api.BDDAssertions.then;
 
 @Test
-public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTestBase {
+public class CommitStatusPublisherListenerTest extends CommitStatusPublisherJMockTestBase {
 
   private static final String PUBLISHER_ID = "MockPublisherId";
 

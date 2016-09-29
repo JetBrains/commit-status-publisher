@@ -6,9 +6,136 @@
     <groupId>org.jetbrains.teamcity</groupId>
     <version>1.0-SNAPSHOT</version>
   </parent>
+  <properties>
+    <teamcity.path.testlib>${project.basedir}/../../../.idea_artifacts/dist_openapi_integration/tests</teamcity.path.testlib>
+    <teamcity.path.lib>${project.basedir}/../../../.idea_artifacts/web-deployment/WEB-INF/lib</teamcity.path.lib>
+  </properties>
   <artifactId>commit-status-publisher-server</artifactId>
   <packaging>jar</packaging>
   <dependencies>
+
+    <dependency>
+      <groupId>local-tests-integration</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.testlib}/tests-integration.jar</systemPath>
+    </dependency>
+
+    <dependency>
+      <groupId>local-server</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/server.jar</systemPath>
+    </dependency>
+
+    <dependency>
+      <groupId>local-common-impl</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/common-impl.jar</systemPath>
+    </dependency>
+
+    <dependency>
+      <groupId>local-web</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/web.jar</systemPath>
+    </dependency>
+
+    <dependency>
+      <groupId>local-db</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/db.jar</systemPath>
+    </dependency>
+
+    <dependency>
+      <groupId>local-agent-upgrade</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/agent-upgrade.jar</systemPath>
+    </dependency>
+
+    <dependency>
+      <groupId>local-remote-api-impl</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/remote-api-impl.jar</systemPath>
+    </dependency>
+
+    <dependency>
+      <groupId>local-cl</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/cl.jar</systemPath>
+    </dependency>
+
+
+    <dependency>
+      <groupId>local-issue-tracker-impl</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/issue-tracker-impl.jar</systemPath>
+    </dependency>
+
+
+    <dependency>
+      <groupId>local-common-tools</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/common-tools.jar</systemPath>
+    </dependency>
+
+
+    <dependency>
+      <groupId>local-hsqldb</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/hsqldb.jar</systemPath>
+    </dependency>
+
+    <dependency>
+      <groupId>local-tomcat-jdbc</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/tomcat-jdbc-7.0.23.jar</systemPath>
+    </dependency>
+
+    <dependency>
+      <groupId>local-commons-dbcp</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/commons-dbcp-1.4.1-SNAPSHOT.jar </systemPath>
+    </dependency>
+
+    <dependency>
+      <groupId>local-commons-pool</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/commons-pool-1.6.jar </systemPath>
+    </dependency>
+
+    <dependency>
+      <groupId>net.sf.ehcache</groupId>
+      <artifactId>ehcache</artifactId>
+      <version>1.7.2</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/ehcache-1.7.2.jar</systemPath>
+    </dependency>
 
     <dependency>
       <groupId>com.jcraft</groupId>
@@ -27,13 +154,6 @@
       <groupId>org.jetbrains.teamcity.idea</groupId>
       <artifactId>util</artifactId>
       <version>95.677</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.jetbrains.teamcity.internal</groupId>
-      <artifactId>server</artifactId>
-      <version>${teamcity-version}</version>
       <scope>provided</scope>
     </dependency>
 

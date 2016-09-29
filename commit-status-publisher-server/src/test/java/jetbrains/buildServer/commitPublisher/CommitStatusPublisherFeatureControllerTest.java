@@ -19,7 +19,7 @@ import static org.assertj.core.api.BDDAssertions.then;
  * @author anton.zamolotskikh, 08/09/16.
  */
 @Test
-public class CommitStatusPublisherFeatureControllerTest extends CommitStatusPublisherTestBase {
+public class CommitStatusPublisherFeatureControllerTest extends CommitStatusPublisherJMockTestBase {
   private BuildTypeForm myForm;
   private VcsSettingsBean myBean;
 

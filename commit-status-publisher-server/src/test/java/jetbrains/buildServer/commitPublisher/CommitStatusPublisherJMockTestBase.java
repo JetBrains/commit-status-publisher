@@ -25,7 +25,7 @@ import java.util.Collections;
 /**
  * @author anton.zamolotskikh, 15/09/16.
  */
-public class CommitStatusPublisherTestBase extends BaseJMockTestCase {
+public class CommitStatusPublisherJMockTestBase extends BaseJMockTestCase {
 
 
   CommitStatusPublisherFeatureController myController;
