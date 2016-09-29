@@ -3,21 +3,18 @@ package jetbrains.buildServer.commitPublisher.gitlab;
 import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.web.util.WebUtil;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.Map;
 
-public class GitlabPublisher extends BaseCommitStatusPublisher {
+public class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   private static final String REFS_HEADS = "refs/heads/";
   private static final String REFS_TAGS = "refs/tags/";
@@ -25,9 +22,8 @@ public class GitlabPublisher extends BaseCommitStatusPublisher {
 
   private final WebLinks myLinks;
 
-  public GitlabPublisher(@NotNull WebLinks links,
-                         @NotNull Map<String, String> params) {
-    super(params);
+  public GitlabPublisher(@NotNull ExecutorServices executorServices, @NotNull WebLinks links, @NotNull Map<String, String> params) {
+    super(executorServices, params);
     myLinks = links;
   }
 
@@ -98,29 +94,11 @@ public class GitlabPublisher extends BaseCommitStatusPublisher {
     }
   }
 
-
   private void publish(@NotNull String commit, @NotNull String data, @NotNull Repository repository) throws Exception {
-    DefaultHttpClient client = new DefaultHttpClient();
-    HttpPost post = null;
-    HttpResponse response = null;
-    try {
-      String url = getApiUrl() + "/projects/" + repository.owner() + "%2F" + repository.repositoryName() + "/statuses/" + commit;
-      LOG.debug("Request url: " + url + ", message: " + data);
-      post = new HttpPost(url);
-      post.addHeader("PRIVATE-TOKEN", getPrivateToken());
-      post.setEntity(new StringEntity(data, ContentType.APPLICATION_JSON));
-      response = client.execute(post);
-      StatusLine statusLine = response.getStatusLine();
-      LOG.debug("Response: " + statusLine);
-      if (statusLine.getStatusCode() >= 400)
-        throw new PublishError("Error while publishing status, response status " + statusLine);
-    } finally {
-      HttpClientUtils.closeQuietly(response);
-      releaseConnection(post);
-      HttpClientUtils.closeQuietly(client);
-    }
+    String url = getApiUrl() + "/projects/" + repository.owner() + "%2F" + repository.repositoryName() + "/statuses/" + commit;
+    LOG.debug("Request url: " + url + ", message: " + data);
+    postAsync(url, null, null, data, ContentType.APPLICATION_JSON, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()));
   }
-
 
   @NotNull
   private String createMessage(@NotNull GitlabBuildStatus status,
@@ -175,18 +153,8 @@ public class GitlabPublisher extends BaseCommitStatusPublisher {
     return myParams.get(Constants.GITLAB_API_URL);
   }
 
-  String getPrivateToken() {
+  private String getPrivateToken() {
     return myParams.get(Constants.GITLAB_TOKEN);
-  }
-
-  private void releaseConnection(@Nullable HttpPost post) {
-    if (post != null) {
-      try {
-        post.releaseConnection();
-      } catch (Exception e) {
-        LOG.warn("Error releasing connection", e);
-      }
-    }
   }
 
 }

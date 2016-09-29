@@ -36,12 +36,11 @@ public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedT
 
     myLastRequest = null;
 
-    final SocketConfig socketConfig = SocketConfig.custom().setSoTimeout(1000).build();
+    final SocketConfig socketConfig = SocketConfig.custom().setSoTimeout(TIMEOUT).build();
     ServerBootstrap bootstrap = ServerBootstrap.bootstrap().setSocketConfig(socketConfig).setServerInfo("TEST/1.1")
             .registerHandler("/*", new HttpRequestHandler() {
               @Override
               public void handle(HttpRequest httpRequest, HttpResponse httpResponse, HttpContext httpContext) throws HttpException, IOException {
-                long t = 0;
                 try {
                   if (!myServerMutex.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS))
                     return;

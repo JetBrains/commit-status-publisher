@@ -1,5 +1,6 @@
 package jetbrains.buildServer.commitPublisher.upsource;
 
+import jetbrains.buildServer.commitPublisher.BasePublisherSettings;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.Constants;
@@ -7,6 +8,7 @@ import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
@@ -19,18 +21,16 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-public class UpsourceSettings implements CommitStatusPublisherSettings {
+public class UpsourceSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
-  private final PluginDescriptor myDescriptor;
-  private final WebLinks myLinks;
   private final VcsModificationHistory myVcsHistory;
 
   public UpsourceSettings(@NotNull VcsModificationHistory vcsHistory,
+                          @NotNull final ExecutorServices executorServices,
                           @NotNull PluginDescriptor descriptor,
                           @NotNull WebLinks links) {
+    super(executorServices, descriptor, links);
     myVcsHistory = vcsHistory;
-    myDescriptor = descriptor;
-    myLinks = links;
   }
 
   @NotNull
@@ -49,19 +49,8 @@ public class UpsourceSettings implements CommitStatusPublisherSettings {
   }
 
   @Nullable
-  public Map<String, String> getDefaultParameters() {
-    return null;
-  }
-
-  @Nullable
-  @Override
-  public Map<String, String> transformParameters(@NotNull Map<String, String> params) {
-    return null;
-  }
-
-  @Nullable
   public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
-    return new UpsourcePublisher(myVcsHistory, myLinks, params);
+    return new UpsourcePublisher(myVcsHistory, myExecutorServices, myLinks, params);
   }
 
   @NotNull

@@ -1,11 +1,13 @@
 package jetbrains.buildServer.commitPublisher.stash;
 
+import jetbrains.buildServer.commitPublisher.BasePublisherSettings;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -16,15 +18,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-public class StashSettings implements CommitStatusPublisherSettings {
+public class StashSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
-  private final PluginDescriptor myDescriptor;
-  private final WebLinks myLinks;
-
-  public StashSettings(@NotNull PluginDescriptor descriptor,
+  public StashSettings(@NotNull final ExecutorServices executorServices,
+                       @NotNull PluginDescriptor descriptor,
                        @NotNull WebLinks links) {
-    myDescriptor = descriptor;
-    myLinks= links;
+    super(executorServices, descriptor, links);
   }
 
   @NotNull
@@ -43,19 +42,8 @@ public class StashSettings implements CommitStatusPublisherSettings {
   }
 
   @Nullable
-  public Map<String, String> getDefaultParameters() {
-    return null;
-  }
-
-  @Nullable
-  @Override
-  public Map<String, String> transformParameters(@NotNull Map<String, String> params) {
-    return null;
-  }
-
-  @Nullable
   public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
-    return new StashPublisher(myLinks, params);
+    return new StashPublisher(myExecutorServices, myLinks, params);
   }
 
   @NotNull
@@ -75,9 +63,5 @@ public class StashSettings implements CommitStatusPublisherSettings {
         return errors;
       }
     };
-  }
-
-  public boolean isEnabled() {
-    return true;
   }
 }

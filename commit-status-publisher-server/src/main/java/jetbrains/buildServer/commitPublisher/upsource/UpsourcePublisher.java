@@ -1,47 +1,22 @@
 package jetbrains.buildServer.commitPublisher.upsource;
 
 import com.google.gson.Gson;
-import com.intellij.openapi.diagnostic.Logger;
-import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.Constants;
+import jetbrains.buildServer.commitPublisher.HttpBasedCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.PublishError;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
-import org.apache.commons.beanutils.PropertyUtils;
-import org.apache.commons.httpclient.URI;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.AuthCache;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.client.utils.HttpClientUtils;
-import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.*;
-import org.apache.http.protocol.BasicHttpContext;
-import org.apache.http.protocol.HttpContext;
-import org.apache.http.ssl.SSLContexts;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 
-public class UpsourcePublisher extends BaseCommitStatusPublisher {
-
-  private static final Logger LOG = Logger.getInstance(UpsourcePublisher.class.getName());
+public class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
 
   private static final String UPSOURCE_ENDPOINT = "~buildStatus";
   private static final String PROJECT_FIELD = "project";
@@ -59,9 +34,10 @@ public class UpsourcePublisher extends BaseCommitStatusPublisher {
   private final Gson myGson = new Gson();
 
   public UpsourcePublisher(@NotNull VcsModificationHistory vcsHistory,
+                           @NotNull final ExecutorServices executorServices,
                            @NotNull WebLinks links,
                            @NotNull Map<String, String> params) {
-    super(params);
+    super(executorServices, params);
     myVcsHistory = vcsHistory;
     myLinks = links;
   }
@@ -146,72 +122,10 @@ public class UpsourcePublisher extends BaseCommitStatusPublisher {
 
 
   private void publish(@NotNull String payload) throws IOException {
-    String url = myParams.get(Constants.UPSOURCE_SERVER_URL);
-    URI upsourceURI = new URI(url);
-
-    BasicCredentialsProvider credentials = new BasicCredentialsProvider();
-    credentials.setCredentials(new AuthScope(upsourceURI.getHost(), upsourceURI.getPort()),
-            new UsernamePasswordCredentials(myParams.get(Constants.UPSOURCE_USERNAME),
-                    myParams.get(Constants.UPSOURCE_PASSWORD)));
-
-    CloseableHttpClient client = createHttpClientBuilder().setDefaultCredentialsProvider(credentials).build();
-
-    HttpPost post = null;
-    HttpResponse response = null;
-    try {
-      AuthCache authCache = new BasicAuthCache();
-      authCache.put(new HttpHost(upsourceURI.getHost(), upsourceURI.getPort(), upsourceURI.getScheme()), new BasicScheme());
-      BasicHttpContext ctx = new BasicHttpContext();
-      ctx.setAttribute(ClientContext.AUTH_CACHE, authCache);
-
-      String endpointUrl = url + "/" + UPSOURCE_ENDPOINT;
-      post = new HttpPost(endpointUrl);
-      post.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
-      response = client.execute(post, ctx);
-      StatusLine statusLine = response.getStatusLine();
-      if (statusLine.getStatusCode() >= 400)
-        throw new RuntimeException(statusLine.getStatusCode() + " " + statusLine.getReasonPhrase());
-    } finally {
-      HttpClientUtils.closeQuietly(response);
-      if (post != null) {
-        try {
-          post.releaseConnection();
-        } catch (Exception e) {
-          LOG.warn("Error releasing connection", e);
-        }
-      }
-      HttpClientUtils.closeQuietly(client);
-    }
+    String url = myParams.get(Constants.UPSOURCE_SERVER_URL) + "/" + UPSOURCE_ENDPOINT;
+    postAsync(url, myParams.get(Constants.UPSOURCE_USERNAME),
+            myParams.get(Constants.UPSOURCE_PASSWORD), payload, ContentType.APPLICATION_JSON, null);
   }
-
-
-  @NotNull
-  private HttpClientBuilder createHttpClientBuilder() {
-    SSLContext sslcontext = SSLContexts.createSystemDefault();
-    SSLSocketFactory sslsf = new SSLSocketFactory(sslcontext) {
-      @Override
-      public Socket connectSocket(
-              int connectTimeout,
-              Socket socket,
-              HttpHost host,
-              InetSocketAddress remoteAddress,
-              InetSocketAddress localAddress,
-              HttpContext context) throws IOException {
-        if (socket instanceof SSLSocket) {
-          try {
-            PropertyUtils.setProperty(socket, "host", host.getHostName());
-          } catch (NoSuchMethodException ex) {
-          } catch (IllegalAccessException ex) {
-          } catch (InvocationTargetException ex) {
-          }
-        }
-        return super.connectSocket(connectTimeout, socket, host, remoteAddress, localAddress, context);
-      }
-    };
-
-    return HttpClients.custom().setSSLSocketFactory(sslsf);
-  }
-
 
   @NotNull
   private String createPayload(@NotNull String project,

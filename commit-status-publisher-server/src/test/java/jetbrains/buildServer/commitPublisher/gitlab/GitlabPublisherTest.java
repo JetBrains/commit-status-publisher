@@ -39,6 +39,6 @@ public class GitlabPublisherTest extends HttpPublisherServerBasedTest {
       put(Constants.GITLAB_TOKEN, "TOKEN");
       put(Constants.GITLAB_API_URL, getServerUrl());
     }};
-    myPublisher = new GitlabPublisher(myWebLinks, params);
+    myPublisher = new GitlabPublisher(myExecServices, myWebLinks, params);
   }
 }

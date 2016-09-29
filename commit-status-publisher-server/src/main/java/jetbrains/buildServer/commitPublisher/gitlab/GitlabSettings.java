@@ -5,6 +5,7 @@ import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,8 +18,10 @@ import java.util.Map;
 public class GitlabSettings implements CommitStatusPublisherSettings {
 
   private final WebLinks myLinks;
+  private final ExecutorServices myExecutorServices;
 
-  public GitlabSettings(@NotNull WebLinks links) {
+  public GitlabSettings(@NotNull ExecutorServices executorServices, @NotNull WebLinks links) {
+    myExecutorServices = executorServices;
     myLinks = links;
   }
 
@@ -55,7 +58,7 @@ public class GitlabSettings implements CommitStatusPublisherSettings {
   @NotNull
   @Override
   public GitlabPublisher createPublisher(@NotNull Map<String, String> params) {
-    return new GitlabPublisher(myLinks, params);
+    return new GitlabPublisher(myExecutorServices, myLinks, params);
   }
 
   @NotNull

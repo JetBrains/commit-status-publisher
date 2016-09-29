@@ -5,30 +5,16 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.intellij.openapi.diagnostic.Logger;
-import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
-import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.commitPublisher.PublishError;
-import jetbrains.buildServer.commitPublisher.Repository;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.AuthCache;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.BasicAuthCache;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.protocol.BasicHttpContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,14 +28,15 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.util.Map;
 
-public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
+public class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   private static final Logger LOG = Logger.getInstance(BitbucketCloudPublisher.class.getName());
   private String myBaseUrl = "https://api.bitbucket.org/";
   private final WebLinks myLinks;
 
-  public BitbucketCloudPublisher(@NotNull WebLinks links,
+  public BitbucketCloudPublisher(@NotNull final ExecutorServices executorServices,
+                                 @NotNull WebLinks links,
                                  @NotNull Map<String, String> params) {
-    super(params);
+    super(executorServices, params);
     myLinks = links;
   }
 
@@ -133,7 +120,7 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
                                @NotNull String name,
                                @NotNull String url,
                                @NotNull String description) {
-    StringBuilder data = new StringBuilder();
+    final StringBuilder data = new StringBuilder();
     data.append("{")
             .append("\"state\":").append("\"").append(status).append("\",")
             .append("\"key\":").append("\"").append(id).append("\",")
@@ -152,41 +139,17 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
 
   private void vote(@NotNull String commit, @NotNull String data, @NotNull Repository repository) throws URISyntaxException, IOException,
           UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, BitBucketException {
-    URI bitBucketURI = new URI(getBaseUrl());
-
-
     LOG.debug(getBaseUrl() + " :: " + commit + " :: " + data);
+    String url = getBaseUrl() + "2.0/repositories/" + repository.owner() + "/" + repository.repositoryName() + "/commit/" + commit + "/statuses/build";
+    postAsync(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, null);
+  }
 
-    DefaultHttpClient client = new DefaultHttpClient();
-    HttpPost post = null;
-    HttpResponse response = null;
-    try {
-      client.getCredentialsProvider().setCredentials(
-              new AuthScope(bitBucketURI.getHost(), bitBucketURI.getPort()),
-              new UsernamePasswordCredentials(getUsername(), getPassword()));
 
-      AuthCache authCache = new BasicAuthCache();
-      authCache.put(new HttpHost(bitBucketURI.getHost(), bitBucketURI.getPort(), bitBucketURI.getScheme()), new BasicScheme());
-      BasicHttpContext ctx = new BasicHttpContext();
-      ctx.setAttribute(ClientContext.AUTH_CACHE, authCache);
-
-      String url = getBaseUrl() + "2.0/repositories/" + repository.owner() + "/" + repository.repositoryName() + "/commit/" + commit + "/statuses/build";
-
-      LOG.debug(url);
-
-      post = new HttpPost(url);
-      post.setEntity(new StringEntity(data, ContentType.APPLICATION_JSON));
-      response = client.execute(post, ctx);
-
-      StatusLine statusLine = response.getStatusLine();
-      LOG.debug("Response Status Code was " + statusLine.getStatusCode());
-      if (statusLine.getStatusCode() >= 400)
-        throw new BitBucketException(statusLine.getStatusCode(), statusLine.getReasonPhrase(), parseErrorMessage(response));
-    } finally {
-      HttpClientUtils.closeQuietly(response);
-      releaseConnection(post);
-      HttpClientUtils.closeQuietly(client);
-    }
+  @Override
+  protected void processResponse(HttpResponse response) throws HttpPublisherException {
+    StatusLine statusLine = response.getStatusLine();
+    if (statusLine.getStatusCode() >= 400)
+      throw new HttpPublisherException(statusLine.getStatusCode(), statusLine.getReasonPhrase(), parseErrorMessage(response));
   }
 
   @Nullable
@@ -228,22 +191,12 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
     }
   }
 
-  private void releaseConnection(@Nullable HttpPost post) {
-    if (post != null) {
-      try {
-        post.releaseConnection();
-      } catch (Exception e) {
-        LOG.warn("Error releasing connection", e);
-      }
-    }
-  }
-
   @NotNull
   private String getBuildName(@NotNull SBuild build) {
     return build.getFullName() + " #" + build.getBuildNumber();
   }
 
-  String getBaseUrl() { return myBaseUrl;  }
+  private String getBaseUrl() { return myBaseUrl;  }
 
   /**
    * Used for testing only at the moments
@@ -270,16 +223,16 @@ public class BitbucketCloudPublisher extends BaseCommitStatusPublisher {
       myMessage = message;
     }
 
-    public int getStatusCode() {
+    int getStatusCode() {
       return myStatusCode;
     }
 
-    public String getReason() {
+    String getReason() {
       return myReason;
     }
 
     @Nullable
-    public String getBitbucketMessage() {
+    String getBitbucketMessage() {
       return myMessage;
     }
   }

@@ -6,6 +6,7 @@ import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
@@ -20,11 +21,14 @@ public class BitbucketCloudSettings implements CommitStatusPublisherSettings {
 
   private final PluginDescriptor myDescriptor;
   private final WebLinks myLinks;
+  private final ExecutorServices myExecutorServices;
 
-  public BitbucketCloudSettings(@NotNull PluginDescriptor descriptor,
+  public BitbucketCloudSettings(@NotNull final ExecutorServices executorServices,
+                                @NotNull PluginDescriptor descriptor,
                                 @NotNull WebLinks links) {
     myDescriptor = descriptor;
     myLinks= links;
+    myExecutorServices = executorServices;
   }
 
   @NotNull
@@ -55,7 +59,7 @@ public class BitbucketCloudSettings implements CommitStatusPublisherSettings {
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
-    return new BitbucketCloudPublisher(myLinks, params);
+    return new BitbucketCloudPublisher(myExecutorServices, myLinks, params);
   }
 
   @NotNull

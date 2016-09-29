@@ -40,6 +40,6 @@ public class UpsourcePublisherTest extends HttpPublisherServerBasedTest {
       put(Constants.UPSOURCE_PASSWORD, "pwd");
       put(Constants.UPSOURCE_SERVER_URL, getServerUrl());
     }};
-    myPublisher = new UpsourcePublisher(myFixture.getVcsHistory(), myWebLinks, params);
+    myPublisher = new UpsourcePublisher(myFixture.getVcsHistory(), myExecServices, myWebLinks, params);
   }
 }

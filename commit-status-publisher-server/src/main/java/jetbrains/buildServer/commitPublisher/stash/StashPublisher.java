@@ -2,34 +2,22 @@ package jetbrains.buildServer.commitPublisher.stash;
 
 import com.google.gson.*;
 import com.intellij.openapi.diagnostic.Logger;
-import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.Constants;
+import jetbrains.buildServer.commitPublisher.HttpBasedCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.PublishError;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.AuthCache;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.BasicAuthCache;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.protocol.BasicHttpContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -37,16 +25,17 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.util.Map;
 
-public class StashPublisher extends BaseCommitStatusPublisher {
+public class StashPublisher extends HttpBasedCommitStatusPublisher {
   private static final String PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
 
   private static final Logger LOG = Logger.getInstance(StashPublisher.class.getName());
 
   private final WebLinks myLinks;
 
-  public StashPublisher(@NotNull WebLinks links,
+  public StashPublisher(@NotNull final ExecutorServices executorServices,
+                        @NotNull WebLinks links,
                         @NotNull Map<String, String> params) {
-    super(params);
+    super(executorServices, params);
     myLinks = links;
   }
 
@@ -181,34 +170,16 @@ public class StashPublisher extends BaseCommitStatusPublisher {
   }
 
   private void vote(@NotNull String commit, @NotNull String data) throws URISyntaxException, IOException,
-          UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, StashException {
-    URI stashURI = new URI(getBaseUrl());
+          UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+    String url = getBaseUrl() + "/rest/build-status/1.0/commits/" + commit;
+    postAsync(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, null);
+  }
 
-    DefaultHttpClient client = new DefaultHttpClient();
-    HttpPost post = null;
-    HttpResponse response = null;
-    try {
-      client.getCredentialsProvider().setCredentials(
-              new AuthScope(stashURI.getHost(), stashURI.getPort()),
-              new UsernamePasswordCredentials(getUsername(), getPassword()));
-
-      AuthCache authCache = new BasicAuthCache();
-      authCache.put(new HttpHost(stashURI.getHost(), stashURI.getPort(), stashURI.getScheme()), new BasicScheme());
-      BasicHttpContext ctx = new BasicHttpContext();
-      ctx.setAttribute(ClientContext.AUTH_CACHE, authCache);
-
-      String url = getBaseUrl() + "/rest/build-status/1.0/commits/" + commit;
-      post = new HttpPost(url);
-      post.setEntity(new StringEntity(data, ContentType.APPLICATION_JSON));
-      response = client.execute(post, ctx);
-      StatusLine statusLine = response.getStatusLine();
-      if (statusLine.getStatusCode() >= 400)
-        throw new StashException(statusLine.getStatusCode(), statusLine.getReasonPhrase(), parseErrorMessage(response));
-    } finally {
-      HttpClientUtils.closeQuietly(response);
-      releaseConnection(post);
-      HttpClientUtils.closeQuietly(client);
-    }
+  @Override
+  protected void processResponse(HttpResponse response) throws HttpPublisherException {
+    StatusLine statusLine = response.getStatusLine();
+    if (statusLine.getStatusCode() >= 400)
+      throw new HttpPublisherException(statusLine.getStatusCode(), statusLine.getReasonPhrase(), parseErrorMessage(response));
   }
 
   @Nullable
@@ -243,16 +214,6 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     }
   }
 
-  private void releaseConnection(@Nullable HttpPost post) {
-    if (post != null) {
-      try {
-        post.releaseConnection();
-      } catch (Exception e) {
-        LOG.warn("Error releasing connection", e);
-      }
-    }
-  }
-
   @NotNull
   private String getBuildName(@NotNull SBuild build) {
     return build.getFullName() + " #" + build.getBuildNumber();
@@ -275,35 +236,10 @@ public class StashPublisher extends BaseCommitStatusPublisher {
     return myParams.get(Constants.STASH_PASSWORD);
   }
 
-
-  private static class StashException extends Exception {
-    private final int myStatusCode;
-    private final String myReason;
-    private final String myMessage;
-    public StashException(int statusCode, String reason, @Nullable String message) {
-      myStatusCode = statusCode;
-      myReason = reason;
-      myMessage = message;
-    }
-
-    public int getStatusCode() {
-      return myStatusCode;
-    }
-
-    public String getReason() {
-      return myReason;
-    }
-
-    @Nullable
-    public String getStashMessage() {
-      return myMessage;
-    }
-  }
-
   @NotNull
   private String getMessage(@NotNull Exception e) {
-    if (e instanceof StashException) {
-      StashException se = (StashException) e;
+    if (e instanceof HttpPublisherException) {
+      HttpPublisherException se = (HttpPublisherException) e;
       String result = "response code: " + se.getStatusCode() + ", reason: " + se.getReason();
       String msg = se.getStashMessage();
       if (msg != null) {

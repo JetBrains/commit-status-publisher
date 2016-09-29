@@ -30,4 +30,6 @@ public interface CommitStatusPublisher {
   String toString();
 
   String getId();
+
+  void setConnectionTimeout(int timeout);
 }

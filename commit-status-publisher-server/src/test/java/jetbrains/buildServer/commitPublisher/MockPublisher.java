@@ -66,4 +66,9 @@ class MockPublisher implements CommitStatusPublisher {
   public String getId() {
     return myType;
   }
+
+  @Override
+  public void setConnectionTimeout(int timeout) {
+    // does nothing
+  }
 }

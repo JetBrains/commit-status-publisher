@@ -10,6 +10,7 @@ import java.util.Map;
 public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher {
 
   protected final Map<String, String> myParams;
+  private int myConnectionTimeout = 300 * 1000;
 
   protected BaseCommitStatusPublisher(@NotNull Map<String, String> params) {
     myParams = params;
@@ -45,6 +46,14 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
 
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) {
     return false;
+  }
+
+  protected int getConnectionTimeout() {
+    return myConnectionTimeout;
+  }
+
+  public void setConnectionTimeout(int timeout) {
+    myConnectionTimeout = timeout;
   }
 
   @Nullable

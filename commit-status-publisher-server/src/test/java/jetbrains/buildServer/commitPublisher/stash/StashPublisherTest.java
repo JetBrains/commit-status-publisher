@@ -39,6 +39,6 @@ public class StashPublisherTest extends HttpPublisherServerBasedTest {
       put(Constants.STASH_PASSWORD, "pwd");
       put(Constants.STASH_BASE_URL, getServerUrl());
     }};
-    myPublisher = new StashPublisher(myWebLinks, params);
+   myPublisher = new StashPublisher(myExecServices, myWebLinks, params);
   }
 }

@@ -42,7 +42,7 @@ public class BitbucketCloudPublisherTest extends HttpPublisherServerBasedTest {
       put(Constants.BITBUCKET_CLOUD_USERNAME, "user");
       put(Constants.BITBUCKET_CLOUD_PASSWORD, "pwd");
     }};
-    BitbucketCloudPublisher publisher = new BitbucketCloudPublisher(myWebLinks, params);
+    BitbucketCloudPublisher publisher = new BitbucketCloudPublisher(myExecServices, myWebLinks, params);
     publisher.setBaseUrl(getServerUrl() + "/");
     myPublisher = publisher;
   }

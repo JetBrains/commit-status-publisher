@@ -30,7 +30,7 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   protected static final String USER = "MyUser";
   protected static final String COMMENT = "MyComment";
   protected static final String PROBLEM_DESCR = "Problem description";
-  protected static final long TIMEOUT = 3000;
+  protected static final int TIMEOUT = 3000;
   protected Semaphore myServerMutex, myClientMutex;
 
   protected CommitStatusPublisher myPublisher;
