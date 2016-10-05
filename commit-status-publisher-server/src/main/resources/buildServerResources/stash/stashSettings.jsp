@@ -19,7 +19,6 @@
     <th><label for="${keys.stashUsername}">Username: <l:star/></label></th>
     <td>
       <props:textProperty name="${keys.stashUsername}" style="width:18em;"/>
-      <span class="smallNote">Bitbucket Server username</span>
     </td>
   </tr>
 
@@ -27,7 +26,6 @@
     <th><label for="${keys.stashPassword}">Password: <l:star/></label></th>
     <td>
       <props:passwordProperty name="${keys.stashPassword}" style="width:18em;"/>
-      <span class="smallNote">Bitbucket Server password</span>
     </td>
   </tr>
 </table>

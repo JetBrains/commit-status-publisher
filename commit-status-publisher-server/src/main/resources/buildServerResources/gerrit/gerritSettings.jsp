@@ -17,10 +17,9 @@
   </tr>
 
   <tr>
-    <th><label for="${keys.gerritProject}">Gerrit Project: <l:star/></label></th>
+    <th><label for="${keys.gerritProject}">Gerrit Project Name: <l:star/></label></th>
     <td>
       <props:textProperty name="${keys.gerritProject}" style="width:18em;"/>
-      <span class="smallNote">Gerrit project name</span>
       <span class="error" id="error_${keys.gerritProject}"></span>
     </td>
   </tr>
@@ -29,7 +28,6 @@
     <th><label for="${keys.gerritSuccessVote}">Successful Build Vote: <l:star/></label></th>
     <td>
       <props:textProperty name="${keys.gerritSuccessVote}" style="width:18em;"/>
-      <span class="smallNote">Vote in case of successful build</span>
       <span class="error" id="error_${keys.gerritSuccessVote}"></span>
     </td>
   </tr>
@@ -38,7 +36,6 @@
     <th><label for="${keys.gerritFailureVote}">Failed Build Vote: <l:star/></label></th>
     <td>
       <props:textProperty name="${keys.gerritFailureVote}" style="width:18em;"/>
-      <span class="smallNote">Vote in case of failed build</span>
       <span class="error" id="error_${keys.gerritFailureVote}"></span>
     </td>
   </tr>
@@ -47,7 +44,6 @@
     <th><label for="${keys.gerritUsername}">Gerrit Username: <l:star/></label></th>
     <td>
       <props:textProperty name="${keys.gerritUsername}" style="width:18em;"/>
-      <span class="smallNote">Gerrit username</span>
       <span class="error" id="error_${keys.gerritUsername}"></span>
     </td>
   </tr>

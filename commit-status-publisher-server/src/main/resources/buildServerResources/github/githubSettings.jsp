@@ -24,19 +24,17 @@
 
     <props:selectSectionPropertyContent value="${keys.authenticationTypePasswordValue}" caption="Password">
       <tr>
-        <th><label for="${keys.userNameKey}">Username: <l:star/></label></th>
+        <th><label for="${keys.userNameKey}">GitHub Username: <l:star/></label></th>
         <td>
           <props:textProperty name="${keys.userNameKey}" className="longField"/>
           <span class="error" id="error_${keys.userNameKey}"></span>
-          <span class="smallNote">GitHub username</span>
         </td>
       </tr>
       <tr>
-        <th><label for="${keys.passwordKey}">Password: <l:star/></label></th>
+        <th><label for="${keys.passwordKey}">GitHub Password: <l:star/></label></th>
         <td>
           <props:passwordProperty name="${keys.passwordKey}" className="longField"/>
           <span class="error" id="error_${keys.passwordKey}"></span>
-          <span class="smallNote">GitHub password</span>
         </td>
       </tr>
     </props:selectSectionPropertyContent>
@@ -60,12 +58,12 @@
   </props:selectSectionProperty>
 
   <tr>
-    <th><label for="${keys.serverKey}">URL: <l:star/></label></th>
+    <th><label for="${keys.serverKey}">GitHub URL: <l:star/></label></th>
     <td>
       <props:textProperty name="${keys.serverKey}" className="longField"/>
       <span class="error" id="error_${keys.serverKey}"></span>
     <span class="smallNote">
-      GitHub URL, format <strong>http(s)://[hostname]/api/v3</strong>
+      Format <strong>http(s)://[hostname]/api/v3</strong>
       for <a href="https://support.enterprise.github.com/entries/21391237-Using-the-API" target="_blank">GitHub Enterprise</a>
     </span>
     </td>
