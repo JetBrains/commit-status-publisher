@@ -1,5 +1,6 @@
 package jetbrains.buildServer.commitPublisher.gitlab;
 
+import com.google.gson.Gson;
 import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
@@ -7,11 +8,14 @@ import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -104,7 +108,9 @@ public class GitlabPublisher extends BaseCommitStatusPublisher {
     HttpPost post = null;
     HttpResponse response = null;
     try {
-      String url = getApiUrl() + "/projects/" + repository.owner() + "%2F" + repository.repositoryName() + "/statuses/" + commit;
+      String groupAndProject = getGroupAndProject(repository);
+      int projectId = getProjectId(groupAndProject);
+      String url = getApiUrl() + "/projects/" + projectId + "/statuses/" + commit;
       LOG.debug("Request url: " + url + ", message: " + data);
       post = new HttpPost(url);
       post.addHeader("PRIVATE-TOKEN", getPrivateToken());
@@ -121,6 +127,41 @@ public class GitlabPublisher extends BaseCommitStatusPublisher {
     }
   }
 
+  @NotNull
+  private int getProjectId(@NotNull String groupProject) throws Exception  {
+    DefaultHttpClient client = new DefaultHttpClient();
+    HttpGet post = null;
+    HttpResponse response = null;
+    try {
+      String url = getApiUrl() + "/projects/" + groupProject;
+      post = new HttpGet(url);
+      post.addHeader("PRIVATE-TOKEN", getPrivateToken());
+      LOG.debug("Request url: " + url);
+      response = client.execute(post);
+      if (response.getStatusLine().getStatusCode() >= 400)
+        throw new PublishError("Error while getting project id in commit status publisher , response status " + response.getStatusLine());
+      String json = EntityUtils.toString(response.getEntity(), "UTF-8");
+      LOG.debug("Response is: " + json);
+      Gson gson = new com.google.gson.Gson();
+      ProjectIdResponse projectIdResponse = gson.fromJson(json, ProjectIdResponse.class);
+      return projectIdResponse.getId();
+    } finally {
+      HttpClientUtils.closeQuietly(response);
+      releaseConnection(post);
+      HttpClientUtils.closeQuietly(client);
+    }
+  }
+
+  @NotNull
+  private String getGroupAndProject(@NotNull Repository repository) {
+    String projectName = myParams.get(Constants.GITLAB_PROJECT_NAME);
+    String groupName = myParams.get(Constants.GITLAB_GROUP_NAME);
+    if(projectName == null || groupName == null) {
+      return repository.owner() + "%2F" + repository.repositoryName();
+    } else {
+      return groupName + "%2F" + projectName;
+    }
+  }
 
   @NotNull
   private String createMessage(@NotNull GitlabBuildStatus status,
@@ -179,13 +220,22 @@ public class GitlabPublisher extends BaseCommitStatusPublisher {
     return myParams.get(Constants.GITLAB_TOKEN);
   }
 
-  private void releaseConnection(@Nullable HttpPost post) {
+  private <T extends HttpRequestBase> void releaseConnection(@Nullable T post) {
     if (post != null) {
       try {
         post.releaseConnection();
       } catch (Exception e) {
         LOG.warn("Error releasing connection", e);
       }
+    }
+  }
+
+  private class ProjectIdResponse {
+
+    private int id;
+
+    public int getId() {
+      return id;
     }
   }
 
