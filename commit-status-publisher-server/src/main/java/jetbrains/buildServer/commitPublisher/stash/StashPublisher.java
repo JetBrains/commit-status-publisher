@@ -128,7 +128,7 @@ public class StashPublisher extends HttpBasedCommitStatusPublisher {
     try {
       vote(revision.getRevision(), msg);
     } catch (Exception e) {
-      throw new PublishError("Cannot publish status to Upsource for VCS root " +
+      throw new PublishError("Cannot publish status to Bitbucket Server for VCS root " +
               revision.getRoot().getName() + ": " + getMessage(e), e);
     }
   }
@@ -141,7 +141,7 @@ public class StashPublisher extends HttpBasedCommitStatusPublisher {
     try {
       vote(revision.getRevision(), msg);
     } catch (Exception e) {
-      throw new PublishError("Cannot publish status to Upsource for VCS root " +
+      throw new PublishError("Cannot publish status to Bitbucket Server for VCS root " +
               revision.getRoot().getName() + ": " + getMessage(e), e);
     }
   }

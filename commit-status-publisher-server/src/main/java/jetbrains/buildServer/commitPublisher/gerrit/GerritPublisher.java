@@ -66,7 +66,7 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
       runCommand(build.getBuildType().getProject(), command.toString());
       return true;
     } catch (Exception e) {
-      throw new PublishError("Cannot publish status to Upsource for VCS root " +
+      throw new PublishError("Cannot publish status to Gerrit for VCS root " +
               revision.getRoot().getName() + ": " + e.toString(), e);
     }
   }
