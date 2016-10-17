@@ -1,17 +1,18 @@
 package jetbrains.buildServer.commitPublisher.github;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.Constants;
+import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
+import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
+import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.util.StringUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
-import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
-import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
-import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,6 +47,7 @@ public class GitHubSettings implements CommitStatusPublisherSettings {
     final Map<String, String> result = new HashMap<String, String>();
     final UpdateChangesConstants C = new UpdateChangesConstants();
     result.put(C.getServerKey(), GitHubApiFactory.DEFAULT_URL);
+    result.put(C.getContextKey(), GitHubApiFactory.DEFAULT_CONTEXT);
     return result;
   }
 

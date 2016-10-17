@@ -68,4 +68,14 @@
     </span>
     </td>
   </tr>
+  <tr>
+    <th><label for="${keys.contextKey}">Status Context: <l:star/></label></th>
+    <td>
+      <props:textProperty name="${keys.contextKey}" className="longField"/>
+      <span class="error" id="error_${keys.contextKey}"></span>
+    <span class="smallNote">
+      GitHub status context name. Specifies what service is providing the status updates.
+    </span>
+    </td>
+  </tr>
 </table>

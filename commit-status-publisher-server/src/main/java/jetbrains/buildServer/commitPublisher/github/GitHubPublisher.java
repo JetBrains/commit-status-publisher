@@ -1,13 +1,22 @@
 package jetbrains.buildServer.commitPublisher.github;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.HashMap;
-import java.util.Map;
-import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
-import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.serverSide.*;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
+import jetbrains.buildServer.commitPublisher.Constants;
+import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.SFinishedBuild;
+import jetbrains.buildServer.serverSide.SQueuedBuild;
+import jetbrains.buildServer.serverSide.SRunningBuild;
+import jetbrains.buildServer.users.User;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class GitHubPublisher extends BaseCommitStatusPublisher {
 
@@ -34,6 +43,18 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
   @Override
   public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
     updateBuildStatus(build, revision, true);
+    return true;
+  }
+
+  @Override
+  public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) {
+    updateBuildStatus(build, revision, true);
+    return true;
+  }
+
+  @Override
+  public boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) {
+    updateBuildStatus(build, revision, false);
     return true;
   }
 
@@ -67,7 +88,32 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
     if (isStarting) {
       h.scheduleChangeStarted(revision.getRepositoryVersion(), build);
     } else {
-      h.scheduleChangeCompeted(revision.getRepositoryVersion(), build);
+      h.scheduleChangeCompleted(revision.getRepositoryVersion(), build);
+    }
+  }
+
+  /**
+   * Called when a build is queued or unqueued.
+   * @param build the queued build
+   * @param revision the revision
+   * @param isAdded true if the build has just been queued; false if the build has just been unqueued
+     */
+  private void updateBuildStatus(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, boolean isAdded) {
+    final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), getParams(build));
+
+    if (h == null || !h.shouldReportOnQueued()) {
+      return;
+    }
+
+    if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
+      LOG.warn("No revisions were found to update GitHub status. Please check you have Git VCS roots in the build configuration");
+      return;
+    }
+
+    if (isAdded) {
+      h.scheduleChangeQueued(revision.getRepositoryVersion(), build);
+    } else {
+      h.scheduleChangeRemovedFromQueue(revision.getRepositoryVersion(), build);
     }
   }
 
@@ -76,7 +122,15 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
   private Map<String, String> getParams(@NotNull SBuild build) {
     String context = getCustomContextFromParameter(build);
     if (context == null)
-      context = getDefaultContext(build);
+      context = getDefaultContext(build.getBuildType());
+    Map<String, String> result = new HashMap<String, String>(myParams);
+    result.put(Constants.GITHUB_CONTEXT, context);
+    return result;
+  }
+
+  @NotNull
+  private Map<String, String> getParams(@NotNull SQueuedBuild build) {
+    String context = getDefaultContext(build.getBuildType());
     Map<String, String> result = new HashMap<String, String>(myParams);
     result.put(Constants.GITHUB_CONTEXT, context);
     return result;
@@ -84,9 +138,11 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
 
 
   @NotNull
-  private String getDefaultContext(@NotNull SBuild build) {
-    SBuildType buildType = build.getBuildType();
-    if (buildType != null) {
+  private String getDefaultContext(@NotNull SBuildType buildType) {
+    String context = myParams.get(Constants.GITHUB_CONTEXT);
+    if (context != null && !context.isEmpty()) {
+      return context;
+    } else if (buildType != null) {
       return String.format("%s (%s)", buildType.getName(), buildType.getProject().getName());
     } else {
       return "<Removed build configuration>";
