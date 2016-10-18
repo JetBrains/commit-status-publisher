@@ -1,5 +1,6 @@
 package jetbrains.buildServer.commitPublisher;
 
+import jetbrains.buildServer.serverSide.SBuildType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -9,7 +10,7 @@ public class PublisherManager {
 
   private final Map<String, CommitStatusPublisherSettings> myPublisherSettings;
 
-  public PublisherManager(@NotNull Collection<CommitStatusPublisherSettings> settings) {
+  PublisherManager(@NotNull Collection<CommitStatusPublisherSettings> settings) {
     myPublisherSettings = new HashMap<String, CommitStatusPublisherSettings>();
     for (CommitStatusPublisherSettings s : settings) {
       myPublisherSettings.put(s.getId(), s);
@@ -17,14 +18,14 @@ public class PublisherManager {
   }
 
   @Nullable
-  public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
+  public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
     String publisherId = params.get(Constants.PUBLISHER_ID_PARAM);
     if (publisherId == null)
       return null;
     CommitStatusPublisherSettings settings = myPublisherSettings.get(publisherId);
     if (settings == null)
       return null;
-    return settings.createPublisher(params);
+    return settings.createPublisher(buildType, buildFeatureId, params);
   }
 
   @Nullable

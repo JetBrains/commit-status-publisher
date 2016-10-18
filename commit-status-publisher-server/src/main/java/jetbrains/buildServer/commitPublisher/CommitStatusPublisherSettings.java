@@ -1,6 +1,7 @@
 package jetbrains.buildServer.commitPublisher;
 
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
+import jetbrains.buildServer.serverSide.SBuildType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,13 +30,13 @@ public interface CommitStatusPublisherSettings {
   Map<String, String> transformParameters(@NotNull Map<String, String> params);
 
   @Nullable
-  CommitStatusPublisher createPublisher(@NotNull Map<String, String> params);
+  CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params);
 
   @NotNull
-  public String describeParameters(@NotNull Map<String, String> params);
+  String describeParameters(@NotNull Map<String, String> params);
 
   @Nullable
-  public PropertiesProcessor getParametersProcessor();
+  PropertiesProcessor getParametersProcessor();
 
   boolean isEnabled();
 }

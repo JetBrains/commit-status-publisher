@@ -6,6 +6,7 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.PublishError;
 import jetbrains.buildServer.serverSide.*;
@@ -20,17 +21,19 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Map;
 
-public class GerritPublisher extends BaseCommitStatusPublisher {
+class GerritPublisher extends BaseCommitStatusPublisher {
 
   private final static Logger LOG = Logger.getInstance(GerritPublisher.class.getName());
 
   private final ServerSshKeyManager mySshKeyManager;
   private final WebLinks myLinks;
 
-  public GerritPublisher(@Nullable ServerSshKeyManager sshKeyManager,
+  GerritPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId,
+                         @Nullable ServerSshKeyManager sshKeyManager,
                          @NotNull WebLinks links,
-                         @NotNull Map<String, String> params) {
-    super(params);
+                         @NotNull Map<String, String> params,
+                         @NotNull CommitStatusPublisherProblems problems) {
+    super(buildType, buildFeatureId, params, problems);
     mySshKeyManager = sshKeyManager;
     myLinks = links;
   }
@@ -40,6 +43,7 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
     return "gerrit";
   }
 
+  @NotNull
   @Override
   public String getId() {
     return Constants.GERRIT_PUBLISHER_ID;
@@ -63,7 +67,9 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
            .append(" -m \"").append(msg).append("\" ")
            .append(revision.getRevision());
     try {
-      runCommand(build.getBuildType().getProject(), command.toString());
+      SBuildType bt = build.getBuildType();
+      if (null == bt) return false;
+      runCommand(bt.getProject(), command.toString());
       return true;
     } catch (Exception e) {
       throw new PublishError("Cannot publish status to Gerrit for VCS root " +
@@ -136,11 +142,11 @@ public class GerritPublisher extends BaseCommitStatusPublisher {
       jsch.addIdentity(defaultKey.getAbsolutePath());
   }
 
-  String getGerritServer() {
+  private String getGerritServer() {
     return myParams.get(Constants.GERRIT_SERVER);
   }
 
-  String getGerritProject() {
+  private String getGerritProject() {
     return myParams.get(Constants.GERRIT_PROJECT);
   }
 

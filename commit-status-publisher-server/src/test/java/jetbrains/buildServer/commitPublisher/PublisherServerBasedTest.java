@@ -7,12 +7,15 @@ import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.executors.SimpleExecutorServices;
+import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
+import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.Test;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,17 +33,19 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   protected static final String USER = "MyUser";
   protected static final String COMMENT = "MyComment";
   protected static final String PROBLEM_DESCR = "Problem description";
+  protected static final String FEATURE_ID = "MY_FEATURE_ID";
   protected static final int TIMEOUT = 3000;
   protected Semaphore myServerMutex, myClientMutex;
 
   protected CommitStatusPublisher myPublisher;
-  protected BuildRevision myRevision;
-  protected SUser myUser;
+  protected CommitStatusPublisherProblems myProblems;
   protected Map<Events, String> myExpectedRegExps = new HashMap<Events, String>();
   protected SimpleExecutorServices myExecServices;
-  protected SVcsRoot myVcsRoot;
-  protected VcsRootInstance myVcsRootInstance;
   protected String myVcsURL = "http://localhost/defaultvcs";
+
+  private BuildRevision myRevision;
+  private SUser myUser;
+  private SystemProblemNotificationEngine myProblemNotificationEngine;
 
   protected enum Events {
     QUEUED, REMOVED, STARTED,
@@ -54,15 +59,17 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
-    myVcsRoot = myFixture.addVcsRoot("jetbrains.git", "", myBuildType);
-    myVcsRoot.setProperties(Collections.singletonMap("url", myVcsURL));
-    myVcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
-    myRevision = new BuildRevision(myVcsRootInstance, REVISION, "", REVISION);
+    SVcsRoot vcsRoot = myFixture.addVcsRoot("jetbrains.git", "", myBuildType);
+    vcsRoot.setProperties(Collections.singletonMap("url", myVcsURL));
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(vcsRoot);
+    myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     myUser = myFixture.createUserAccount(USER);
     myExecServices = myFixture.getSingletonService(SimpleExecutorServices.class);
     myExecServices.start();
     myServerMutex = new Semaphore(1);
     myClientMutex = new Semaphore(0);
+    myProblemNotificationEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
+    myProblems = new CommitStatusPublisherProblems(myProblemNotificationEngine);
   }
 
 
@@ -95,6 +102,21 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
     myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), myRevision);
     myServerMutex.release();
     then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.FINISHED));
+  }
+
+
+  public void test_publishing_failure_reported() throws InterruptedException {
+    myServerMutex.acquire();
+    // The HTTP client is supposed to wait for server for twice as less as we are waiting for its results
+    // and the test HTTP server is supposed to wait for twice as much
+    myPublisher.setConnectionTimeout(TIMEOUT / 2);
+    myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), myRevision);
+    // The server mutex is never released, so the server does not respond until it times out
+    then(waitForRequest()).isNull();
+    Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
+    then(problems.size()).isEqualTo(1);
+    then(problems.iterator().next().getProblem().getDescription()).matches(String.format("Publish status error in build.*%s.*timed out.*", myBuildType.getExternalId()));
+    myServerMutex.release();
   }
 
   public void test_buildFinished_Failed() throws InterruptedException {
@@ -167,7 +189,7 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
     return null != myExpectedRegExps.get(eventType);
   }
 
-  private String waitForRequest() throws InterruptedException {
+  protected String waitForRequest() throws InterruptedException {
     myClientMutex.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS);
     return getRequestAsString();
   }

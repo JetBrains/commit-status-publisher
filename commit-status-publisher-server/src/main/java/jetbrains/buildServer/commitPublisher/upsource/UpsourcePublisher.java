@@ -1,11 +1,13 @@
 package jetbrains.buildServer.commitPublisher.upsource;
 
 import com.google.gson.Gson;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.HttpBasedCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.PublishError;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
 import org.apache.http.entity.ContentType;
@@ -16,7 +18,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
+class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
 
   private static final String UPSOURCE_ENDPOINT = "~buildStatus";
   private static final String PROJECT_FIELD = "project";
@@ -33,11 +35,13 @@ public class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
   private final WebLinks myLinks;
   private final Gson myGson = new Gson();
 
-  public UpsourcePublisher(@NotNull VcsModificationHistory vcsHistory,
+  UpsourcePublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId,
+                           @NotNull VcsModificationHistory vcsHistory,
                            @NotNull final ExecutorServices executorServices,
                            @NotNull WebLinks links,
-                           @NotNull Map<String, String> params) {
-    super(executorServices, params);
+                           @NotNull Map<String, String> params,
+                           @NotNull CommitStatusPublisherProblems problems) {
+    super(buildType, buildFeatureId, executorServices, params, problems);
     myVcsHistory = vcsHistory;
     myLinks = links;
   }
@@ -48,6 +52,7 @@ public class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
     return "upsource";
   }
 
+  @NotNull
   @Override
   public String getId() {
     return Constants.UPSOURCE_PUBLISHER_ID;
@@ -113,7 +118,7 @@ public class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
             commitMessage,
             commitDate);
     try {
-      publish(payload);
+      publish(payload, LogUtil.describe(build));
     } catch (Exception e) {
       throw new PublishError("Cannot publish status to Upsource for VCS root " +
               revision.getRoot().getName() + ": " + e.toString(), e);
@@ -121,10 +126,10 @@ public class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
   }
 
 
-  private void publish(@NotNull String payload) throws IOException {
+  private void publish(@NotNull String payload, @NotNull String buildDescription) throws IOException {
     String url = myParams.get(Constants.UPSOURCE_SERVER_URL) + "/" + UPSOURCE_ENDPOINT;
     postAsync(url, myParams.get(Constants.UPSOURCE_USERNAME),
-            myParams.get(Constants.UPSOURCE_PASSWORD), payload, ContentType.APPLICATION_JSON, null);
+            myParams.get(Constants.UPSOURCE_PASSWORD), payload, ContentType.APPLICATION_JSON, null, buildDescription);
   }
 
   @NotNull

@@ -4,10 +4,13 @@ import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.HttpPublisherServerBasedTest;
 import jetbrains.buildServer.commitPublisher.github.api.impl.GitHubApiFactoryImpl;
 import jetbrains.buildServer.commitPublisher.github.api.impl.HttpClientWrapperImpl;
-import jetbrains.buildServer.commitPublisher.stash.StashPublisher;
+import jetbrains.buildServer.serverSide.BasePropertiesModel;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,6 +40,15 @@ public class GitHubPublisherTest extends HttpPublisherServerBasedTest {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
+    new TeamCityProperties() {{
+      setModel(new BasePropertiesModel() {
+        @NotNull
+        @Override
+        public Map<String, String> getUserDefinedProperties() {
+          return Collections.singletonMap("teamcity.github.http.timeout", String.valueOf(TIMEOUT / 2));
+        }
+      });
+    }};
     Map<String, String> params = new HashMap<String, String>() {{
       put(Constants.GITHUB_USERNAME, "user");
       put(Constants.GITHUB_PASSWORD, "pwd");
@@ -45,6 +57,6 @@ public class GitHubPublisherTest extends HttpPublisherServerBasedTest {
 
     ChangeStatusUpdater changeStatusUpdater = new ChangeStatusUpdater(myExecServices,
             new GitHubApiFactoryImpl(new HttpClientWrapperImpl()), myWebLinks);
-    myPublisher = new GitHubPublisher(changeStatusUpdater, params);
+    myPublisher = new GitHubPublisher(myBuildType, FEATURE_ID, changeStatusUpdater, params, myProblems);
   }
 }

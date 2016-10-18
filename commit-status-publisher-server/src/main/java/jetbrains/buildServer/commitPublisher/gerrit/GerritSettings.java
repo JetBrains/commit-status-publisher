@@ -1,10 +1,12 @@
 package jetbrains.buildServer.commitPublisher.gerrit;
 
 import jetbrains.buildServer.ExtensionHolder;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
@@ -24,14 +26,17 @@ public class GerritSettings implements CommitStatusPublisherSettings {
   private final String[] myMandatoryProperties = new String[] {
           Constants.GERRIT_SERVER, Constants.GERRIT_PROJECT, Constants.GERRIT_USERNAME,
           Constants.GERRIT_SUCCESS_VOTE, Constants.GERRIT_FAILURE_VOTE, TEAMCITY_SSH_KEY_PROP};
+  private CommitStatusPublisherProblems myProblems;
 
 
   public GerritSettings(@NotNull PluginDescriptor descriptor,
                         @NotNull ExtensionHolder extensionHolder,
-                        @NotNull WebLinks links) {
+                        @NotNull WebLinks links,
+                        @NotNull CommitStatusPublisherProblems problems) {
     myDescriptor = descriptor;
     myExtensionHolder = extensionHolder;
     myLinks = links;
+    myProblems = problems;
   }
 
   @NotNull
@@ -64,19 +69,18 @@ public class GerritSettings implements CommitStatusPublisherSettings {
   }
 
   @Nullable
-  public GerritPublisher createPublisher(@NotNull Map<String, String> params) {
+  public GerritPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
     Collection<ServerSshKeyManager> extensions = myExtensionHolder.getExtensions(ServerSshKeyManager.class);
     if (extensions.isEmpty()) {
-      return new GerritPublisher(null, myLinks, params);
+      return new GerritPublisher(buildType, buildFeatureId, null, myLinks, params, myProblems);
     } else {
-      return new GerritPublisher(extensions.iterator().next(), myLinks, params);
+      return new GerritPublisher(buildType, buildFeatureId, extensions.iterator().next(), myLinks, params, myProblems);
     }
   }
 
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
-    GerritPublisher publisher = createPublisher(params);
-    return "Gerrit " + WebUtil.escapeXml(publisher.getGerritServer()) + "/" + WebUtil.escapeXml(publisher.getGerritProject());
+    return "Gerrit " + WebUtil.escapeXml(params.get(Constants.GERRIT_SERVER)) + "/" + WebUtil.escapeXml(params.get(Constants.GERRIT_PROJECT));
   }
 
   @Nullable

@@ -12,13 +12,16 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
   protected final PluginDescriptor myDescriptor;
   protected final WebLinks myLinks;
   protected final ExecutorServices myExecutorServices;
+  protected CommitStatusPublisherProblems myProblems;
 
   public BasePublisherSettings(@NotNull final ExecutorServices executorServices,
                                @NotNull PluginDescriptor descriptor,
-                               @NotNull WebLinks links) {
+                               @NotNull WebLinks links,
+                               @NotNull CommitStatusPublisherProblems problems) {
     myDescriptor = descriptor;
     myLinks= links;
     myExecutorServices = executorServices;
+    myProblems = problems;
   }
 
   @Nullable

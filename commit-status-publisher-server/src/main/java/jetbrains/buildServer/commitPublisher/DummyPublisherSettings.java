@@ -1,13 +1,14 @@
 package jetbrains.buildServer.commitPublisher;
 
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
+import jetbrains.buildServer.serverSide.SBuildType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
-public class DummyPublisherSettings implements CommitStatusPublisherSettings {
-  public static final String ID = "--";
+class DummyPublisherSettings implements CommitStatusPublisherSettings {
+  static final String ID = "--";
 
   @NotNull
   public String getId() {
@@ -25,7 +26,7 @@ public class DummyPublisherSettings implements CommitStatusPublisherSettings {
   }
 
   @Nullable
-  public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
+  public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
     return null;
   }
 

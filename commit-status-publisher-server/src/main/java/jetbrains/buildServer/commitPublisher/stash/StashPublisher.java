@@ -2,11 +2,13 @@ package jetbrains.buildServer.commitPublisher.stash;
 
 import com.google.gson.*;
 import com.intellij.openapi.diagnostic.Logger;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.HttpBasedCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.PublishError;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.http.HttpEntity;
@@ -25,17 +27,19 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.util.Map;
 
-public class StashPublisher extends HttpBasedCommitStatusPublisher {
+class StashPublisher extends HttpBasedCommitStatusPublisher {
   private static final String PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
 
   private static final Logger LOG = Logger.getInstance(StashPublisher.class.getName());
 
   private final WebLinks myLinks;
 
-  public StashPublisher(@NotNull final ExecutorServices executorServices,
+  StashPublisher(@NotNull SBuildType buildType,@NotNull String buildFeatureId,
+                        @NotNull final ExecutorServices executorServices,
                         @NotNull WebLinks links,
-                        @NotNull Map<String, String> params) {
-    super(executorServices, params);
+                        @NotNull Map<String, String> params,
+                        @NotNull CommitStatusPublisherProblems problems) {
+    super(buildType, buildFeatureId, executorServices, params, problems);
     myLinks = links;
   }
 
@@ -44,6 +48,7 @@ public class StashPublisher extends HttpBasedCommitStatusPublisher {
     return "stash";
   }
 
+  @NotNull
   @Override
   public String getId() {
     return Constants.STASH_PUBLISHER_ID;
@@ -126,7 +131,7 @@ public class StashPublisher extends HttpBasedCommitStatusPublisher {
                     @NotNull String comment) {
     String msg = createMessage(status, build.getBuildPromotion().getBuildTypeExternalId(), getBuildName(build), myLinks.getViewResultsUrl(build), comment);
     try {
-      vote(revision.getRevision(), msg);
+      vote(revision.getRevision(), msg, LogUtil.describe(build));
     } catch (Exception e) {
       throw new PublishError("Cannot publish status to Bitbucket Server for VCS root " +
               revision.getRoot().getName() + ": " + getMessage(e), e);
@@ -139,7 +144,7 @@ public class StashPublisher extends HttpBasedCommitStatusPublisher {
                     @NotNull String comment) {
     String msg = createMessage(status, build.getBuildPromotion().getBuildTypeExternalId(), getBuildName(build), myLinks.getQueuedBuildUrl(build), comment);
     try {
-      vote(revision.getRevision(), msg);
+      vote(revision.getRevision(), msg, LogUtil.describe(build));
     } catch (Exception e) {
       throw new PublishError("Cannot publish status to Bitbucket Server for VCS root " +
               revision.getRoot().getName() + ": " + getMessage(e), e);
@@ -169,10 +174,10 @@ public class StashPublisher extends HttpBasedCommitStatusPublisher {
     return result.replaceAll("\\\\'", "'");
   }
 
-  private void vote(@NotNull String commit, @NotNull String data) throws URISyntaxException, IOException,
+  private void vote(@NotNull String commit, @NotNull String data, @NotNull String buildDescription) throws URISyntaxException, IOException,
           UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
     String url = getBaseUrl() + "/rest/build-status/1.0/commits/" + commit;
-    postAsync(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, null);
+    postAsync(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, null, buildDescription);
   }
 
   @Override
@@ -224,7 +229,7 @@ public class StashPublisher extends HttpBasedCommitStatusPublisher {
     return build.getBuildType().getName();
   }
 
-  String getBaseUrl() {
+  private String getBaseUrl() {
     return myParams.get(Constants.STASH_BASE_URL);
   }
 

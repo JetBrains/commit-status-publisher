@@ -1,11 +1,15 @@
 package jetbrains.buildServer.commitPublisher.gitlab;
 
+import jetbrains.buildServer.commitPublisher.BasePublisherSettings;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -15,14 +19,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-public class GitlabSettings implements CommitStatusPublisherSettings {
+public class GitlabSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
-  private final WebLinks myLinks;
-  private final ExecutorServices myExecutorServices;
 
-  public GitlabSettings(@NotNull ExecutorServices executorServices, @NotNull WebLinks links) {
-    myExecutorServices = executorServices;
-    myLinks = links;
+  public GitlabSettings(@NotNull ExecutorServices executorServices,
+                        @NotNull PluginDescriptor descriptor,
+                        @NotNull WebLinks links,
+                        @NotNull CommitStatusPublisherProblems problems) {
+    super(executorServices, descriptor, links, problems);
   }
 
   @NotNull
@@ -43,30 +47,17 @@ public class GitlabSettings implements CommitStatusPublisherSettings {
     return "gitlab/gitlabSettings.jsp";
   }
 
-  @Nullable
-  @Override
-  public Map<String, String> getDefaultParameters() {
-    return null;
-  }
-
-  @Nullable
-  @Override
-  public Map<String, String> transformParameters(@NotNull Map<String, String> params) {
-    return null;
-  }
-
   @NotNull
   @Override
-  public GitlabPublisher createPublisher(@NotNull Map<String, String> params) {
-    return new GitlabPublisher(myExecutorServices, myLinks, params);
+  public GitlabPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
+    return new GitlabPublisher(buildType, buildFeatureId, myExecutorServices, myLinks, params, myProblems);
   }
 
   @NotNull
   @Override
   public String describeParameters(@NotNull Map<String, String> params) {
     String result = "Publish status to GitLab";
-    GitlabPublisher publisher = createPublisher(params);
-    String url = publisher.getApiUrl();
+    String url = params.get(Constants.GITLAB_API_URL);
     if (url != null)
       result += " " + WebUtil.escapeXml(url);
     return result;
@@ -85,10 +76,5 @@ public class GitlabSettings implements CommitStatusPublisherSettings {
         return errors;
       }
     };
-  }
-
-  @Override
-  public boolean isEnabled() {
-    return true;
   }
 }

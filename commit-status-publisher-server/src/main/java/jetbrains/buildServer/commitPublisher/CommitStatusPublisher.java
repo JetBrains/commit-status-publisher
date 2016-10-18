@@ -23,12 +23,19 @@ public interface CommitStatusPublisher {
 
   boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress);
 
+  @NotNull
+  String getBuildFeatureId();
+
+  @NotNull
+  SBuildType getBuildType();
+
   @Nullable
   String getVcsRootId();
 
   @NotNull
   String toString();
 
+  @NotNull
   String getId();
 
   void setConnectionTimeout(int timeout);

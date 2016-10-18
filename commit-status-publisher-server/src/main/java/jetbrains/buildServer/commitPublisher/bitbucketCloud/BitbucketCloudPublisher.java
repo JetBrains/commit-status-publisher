@@ -8,6 +8,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.web.util.WebUtil;
@@ -17,10 +18,8 @@ import org.apache.http.StatusLine;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -28,15 +27,17 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.util.Map;
 
-public class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
+class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   private static final Logger LOG = Logger.getInstance(BitbucketCloudPublisher.class.getName());
   private String myBaseUrl = "https://api.bitbucket.org/";
   private final WebLinks myLinks;
 
-  public BitbucketCloudPublisher(@NotNull final ExecutorServices executorServices,
+  BitbucketCloudPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId,
+                                 @NotNull final ExecutorServices executorServices,
                                  @NotNull WebLinks links,
-                                 @NotNull Map<String, String> params) {
-    super(executorServices, params);
+                                 @NotNull Map<String, String> params,
+                                 @NotNull CommitStatusPublisherProblems problems) {
+    super(buildType, buildFeatureId, executorServices, params, problems);
     myLinks = links;
   }
 
@@ -46,6 +47,7 @@ public class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
+  @NotNull
   public String getId() {
     return Constants.BITBUCKET_PUBLISHER_ID;
   }
@@ -107,7 +109,7 @@ public class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
       Repository repository = BitbucketCloudRepositoryParser.parseRepository(root);
       if (repository == null)
         throw new PublishError("Cannot parse repository from VCS root url " + root.getName());
-      vote(revision.getRevision(), msg, repository);
+      vote(revision.getRevision(), msg, repository, LogUtil.describe(build));
     } catch (Exception e) {
       throw new PublishError("Cannot publish status to Bitbucket Cloud for VCS root " +
               revision.getRoot().getName() + ": " + getMessage(e), e);
@@ -137,11 +139,11 @@ public class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
     return result.replaceAll("\\\\'", "'");
   }
 
-  private void vote(@NotNull String commit, @NotNull String data, @NotNull Repository repository) throws URISyntaxException, IOException,
+  private void vote(@NotNull String commit, @NotNull String data, @NotNull Repository repository, @NotNull String buildDescription) throws URISyntaxException, IOException,
           UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException, BitBucketException {
     LOG.debug(getBaseUrl() + " :: " + commit + " :: " + data);
     String url = getBaseUrl() + "2.0/repositories/" + repository.owner() + "/" + repository.repositoryName() + "/commit/" + commit + "/statuses/build";
-    postAsync(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, null);
+    postAsync(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, null, buildDescription);
   }
 
 

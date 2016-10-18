@@ -29,8 +29,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherJMoc
     final PublisherManager myPublisherManager = new PublisherManager(Collections.<CommitStatusPublisherSettings>singletonList(new CommitStatusPublisherListenerTest.MockPublisherSettings()));
     final BuildHistory history = m.mock(BuildHistory.class);
     myListener = new CommitStatusPublisherListener(EventDispatcher.create(BuildServerListener.class), myPublisherManager, history, myRBManager, myProblems);
-    myPublisher = new MockPublisherRegisterFailure();
-
+    myPublisher = new MockPublisherRegisterFailure(myBuildType, myProblems);
     final VcsRootInstance vcsRootInstance = m.mock(VcsRootInstance.class);
     final SVcsRoot vcsRoot = m.mock(SVcsRoot.class);
     myRevision = new BuildRevision(vcsRootInstance, "revision1", "*", "Revision");
@@ -92,8 +91,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherJMoc
 
     private boolean myFailureReceived = false;
 
-    MockPublisherRegisterFailure() {
-      super(PUBLISHER_ID);
+    MockPublisherRegisterFailure(SBuildType buildType, CommitStatusPublisherProblems problems) {
+      super(PUBLISHER_ID, buildType, myFeatureDescriptor.getId(), Collections.<String, String>emptyMap(), problems);
     }
 
     boolean isFailureReceived() { return myFailureReceived; }
@@ -114,7 +113,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherJMoc
     }
 
     @Override
-    public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
+    public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
       return myPublisher;
     }
   }

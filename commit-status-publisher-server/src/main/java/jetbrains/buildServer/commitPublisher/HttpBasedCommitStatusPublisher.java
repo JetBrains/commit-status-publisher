@@ -1,6 +1,7 @@
 package jetbrains.buildServer.commitPublisher;
 
 import com.intellij.openapi.diagnostic.Logger;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.ExceptionUtil;
 import org.apache.commons.beanutils.PropertyUtils;
@@ -44,13 +45,17 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
 
   private final ExecutorServices myExecutorServices;
 
-  public HttpBasedCommitStatusPublisher(@NotNull final ExecutorServices executorServices, @NotNull Map<String, String> params) {
-    super(params);
+  public HttpBasedCommitStatusPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId,
+                                        @NotNull final ExecutorServices executorServices,
+                                        @NotNull Map<String, String> params,
+                                        @NotNull CommitStatusPublisherProblems problems) {
+    super(buildType, buildFeatureId, params, problems);
     myExecutorServices = executorServices;
   }
 
   protected Future postAsync(final String url, final String username, final String password,
-                             final String data, final ContentType contentType, final Map<String, String> headers) {
+                             final String data, final ContentType contentType, final Map<String, String> headers,
+                             final String buildDescription) {
     ExecutorService service = myExecutorServices.getLowPriorityExecutorService();
     return service.submit(ExceptionUtil.catchAll("posting commit status", new Runnable() {
       @Override
@@ -58,7 +63,8 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
         try {
           post(url, username, password, data, contentType, headers, getConnectionTimeout());
         } catch (Exception ex) {
-          throw new RuntimeException("Async HTTP POST request failure", ex);
+          myProblems.reportProblem(HttpBasedCommitStatusPublisher.this, buildDescription, ex);
+          throw new PublishError("Commit status publishing HTTP request failed", ex);
         }
       }
     }));

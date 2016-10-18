@@ -1,22 +1,21 @@
 package jetbrains.buildServer.commitPublisher;
 
 import com.intellij.openapi.util.io.StreamUtil;
-import jetbrains.buildServer.util.SimpleHttpServer;
 import org.apache.http.*;
 import org.apache.http.config.SocketConfig;
 import org.apache.http.impl.bootstrap.HttpServer;
 import org.apache.http.impl.bootstrap.ServerBootstrap;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
-import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 import java.io.*;
-import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 /**
  * @author anton.zamolotskikh, 05/10/16.
  */
+@Test
 public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedTest {
 
   private HttpServer myHttpServer;
@@ -36,14 +35,15 @@ public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedT
 
     myLastRequest = null;
 
-    final SocketConfig socketConfig = SocketConfig.custom().setSoTimeout(TIMEOUT).build();
+    final SocketConfig socketConfig = SocketConfig.custom().setSoTimeout(TIMEOUT * 2).build();
     ServerBootstrap bootstrap = ServerBootstrap.bootstrap().setSocketConfig(socketConfig).setServerInfo("TEST/1.1")
             .registerHandler("/*", new HttpRequestHandler() {
               @Override
               public void handle(HttpRequest httpRequest, HttpResponse httpResponse, HttpContext httpContext) throws HttpException, IOException {
                 try {
-                  if (!myServerMutex.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS))
+                  if (!myServerMutex.tryAcquire(TIMEOUT * 2, TimeUnit.MILLISECONDS)) {
                     return;
+                  }
                 } catch (InterruptedException ex) {
                   fail("Test HTTP server thread interrupted");
                 }

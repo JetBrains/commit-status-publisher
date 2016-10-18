@@ -17,14 +17,13 @@
 package jetbrains.buildServer.commitPublisher.github;
 
 import com.intellij.openapi.diagnostic.Logger;
-import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.commitPublisher.Repository;
-import jetbrains.buildServer.commitPublisher.GitRepositoryParser;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.*;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -49,7 +48,7 @@ public class ChangeStatusUpdater {
   private final GitHubApiFactory myFactory;
   private final WebLinks myWeb;
 
-  public ChangeStatusUpdater(@NotNull final ExecutorServices services,
+  ChangeStatusUpdater(@NotNull final ExecutorServices services,
                              @NotNull final GitHubApiFactory factory,
                              @NotNull final WebLinks web) {
     myFactory = factory;
@@ -84,7 +83,7 @@ public class ChangeStatusUpdater {
   }
 
   @Nullable
-  public Handler getUpdateHandler(@NotNull VcsRootInstance root, @NotNull Map<String, String> params) {
+  Handler getUpdateHandler(@NotNull VcsRootInstance root, @NotNull Map<String, String> params, @NotNull final GitHubPublisher publisher) {
     final GitHubApi api = getGitHubApi(params);
 
     String url = root.getProperty("url");
@@ -121,13 +120,18 @@ public class ChangeStatusUpdater {
         scheduleChangeUpdate(version, build, "TeamCity build started", GitHubChangeState.Pending);
       }
 
-      public void scheduleChangeCompeted(@NotNull RepositoryVersion version, @NotNull SBuild build) {
+      public void scheduleChangeCompleted(@NotNull RepositoryVersion version, @NotNull SBuild build) {
         LOG.debug("Status :" + build.getStatusDescriptor().getStatus().getText());
         LOG.debug("Status Priority:" + build.getStatusDescriptor().getStatus().getPriority());
 
         final GitHubChangeState status = getGitHubChangeState(build);
         final String text = getGitHubChangeText(build);
         scheduleChangeUpdate(version, build, text, status);
+      }
+
+      @NotNull
+      GitHubPublisher getPublisher() {
+        return publisher;
       }
 
       @NotNull
@@ -271,6 +275,8 @@ public class ChangeStatusUpdater {
 
           public void run() {
             final String hash = resolveCommitHash();
+            final GitHubPublisher publisher = getPublisher();
+            final CommitStatusPublisherProblems problems = publisher.getProblems();
             boolean prMergeBranch = !hash.equals(version.getVersion());
             try {
               api.setChangeStatus(
@@ -284,6 +290,7 @@ public class ChangeStatusUpdater {
               );
               LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
             } catch (IOException e) {
+              problems.reportProblem(publisher, LogUtil.describe(build), e);
               LOG.warn("Failed to update GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status + ". " + e.getMessage(), e);
             }
             if (addComments) {
@@ -296,6 +303,7 @@ public class ChangeStatusUpdater {
                 );
                 LOG.info("Added comment to GitHub commit: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
               } catch (IOException e) {
+                problems.reportProblem(publisher, LogUtil.describe(build), e);
                 LOG.warn("Failed add GitHub comment for branch: " + version.getVcsBranch() + ", buildId: " + build.getBuildId() + ", status: " + status + ". " + e.getMessage(), e);
               }
             }
@@ -305,10 +313,10 @@ public class ChangeStatusUpdater {
     };
   }
 
-  public static interface Handler {
+  interface Handler {
     boolean shouldReportOnStart();
     boolean shouldReportOnFinish();
     void scheduleChangeStarted(@NotNull final RepositoryVersion hash, @NotNull final SBuild build);
-    void scheduleChangeCompeted(@NotNull final RepositoryVersion hash, @NotNull final SBuild build);
+    void scheduleChangeCompleted(@NotNull final RepositoryVersion hash, @NotNull final SBuild build);
   }
 }

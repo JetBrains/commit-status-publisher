@@ -1,11 +1,9 @@
 package jetbrains.buildServer.commitPublisher.stash;
 
-import jetbrains.buildServer.commitPublisher.BasePublisherSettings;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
-import jetbrains.buildServer.commitPublisher.Constants;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
@@ -22,8 +20,9 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
 
   public StashSettings(@NotNull final ExecutorServices executorServices,
                        @NotNull PluginDescriptor descriptor,
-                       @NotNull WebLinks links) {
-    super(executorServices, descriptor, links);
+                       @NotNull WebLinks links,
+                       @NotNull CommitStatusPublisherProblems problems) {
+    super(executorServices, descriptor, links, problems);
   }
 
   @NotNull
@@ -42,14 +41,13 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
   }
 
   @Nullable
-  public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
-    return new StashPublisher(myExecutorServices, myLinks, params);
+  public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
+    return new StashPublisher(buildType, buildFeatureId, myExecutorServices, myLinks, params, myProblems);
   }
 
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
-    StashPublisher voter = (StashPublisher) createPublisher(params);
-    String url = voter.getBaseUrl();
+    String url = params.get(Constants.STASH_BASE_URL);
     return getName() + (url != null ? " " + WebUtil.escapeXml(url) : "");
   }
 

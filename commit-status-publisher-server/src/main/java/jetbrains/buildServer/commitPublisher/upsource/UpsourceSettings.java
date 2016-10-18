@@ -1,13 +1,7 @@
 package jetbrains.buildServer.commitPublisher.upsource;
 
-import jetbrains.buildServer.commitPublisher.BasePublisherSettings;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
-import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.serverSide.InvalidProperty;
-import jetbrains.buildServer.serverSide.PropertiesProcessor;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
-import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
@@ -28,8 +22,9 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
   public UpsourceSettings(@NotNull VcsModificationHistory vcsHistory,
                           @NotNull final ExecutorServices executorServices,
                           @NotNull PluginDescriptor descriptor,
-                          @NotNull WebLinks links) {
-    super(executorServices, descriptor, links);
+                          @NotNull WebLinks links,
+                          @NotNull CommitStatusPublisherProblems problems) {
+    super(executorServices, descriptor, links, problems);
     myVcsHistory = vcsHistory;
   }
 
@@ -49,8 +44,8 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
   }
 
   @Nullable
-  public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
-    return new UpsourcePublisher(myVcsHistory, myExecutorServices, myLinks, params);
+  public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
+    return new UpsourcePublisher(buildType, buildFeatureId, myVcsHistory, myExecutorServices, myLinks, params, myProblems);
   }
 
   @NotNull

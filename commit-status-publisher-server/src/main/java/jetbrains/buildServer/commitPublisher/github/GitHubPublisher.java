@@ -4,20 +4,23 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class GitHubPublisher extends BaseCommitStatusPublisher {
+class GitHubPublisher extends BaseCommitStatusPublisher {
 
   private static final Logger LOG = Logger.getInstance(GitHubPublisher.class.getName());
 
   private final ChangeStatusUpdater myUpdater;
 
-  public GitHubPublisher(@NotNull ChangeStatusUpdater updater,
-                         @NotNull Map<String, String> params) {
-    super(params);
+  GitHubPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId,
+                         @NotNull ChangeStatusUpdater updater,
+                         @NotNull Map<String, String> params,
+                         @NotNull CommitStatusPublisherProblems problems) {
+    super(buildType, buildFeatureId, params, problems);
     myUpdater = updater;
   }
 
@@ -26,6 +29,7 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
     return "github";
   }
 
+  @NotNull
   @Override
   public String getId() {
     return Constants.GITHUB_PUBLISHER_ID;
@@ -51,7 +55,7 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
 
 
   private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) {
-    final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), getParams(build));
+    final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), getParams(build), this);
 
     if (h == null)
       return;
@@ -67,7 +71,7 @@ public class GitHubPublisher extends BaseCommitStatusPublisher {
     if (isStarting) {
       h.scheduleChangeStarted(revision.getRepositoryVersion(), build);
     } else {
-      h.scheduleChangeCompeted(revision.getRepositoryVersion(), build);
+      h.scheduleChangeCompleted(revision.getRepositoryVersion(), build);
     }
   }
 

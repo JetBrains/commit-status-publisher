@@ -2,7 +2,6 @@ package jetbrains.buildServer.commitPublisher.gitlab;
 
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.HttpPublisherServerBasedTest;
-import jetbrains.buildServer.commitPublisher.stash.StashPublisher;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -39,6 +38,6 @@ public class GitlabPublisherTest extends HttpPublisherServerBasedTest {
       put(Constants.GITLAB_TOKEN, "TOKEN");
       put(Constants.GITLAB_API_URL, getServerUrl());
     }};
-    myPublisher = new GitlabPublisher(myExecServices, myWebLinks, params);
+    myPublisher = new GitlabPublisher(myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
   }
 }

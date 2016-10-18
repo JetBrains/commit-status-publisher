@@ -1,10 +1,12 @@
 package jetbrains.buildServer.commitPublisher.github;
 
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -21,9 +23,12 @@ import java.util.Map;
 public class GitHubSettings implements CommitStatusPublisherSettings {
 
   private final ChangeStatusUpdater myUpdater;
+  private CommitStatusPublisherProblems myProblems;
 
-  public GitHubSettings(@NotNull ChangeStatusUpdater updater) {
+  public GitHubSettings(@NotNull ChangeStatusUpdater updater,
+                        @NotNull CommitStatusPublisherProblems problems) {
     myUpdater = updater;
+    myProblems = problems;
   }
 
   @NotNull
@@ -64,8 +69,8 @@ public class GitHubSettings implements CommitStatusPublisherSettings {
   }
 
   @Nullable
-  public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
-    return new GitHubPublisher(myUpdater, params);
+  public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
+    return new GitHubPublisher(buildType, buildFeatureId, myUpdater, params, myProblems);
   }
 
   @NotNull

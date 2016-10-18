@@ -23,7 +23,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   private final RunningBuildsManager myRunningBuilds;
   private final CommitStatusPublisherProblems myProblems;
 
-  public CommitStatusPublisherListener(@NotNull EventDispatcher<BuildServerListener> events,
+  CommitStatusPublisherListener(@NotNull EventDispatcher<BuildServerListener> events,
                                        @NotNull PublisherManager voterManager,
                                        @NotNull BuildHistory buildHistory,
                                        @NotNull RunningBuildsManager runningBuilds,
@@ -188,7 +188,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
                 publisher + ", skip it");
         continue;
       }
-      runTask(event, buildType, build.getBuildPromotion(), LogUtil.describe(build), task, pubEntry.getKey(), publisher, revision);
+      runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision);
     }
     myProblems.clearObsoleteProblems(buildType, publishers.keySet());
   }
@@ -204,26 +204,24 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
                 publisher + ", skip it");
         continue;
       }
-      runTask(event, buildType, build.getBuildPromotion(), LogUtil.describe(build), task, pubEntry.getKey(), publisher, revision);
+      runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision);
     }
     myProblems.clearObsoleteProblems(buildType, publishers.keySet());
   }
 
   private void runTask(@NotNull String event,
-                       @NotNull SBuildType buildType,
                        @NotNull BuildPromotion promotion,
                        @NotNull String buildDescription,
                        @NotNull PublishTask task,
-                       @NotNull String buildFeatureId,
                        @NotNull CommitStatusPublisher publisher,
                        @NotNull BuildRevision revision) {
     try {
       if (task.run(publisher, revision))
-        myProblems.clearProblem(buildType, buildFeatureId);
+        myProblems.clearProblem(publisher);
     } catch (Throwable t) {
       LOG.warnAndDebugDetails("Error while running publisher " + publisher + ", event " + event + ", build " + buildDescription + ", revision " + revision, t);
-      reportProblem(buildType, buildFeatureId, buildDescription, t);
-      if (shouldFailBuild(buildType)) {
+      myProblems.reportProblem(publisher, buildDescription, t);
+      if (shouldFailBuild(publisher.getBuildType())) {
         String problemId = "commitStatusPublisher." + publisher.getId() + "." + revision.getRoot().getId();
         String problemDescription = t instanceof PublishError ? t.getMessage() : t.toString();
         BuildProblemData buildProblem = BuildProblemData.createBuildProblem(problemId, "commitStatusPublisherProblem", problemDescription);
@@ -237,9 +235,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     for (SBuildFeatureDescriptor buildFeatureDescriptor : buildType.getResolvedSettings().getBuildFeatures()) {
       BuildFeature buildFeature = buildFeatureDescriptor.getBuildFeature();
       if (buildFeature instanceof CommitStatusPublisherFeature) {
-        CommitStatusPublisher publisher = myPublisherManager.createPublisher(buildFeatureDescriptor.getParameters());
+        String featureId = buildFeatureDescriptor.getId();
+        CommitStatusPublisher publisher = myPublisherManager.createPublisher(buildType, featureId, buildFeatureDescriptor.getParameters());
         if (publisher != null)
-          publishers.put(buildFeatureDescriptor.getId(), publisher);
+          publishers.put(featureId, publisher);
       }
     }
     return publishers;
@@ -327,19 +326,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private interface PublishTask {
     boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision);
-  }
-
-  private void reportProblem(@NotNull SBuildType buildType,
-                             @NotNull String buildFeatureId,
-                             @NotNull String buildDescription,
-                             @NotNull Throwable t) {
-    String description = "Publish status error in build " + buildDescription + ": ";
-    if (t instanceof PublishError) {
-      description += t.getMessage();
-    } else {
-      description += t.toString();
-    }
-    myProblems.reportProblem(buildType, buildFeatureId, description);
   }
 
   private boolean isBuildInProgress(SBuild build) {

@@ -1,10 +1,9 @@
 package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
-import jetbrains.buildServer.commitPublisher.Constants;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.StringUtil;
@@ -17,18 +16,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-public class BitbucketCloudSettings implements CommitStatusPublisherSettings {
-
-  private final PluginDescriptor myDescriptor;
-  private final WebLinks myLinks;
-  private final ExecutorServices myExecutorServices;
+public class BitbucketCloudSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
   public BitbucketCloudSettings(@NotNull final ExecutorServices executorServices,
                                 @NotNull PluginDescriptor descriptor,
-                                @NotNull WebLinks links) {
-    myDescriptor = descriptor;
-    myLinks= links;
-    myExecutorServices = executorServices;
+                                @NotNull WebLinks links,
+                                @NotNull CommitStatusPublisherProblems problems) {
+    super(executorServices, descriptor, links, problems);
   }
 
   @NotNull
@@ -46,20 +40,10 @@ public class BitbucketCloudSettings implements CommitStatusPublisherSettings {
     return myDescriptor.getPluginResourcesPath("bitbucketCloud/bitbucketCloudSettings.jsp");
   }
 
-  @Nullable
-  public Map<String, String> getDefaultParameters() {
-    return null;
-  }
 
   @Nullable
-  @Override
-  public Map<String, String> transformParameters(@NotNull Map<String, String> params) {
-    return null;
-  }
-
-  @Nullable
-  public CommitStatusPublisher createPublisher(@NotNull Map<String, String> params) {
-    return new BitbucketCloudPublisher(myExecutorServices, myLinks, params);
+  public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
+    return new BitbucketCloudPublisher(buildType, buildFeatureId, myExecutorServices, myLinks, params, myProblems);
   }
 
   @NotNull
@@ -82,9 +66,5 @@ public class BitbucketCloudSettings implements CommitStatusPublisherSettings {
         return errors;
       }
     };
-  }
-
-  public boolean isEnabled() {
-    return true;
   }
 }

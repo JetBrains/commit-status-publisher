@@ -11,9 +11,17 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
 
   protected final Map<String, String> myParams;
   private int myConnectionTimeout = 300 * 1000;
+  protected CommitStatusPublisherProblems myProblems;
+  protected SBuildType myBuildType;
+  private String myBuildFeatureId;
 
-  protected BaseCommitStatusPublisher(@NotNull Map<String, String> params) {
+  protected BaseCommitStatusPublisher(@NotNull SBuildType buildType,@NotNull String buildFeatureId,
+                                      @NotNull Map<String, String> params,
+                                      @NotNull CommitStatusPublisherProblems problems) {
     myParams = params;
+    myProblems = problems;
+    myBuildType = buildType;
+    myBuildFeatureId = buildFeatureId;
   }
 
   public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) {
@@ -60,4 +68,12 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   public String getVcsRootId() {
     return myParams.get(Constants.VCS_ROOT_ID_PARAM);
   }
+
+  @NotNull
+  public SBuildType getBuildType() { return myBuildType; }
+
+  @NotNull
+  public String getBuildFeatureId() { return myBuildFeatureId; }
+
+  public CommitStatusPublisherProblems getProblems() {return myProblems; }
 }

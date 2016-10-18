@@ -26,6 +26,7 @@ public class CommitStatusPublisherProblemsTest extends BaseJMockTestCase {
   private SystemProblemNotificationEngine myProblemEngine;
   private SBuildType myBuildType;
   private VcsManagerEx myVcsManager;
+  private CommitStatusPublisher myPublisher;
 
 
   @BeforeMethod
@@ -43,12 +44,13 @@ public class CommitStatusPublisherProblemsTest extends BaseJMockTestCase {
       will(returnValue("BT1_Internal"));
       allowing(myVcsManager).findVcsRoots(Collections.<Long>emptyList());
     }});
+    myPublisher = new MockPublisher("PUBLISHER1", myBuildType, FEATURE_1, Collections.<String, String>emptyMap(), myProblems);
   }
 
   public void must_add_and_delete_problems() {
-    myProblems.reportProblem(myBuildType, FEATURE_1, "Some problem description");
+    myProblems.reportProblem(myPublisher, "Some problem description");
     then(myProblemEngine.getProblems(myBuildType).size()).isEqualTo(1);
-    myProblems.clearProblem(myBuildType, FEATURE_1);
+    myProblems.clearProblem(myPublisher);
     then(myProblemEngine.getProblems(myBuildType).size()).isEqualTo(0);
   }
 
@@ -56,10 +58,11 @@ public class CommitStatusPublisherProblemsTest extends BaseJMockTestCase {
     final String PUB1_P1 = "First issue of publisher 1";
     final String PUB2_P1 = "First issue of publisher 2";
     final String PUB2_P2 = "Second issue of publisher 2";
+    CommitStatusPublisher publisher2 = new MockPublisher("PUBLISHER2", myBuildType, FEATURE_2, Collections.<String, String>emptyMap(), myProblems);
 
-    myProblems.reportProblem(myBuildType, FEATURE_2, PUB2_P1);
-    myProblems.reportProblem(myBuildType, FEATURE_1, PUB1_P1);
-    myProblems.reportProblem(myBuildType, FEATURE_2, PUB2_P2);
+    myProblems.reportProblem(publisher2, PUB2_P1);
+    myProblems.reportProblem(myPublisher, PUB1_P1);
+    myProblems.reportProblem(publisher2, PUB2_P2);
     Collection<SystemProblemEntry> problems = myProblemEngine.getProblems(myBuildType);
     then(problems.size()).isEqualTo(2);
     for (SystemProblemEntry pe: problems) {

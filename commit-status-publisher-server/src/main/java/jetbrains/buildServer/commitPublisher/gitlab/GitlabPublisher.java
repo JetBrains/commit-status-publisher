@@ -4,9 +4,9 @@ import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.web.util.WebUtil;
-import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -14,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collections;
 import java.util.Map;
 
-public class GitlabPublisher extends HttpBasedCommitStatusPublisher {
+class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   private static final String REFS_HEADS = "refs/heads/";
   private static final String REFS_TAGS = "refs/tags/";
@@ -22,12 +22,15 @@ public class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   private final WebLinks myLinks;
 
-  public GitlabPublisher(@NotNull ExecutorServices executorServices, @NotNull WebLinks links, @NotNull Map<String, String> params) {
-    super(executorServices, params);
+  GitlabPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId,
+                         @NotNull ExecutorServices executorServices, @NotNull WebLinks links, @NotNull Map<String, String> params,
+                         @NotNull CommitStatusPublisherProblems problems) {
+    super(buildType, buildFeatureId, executorServices, params, problems);
     myLinks = links;
   }
 
 
+  @NotNull
   @Override
   public String getId() {
     return Constants.GITLAB_PUBLISHER_ID;
@@ -87,17 +90,17 @@ public class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
     String message = createMessage(status, build, revision, myLinks.getViewResultsUrl(build), description);
     try {
-      publish(revision.getRevision(), message, repository);
+      publish(revision.getRevision(), message, repository, LogUtil.describe(build));
     } catch (Exception e) {
       throw new PublishError("Cannot publish status to GitLab for VCS root " +
               revision.getRoot().getName() + ": " + e.toString(), e);
     }
   }
 
-  private void publish(@NotNull String commit, @NotNull String data, @NotNull Repository repository) throws Exception {
+  private void publish(@NotNull String commit, @NotNull String data, @NotNull Repository repository, @NotNull String buildDescription) throws Exception {
     String url = getApiUrl() + "/projects/" + repository.owner() + "%2F" + repository.repositoryName() + "/statuses/" + commit;
     LOG.debug("Request url: " + url + ", message: " + data);
-    postAsync(url, null, null, data, ContentType.APPLICATION_JSON, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()));
+    postAsync(url, null, null, data, ContentType.APPLICATION_JSON, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), buildDescription);
   }
 
   @NotNull
@@ -149,7 +152,7 @@ public class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   }
 
 
-  String getApiUrl() {
+  private String getApiUrl() {
     return myParams.get(Constants.GITLAB_API_URL);
   }
 

@@ -21,32 +21,46 @@ public class CommitStatusPublisherProblems {
     myProblems = systemProblems;
   }
 
+  public void reportProblem(@NotNull CommitStatusPublisher publisher,
+                     @NotNull String buildDescription,
+                     @NotNull Throwable t) {
+    String description = "Publish status error in build " + buildDescription + ": ";
+    if (t instanceof PublishError) {
+      description += t.getMessage();
+    } else {
+      description += t.toString();
+    }
+    reportProblem(publisher, description);
+  }
 
-  void reportProblem(@NotNull SBuildType buildType,  @NotNull String buildFeatureId, @NotNull String problemDescription) {
+  void reportProblem(@NotNull CommitStatusPublisher publisher, @NotNull String problemDescription) {
+    SBuildType buildType = publisher.getBuildType();
     Lock lock = myLocks.get(buildType);
     lock.lock();
     try {
-      clearProblem(buildType, buildFeatureId);
+      clearProblem(publisher);
       SystemProblem problem = new SystemProblem(problemDescription, null, Constants.COMMIT_STATUS_PUBLISHER_PROBLEM_TYPE, null);
-      putTicket(buildType.getInternalId(), buildFeatureId, myProblems.raiseProblem(buildType, problem));
+      putTicket(buildType.getInternalId(), publisher.getBuildFeatureId(), myProblems.raiseProblem(buildType, problem));
     } finally {
       lock.unlock();
     }
   }
 
 
-  void clearProblem(@NotNull SBuildType buildType, @NotNull String buildFeatureId) {
+  void clearProblem(@NotNull CommitStatusPublisher publisher) {
+    SBuildType buildType = publisher.getBuildType();
+    String featureId = publisher.getBuildFeatureId();
     Lock lock = myLocks.get(buildType);
     lock.lock();
     try {
       String btId = buildType.getInternalId();
       if (myTickets.containsKey(btId)) {
         Map<String, SystemProblemTicket> tickets = myTickets.get(btId);
-        if (tickets.containsKey(buildFeatureId)) {
-          SystemProblemTicket ticket = tickets.get(buildFeatureId);
+        if (tickets.containsKey(featureId)) {
+          SystemProblemTicket ticket = tickets.get(featureId);
           if (ticket != null) {
             ticket.cancel();
-            tickets.remove(buildFeatureId);
+            tickets.remove(featureId);
           }
         }
       }
