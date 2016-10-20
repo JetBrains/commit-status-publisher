@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.locks.Lock;
 
 /**
  * Created by Eugene Petrenko (eugene.petrenko@gmail.com)
@@ -276,36 +277,42 @@ public class ChangeStatusUpdater {
           public void run() {
             final String hash = resolveCommitHash();
             final GitHubPublisher publisher = getPublisher();
+            final Lock lock = GitHubPublisher.getLocks().get(publisher.getBuildType().getExternalId());
             final CommitStatusPublisherProblems problems = publisher.getProblems();
             boolean prMergeBranch = !hash.equals(version.getVersion());
+            lock.lock();
             try {
-              api.setChangeStatus(
-                      repositoryOwner,
-                      repositoryName,
-                      hash,
-                      status,
-                      getViewResultsUrl(build),
-                      message,
-                      prMergeBranch ? context + " - merge" : context
-              );
-              LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
-            } catch (IOException e) {
-              problems.reportProblem(publisher, LogUtil.describe(build), e);
-              LOG.warn("Failed to update GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status + ". " + e.getMessage(), e);
-            }
-            if (addComments) {
               try {
-                api.postComment(
+                api.setChangeStatus(
                         repositoryOwner,
                         repositoryName,
                         hash,
-                        getComment(version, build, status != GitHubChangeState.Pending, hash)
+                        status,
+                        getViewResultsUrl(build),
+                        message,
+                        prMergeBranch ? context + " - merge" : context
                 );
-                LOG.info("Added comment to GitHub commit: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
+                LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
               } catch (IOException e) {
                 problems.reportProblem(publisher, LogUtil.describe(build), e);
-                LOG.warn("Failed add GitHub comment for branch: " + version.getVcsBranch() + ", buildId: " + build.getBuildId() + ", status: " + status + ". " + e.getMessage(), e);
+                LOG.warn("Failed to update GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status + ". " + e.getMessage(), e);
               }
+              if (addComments) {
+                try {
+                  api.postComment(
+                          repositoryOwner,
+                          repositoryName,
+                          hash,
+                          getComment(version, build, status != GitHubChangeState.Pending, hash)
+                  );
+                  LOG.info("Added comment to GitHub commit: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
+                } catch (IOException e) {
+                  problems.reportProblem(publisher, LogUtil.describe(build), e);
+                  LOG.warn("Failed add GitHub comment for branch: " + version.getVcsBranch() + ", buildId: " + build.getBuildId() + ", status: " + status + ". " + e.getMessage(), e);
+                }
+              }
+            } finally {
+              lock.unlock();
             }
           }
         }));

@@ -1,11 +1,13 @@
 package jetbrains.buildServer.commitPublisher;
 
+import com.google.common.util.concurrent.Striped;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
 
 public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher {
 
@@ -14,6 +16,7 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   protected CommitStatusPublisherProblems myProblems;
   protected SBuildType myBuildType;
   private String myBuildFeatureId;
+  private static final Striped<Lock> myLocks = Striped.lazyWeakLock(100);
 
   protected BaseCommitStatusPublisher(@NotNull SBuildType buildType,@NotNull String buildFeatureId,
                                       @NotNull Map<String, String> params,
@@ -56,7 +59,9 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     return false;
   }
 
-  protected int getConnectionTimeout() {
+  public static Striped<Lock> getLocks() { return myLocks; }
+
+  int getConnectionTimeout() {
     return myConnectionTimeout;
   }
 

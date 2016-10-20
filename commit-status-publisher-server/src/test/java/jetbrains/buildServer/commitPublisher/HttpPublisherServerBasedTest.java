@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedTest {
 
   private HttpServer myHttpServer;
+  private int myNumberOfCurrentRequests = 0;
   private String myLastRequest;
 
   @Override
@@ -31,6 +32,11 @@ public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedT
   }
 
   @Override
+  protected int getNumberOfCurrentRequests() {
+    return myNumberOfCurrentRequests;
+  }
+
+  @Override
   protected void setUp() throws Exception {
 
     myLastRequest = null;
@@ -40,8 +46,10 @@ public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedT
             .registerHandler("/*", new HttpRequestHandler() {
               @Override
               public void handle(HttpRequest httpRequest, HttpResponse httpResponse, HttpContext httpContext) throws HttpException, IOException {
+                myNumberOfCurrentRequests++;
                 try {
                   if (!myServerMutex.tryAcquire(TIMEOUT * 2, TimeUnit.MILLISECONDS)) {
+                    myNumberOfCurrentRequests--;
                     return;
                   }
                 } catch (InterruptedException ex) {
@@ -54,6 +62,7 @@ public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedT
                   myLastRequest += "\tENTITY: " + StreamUtil.readText(is);
                   httpResponse.setStatusCode(201);
                 }
+                myNumberOfCurrentRequests--;
                 myClientMutex.release();
               }
             });

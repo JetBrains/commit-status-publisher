@@ -34,7 +34,7 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   protected static final String COMMENT = "MyComment";
   protected static final String PROBLEM_DESCR = "Problem description";
   protected static final String FEATURE_ID = "MY_FEATURE_ID";
-  protected static final int TIMEOUT = 3000;
+  protected static final int TIMEOUT = 1000;
   protected Semaphore myServerMutex, myClientMutex;
 
   protected CommitStatusPublisher myPublisher;
@@ -105,7 +105,7 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   }
 
 
-  public void test_publishing_failure_reported() throws InterruptedException {
+  public void should_report_publishing_failure() throws InterruptedException {
     myServerMutex.acquire();
     // The HTTP client is supposed to wait for server for twice as less as we are waiting for its results
     // and the test HTTP server is supposed to wait for twice as much
@@ -118,6 +118,18 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
     then(problems.iterator().next().getProblem().getDescription()).matches(String.format("Publish status error in build.*%s.*timed out.*", myBuildType.getExternalId()));
     myServerMutex.release();
   }
+
+  public void should_publish_in_sequence() throws InterruptedException {
+    myServerMutex.acquire();
+    SFinishedBuild build = myFixture.createBuild(myBuildType, Status.NORMAL);
+    myPublisher.buildFinished(build, myRevision);
+    myPublisher.buildFinished(build, myRevision);
+    then(myServerMutex.tryAcquire(TIMEOUT / 2, TimeUnit.MILLISECONDS)).isFalse(); // just wait till it fails
+    then(getNumberOfCurrentRequests()).as("the second request should not be sent until the first one is processed").isEqualTo(1);
+  }
+
+  // the implementation must return the number of publishing requests currently being processed by the mock server
+  protected abstract int getNumberOfCurrentRequests();
 
   public void test_buildFinished_Failed() throws InterruptedException {
     if (!isToBeTested(Events.FAILED)) return;

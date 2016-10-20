@@ -1,5 +1,6 @@
 package jetbrains.buildServer.commitPublisher;
 
+import com.google.common.util.concurrent.Striped;
 import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
@@ -36,6 +37,7 @@ import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.locks.Lock;
 
 import static org.apache.http.client.protocol.HttpClientContext.AUTH_CACHE;
 
@@ -60,11 +62,15 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
     return service.submit(ExceptionUtil.catchAll("posting commit status", new Runnable() {
       @Override
       public void run() {
+        Lock lock = getLocks().get(myBuildType.getExternalId());
         try {
+          lock.lock();
           post(url, username, password, data, contentType, headers, getConnectionTimeout());
         } catch (Exception ex) {
           myProblems.reportProblem(HttpBasedCommitStatusPublisher.this, buildDescription, ex);
           throw new PublishError("Commit status publishing HTTP request failed", ex);
+        } finally {
+          lock.unlock();
         }
       }
     }));
