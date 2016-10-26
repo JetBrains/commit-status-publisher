@@ -83,16 +83,19 @@ public class ChangeStatusUpdater {
     }
   }
 
-  @Nullable
+  @NotNull
   Handler getUpdateHandler(@NotNull VcsRootInstance root, @NotNull Map<String, String> params, @NotNull final GitHubPublisher publisher) {
     final GitHubApi api = getGitHubApi(params);
 
     String url = root.getProperty("url");
-    if (url == null)
-      return null;
-    Repository repo = GitRepositoryParser.parseRepository(url);
-    if (repo == null)
-      return null;
+    Repository repo;
+    if (null == url) {
+      repo = null;
+    } else {
+      repo = GitRepositoryParser.parseRepository(url);
+    }
+    if (null == repo)
+      throw new PublishError("Cannot parse repository URL from VCS root " + root.getName());
 
     final String repositoryOwner = repo.owner();
     final String repositoryName = repo.repositoryName();

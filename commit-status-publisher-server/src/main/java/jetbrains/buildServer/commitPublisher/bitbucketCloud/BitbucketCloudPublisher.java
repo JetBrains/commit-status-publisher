@@ -104,11 +104,11 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
                     @NotNull BitbucketCloudBuildStatus status,
                     @NotNull String comment) {
     String msg = createMessage(status, build.getBuildPromotion().getBuildTypeId(), getBuildName(build), myLinks.getViewResultsUrl(build), comment);
+    final VcsRootInstance root = revision.getRoot();
+    Repository repository = BitbucketCloudRepositoryParser.parseRepository(root);
+    if (repository == null)
+      throw new PublishError("Cannot parse repository URL from VCS root " + root.getName());
     try {
-      final VcsRootInstance root = revision.getRoot();
-      Repository repository = BitbucketCloudRepositoryParser.parseRepository(root);
-      if (repository == null)
-        throw new PublishError("Cannot parse repository from VCS root url " + root.getName());
       vote(revision.getRevision(), msg, repository, LogUtil.describe(build));
     } catch (Exception e) {
       throw new PublishError("Cannot publish status to Bitbucket Cloud for VCS root " +

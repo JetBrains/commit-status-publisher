@@ -2,11 +2,18 @@ package jetbrains.buildServer.commitPublisher.gitlab;
 
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.HttpPublisherServerBasedTest;
+import jetbrains.buildServer.commitPublisher.PublishError;
+import jetbrains.buildServer.messages.Status;
+import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.assertj.core.api.BDDAssertions.then;
 
 /**
  * @author anton.zamolotskikh, 05/10/16.
@@ -28,6 +35,18 @@ public class GitlabPublisherTest extends HttpPublisherServerBasedTest {
     myExpectedRegExps.put(Events.FAILURE_DETECTED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*failed.*%s.*", REVISION, PROBLEM_DESCR));
     myExpectedRegExps.put(Events.MARKED_SUCCESSFUL, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*success.*marked as successful.*", REVISION));
     myExpectedRegExps.put(Events.MARKED_RUNNING_SUCCESSFUL, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*running.*Build marked as successful.*", REVISION));
+  }
+
+  public void should_fail_with_error_on_wrong_vcs_url() throws InterruptedException {
+    myVcsRoot.setProperties(Collections.singletonMap("url", "wrong://url.com"));
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
+    BuildRevision revision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
+    try {
+      myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), revision);
+      fail("PublishError exception expected");
+    } catch(PublishError ex) {
+      then(ex.getMessage()).matches("Cannot parse.*" + myVcsRoot.getName() + ".*");
+    }
   }
 
   @BeforeMethod

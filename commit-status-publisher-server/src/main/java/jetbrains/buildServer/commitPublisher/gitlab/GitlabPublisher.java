@@ -86,7 +86,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     VcsRootInstance root = revision.getRoot();
     Repository repository = parseRepository(root);
     if (repository == null)
-      throw new PublishError("Cannot parse repository from VCS root url " + root.getName());
+      throw new PublishError("Cannot parse repository URL from VCS root " + root.getName());
 
     String message = createMessage(status, build, revision, myLinks.getViewResultsUrl(build), description);
     try {

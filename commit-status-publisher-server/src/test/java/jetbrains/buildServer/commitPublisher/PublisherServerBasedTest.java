@@ -42,6 +42,7 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   protected Map<Events, String> myExpectedRegExps = new HashMap<Events, String>();
   protected SimpleExecutorServices myExecServices;
   protected String myVcsURL = "http://localhost/defaultvcs";
+  protected SVcsRoot myVcsRoot;
 
   private BuildRevision myRevision;
   private SUser myUser;
@@ -59,9 +60,9 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
-    SVcsRoot vcsRoot = myFixture.addVcsRoot("jetbrains.git", "", myBuildType);
-    vcsRoot.setProperties(Collections.singletonMap("url", myVcsURL));
-    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(vcsRoot);
+    myVcsRoot = myFixture.addVcsRoot("jetbrains.git", "", myBuildType);
+    myVcsRoot.setProperties(Collections.singletonMap("url", myVcsURL));
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     myUser = myFixture.createUserAccount(USER);
     myExecServices = myFixture.getSingletonService(SimpleExecutorServices.class);
