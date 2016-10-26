@@ -27,6 +27,12 @@ public class GitRepositoryParserTest {
     }
   }
 
+  @TestFor(issues = "TW-47493")
+  public void parse_git_like_urls() {
+    Repository repo = GitRepositoryParser.parseRepository("git://github.com/owner/repository.git");
+    then(repo.owner()).isEqualTo("owner");
+    then(repo.repositoryName()).isEqualTo("repository");
+  }
 
   @TestFor(issues = "TW-43075")
   public void parse_scp_like_urls_ghe() {

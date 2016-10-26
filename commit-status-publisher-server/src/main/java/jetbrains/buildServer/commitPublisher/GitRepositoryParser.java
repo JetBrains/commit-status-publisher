@@ -4,8 +4,8 @@ import com.intellij.openapi.diagnostic.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,13 +28,14 @@ public class GitRepositoryParser {
       return new Repository(userGroup, repo);
     }
 
-    URL url;
+    URI url;
     try {
-      url = new URL(uri);
-    } catch (MalformedURLException e) {
+      url = new URI(uri);
+    } catch (URISyntaxException e) {
       LOG.warn("Cannot parse Git repository url " + uri, e);
       return null;
     }
+
 
     String path = url.getPath();
     if (path == null) {
