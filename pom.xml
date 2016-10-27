@@ -11,7 +11,7 @@
   <repositories>
     <repository>
         <id>JetBrains</id>
-        <url>http://repository.jetbrains.com/all</url>
+        <url>http://download.jetbrains.com/teamcity-repository</url>
     </repository>
   </repositories>
   <build>
