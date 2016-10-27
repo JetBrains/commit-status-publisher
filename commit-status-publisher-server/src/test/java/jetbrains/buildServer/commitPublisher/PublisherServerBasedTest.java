@@ -120,7 +120,7 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
     myServerMutex.release();
   }
 
-  public void should_publish_in_sequence() throws InterruptedException {
+  protected void should_publish_in_sequence() throws InterruptedException {
     myServerMutex.acquire();
     SFinishedBuild build = myFixture.createBuild(myBuildType, Status.NORMAL);
     myPublisher.buildFinished(build, myRevision);
