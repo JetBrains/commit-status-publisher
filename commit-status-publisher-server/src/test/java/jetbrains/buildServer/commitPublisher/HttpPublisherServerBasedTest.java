@@ -7,6 +7,8 @@ import org.apache.http.impl.bootstrap.HttpServer;
 import org.apache.http.impl.bootstrap.ServerBootstrap;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.*;
@@ -36,6 +38,7 @@ public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedT
     return myNumberOfCurrentRequests;
   }
 
+  @BeforeMethod
   @Override
   protected void setUp() throws Exception {
 
@@ -49,7 +52,6 @@ public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedT
                 myNumberOfCurrentRequests++;
                 try {
                   if (!myServerMutex.tryAcquire(TIMEOUT * 2, TimeUnit.MILLISECONDS)) {
-                    myNumberOfCurrentRequests--;
                     return;
                   }
                 } catch (InterruptedException ex) {
@@ -71,5 +73,12 @@ public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedT
     myHttpServer.start();
     myVcsURL = getServerUrl() + "/owner/project";
     super.setUp();
+  }
+
+  @AfterMethod
+  @Override
+  protected void tearDown() throws Exception {
+    super.tearDown();
+    myHttpServer.stop();
   }
 }

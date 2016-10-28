@@ -120,13 +120,15 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
     myServerMutex.release();
   }
 
-  protected void should_publish_in_sequence() throws InterruptedException {
+  public void should_publish_in_sequence() throws InterruptedException {
     myServerMutex.acquire();
     SFinishedBuild build = myFixture.createBuild(myBuildType, Status.NORMAL);
+    myPublisher.setConnectionTimeout(TIMEOUT);
     myPublisher.buildFinished(build, myRevision);
     myPublisher.buildFinished(build, myRevision);
     then(myServerMutex.tryAcquire(TIMEOUT / 2, TimeUnit.MILLISECONDS)).isFalse(); // just wait till it fails
     then(getNumberOfCurrentRequests()).as("the second request should not be sent until the first one is processed").isEqualTo(1);
+    myServerMutex.release();
   }
 
   // the implementation must return the number of publishing requests currently being processed by the mock server
