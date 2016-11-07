@@ -12,6 +12,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.*;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -50,8 +51,10 @@ public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedT
               @Override
               public void handle(HttpRequest httpRequest, HttpResponse httpResponse, HttpContext httpContext) throws HttpException, IOException {
                 myNumberOfCurrentRequests++;
+                myProcessingStarted.release(); // indicates that we are processing request
                 try {
                   if (!myServerMutex.tryAcquire(TIMEOUT * 2, TimeUnit.MILLISECONDS)) {
+                    myNumberOfCurrentRequests--;
                     return;
                   }
                 } catch (InterruptedException ex) {
@@ -65,7 +68,7 @@ public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedT
                   httpResponse.setStatusCode(201);
                 }
                 myNumberOfCurrentRequests--;
-                myClientMutex.release();
+                myProcessingFinished.release();
               }
             });
 

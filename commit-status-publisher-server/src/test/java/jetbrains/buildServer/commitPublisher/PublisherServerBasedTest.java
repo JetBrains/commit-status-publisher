@@ -34,8 +34,11 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   protected static final String COMMENT = "MyComment";
   protected static final String PROBLEM_DESCR = "Problem description";
   protected static final String FEATURE_ID = "MY_FEATURE_ID";
-  protected static final int TIMEOUT = 1000;
-  protected Semaphore myServerMutex, myClientMutex;
+  protected static final int TIMEOUT = 2000;
+  protected Semaphore
+          myServerMutex, // released if the test wants the server to finish processing a request
+          myProcessingFinished, // released by the server to indicate to the test client that it can check the request data
+          myProcessingStarted; // released by the server when it has started processing a request
 
   protected CommitStatusPublisher myPublisher;
   protected CommitStatusPublisherProblems myProblems;
@@ -68,7 +71,8 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
     myExecServices = myFixture.getSingletonService(SimpleExecutorServices.class);
     myExecServices.start();
     myServerMutex = new Semaphore(1);
-    myClientMutex = new Semaphore(0);
+    myProcessingFinished = new Semaphore(0);
+    myProcessingStarted = new Semaphore(0);
     myProblemNotificationEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
     myProblems = new CommitStatusPublisherProblems(myProblemNotificationEngine);
   }
@@ -121,13 +125,14 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   }
 
   // temporarily disabled due to flaky behaviour
-  private void should_publish_in_sequence() throws InterruptedException {
+  public void should_publish_in_sequence() throws InterruptedException {
     myServerMutex.acquire();
     SFinishedBuild build = myFixture.createBuild(myBuildType, Status.NORMAL);
     myPublisher.setConnectionTimeout(TIMEOUT);
     myPublisher.buildFinished(build, myRevision);
     myPublisher.buildFinished(build, myRevision);
-    then(myServerMutex.tryAcquire(TIMEOUT / 2, TimeUnit.MILLISECONDS)).isFalse(); // just wait till it fails
+    then(myProcessingStarted.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue(); // At least one request must arrive
+    then(myServerMutex.tryAcquire(TIMEOUT / 2, TimeUnit.MILLISECONDS)).isFalse(); // just wait till it all fails
     then(getNumberOfCurrentRequests()).as("the second request should not be sent until the first one is processed").isEqualTo(1);
     myServerMutex.release();
   }
@@ -206,7 +211,7 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   }
 
   protected String waitForRequest() throws InterruptedException {
-    myClientMutex.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS);
+    myProcessingFinished.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS);
     return getRequestAsString();
   }
 
