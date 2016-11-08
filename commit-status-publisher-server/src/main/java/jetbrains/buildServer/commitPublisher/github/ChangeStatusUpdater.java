@@ -49,7 +49,7 @@ public class ChangeStatusUpdater {
   private final GitHubApiFactory myFactory;
   private final WebLinks myWeb;
 
-  ChangeStatusUpdater(@NotNull final ExecutorServices services,
+  public ChangeStatusUpdater(@NotNull final ExecutorServices services,
                              @NotNull final GitHubApiFactory factory,
                              @NotNull final WebLinks web) {
     myFactory = factory;

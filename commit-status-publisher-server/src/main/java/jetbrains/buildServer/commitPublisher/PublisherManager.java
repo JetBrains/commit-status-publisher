@@ -10,7 +10,7 @@ public class PublisherManager {
 
   private final Map<String, CommitStatusPublisherSettings> myPublisherSettings;
 
-  PublisherManager(@NotNull Collection<CommitStatusPublisherSettings> settings) {
+  public PublisherManager(@NotNull Collection<CommitStatusPublisherSettings> settings) {
     myPublisherSettings = new HashMap<String, CommitStatusPublisherSettings>();
     for (CommitStatusPublisherSettings s : settings) {
       myPublisherSettings.put(s.getId(), s);

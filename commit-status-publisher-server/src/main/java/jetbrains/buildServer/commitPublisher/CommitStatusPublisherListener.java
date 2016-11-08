@@ -23,7 +23,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   private final RunningBuildsManager myRunningBuilds;
   private final CommitStatusPublisherProblems myProblems;
 
-  CommitStatusPublisherListener(@NotNull EventDispatcher<BuildServerListener> events,
+  public CommitStatusPublisherListener(@NotNull EventDispatcher<BuildServerListener> events,
                                        @NotNull PublisherManager voterManager,
                                        @NotNull BuildHistory buildHistory,
                                        @NotNull RunningBuildsManager runningBuilds,
