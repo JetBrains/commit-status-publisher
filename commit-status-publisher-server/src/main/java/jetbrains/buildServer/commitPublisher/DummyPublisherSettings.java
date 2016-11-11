@@ -1,8 +1,12 @@
 package jetbrains.buildServer.commitPublisher;
 
+import java.util.Collections;
 import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -51,6 +55,12 @@ class DummyPublisherSettings implements CommitStatusPublisherSettings {
   @Nullable
   public PropertiesProcessor getParametersProcessor() {
     return null;
+  }
+
+  @NotNull
+  @Override
+  public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(final SProject project, final SUser user) {
+    return Collections.emptyMap();
   }
 
   public boolean isEnabled() {

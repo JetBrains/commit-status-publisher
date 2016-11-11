@@ -23,6 +23,14 @@
     </dependency>
 
     <dependency>
+      <groupId>local-oauth-integration</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/oauth.jar</systemPath>
+    </dependency>
+
+    <dependency>
       <groupId>local-server</groupId>
       <artifactId>org.jetbrains.teamcity.internal</artifactId>
       <version>${teamcity-version}</version>

@@ -6,8 +6,11 @@ import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
+import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.executors.SimpleExecutorServices;
+import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
+import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
@@ -44,7 +47,8 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   protected String myBranch;
   protected BuildRevision myRevision;
   protected SUser myUser;
-
+  protected OAuthConnectionsManager myOAuthConnectionsManager;
+  protected OAuthTokensStorage myOAuthTokenStorage;
 
   protected enum Events {
     QUEUED, REMOVED, STARTED,
@@ -69,6 +73,8 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     myProblemNotificationEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
     myProblems = new CommitStatusPublisherProblems(myProblemNotificationEngine);
     myBranch = null;
+    myOAuthConnectionsManager = new OAuthConnectionsManager(myServer);
+    myOAuthTokenStorage =  new OAuthTokensStorage(myFixture.getServerPaths(), myFixture.getSingletonService(ExecutorServices.class));
   }
 
   public void test_testConnection() throws Exception {

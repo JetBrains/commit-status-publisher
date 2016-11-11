@@ -1,8 +1,12 @@
 package jetbrains.buildServer.commitPublisher;
 
 import com.google.gson.Gson;
+import java.util.Collections;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
@@ -36,6 +40,12 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
   @Override
   public Map<String, String> transformParameters(@NotNull Map<String, String> params) {
     return null;
+  }
+
+  @NotNull
+  @Override
+  public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(final SProject project, final SUser user) {
+    return Collections.emptyMap();
   }
 
   public boolean isEnabled() {

@@ -4,11 +4,14 @@ import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.controllers.BasePropertiesBean;
 import jetbrains.buildServer.controllers.admin.projects.BuildTypeForm;
 import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootEntry;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
+import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.web.servlet.ModelAndView;
@@ -48,9 +51,13 @@ public class CommitStatusPublisherFeatureController extends BaseController {
     BasePropertiesBean props = (BasePropertiesBean) request.getAttribute("propertiesBean");
     String publisherId = props.getProperties().get(Constants.PUBLISHER_ID_PARAM);
     ModelAndView mv = publisherId != null ? createEditPublisherModel(publisherId) : createAddPublisherModel();
-    if (publisherId != null)
+    CommitStatusPublisherSettings settings = null;
+    if (publisherId != null) {
+      settings = myPublisherManager.findSettings(publisherId);
       transformParameters(props, publisherId, mv);
+    }
     mv.addObject("publisherSettingsUrl", myPublisherSettingsController.getUrl());
+    mv.addObject("showMode", "popup");
     List<VcsRoot> vcsRoots = getVcsRoots(request);
     mv.addObject("vcsRoots", vcsRoots);
     Map <String, String> params = props.getProperties();
@@ -89,7 +96,11 @@ public class CommitStatusPublisherFeatureController extends BaseController {
         }
       }
     }
-    mv.addObject("projectId", getProjectId(request));
+    SProject project = getProject(request);
+    mv.addObject("project", project);
+    mv.addObject("projectId", project.getExternalId());
+    SUser user = SessionUser.getUser(request);
+    mv.addObject("oauthConnections", null == settings ? null : settings.getOAuthConnections(project, user));
     return mv;
   }
 
@@ -133,10 +144,11 @@ public class CommitStatusPublisherFeatureController extends BaseController {
   }
 
   @NotNull
-  private String getProjectId(@NotNull HttpServletRequest request) {
+  private SProject getProject(@NotNull HttpServletRequest request) {
     BuildTypeForm buildTypeForm = (BuildTypeForm) request.getAttribute("buildForm");
-    return buildTypeForm.getProject().getExternalId();
+    return buildTypeForm.getProject();
   }
+
 
   private List<CommitStatusPublisherSettings> getPublisherSettings(boolean newPublisher) {
     List<CommitStatusPublisherSettings> publishers = new ArrayList<CommitStatusPublisherSettings>(myPublisherManager.getAllPublisherSettings());

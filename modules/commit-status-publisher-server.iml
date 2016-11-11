@@ -55,5 +55,6 @@
     <orderEntry type="module" module-name="server-test-core" scope="TEST" />
     <orderEntry type="module" module-name="web-test-core" scope="TEST" />
     <orderEntry type="module" module-name="web" />
+    <orderEntry type="module" module-name="oauth-integration" />
   </component>
 </module>

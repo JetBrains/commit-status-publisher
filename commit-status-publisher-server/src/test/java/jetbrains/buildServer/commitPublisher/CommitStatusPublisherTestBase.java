@@ -9,6 +9,7 @@ import jetbrains.buildServer.parameters.ValueResolver;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
+import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotification;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
 import jetbrains.buildServer.util.browser.Browser;
@@ -39,13 +40,13 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
   String myCurrentVersion = null;
   protected SystemProblemNotificationEngine myProblemNotificationEngine;
 
-
   protected void setUp() throws Exception {
     super.setUp();
     WebControllerManager wcm = new MockWebControllerManager();
     PluginDescriptor pluginDescr = new MockPluginDescriptor();
     myProjectManager = myFixture.getProjectManager();
     final PublisherManager publisherManager = new PublisherManager(Collections.<CommitStatusPublisherSettings>emptyList());
+
     myController = new CommitStatusPublisherFeatureController(myProjectManager, wcm, pluginDescr, publisherManager,
             new PublisherSettingsController(wcm, pluginDescr, publisherManager, myProjectManager));
     myVcsManager = myFixture.getVcsManager();

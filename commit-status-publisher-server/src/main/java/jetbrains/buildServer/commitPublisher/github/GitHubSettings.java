@@ -1,34 +1,50 @@
 package jetbrains.buildServer.commitPublisher.github;
 
+import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
+import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
+import jetbrains.buildServer.serverSide.oauth.OAuthToken;
+import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
+import jetbrains.buildServer.serverSide.oauth.github.GHEOAuthProvider;
+import jetbrains.buildServer.serverSide.oauth.github.GitHubOAuthProvider;
+import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
+import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
 public class GitHubSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
   private final ChangeStatusUpdater myUpdater;
+  private final OAuthConnectionsManager myOauthConnectionsManager;
+  private final OAuthTokensStorage myOAuthTokensStorage;
+  private final SecurityContext mySecurityContext;
+
 
   public GitHubSettings(@NotNull ChangeStatusUpdater updater,
                         @NotNull ExecutorServices executorServices,
                         @NotNull PluginDescriptor descriptor,
                         @NotNull WebLinks links,
-                        @NotNull CommitStatusPublisherProblems problems) {
+                        @NotNull CommitStatusPublisherProblems problems,
+                        @NotNull OAuthConnectionsManager oauthConnectionsManager,
+                        @NotNull OAuthTokensStorage oauthTokensStorage,
+                        @NotNull SecurityContext securityContext) {
     super(executorServices, descriptor, links, problems);
     myUpdater = updater;
+    myOauthConnectionsManager = oauthConnectionsManager;
+    myOAuthTokensStorage = oauthTokensStorage;
+    mySecurityContext = securityContext;
   }
 
   @NotNull
@@ -66,6 +82,22 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
       return result;
     }
     return null;
+  }
+
+  @NotNull
+  @Override
+  public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(final SProject project, final SUser user) {
+    List<OAuthConnectionDescriptor> validConnections = new ArrayList<OAuthConnectionDescriptor>();
+    List<OAuthConnectionDescriptor> githubConnections = myOauthConnectionsManager.getAvailableConnectionsOfType(project, GitHubOAuthProvider.TYPE);
+    if (!githubConnections.isEmpty()) {
+      validConnections.add(githubConnections.get(0));
+    }
+    validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GHEOAuthProvider.TYPE));
+    Map<OAuthConnectionDescriptor, Boolean> connections = new LinkedHashMap<OAuthConnectionDescriptor, Boolean>();
+    for (OAuthConnectionDescriptor c: validConnections) {
+      connections.put(c, !myOAuthTokensStorage.getUserTokens(c.getId(), user).isEmpty());
+    }
+    return connections;
   }
 
   @Override
@@ -120,6 +152,20 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
         }
 
         if (authenticationType == GitHubApiAuthenticationType.TOKEN_AUTH) {
+          String oauthUsername = p.get(c.getOAuthUserKey());
+          String oauthProviderId = p.get(c.getOAuthProviderIdKey());
+          if (null != oauthUsername && null != oauthProviderId) {
+            User currentUser = mySecurityContext.getAuthorityHolder().getAssociatedUser();
+            if (null != currentUser && currentUser instanceof SUser) {
+              for (OAuthToken token: myOAuthTokensStorage.getUserTokens(oauthProviderId, (SUser) currentUser)) {
+                if (token.getOauthLogin().equals(oauthUsername)) {
+                  p.put(c.getAccessTokenKey(), token.getAccessToken());
+                  p.remove(c.getOAuthProviderIdKey());
+                  p.remove(c.getOAuthUserKey());
+                }
+              }
+            }
+          }
           checkNotEmpty(p, c.getAccessTokenKey(), "Personal Access Token must be specified", result);
         }
 
