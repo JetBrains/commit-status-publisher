@@ -2,7 +2,9 @@ package jetbrains.buildServer.commitPublisher;
 
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.impl.BuildPromotionImpl;
 import jetbrains.buildServer.util.EventDispatcher;
+import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
@@ -11,6 +13,7 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.util.*;
 
+import static jetbrains.buildServer.serverSide.BuildAttributes.COLLECT_CHANGES_ERROR;
 import static org.assertj.core.api.BDDAssertions.then;
 
 @Test
@@ -30,47 +33,48 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   }
 
   public void should_publish_failure() {
-    prepareGoodVcs();
-    myRunningBuild = myFixture.startBuild(myBuildType);
-    myListener.buildChangedStatus(myRunningBuild, Status.NORMAL, Status.FAILURE);
+    prepareVcs();
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myListener.buildChangedStatus(runningBuild, Status.NORMAL, Status.FAILURE);
     then(myPublisher.isFailureReceived()).isTrue();
   }
 
   public void should_publish_finished_success() {
-    prepareGoodVcs();
-    myRunningBuild = myFixture.startBuild(myBuildType);
-    myFixture.finishBuild(myRunningBuild, false);
-    myListener.buildFinished(myRunningBuild);
+    prepareVcs();
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myFixture.finishBuild(runningBuild, false);
+    myListener.buildFinished(runningBuild);
     then(myPublisher.isFinishedReceived()).isTrue();
     then(myPublisher.isSuccessReceived()).isTrue();
   }
 
-
   public void should_not_publish_failure_if_marked_successful() {
-    prepareGoodVcs();
-    myRunningBuild = myFixture.startBuild(myBuildType);
-    myListener.buildChangedStatus(myRunningBuild, Status.FAILURE, Status.NORMAL);
+    prepareVcs();
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myListener.buildChangedStatus(runningBuild, Status.FAILURE, Status.NORMAL);
     then(myPublisher.isFailureReceived()).isFalse();
   }
 
   public void should_not_publish_if_failed_to_collect_changes() {
-    prepareBadVcs();
-    myRunningBuild = myFixture.startBuild(myBuildType);
-    myListener.buildChangedStatus(myRunningBuild, Status.NORMAL, Status.FAILURE);
+    prepareVcs();
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    BuildPromotionImpl promotion = (BuildPromotionImpl) runningBuild.getBuildPromotion();
+    promotion.setAttribute(COLLECT_CHANGES_ERROR, "Bad VCS root");
+    myListener.buildChangedStatus(runningBuild, Status.NORMAL, Status.FAILURE);
     then(myPublisher.isFailureReceived()).isFalse();
   }
 
-  // temporary disabled until TW-47724 is fixed
-  private void should_not_publish_status_for_personal_builds() throws IOException {
-    prepareGoodVcs();
-    myRunningBuild = myFixture.startPersonalBuild(myFixture.createUserAccount("newuser"), myBuildType);
-    myFixture.finishBuild(myRunningBuild, false);
-    myListener.buildFinished(myRunningBuild);
+  @TestFor(issues = "TW-47724")
+  public void should_not_publish_status_for_personal_builds() throws IOException {
+    prepareVcs();
+    SRunningBuild runningBuild = myFixture.startPersonalBuild(myFixture.createUserAccount("newuser"), myBuildType);
+    myFixture.finishBuild(runningBuild, false);
+    myListener.buildFinished(runningBuild);
     then(myPublisher.isFinishedReceived()).isFalse();
     then(myPublisher.isSuccessReceived()).isFalse();
   }
 
-  private void prepareGoodVcs() {
+  private void prepareVcs() {
     final SVcsRoot vcsRoot = myFixture.addVcsRoot("svn", "vcs1");
     myPublisher.setVcsRootId(vcsRoot.getExternalId());
     myBuildType.addVcsRoot(vcsRoot);
@@ -79,13 +83,6 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myFixture.addModification(new ModificationData(new Date(),
             Collections.singletonList(new VcsChange(VcsChangeInfo.Type.CHANGED, "changed", "file", "file","1", "2")),
             "descr2", "user", myVcsRootInstance, "rev2", "rev2"));
-  }
-
-  private void prepareBadVcs() {
-    final SVcsRoot vcsRoot = myFixture.addVcsRoot("failing", "vcs2");
-    myPublisher.setVcsRootId(vcsRoot.getExternalId());
-    myBuildType.addVcsRoot(vcsRoot);
-    myVcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
   }
 
   private class MockPublisherRegisterFailure extends MockPublisher {

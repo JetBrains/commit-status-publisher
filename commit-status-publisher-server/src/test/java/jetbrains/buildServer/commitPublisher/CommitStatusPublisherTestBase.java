@@ -33,7 +33,6 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
   VcsManagerEx myVcsManager;
   ProjectManager myProjectManager;
   SBuildFeatureDescriptor myFeatureDescriptor;
-  SRunningBuild myRunningBuild;
   RunningBuildsManager myRBManager;
   CommitStatusPublisherProblems myProblems;
   CommitStatusPublisherFeature myFeature;
@@ -49,6 +48,7 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     myController = new CommitStatusPublisherFeatureController(myProjectManager, wcm, pluginDescr, publisherManager,
             new PublisherSettingsController(wcm, pluginDescr, publisherManager));
     myVcsManager = myFixture.getVcsManager();
+
     ServerVcsSupport vcsSupport = new MockVcsSupport("svn") {
       @Override
       @NotNull
@@ -57,14 +57,6 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
       }
     };
     myVcsManager.registerVcsSupport(vcsSupport);
-    ServerVcsSupport failingVcsSupport = new MockVcsSupport("failing") {
-      @Override
-      @NotNull
-      public String getCurrentVersion(@NotNull final VcsRoot root) {
-        throw new RuntimeException("Bad VCS root");
-      }
-    };
-    myVcsManager.registerVcsSupport(failingVcsSupport);
 
     myFeatureDescriptor = myBuildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, Collections.singletonMap(Constants.PUBLISHER_ID_PARAM, PUBLISHER_ID));
     myFeature = new CommitStatusPublisherFeature(myController, publisherManager);
