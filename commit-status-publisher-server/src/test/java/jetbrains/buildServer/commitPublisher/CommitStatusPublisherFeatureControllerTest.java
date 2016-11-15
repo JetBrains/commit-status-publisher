@@ -1,10 +1,12 @@
 package jetbrains.buildServer.commitPublisher;
 
 import jetbrains.buildServer.controllers.BasePropertiesBean;
+import jetbrains.buildServer.controllers.MockRequest;
+import jetbrains.buildServer.controllers.MockResponse;
 import jetbrains.buildServer.controllers.admin.projects.BuildTypeForm;
 import jetbrains.buildServer.controllers.admin.projects.VcsSettingsBean;
 import jetbrains.buildServer.vcs.SVcsRoot;
-import org.jmock.Expectations;
+import jetbrains.buildServer.vcs.VcsRoot;
 import org.springframework.web.servlet.ModelAndView;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -15,134 +17,77 @@ import java.util.*;
 
 import static org.assertj.core.api.BDDAssertions.then;
 
-/**
- * @author anton.zamolotskikh, 08/09/16.
- */
 @Test
-public class CommitStatusPublisherFeatureControllerTest extends CommitStatusPublisherJMockTestBase {
+public class CommitStatusPublisherFeatureControllerTest extends CommitStatusPublisherTestBase {
   private BuildTypeForm myForm;
   private VcsSettingsBean myBean;
+  private HttpServletRequest myRequest;
+  private HttpServletResponse myResponse;
 
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-
     myBean = new MockVcsSettingsBean(myProject, myBuildType, myVcsManager, myProjectManager);
-
-    m.checking(new Expectations() {{
-      oneOf(myBuildType).getProject();
-      will(returnValue(myProject));
-    }});
-
     myForm = new MockBuildTypeForm(myBuildType, myBean);
+    myRequest = new MockRequest();
+    myRequest.setAttribute("buildForm", myForm);
+    myResponse = new MockResponse();
   }
 
 
   public void must_find_attached_vcs_root() throws Exception {
-    final HttpServletRequest request = m.mock(HttpServletRequest.class);
-    final HttpServletResponse response = m.mock(HttpServletResponse.class);
-
-    final long vcsRootInternalId = 42;
     final String vcsRootId = "VcsId1";
-
-    final SVcsRoot vcs = m.mock(SVcsRoot.class);
+    final SVcsRoot vcs = myFixture.addVcsRoot("svn", "vcs1");
+    vcs.setExternalId(vcsRootId);
 
     final Map<String, String> params = new HashMap<String, String>() {{
+      put(Constants.PUBLISHER_ID_PARAM, PUBLISHER_ID);
       put(Constants.VCS_ROOT_ID_PARAM, vcsRootId);
     }};
 
-    m.checking(new Expectations(){{
-      oneOf(vcs).getId();
-      will(returnValue(vcsRootInternalId));
-    }});
+    myRequest.setAttribute("propertiesBean", new BasePropertiesBean(params));
 
     myBean.addVcsRoot(vcs);
 
-    setHandleRequestExpectations(request, params);
-    m.checking(new Expectations() {{
-      oneOf(myVcsManager).findRootById(42);
-      will(returnValue(vcs));
-      oneOf(vcs).getExternalId();
-      will(returnValue(vcsRootId));
-    }});
-
-    ModelAndView mv = myController.handleRequestInternal(request, response);
+    ModelAndView mv = myController.handleRequestInternal(myRequest, myResponse);
 
     then(mv.getModel().get("hasMissingVcsRoot")).isNull();
+    List<VcsRoot> vcsRoots = (List<VcsRoot>) mv.getModel().get("vcsRoots");
+    then(vcsRoots).isNotNull();
+    then(vcsRoots).contains(vcs);
   }
 
 
   public void must_find_attached_vcs_root_by_internal_id() throws Exception {
-    final HttpServletRequest request = m.mock(HttpServletRequest.class);
-    final HttpServletResponse response = m.mock(HttpServletResponse.class);
-
-    final long vcsRootInternalId = 42;
-    final String vcsRootId = "VcsId1";
-
-    final SVcsRoot vcs = m.mock(SVcsRoot.class);
+    final SVcsRoot vcs = myFixture.addVcsRoot("vcs", "vcs1");
+    final long vcsRootInternalId = vcs.getId();
 
     final Map<String, String> params = new HashMap<String, String>() {{
+      put(Constants.PUBLISHER_ID_PARAM, PUBLISHER_ID);
       put(Constants.VCS_ROOT_ID_PARAM, String.valueOf(vcsRootInternalId));
     }};
 
-    m.checking(new Expectations(){{
-      oneOf(vcs).getId();
-      will(returnValue(vcsRootInternalId));
-    }});
-
     myBean.addVcsRoot(vcs);
 
-    setHandleRequestExpectations(request, params);
-    m.checking(new Expectations() {{
-      oneOf(myVcsManager).findRootById(42);
-      will(returnValue(vcs));
-      oneOf(vcs).getExternalId();
-      will(returnValue(vcsRootId));
-      oneOf(vcs).getId();
-      will(returnValue(vcsRootInternalId));
-      oneOf(vcs).getExternalId();
-      will(returnValue(vcsRootId));
-    }});
+    myRequest.setAttribute("propertiesBean", new BasePropertiesBean(params));
 
-    ModelAndView mv = myController.handleRequestInternal(request, response);
+    ModelAndView mv = myController.handleRequestInternal(myRequest, myResponse);
 
     then(mv.getModel().get("hasMissingVcsRoot")).isNull();
   }
 
 
   public void must_be_report_missing_vcs_root() throws Exception {
-    final HttpServletRequest request = m.mock(HttpServletRequest.class);
-    final HttpServletResponse response = m.mock(HttpServletResponse.class);
-
     final String missingVcsRootId = "ExtId";
     final Map<String, String> params = new HashMap<String, String>() {{
+      put(Constants.PUBLISHER_ID_PARAM, PUBLISHER_ID);
       put(Constants.VCS_ROOT_ID_PARAM, missingVcsRootId);
     }};
 
-    setHandleRequestExpectations(request, params);
-    m.checking(new Expectations() {{
-      oneOf(myProjectManager).findVcsRootByExternalId(missingVcsRootId);
-      will(returnValue(null));
-    }});
+    myRequest.setAttribute("propertiesBean", new BasePropertiesBean(params));
 
-    ModelAndView mv = myController.handleRequestInternal(request, response);
+    ModelAndView mv = myController.handleRequestInternal(myRequest, myResponse);
 
     then(mv.getModel().get("hasMissingVcsRoot")).isEqualTo(true);
-  }
-
-  private void setHandleRequestExpectations(final HttpServletRequest request, final Map<String, String> params) {
-    m.checking(new Expectations() {{
-        oneOf(request).getAttribute("propertiesBean");
-        will(returnValue(new BasePropertiesBean(params)));
-        oneOf(request).getAttribute("buildForm");
-        will(returnValue(myForm));
-        oneOf(request).getAttribute("buildForm");
-        will(returnValue(myForm));
-        oneOf(myProject).getExternalId();
-        will(returnValue("Project1"));
-        oneOf(request).getServletPath();
-        oneOf(request).getParameter("jsp");
-        will(returnValue("fake.jsp"));
-      }});
   }
 }

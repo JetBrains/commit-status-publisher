@@ -1,10 +1,7 @@
 package jetbrains.buildServer.commitPublisher;
 
-import jetbrains.buildServer.BaseJMockTestCase;
-import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.systemProblems.*;
-import jetbrains.buildServer.vcs.VcsManagerEx;
-import org.jmock.Expectations;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -17,33 +14,21 @@ import static org.assertj.core.api.BDDAssertions.then;
  */
 
 @Test
-public class CommitStatusPublisherProblemsTest extends BaseJMockTestCase {
+public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
 
   private final static String FEATURE_1 = "PUBLISH_BUILD_FEATURE_1";
   private final static String FEATURE_2 = "PUBLISH_BUILD_FEATURE_2";
 
   private CommitStatusPublisherProblems myProblems;
   private SystemProblemNotificationEngine myProblemEngine;
-  private SBuildType myBuildType;
-  private VcsManagerEx myVcsManager;
   private CommitStatusPublisher myPublisher;
 
 
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    myVcsManager = m.mock(VcsManagerEx.class);
-    myProblemEngine = new SystemProblemNotificationEngine();
-    myProblemEngine.setVcsManager(myVcsManager);
+    myProblemEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
     myProblems = new CommitStatusPublisherProblems(myProblemEngine);
-    myBuildType = m.mock(SBuildType.class);
-    m.checking(new Expectations() {{
-      allowing(myBuildType).getBuildTypeId();
-      will(returnValue("BT1"));
-      allowing(myBuildType).getInternalId();
-      will(returnValue("BT1_Internal"));
-      allowing(myVcsManager).findVcsRoots(Collections.<Long>emptyList());
-    }});
     myPublisher = new MockPublisher("PUBLISHER1", myBuildType, FEATURE_1, Collections.<String, String>emptyMap(), myProblems);
   }
 

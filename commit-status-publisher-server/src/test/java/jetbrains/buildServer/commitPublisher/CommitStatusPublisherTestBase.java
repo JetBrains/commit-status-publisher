@@ -1,21 +1,20 @@
 package jetbrains.buildServer.commitPublisher;
 
-import jetbrains.buildServer.BaseJMockTestCase;
+import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.controllers.admin.projects.BuildTypeForm;
 import jetbrains.buildServer.controllers.admin.projects.MultipleRunnersBean;
 import jetbrains.buildServer.controllers.admin.projects.VcsSettingsBean;
 import jetbrains.buildServer.parameters.ValueResolver;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
+import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotification;
 import jetbrains.buildServer.util.browser.Browser;
-import jetbrains.buildServer.vcs.SVcsRoot;
-import jetbrains.buildServer.vcs.VcsManager;
-import jetbrains.buildServer.vcs.VcsRootEntry;
+import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.web.openapi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jmock.Expectations;
 import org.springframework.web.servlet.mvc.Controller;
 
 import javax.servlet.http.HttpServletRequest;
@@ -25,69 +24,60 @@ import java.util.Collections;
 /**
  * @author anton.zamolotskikh, 15/09/16.
  */
-public class CommitStatusPublisherJMockTestBase extends BaseJMockTestCase {
+public class CommitStatusPublisherTestBase extends BaseServerTestCase {
+
+  static final String PUBLISHER_ID = "MockPublisherId";
 
 
   CommitStatusPublisherFeatureController myController;
-  SBuildType myBuildType;
-  SProject myProject;
-  VcsManager myVcsManager;
+  VcsManagerEx myVcsManager;
   ProjectManager myProjectManager;
-  PublisherManager myPubManager;
-  CommitStatusPublisherFeature myFeature;
   SBuildFeatureDescriptor myFeatureDescriptor;
   SRunningBuild myRunningBuild;
-  BuildPromotion myBuildPromotion;
   RunningBuildsManager myRBManager;
   CommitStatusPublisherProblems myProblems;
+  CommitStatusPublisherFeature myFeature;
+  String myCurrentVersion = null;
 
 
   protected void setUp() throws Exception {
     super.setUp();
     WebControllerManager wcm = new MockWebControllerManager();
     PluginDescriptor pluginDescr = new MockPluginDescriptor();
-    myProjectManager = m.mock(ProjectManager.class);
-    myPubManager = new PublisherManager(Collections.<CommitStatusPublisherSettings>emptyList());
-    myController = new CommitStatusPublisherFeatureController(myProjectManager, wcm, pluginDescr, myPubManager,
-            new PublisherSettingsController(wcm, pluginDescr, myPubManager));
-    myBuildType = m.mock(SBuildType.class);
-    myProject = m.mock(SProject.class);
-    myVcsManager = m.mock(VcsManager.class);
-    final ResolvedSettings settings = m.mock(ResolvedSettings.class);
-    myFeatureDescriptor = m.mock(SBuildFeatureDescriptor.class);
-    myFeature = new CommitStatusPublisherFeature(myController, myPubManager);
-    myRunningBuild = m.mock(SRunningBuild.class);
-    myBuildPromotion = m.mock(BuildPromotion.class);
-    myRBManager = m.mock(RunningBuildsManager.class);
-    myProblems = new CommitStatusPublisherProblems(m.mock(SystemProblemNotification.class));
+    myProjectManager = myFixture.getProjectManager();
+    final PublisherManager publisherManager = new PublisherManager(Collections.<CommitStatusPublisherSettings>emptyList());
+    myController = new CommitStatusPublisherFeatureController(myProjectManager, wcm, pluginDescr, publisherManager,
+            new PublisherSettingsController(wcm, pluginDescr, publisherManager));
+    myVcsManager = myFixture.getVcsManager();
+    ServerVcsSupport vcsSupport = new MockVcsSupport("svn") {
+      @Override
+      @NotNull
+      public String getCurrentVersion(@NotNull final VcsRoot root) {
+        return myCurrentVersion;
+      }
+    };
+    myVcsManager.registerVcsSupport(vcsSupport);
+    ServerVcsSupport failingVcsSupport = new MockVcsSupport("failing") {
+      @Override
+      @NotNull
+      public String getCurrentVersion(@NotNull final VcsRoot root) {
+        throw new RuntimeException("Bad VCS root");
+      }
+    };
+    myVcsManager.registerVcsSupport(failingVcsSupport);
 
-
-    m.checking(new Expectations() {{
-      allowing(myBuildType).getCheckoutType();
-      allowing(myBuildType).getCheckoutDirectory();
-      allowing(myBuildType).getVcsRootEntries();
-      will(returnValue(Collections.<VcsRootEntry>emptyList()));
-
-      allowing(myBuildType).getResolvedSettings();  will(returnValue(settings));
-      allowing(myBuildType).getInternalId();  will(returnValue("BT_internal_1"));
-
-      allowing(settings).getBuildFeatures();  will(returnValue(Collections.singletonList(myFeatureDescriptor)));
-
-      allowing(myFeatureDescriptor).getBuildFeature(); will(returnValue(myFeature));
-      allowing(myFeatureDescriptor).getId(); will(returnValue("FEATURE_1"));
-
-      allowing(myRunningBuild).getBuildType(); will(returnValue(myBuildType));
-      allowing(myRunningBuild).getBuildNumber();  will(returnValue("1"));
-      allowing(myRunningBuild).getBuildId();  will(returnValue(1L));
-      allowing(myRunningBuild).getBuildTypeExternalId(); will(returnValue("BT1"));
-      allowing(myRunningBuild).getBuildPromotion(); will(returnValue(myBuildPromotion));
-    }});
+    myFeatureDescriptor = myBuildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, Collections.singletonMap(Constants.PUBLISHER_ID_PARAM, PUBLISHER_ID));
+    myFeature = new CommitStatusPublisherFeature(myController, publisherManager);
+    myRBManager = myFixture.getSingletonService(RunningBuildsManager.class);
+    myProblems = new CommitStatusPublisherProblems(myFixture.getSingletonService(SystemProblemNotification.class));
+    ExtensionHolder extensionHolder = myFixture.getSingletonService(ExtensionHolder.class);
+    extensionHolder.registerExtension(BuildFeature.class, CommitStatusPublisherFeature.TYPE, myFeature);
   }
 
 
 
 
-  class MockWebControllerManager implements WebControllerManager {
+  private class MockWebControllerManager implements WebControllerManager {
 
     @Override
     public void registerController(@NotNull String s, @NotNull Controller controller) { }
@@ -145,12 +135,10 @@ public class CommitStatusPublisherJMockTestBase extends BaseJMockTestCase {
   }
 
   class MockBuildTypeForm extends BuildTypeForm {
-    private final SBuildType myBuildType;
     private final VcsSettingsBean myVcsBean;
 
-    public MockBuildTypeForm(SBuildType buildType, VcsSettingsBean bean) {
+    MockBuildTypeForm(SBuildType buildType, VcsSettingsBean bean) {
       super(buildType.getProject());
-      myBuildType = buildType;
       myVcsBean = bean;
     }
 
@@ -181,7 +169,7 @@ public class CommitStatusPublisherJMockTestBase extends BaseJMockTestCase {
   class MockVcsSettingsBean extends VcsSettingsBean {
 
 
-    public MockVcsSettingsBean(@NotNull SProject project, @NotNull BuildTypeSettings buildTypeSettings, @NotNull VcsManager vcsManager, @NotNull ProjectManager projectManager) {
+    MockVcsSettingsBean(@NotNull SProject project, @NotNull BuildTypeSettings buildTypeSettings, @NotNull VcsManager vcsManager, @NotNull ProjectManager projectManager) {
       super(project, buildTypeSettings, vcsManager, projectManager);
     }
 

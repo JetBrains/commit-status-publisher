@@ -3,8 +3,6 @@ package jetbrains.buildServer.commitPublisher;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.util.TestFor;
-import org.jmock.Mockery;
-import org.jmock.lib.legacy.ClassImposteriser;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -15,18 +13,11 @@ import static org.assertj.core.api.BDDAssertions.then;
 import static org.assertj.core.groups.Tuple.tuple;
 
 @Test
-public class CommitStatusPublisherFeatureTest {
-
-  private CommitStatusPublisherFeature myFeature;
+public class CommitStatusPublisherFeatureTest extends CommitStatusPublisherTestBase {
 
   @BeforeMethod
   public void setUp() throws Exception {
-    Mockery context = new Mockery() {{
-      setImposteriser(ClassImposteriser.INSTANCE);
-    }};
-    CommitStatusPublisherFeatureController controller = context.mock(CommitStatusPublisherFeatureController.class);
-    PublisherManager publisher = context.mock(PublisherManager.class);
-    myFeature = new CommitStatusPublisherFeature(controller, publisher);
+    super.setUp();
   }
 
 

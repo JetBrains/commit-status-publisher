@@ -78,6 +78,13 @@
       <systemPath>${teamcity.path.lib}/cl.jar</systemPath>
     </dependency>
 
+    <dependency>
+      <groupId>local-patches-impl</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/patches-impl.jar</systemPath>
+    </dependency>
 
     <dependency>
       <groupId>local-issue-tracker-impl</groupId>

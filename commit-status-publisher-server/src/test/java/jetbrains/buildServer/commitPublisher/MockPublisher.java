@@ -11,7 +11,9 @@ import java.util.Map;
  */
 class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPublisher {
 
+
   private String myType;
+  private String myVcsRootId;
 
 
   MockPublisher(@NotNull String publisherType,
@@ -20,12 +22,17 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
                          @NotNull CommitStatusPublisherProblems problems) {
     super(buildType, buildFeatureId, params, problems);
     myType = publisherType;
+    myVcsRootId = "MyDefaultVcsRootId";
   }
 
   @Nullable
   @Override
   public String getVcsRootId() {
-    return "MyVcsRootId";
+    return myVcsRootId;
+  }
+
+  void setVcsRootId(String vcsRootId) {
+    myVcsRootId = vcsRootId;
   }
 
   @NotNull
