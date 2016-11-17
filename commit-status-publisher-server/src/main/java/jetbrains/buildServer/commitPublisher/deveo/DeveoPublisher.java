@@ -84,12 +84,6 @@ public class DeveoPublisher extends BaseCommitStatusPublisher {
     return true;
   }
 
-  @Override
-  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
-    vote(build, revision, DeveoBuildStatus.FAILED);
-    return true;
-  }
-
   private void vote(@NotNull SBuild build,
                     @NotNull BuildRevision revision,
                     @NotNull DeveoBuildStatus status) {
