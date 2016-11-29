@@ -175,6 +175,9 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     public Browser getVcsBrowser(boolean b, @Nullable String s) {
       return null;
     }
+
+    @Override
+    public boolean isDefaultExcluded() { return false; }
   }
 
 
