@@ -4,7 +4,7 @@
     <name>commit-status-publisher</name>
     <display-name>Commit Status Publisher</display-name>
     <version>@Version@</version>
-    <description>Publish commit status to external system</description>
+    <description>Publishes the status of a commit to an external system</description>
     <vendor>
       <name>JetBrains, s.r.o.</name>
       <url>http://www.jetbrains.com</url>
