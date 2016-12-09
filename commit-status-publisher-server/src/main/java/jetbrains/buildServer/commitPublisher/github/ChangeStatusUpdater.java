@@ -284,21 +284,22 @@ public class ChangeStatusUpdater {
             final CommitStatusPublisherProblems problems = publisher.getProblems();
             boolean prMergeBranch = !hash.equals(version.getVersion());
             lock.lock();
+            String url = null;
             try {
               try {
+                url = getViewResultsUrl(build);
                 api.setChangeStatus(
                         repositoryOwner,
                         repositoryName,
                         hash,
                         status,
-                        getViewResultsUrl(build),
+                        url,
                         message,
                         prMergeBranch ? context + " - merge" : context
                 );
                 LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
               } catch (IOException e) {
-                problems.reportProblem(publisher, LogUtil.describe(build), e);
-                LOG.warn("Failed to update GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status + ". " + e.getMessage(), e);
+                problems.reportProblem(publisher, LogUtil.describe(build), url, e, LOG);
               }
               if (addComments) {
                 try {
@@ -310,8 +311,7 @@ public class ChangeStatusUpdater {
                   );
                   LOG.info("Added comment to GitHub commit: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
                 } catch (IOException e) {
-                  problems.reportProblem(publisher, LogUtil.describe(build), e);
-                  LOG.warn("Failed add GitHub comment for branch: " + version.getVcsBranch() + ", buildId: " + build.getBuildId() + ", status: " + status + ". " + e.getMessage(), e);
+                  problems.reportProblem("Commit Status Publisher has failed to add a comment", publisher, LogUtil.describe(build), null, e, LOG);
                 }
               }
             } finally {

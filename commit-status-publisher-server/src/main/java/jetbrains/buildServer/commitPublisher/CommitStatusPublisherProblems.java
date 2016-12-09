@@ -1,6 +1,7 @@
 package jetbrains.buildServer.commitPublisher;
 
 import com.google.common.util.concurrent.Striped;
+import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotification;
@@ -10,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
+import org.jetbrains.annotations.Nullable;
 
 public class CommitStatusPublisherProblems {
 
@@ -22,30 +24,47 @@ public class CommitStatusPublisherProblems {
   }
 
   public void reportProblem(@NotNull CommitStatusPublisher publisher,
-                     @NotNull String buildDescription,
-                     @NotNull Throwable t) {
-    String description = "Publish status error in build " + buildDescription + ": ";
-    if (t instanceof PublishError) {
-      description += t.getMessage();
-    } else {
-      description += t.toString();
-    }
-    reportProblem(publisher, description);
+                            @NotNull String buildDescription,
+                            @Nullable String destination,
+                            @Nullable Throwable t,
+                            @NotNull Logger logger) {
+    reportProblem("Commit Status Publisher error", publisher, buildDescription, destination, t, logger);
   }
 
-  void reportProblem(@NotNull CommitStatusPublisher publisher, @NotNull String problemDescription) {
+  public void reportProblem(@NotNull String errorMessage,
+                              @NotNull CommitStatusPublisher publisher,
+                              @NotNull String buildDescription,
+                              @Nullable String destination,
+                              @Nullable Throwable t,
+                              @NotNull Logger logger) {
+
+    String dst = (null == destination) ? "" : "(" + destination + ")";
+    String errorDescription = String.format("%s. Publisher: %s%s.", errorMessage, publisher.getId(), dst);
+    String logEntry = String.format("%s. Build: %s", errorDescription, buildDescription);
+    if (null != t) {
+      String exMsg = t.getMessage();
+      if (null != exMsg) {
+        logEntry += " " + t.getMessage();
+        errorDescription += " " + t.getMessage();
+      } else {
+        logEntry += " " + t.toString();
+        errorDescription += " " + t.getMessage();
+      }
+      logger.warnAndDebugDetails(logEntry, t);
+    } else {
+      logger.warn(logEntry);
+    }
     SBuildType buildType = publisher.getBuildType();
     Lock lock = myLocks.get(buildType);
     lock.lock();
     try {
       clearProblem(publisher);
-      SystemProblem problem = new SystemProblem(problemDescription, null, Constants.COMMIT_STATUS_PUBLISHER_PROBLEM_TYPE, null);
+      SystemProblem problem = new SystemProblem(errorDescription, null, Constants.COMMIT_STATUS_PUBLISHER_PROBLEM_TYPE, null);
       putTicket(buildType.getInternalId(), publisher.getBuildFeatureId(), myProblems.raiseProblem(buildType, problem));
     } finally {
       lock.unlock();
     }
   }
-
 
   void clearProblem(@NotNull CommitStatusPublisher publisher) {
     SBuildType buildType = publisher.getBuildType();

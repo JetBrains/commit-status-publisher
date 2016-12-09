@@ -66,8 +66,9 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
           lock.lock();
           post(url, username, password, data, contentType, headers, getConnectionTimeout());
         } catch (Exception ex) {
-          myProblems.reportProblem(HttpBasedCommitStatusPublisher.this, buildDescription, ex);
-          throw new PublishError("Commit status publishing HTTP request failed", ex);
+          myProblems.reportProblem("Commit Status Publisher HTTP request has failed",
+                                   HttpBasedCommitStatusPublisher.this, buildDescription,
+                                   url, ex, LOG);
         } finally {
           lock.unlock();
         }
@@ -81,8 +82,11 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
     URI uri;
     try {
       uri = new URI(url);
+      if (null == uri.getHost()) {
+        throw new URISyntaxException(url, "Host name missing");
+      }
     } catch (URISyntaxException ex) {
-      throw new IllegalArgumentException(String.format("Malformed URL '%s'", url), ex);
+      throw new PublishError(String.format("Malformed URL '%s'", url), ex);
     }
 
     HttpClientBuilder builder = createHttpClientBuilder();
