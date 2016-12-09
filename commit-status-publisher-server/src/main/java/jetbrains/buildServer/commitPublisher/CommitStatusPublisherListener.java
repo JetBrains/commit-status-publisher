@@ -221,8 +221,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       if (task.run(publisher, revision))
         myProblems.clearProblem(publisher);
     } catch (Throwable t) {
-      LOG.warnAndDebugDetails("Error while running publisher " + publisher + ", event " + event + ", build " + buildDescription + ", revision " + revision, t);
-      myProblems.reportProblem(publisher, buildDescription, t);
+      myProblems.reportProblem(String.format("Commit Status Publisher has failed to publish %s status", event), publisher, buildDescription, null, t, LOG);
       if (shouldFailBuild(publisher.getBuildType())) {
         String problemId = "commitStatusPublisher." + publisher.getId() + "." + revision.getRoot().getId();
         String problemDescription = t instanceof PublishError ? t.getMessage() : t.toString();

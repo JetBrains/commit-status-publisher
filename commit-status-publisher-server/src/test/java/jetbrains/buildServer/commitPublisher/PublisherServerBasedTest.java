@@ -120,7 +120,7 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
     then(waitForRequest()).isNull();
     Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
     then(problems.size()).isEqualTo(1);
-    then(problems.iterator().next().getProblem().getDescription()).matches(String.format("Publish status error in build.*%s.*timed out.*", myBuildType.getExternalId()));
+    then(problems.iterator().next().getProblem().getDescription()).matches(String.format("Commit Status Publisher.*%s.*timed out.*", myPublisher.getId()));
     myServerMutex.release();
   }
 
