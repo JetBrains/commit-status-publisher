@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_6" inherit-compiler-output="false">
+    <output url="file://$MODULE_DIR$/../commit-status-publisher-server/target/classes" />
+    <output-test url="file://$MODULE_DIR$/../commit-status-publisher-server/target/test-classes" />
+    <content url="file://$MODULE_DIR$/../commit-status-publisher-server">
+      <sourceFolder url="file://$MODULE_DIR$/../commit-status-publisher-server/src/main/resources" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/../commit-status-publisher-server/src/test/java" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/../commit-status-publisher-server/src/test/resources" type="java-test-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/../commit-status-publisher-server/src/main/java" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/../commit-status-publisher-server/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="org.apache.httpcomponents:httpclient:4.5.1" level="project" />
+    <orderEntry type="library" name="Spring-Framework-web" level="project" />
+    <orderEntry type="library" name="annotations.jar" level="project" />
+    <orderEntry type="library" name="ServletApi" level="project" />
+    <orderEntry type="library" name="Guava" level="project" />
+    <orderEntry type="library" name="commons-beanutils-core" level="project" />
+    <orderEntry type="library" name="gson" level="project" />
+    <orderEntry type="library" name="com.jcraft:jsch:0.1.50" level="project" />
+    <orderEntry type="library" scope="TEST" name="JUnit" level="project" />
+    <orderEntry type="library" scope="TEST" name="testng" level="project" />
+    <orderEntry type="library" scope="TEST" name="AssertJ" level="project" />
+    <orderEntry type="module" module-name="vcs-api" scope="TEST" />
+    <orderEntry type="module" module-name="web-openapi" />
+    <orderEntry type="module" module-name="common" />
+    <orderEntry type="module" module-name="runtime-util" />
+    <orderEntry type="module" module-name="server" />
+    <orderEntry type="module" module-name="common-vcs" />
+    <orderEntry type="module" module-name="utils" />
+    <orderEntry type="module" module-name="vcs-plugin-api" scope="TEST" />
+    <orderEntry type="module" module-name="server-test-core" scope="TEST" />
+    <orderEntry type="module" module-name="web-test-core" scope="TEST" />
+  </component>
+</module>
