@@ -1,6 +1,5 @@
 package jetbrains.buildServer.commitPublisher;
 
-import com.google.common.util.concurrent.Striped;
 import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
@@ -77,8 +76,8 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
   }
 
   private void post(@NotNull String url, @Nullable String username, @Nullable String password,
-                      @NotNull String data, @NotNull ContentType contentType,
-                      @Nullable final Map<String, String> headers, int timeout) throws IOException, HttpPublisherException {
+                    @NotNull String data, @NotNull ContentType contentType,
+                    @Nullable final Map<String, String> headers, int timeout) throws IOException, HttpPublisherException {
     URI uri;
     try {
       uri = new URI(url);
