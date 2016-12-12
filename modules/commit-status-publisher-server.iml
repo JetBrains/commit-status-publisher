@@ -12,17 +12,38 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="org.apache.httpcomponents:httpclient:4.5.1" level="project" />
     <orderEntry type="library" name="Spring-Framework-web" level="project" />
     <orderEntry type="library" name="annotations.jar" level="project" />
     <orderEntry type="library" name="ServletApi" level="project" />
     <orderEntry type="library" name="Guava" level="project" />
     <orderEntry type="library" name="commons-beanutils-core" level="project" />
     <orderEntry type="library" name="gson" level="project" />
-    <orderEntry type="library" name="com.jcraft:jsch:0.1.50" level="project" />
     <orderEntry type="library" scope="TEST" name="JUnit" level="project" />
     <orderEntry type="library" scope="TEST" name="testng" level="project" />
     <orderEntry type="library" scope="TEST" name="AssertJ" level="project" />
+    <orderEntry type="module-library">
+      <library name="org.apache.httpcomponents:httpclient:4.5.1" type="repository">
+        <properties maven-id="org.apache.httpcomponents:httpclient:4.5.1" />
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/org/apache/httpcomponents/httpclient/4.5.1/httpclient-4.5.1.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/org/apache/httpcomponents/httpcore/4.4.3/httpcore-4.4.3.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/commons-logging/commons-logging/1.2/commons-logging-1.2.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/commons-codec/commons-codec/1.9/commons-codec-1.9.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="com.jcraft:jsch:0.1.50" type="repository">
+        <properties maven-id="com.jcraft:jsch:0.1.50" />
+        <CLASSES>
+          <root url="jar://$MAVEN_REPOSITORY$/com/jcraft/jsch/0.1.50/jsch-0.1.50.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
     <orderEntry type="module" module-name="vcs-api" scope="TEST" />
     <orderEntry type="module" module-name="web-openapi" />
     <orderEntry type="module" module-name="common" />
