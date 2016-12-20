@@ -137,6 +137,14 @@
     </dependency>
 
     <dependency>
+      <groupId>org.jetbrains.teamcity.internal</groupId>
+      <artifactId>local-server-tools-jar</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/server-tools.jar</systemPath>
+    </dependency>
+
+    <dependency>
       <groupId>net.sf.ehcache</groupId>
       <artifactId>ehcache</artifactId>
       <version>1.7.2</version>
