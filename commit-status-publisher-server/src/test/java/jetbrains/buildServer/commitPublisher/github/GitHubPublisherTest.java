@@ -2,7 +2,7 @@ package jetbrains.buildServer.commitPublisher.github;
 
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.HttpPublisherServerBasedTest;
-import jetbrains.buildServer.commitPublisher.PublishError;
+import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.commitPublisher.github.api.impl.GitHubApiFactoryImpl;
 import jetbrains.buildServer.commitPublisher.github.api.impl.HttpClientWrapperImpl;
 import jetbrains.buildServer.messages.Status;
@@ -50,7 +50,7 @@ public class GitHubPublisherTest extends HttpPublisherServerBasedTest {
     try {
       myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), revision);
       fail("PublishError exception expected");
-    } catch(PublishError ex) {
+    } catch(PublisherException ex) {
       then(ex.getMessage()).matches("Cannot parse.*" + myVcsRoot.getName() + ".*");
     }
   }

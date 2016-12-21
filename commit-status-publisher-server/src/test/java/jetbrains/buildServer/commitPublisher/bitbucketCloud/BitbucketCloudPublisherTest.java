@@ -2,7 +2,7 @@ package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.HttpPublisherServerBasedTest;
-import jetbrains.buildServer.commitPublisher.PublishError;
+import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -48,8 +48,8 @@ public class BitbucketCloudPublisherTest extends HttpPublisherServerBasedTest {
     try {
       myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), revision);
       fail("PublishError exception expected");
-    } catch(PublishError ex) {
-      then(ex.getMessage()).matches("Cannot parse.*" + myVcsRoot.getName() + ".*");
+    } catch(PublisherException ex) {
+      then(ex.getMessage()).matches(".*failed to parse repository URL.*" + myVcsRoot.getName() + ".*");
     }
   }
 

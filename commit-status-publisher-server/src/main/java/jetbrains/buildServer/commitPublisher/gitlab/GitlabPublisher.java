@@ -6,7 +6,6 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.vcs.VcsRootInstance;
-import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -45,14 +44,14 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
 
   @Override
-  public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publish(build, revision, GitlabBuildStatus.RUNNING, "Build started");
     return true;
   }
 
 
   @Override
-  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
     GitlabBuildStatus status = build.getBuildStatus().isSuccessful() ? GitlabBuildStatus.SUCCESS : GitlabBuildStatus.FAILED;
     publish(build, revision, status, build.getStatusDescriptor().getText());
     return true;
@@ -60,20 +59,20 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
 
   @Override
-  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publish(build, revision, GitlabBuildStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
   }
 
   @Override
-  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) {
+  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
     publish(build, revision, buildInProgress ? GitlabBuildStatus.RUNNING : GitlabBuildStatus.SUCCESS, "Build marked as successful");
     return true;
   }
 
 
   @Override
-  public boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publish(build, revision, GitlabBuildStatus.CANCELED, build.getStatusDescriptor().getText());
     return true;
   }
@@ -82,18 +81,18 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   private void publish(@NotNull SBuild build,
                        @NotNull BuildRevision revision,
                        @NotNull GitlabBuildStatus status,
-                       @NotNull String description) throws PublishError {
+                       @NotNull String description) throws PublisherException {
     VcsRootInstance root = revision.getRoot();
     Repository repository = parseRepository(root);
     if (repository == null)
-      throw new PublishError("Cannot parse repository URL from VCS root " + root.getName());
+      throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
 
     String message = createMessage(status, build, revision, myLinks.getViewResultsUrl(build), description);
     try {
       publish(revision.getRevision(), message, repository, LogUtil.describe(build));
     } catch (Exception e) {
-      throw new PublishError("Cannot publish status to GitLab for VCS root " +
-              revision.getRoot().getName() + ": " + e.toString(), e);
+      throw new PublisherException("Cannot publish status to GitLab for VCS root " +
+                                   revision.getRoot().getName() + ": " + e.toString(), e);
     }
   }
 
@@ -132,14 +131,6 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     result.append("}");
     return result.toString();
   }
-
-
-  @NotNull
-  private String escape(@NotNull String str) {
-    String result = WebUtil.escapeForJavaScript(str, false, false);
-    return result.replaceAll("\\\\'", "'");
-  }
-
 
   @Nullable
   private Repository parseRepository(@NotNull VcsRootInstance root) {

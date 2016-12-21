@@ -8,7 +8,7 @@ import com.jcraft.jsch.Session;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.commitPublisher.PublishError;
+import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.ssh.TeamCitySshKey;
@@ -50,7 +50,7 @@ class GerritPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
     Branch branch = build.getBranch();
     if (branch == null || branch.isDefaultBranch())
       return false;
@@ -72,8 +72,8 @@ class GerritPublisher extends BaseCommitStatusPublisher {
       runCommand(bt.getProject(), command.toString());
       return true;
     } catch (Exception e) {
-      throw new PublishError("Cannot publish status to Gerrit for VCS root " +
-              revision.getRoot().getName() + ": " + e.toString(), e);
+      throw new PublisherException("Cannot publish status to Gerrit for VCS root " +
+                                   revision.getRoot().getName() + ": " + e.toString(), e);
     }
   }
 

@@ -9,7 +9,6 @@ import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.EventDispatcher;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +43,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
     runForEveryPublisher(event, buildType, build, new PublishTask() {
       @Override
-      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
         return publisher.buildStarted(build, revision);
       }
     });
@@ -65,7 +64,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
     runForEveryPublisher(event, buildType, build, new PublishTask() {
       @Override
-      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
         return publisher.buildFinished(finishedBuild, revision);
       }
     });
@@ -79,7 +78,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       return;
     runForEveryPublisher(event, buildType, build, new PublishTask() {
       @Override
-      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
         return publisher.buildCommented(build, revision, user, comment, isBuildInProgress(build));
       }
     });
@@ -100,7 +99,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
     runForEveryPublisher(event, buildType, build, new PublishTask() {
       @Override
-      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
         return publisher.buildInterrupted(finishedBuild, revision);
       }
     });
@@ -120,7 +119,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
     runForEveryPublisher(event, buildType, build, new PublishTask() {
       @Override
-      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
         return publisher.buildFailureDetected(build, revision);
       }
     });
@@ -135,9 +134,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       return;
 
     if (!before.isEmpty() && after.isEmpty()) {
-      runForEveryPublisher(event, buildType, build, new PublishTask() {
+      runForEveryPublisher(event, buildType, build, new PublishTask()  {
         @Override
-        public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+        public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
           return publisher.buildMarkedAsSuccessful(build, revision, isBuildInProgress(build));
         }
       });
@@ -153,7 +152,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
     runForEveryPublisherQueued(event, buildType, build, new PublishTask() {
       @Override
-      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
         return publisher.buildQueued(build, revision);
       }
     });
@@ -171,7 +170,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
     runForEveryPublisherQueued(event, buildType, build, new PublishTask() {
       @Override
-      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) {
+      public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
         return publisher.buildRemovedFromQueue(build, revision, user, comment);
       }
     });
@@ -224,7 +223,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       myProblems.reportProblem(String.format("Commit Status Publisher has failed to publish %s status", event), publisher, buildDescription, null, t, LOG);
       if (shouldFailBuild(publisher.getBuildType())) {
         String problemId = "commitStatusPublisher." + publisher.getId() + "." + revision.getRoot().getId();
-        String problemDescription = t instanceof PublishError ? t.getMessage() : t.toString();
+        String problemDescription = t instanceof PublisherException ? t.getMessage() : t.toString();
         BuildProblemData buildProblem = BuildProblemData.createBuildProblem(problemId, "commitStatusPublisherProblem", problemDescription);
         ((BuildPromotionEx)promotion).addBuildProblem(buildProblem);
       }
@@ -326,7 +325,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private interface PublishTask {
-    boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision);
+    boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException;
   }
 
   private boolean isBuildInProgress(SBuild build) {

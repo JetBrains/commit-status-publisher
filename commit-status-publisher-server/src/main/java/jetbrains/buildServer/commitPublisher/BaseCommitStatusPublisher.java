@@ -15,7 +15,7 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   private int myConnectionTimeout = 300 * 1000;
   protected CommitStatusPublisherProblems myProblems;
   protected SBuildType myBuildType;
-  private String myBuildFeatureId;
+  private final String myBuildFeatureId;
   private static final Striped<Lock> myLocks = Striped.lazyWeakLock(100);
 
   protected BaseCommitStatusPublisher(@NotNull SBuildType buildType,@NotNull String buildFeatureId,
@@ -27,35 +27,36 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     myBuildFeatureId = buildFeatureId;
   }
 
-  public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException {
     return false;
   }
 
-  public boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) {
+  public boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) throws PublisherException {
     return false;
   }
 
-  public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) throws PublisherException {
     return false;
   }
 
-  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
     return false;
   }
 
-  public boolean buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment, boolean buildInProgress) {
+  public boolean buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment, boolean buildInProgress)
+    throws PublisherException {
     return false;
   }
 
-  public boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
     return false;
   }
 
-  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) throws PublisherException {
     return false;
   }
 
-  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) {
+  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
     return false;
   }
 

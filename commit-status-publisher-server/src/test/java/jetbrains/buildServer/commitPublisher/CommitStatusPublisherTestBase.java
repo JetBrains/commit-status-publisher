@@ -10,6 +10,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotification;
+import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
 import jetbrains.buildServer.util.browser.Browser;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.web.openapi.*;
@@ -37,6 +38,7 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
   CommitStatusPublisherProblems myProblems;
   CommitStatusPublisherFeature myFeature;
   String myCurrentVersion = null;
+  protected SystemProblemNotificationEngine myProblemNotificationEngine;
 
 
   protected void setUp() throws Exception {
@@ -61,7 +63,8 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     myFeatureDescriptor = myBuildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, Collections.singletonMap(Constants.PUBLISHER_ID_PARAM, PUBLISHER_ID));
     myFeature = new CommitStatusPublisherFeature(myController, publisherManager);
     myRBManager = myFixture.getSingletonService(RunningBuildsManager.class);
-    myProblems = new CommitStatusPublisherProblems(myFixture.getSingletonService(SystemProblemNotification.class));
+    myProblemNotificationEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
+    myProblems = new CommitStatusPublisherProblems(myProblemNotificationEngine);
     ExtensionHolder extensionHolder = myFixture.getSingletonService(ExtensionHolder.class);
     extensionHolder.registerExtension(BuildFeature.class, CommitStatusPublisherFeature.TYPE, myFeature);
   }

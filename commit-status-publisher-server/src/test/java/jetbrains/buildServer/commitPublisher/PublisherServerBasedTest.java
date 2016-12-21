@@ -46,10 +46,10 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   protected SimpleExecutorServices myExecServices;
   protected String myVcsURL = "http://localhost/defaultvcs";
   protected SVcsRoot myVcsRoot;
+  protected SystemProblemNotificationEngine myProblemNotificationEngine;
 
   private BuildRevision myRevision;
   private SUser myUser;
-  private SystemProblemNotificationEngine myProblemNotificationEngine;
 
   protected enum Events {
     QUEUED, REMOVED, STARTED,
@@ -78,31 +78,31 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   }
 
 
-  public void test_buildQueued() throws InterruptedException {
+  public void test_buildQueued() throws Exception {
     if (!isToBeTested(Events.QUEUED)) return;
     myPublisher.buildQueued(myBuildType.addToQueue(""), myRevision);
     then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.QUEUED));
   }
 
-  public void test_buildRemovedFromQueue()  throws InterruptedException {
+  public void test_buildRemovedFromQueue()  throws Exception {
     if (!isToBeTested(Events.REMOVED)) return;
     myPublisher.buildRemovedFromQueue(myBuildType.addToQueue(""), myRevision, myUser, COMMENT);
     then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.REMOVED));
   }
 
-  public void test_buildStarted() throws InterruptedException {
+  public void test_buildStarted() throws Exception {
     if (!isToBeTested(Events.STARTED)) return;
     myPublisher.buildStarted(myFixture.startBuild(myBuildType), myRevision);
     then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.STARTED));
   }
 
-  public void test_buildFinished_Successfully() throws InterruptedException {
+  public void test_buildFinished_Successfully() throws Exception {
     if (!isToBeTested(Events.FINISHED)) return;
     myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), myRevision);
     then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.FINISHED));
   }
 
-  public void test_publishing_is_async() throws InterruptedException {
+  public void test_publishing_is_async() throws Exception {
     myServerMutex.acquire();
     myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), myRevision);
     myServerMutex.release();
@@ -110,7 +110,7 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   }
 
 
-  public void should_report_publishing_failure() throws InterruptedException {
+  public void should_report_publishing_failure() throws Exception {
     myServerMutex.acquire();
     // The HTTP client is supposed to wait for server for twice as less as we are waiting for its results
     // and the test HTTP server is supposed to wait for twice as much
@@ -125,7 +125,7 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   }
 
   // temporarily disabled due to flaky behaviour
-  public void should_publish_in_sequence() throws InterruptedException {
+  public void should_publish_in_sequence() throws Exception {
     myServerMutex.acquire();
     SFinishedBuild build = myFixture.createBuild(myBuildType, Status.NORMAL);
     myPublisher.setConnectionTimeout(TIMEOUT);
@@ -140,31 +140,31 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   // the implementation must return the number of publishing requests currently being processed by the mock server
   protected abstract int getNumberOfCurrentRequests();
 
-  public void test_buildFinished_Failed() throws InterruptedException {
+  public void test_buildFinished_Failed() throws Exception {
     if (!isToBeTested(Events.FAILED)) return;
     myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.FAILURE), myRevision);
     then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.FAILED));
   }
 
-  public void test_buildCommented_Success() throws InterruptedException {
+  public void test_buildCommented_Success() throws Exception {
     if (!isToBeTested(Events.COMMENTED_SUCCESS)) return;
     myPublisher.buildCommented(myFixture.createBuild(myBuildType, Status.NORMAL), myRevision, myUser, COMMENT, false);
     then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.COMMENTED_SUCCESS));
   }
 
-  public void test_buildCommented_Failed() throws InterruptedException {
+  public void test_buildCommented_Failed() throws Exception {
     if (!isToBeTested(Events.COMMENTED_FAILED)) return;
     myPublisher.buildCommented(myFixture.createBuild(myBuildType, Status.FAILURE), myRevision, myUser, COMMENT, false);
     then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.COMMENTED_FAILED));
   }
 
-  public void test_buildCommented_InProgress() throws InterruptedException {
+  public void test_buildCommented_InProgress() throws Exception {
     if (!isToBeTested(Events.COMMENTED_INPROGRESS)) return;
     myPublisher.buildCommented(myFixture.startBuild(myBuildType), myRevision, myUser, COMMENT, true);
     then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.COMMENTED_INPROGRESS));
   }
 
-  public void test_buildCommented_InProgress_Failed() throws InterruptedException {
+  public void test_buildCommented_InProgress_Failed() throws Exception {
     if (!isToBeTested(Events.COMMENTED_INPROGRESS_FAILED)) return;
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     runningBuild.addBuildProblem(BuildProblemData.createBuildProblem("problem", "type", PROBLEM_DESCR));
@@ -173,7 +173,7 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
   }
 
 
-  public void test_buildInterrupted() throws InterruptedException {
+  public void test_buildInterrupted() throws Exception {
     if (!isToBeTested(Events.INTERRUPTED)) return;
     SFinishedBuild finishedBuild = myFixture.createBuild(myBuildType, Status.NORMAL);
     finishedBuild.addBuildProblem(BuildProblemData.createBuildProblem("problem", "type", PROBLEM_DESCR));
@@ -181,7 +181,7 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
     then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.INTERRUPTED));
   }
 
-  public void test_buildFailureDetected() throws InterruptedException {
+  public void test_buildFailureDetected() throws Exception {
     if (!isToBeTested(Events.FAILURE_DETECTED)) return;
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     runningBuild.addBuildProblem(BuildProblemData.createBuildProblem("problem", "type", PROBLEM_DESCR));
@@ -189,13 +189,13 @@ public abstract class PublisherServerBasedTest extends BaseServerTestCase {
     then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.FAILURE_DETECTED));
   }
 
-  public void test_buildMarkedAsSuccessful() throws InterruptedException {
+  public void test_buildMarkedAsSuccessful() throws Exception {
     if (!isToBeTested(Events.MARKED_SUCCESSFUL)) return;
     myPublisher.buildMarkedAsSuccessful(myFixture.createBuild(myBuildType, Status.NORMAL), myRevision, false);
     then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.MARKED_SUCCESSFUL));
   }
 
-  public void test_buildMarkedAsSuccessful_WhileRunning() throws InterruptedException {
+  public void test_buildMarkedAsSuccessful_WhileRunning() throws Exception {
     if (!isToBeTested(Events.MARKED_RUNNING_SUCCESSFUL)) return;
     myPublisher.buildMarkedAsSuccessful(myFixture.startBuild(myBuildType), myRevision, true);
     then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.MARKED_RUNNING_SUCCESSFUL));
