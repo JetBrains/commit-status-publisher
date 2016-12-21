@@ -84,7 +84,10 @@ public class ChangeStatusUpdater {
   }
 
   @NotNull
-  Handler getUpdateHandler(@NotNull VcsRootInstance root, @NotNull Map<String, String> params, @NotNull final GitHubPublisher publisher) {
+  Handler getUpdateHandler(@NotNull VcsRootInstance root,
+                           @NotNull Map<String, String> params,
+                           @NotNull final GitHubPublisher publisher) throws HttpPublisherException {
+
     final GitHubApi api = getGitHubApi(params);
 
     String url = root.getProperty("url");
@@ -95,7 +98,7 @@ public class ChangeStatusUpdater {
       repo = GitRepositoryParser.parseRepository(url);
     }
     if (null == repo)
-      throw new PublishError("Cannot parse repository URL from VCS root " + root.getName());
+      throw new HttpPublisherException("Cannot parse repository URL from VCS root " + root.getName());
 
     final String repositoryOwner = repo.owner();
     final String repositoryName = repo.repositoryName();

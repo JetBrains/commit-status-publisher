@@ -2,7 +2,7 @@ package jetbrains.buildServer.commitPublisher.gitlab;
 
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.HttpPublisherServerBasedTest;
-import jetbrains.buildServer.commitPublisher.PublishError;
+import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -44,7 +44,7 @@ public class GitlabPublisherTest extends HttpPublisherServerBasedTest {
     try {
       myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), revision);
       fail("PublishError exception expected");
-    } catch(PublishError ex) {
+    } catch(PublisherException ex) {
       then(ex.getMessage()).matches("Cannot parse.*" + myVcsRoot.getName() + ".*");
     }
   }

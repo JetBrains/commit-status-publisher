@@ -3,9 +3,7 @@ package jetbrains.buildServer.commitPublisher.github;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.HashMap;
 import java.util.Map;
-import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
-import jetbrains.buildServer.commitPublisher.Constants;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -36,29 +34,26 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) throws PublisherException {
     updateBuildStatus(build, revision, true);
     return true;
   }
 
   @Override
-  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
     updateBuildStatus(build, revision, false);
     return true;
   }
 
   @Override
-  public boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
     updateBuildStatus(build, revision, false);
     return true;
   }
 
 
-  private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) {
+  private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) throws HttpPublisherException {
     final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), getParams(build), this);
-
-    if (h == null)
-      return;
 
     if (isStarting && !h.shouldReportOnStart()) return;
     if (!isStarting && !h.shouldReportOnFinish()) return;

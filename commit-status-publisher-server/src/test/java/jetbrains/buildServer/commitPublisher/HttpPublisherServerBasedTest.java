@@ -58,7 +58,8 @@ public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedT
                     return;
                   }
                 } catch (InterruptedException ex) {
-                  fail("Test HTTP server thread interrupted");
+                  httpResponse.setStatusCode(500);
+                  return;
                 }
                 myLastRequest = httpRequest.getRequestLine().toString();
                 if (httpRequest instanceof HttpEntityEnclosingRequest) {

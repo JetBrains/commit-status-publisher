@@ -2,15 +2,11 @@ package jetbrains.buildServer.commitPublisher.stash;
 
 import com.google.gson.*;
 import com.intellij.openapi.diagnostic.Logger;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
-import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.commitPublisher.HttpBasedCommitStatusPublisher;
-import jetbrains.buildServer.commitPublisher.PublishError;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
-import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -20,11 +16,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
 import java.util.Map;
 
 class StashPublisher extends HttpBasedCommitStatusPublisher {
@@ -130,12 +121,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) {
     String msg = createMessage(status, build.getBuildPromotion().getBuildTypeExternalId(), getBuildName(build), myLinks.getViewResultsUrl(build), comment);
-    try {
-      vote(revision.getRevision(), msg, LogUtil.describe(build));
-    } catch (Exception e) {
-      throw new PublishError("Cannot publish status to Bitbucket Server for VCS root " +
-              revision.getRoot().getName() + ": " + getMessage(e), e);
-    }
+    vote(revision.getRevision(), msg, LogUtil.describe(build));
   }
 
   private void vote(@NotNull SQueuedBuild build,
@@ -143,12 +129,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) {
     String msg = createMessage(status, build.getBuildPromotion().getBuildTypeExternalId(), getBuildName(build), myLinks.getQueuedBuildUrl(build), comment);
-    try {
-      vote(revision.getRevision(), msg, LogUtil.describe(build));
-    } catch (Exception e) {
-      throw new PublishError("Cannot publish status to Bitbucket Server for VCS root " +
-              revision.getRoot().getName() + ": " + getMessage(e), e);
-    }
+    vote(revision.getRevision(), msg, LogUtil.describe(build));
   }
 
   @NotNull
@@ -168,14 +149,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     return data.toString();
   }
 
-  @NotNull
-  private String escape(@NotNull String str) {
-    String result = WebUtil.escapeForJavaScript(str, false, false);
-    return result.replaceAll("\\\\'", "'");
-  }
-
-  private void vote(@NotNull String commit, @NotNull String data, @NotNull String buildDescription) throws URISyntaxException, IOException,
-          UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+  private void vote(@NotNull String commit, @NotNull String data, @NotNull String buildDescription) {
     String url = getBaseUrl() + "/rest/build-status/1.0/commits/" + commit;
     postAsync(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, null, buildDescription);
   }
@@ -239,20 +213,5 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   private String getPassword() {
     return myParams.get(Constants.STASH_PASSWORD);
-  }
-
-  @NotNull
-  private String getMessage(@NotNull Exception e) {
-    if (e instanceof HttpPublisherException) {
-      HttpPublisherException se = (HttpPublisherException) e;
-      String result = "response code: " + se.getStatusCode() + ", reason: " + se.getReason();
-      String msg = se.getStashMessage();
-      if (msg != null) {
-        result += ", message: '" + msg + "'";
-      }
-      return result;
-    } else {
-      return e.toString();
-    }
   }
 }

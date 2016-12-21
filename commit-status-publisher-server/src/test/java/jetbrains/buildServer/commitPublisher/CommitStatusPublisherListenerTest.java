@@ -3,6 +3,8 @@ package jetbrains.buildServer.commitPublisher;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.BuildPromotionImpl;
+import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
+import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.util.EventDispatcher;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.*;
@@ -18,6 +20,8 @@ import static org.assertj.core.api.BDDAssertions.then;
 
 @Test
 public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTestBase {
+
+  private static final String PUBLISHER_ERROR = "Simulated publisher exception";
 
   private CommitStatusPublisherListener myListener;
   private MockPublisherRegisterFailure myPublisher;
@@ -46,6 +50,22 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myListener.buildFinished(runningBuild);
     then(myPublisher.isFinishedReceived()).isTrue();
     then(myPublisher.isSuccessReceived()).isTrue();
+  }
+
+  public void should_handle_publisher_error() {
+    prepareVcs();
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myPublisher.shouldRaiseError();
+    myFixture.finishBuild(runningBuild, false);
+    myListener.buildFinished(runningBuild);
+    Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
+    then(problems.size()).isEqualTo(1);
+    SystemProblem problem = problems.iterator().next().getProblem();
+    then(problem.getDescription());
+    then(problem.getDescription()).contains("Commit Status Publisher");
+    then(problem.getDescription()).contains("buildFinished");
+    then(problem.getDescription()).contains(PUBLISHER_ERROR);
+    then(problem.getDescription()).contains(myPublisher.getId());
   }
 
   public void should_not_publish_failure_if_marked_successful() {
@@ -91,6 +111,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     private boolean myFinishedReceived = false;
     private boolean mySuccessReceived = false;
 
+    private boolean myShouldRiseError = false;
+
     MockPublisherRegisterFailure(SBuildType buildType, CommitStatusPublisherProblems problems) {
       super(PUBLISHER_ID, buildType, myFeatureDescriptor.getId(), Collections.<String, String>emptyMap(), problems);
     }
@@ -99,12 +121,17 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     boolean isFinishedReceived() { return myFinishedReceived; }
     boolean isSuccessReceived() { return mySuccessReceived; }
 
+    void shouldRaiseError() { myShouldRiseError = true; }
+
     @Override
-    public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+    public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
       myFinishedReceived = true;
       Status s = build.getBuildStatus();
       if (s.equals(Status.NORMAL)) mySuccessReceived = true;
       if (s.equals(Status.FAILURE)) myFailureReceived = true;
+      if (myShouldRiseError) {
+        throw new PublisherException(PUBLISHER_ERROR);
+      }
       return true;
     }
 
@@ -115,7 +142,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     }
 
     @Override
-    public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) {
+    public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
       return super.buildMarkedAsSuccessful(build, revision, buildInProgress);
     }
 

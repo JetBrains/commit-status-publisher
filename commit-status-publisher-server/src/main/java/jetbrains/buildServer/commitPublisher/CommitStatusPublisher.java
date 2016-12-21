@@ -7,21 +7,21 @@ import org.jetbrains.annotations.Nullable;
 
 public interface CommitStatusPublisher {
 
-  boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision);
+  boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException;
 
-  boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment);
+  boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) throws PublisherException;
 
-  boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision);
+  boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) throws PublisherException;
 
-  boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision);
+  boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException;
 
-  boolean buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment, boolean buildInProgress);
+  boolean buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment, boolean buildInProgress) throws PublisherException;
 
-  boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision);
+  boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException;
 
-  boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision);
+  boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) throws PublisherException;
 
-  boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress);
+  boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException;
 
   @NotNull
   String getBuildFeatureId();

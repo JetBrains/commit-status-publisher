@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.HttpBasedCommitStatusPublisher;
-import jetbrains.buildServer.commitPublisher.PublishError;
+import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -13,8 +13,6 @@ import jetbrains.buildServer.vcs.VcsModificationHistory;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -59,13 +57,13 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publish(build, revision, UpsourceStatus.IN_PROGRESS, "Build started");
     return true;
   }
 
   @Override
-  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
     UpsourceStatus status = build.getBuildStatus().isSuccessful() ? UpsourceStatus.SUCCESS : UpsourceStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
     publish(build, revision, status, description);
@@ -73,19 +71,19 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publish(build, revision, UpsourceStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
   }
 
   @Override
-  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publish(build, revision, UpsourceStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
   }
 
   @Override
-  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) {
+  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
     publish(build, revision, buildInProgress ? UpsourceStatus.IN_PROGRESS : UpsourceStatus.SUCCESS, "Build marked as successful");
     return true;
   }
@@ -93,7 +91,7 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
   private void publish(@NotNull SBuild build,
                        @NotNull BuildRevision revision,
                        @NotNull UpsourceStatus status,
-                       @NotNull String description) {
+                       @NotNull String description) throws PublisherException {
     String url = myLinks.getViewResultsUrl(build);
     String commitMessage = null;
     Long commitDate = null;
@@ -120,13 +118,13 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
     try {
       publish(payload, LogUtil.describe(build));
     } catch (Exception e) {
-      throw new PublishError("Cannot publish status to Upsource for VCS root " +
-              revision.getRoot().getName() + ": " + e.toString(), e);
+      throw new PublisherException("Cannot publish status to Upsource for VCS root " +
+                                   revision.getRoot().getName() + ": " + e.toString(), e);
     }
   }
 
 
-  private void publish(@NotNull String payload, @NotNull String buildDescription) throws IOException {
+  private void publish(@NotNull String payload, @NotNull String buildDescription) {
     String url = myParams.get(Constants.UPSOURCE_SERVER_URL) + "/" + UPSOURCE_ENDPOINT;
     postAsync(url, myParams.get(Constants.UPSOURCE_USERNAME),
             myParams.get(Constants.UPSOURCE_PASSWORD), payload, ContentType.APPLICATION_JSON, null, buildDescription);

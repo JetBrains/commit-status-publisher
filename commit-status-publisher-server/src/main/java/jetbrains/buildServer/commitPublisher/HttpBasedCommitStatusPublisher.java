@@ -4,6 +4,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.ExceptionUtil;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
@@ -86,7 +87,7 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
         throw new URISyntaxException(url, "Host name missing");
       }
     } catch (URISyntaxException ex) {
-      throw new PublishError(String.format("Malformed URL '%s'", url), ex);
+      throw new HttpPublisherException(String.format("Malformed URL '%s'", url), ex);
     }
 
     HttpClientBuilder builder = createHttpClientBuilder();
@@ -140,7 +141,13 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
   protected void processResponse(HttpResponse response) throws HttpPublisherException {
     StatusLine statusLine = response.getStatusLine();
     if (statusLine.getStatusCode() >= 400)
-      throw new RuntimeException(statusLine.getStatusCode() + " " + statusLine.getReasonPhrase());
+      throw new HttpPublisherException(statusLine.getStatusCode(), statusLine.getReasonPhrase());
+  }
+
+  @NotNull
+  protected String escape(@NotNull String str) {
+    String result = WebUtil.escapeForJavaScript(str, false, false);
+    return result.replaceAll("\\\\'", "'");
   }
 
   @NotNull
@@ -169,32 +176,4 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
 
     return HttpClients.custom().setSSLSocketFactory(sslsf);
   }
-
-
-  protected static class HttpPublisherException extends Exception {
-    private final int myStatusCode;
-    private final String myReason;
-    private final String myMessage;
-
-    public HttpPublisherException(int statusCode, String reason, @Nullable String message) {
-      myStatusCode = statusCode;
-      myReason = reason;
-      myMessage = message;
-    }
-
-    public int getStatusCode() {
-      return myStatusCode;
-    }
-
-    public String getReason() {
-      return myReason;
-    }
-
-    @Nullable
-    public String getStashMessage() {
-      return myMessage;
-    }
-  }
-
-
 }

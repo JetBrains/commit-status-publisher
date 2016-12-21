@@ -44,11 +44,9 @@ public class CommitStatusPublisherProblems {
     if (null != t) {
       String exMsg = t.getMessage();
       if (null != exMsg) {
-        logEntry += " " + t.getMessage();
-        errorDescription += " " + t.getMessage();
+        errorDescription += " " + exMsg;
       } else {
-        logEntry += " " + t.toString();
-        errorDescription += " " + t.getMessage();
+        errorDescription += " " + t.toString();
       }
       logger.warnAndDebugDetails(logEntry, t);
     } else {
