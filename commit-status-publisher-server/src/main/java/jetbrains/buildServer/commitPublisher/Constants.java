@@ -17,6 +17,7 @@ public class Constants {
   public static final String UPSOURCE_PUBLISHER_ID = "upsourcePublisher";
   public static final String UPSOURCE_SERVER_URL = "upsourceServerUrl";
   public static final String UPSOURCE_PROJECT_ID = "upsourceProjectId";
+  public static final String UPSOURCE_MAPPING_ID = "upsourceMappingId";
   public static final String UPSOURCE_USERNAME = "upsourceUsername";
   public static final String UPSOURCE_PASSWORD = "secure:upsourcePassword";
 
@@ -69,6 +70,11 @@ public class Constants {
   @NotNull
   public String getUpsourceProjectId() {
     return UPSOURCE_PROJECT_ID;
+  }
+
+  @NotNull
+  public String getUpsourceMappingId() {
+    return UPSOURCE_MAPPING_ID;
   }
 
   @NotNull

@@ -24,6 +24,14 @@
     </tr>
 
     <tr>
+        <th><label for="${keys.upsourceMappingId}">Upsource mapping ID:</label></th>
+        <td>
+            <props:textProperty name="${keys.upsourceMappingId}" style="width:18em;"/>
+            <span class="error" id="error_${keys.upsourceMappingId}"></span>
+        </td>
+    </tr>
+
+    <tr>
         <th><label for="${keys.upsourceUsername}">Username: <l:star/></label></th>
         <td>
             <props:textProperty name="${keys.upsourceUsername}" style="width:18em;"/>
