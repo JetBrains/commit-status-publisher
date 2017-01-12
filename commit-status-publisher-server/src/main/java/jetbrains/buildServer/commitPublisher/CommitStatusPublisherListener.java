@@ -7,6 +7,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.EventDispatcher;
+import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.util.LinkedHashMap;
@@ -177,8 +178,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private void runForEveryPublisher(@NotNull String event, @NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task) {
-    if (build.isPersonal()) // we do not publish commit statuses for personal builds at all for now
-      return;
+    if (build.isPersonal()) {
+      for(SVcsModification change: build.getBuildPromotion().getPersonalChanges()) {
+        if (change.isPersonal())
+          return;
+      }
+    }
     Map<String, CommitStatusPublisher> publishers = getPublishers(buildType);
     LOG.debug("Event: " + event + ", build " + LogUtil.describe(build) + ", publishers: " + publishers.values());
     for (Map.Entry<String, CommitStatusPublisher> pubEntry : publishers.entrySet()) {
@@ -195,6 +200,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private void runForEveryPublisherQueued(@NotNull String event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task) {
+    if (build.isPersonal()) {
+      for(SVcsModification change: build.getBuildPromotion().getPersonalChanges()) {
+        if (change.isPersonal())
+          return;
+      }
+    }
     Map<String, CommitStatusPublisher> publishers = getPublishers(buildType);
     LOG.debug("Event: " + event + ", build " + LogUtil.describe(build) + ", publishers: " + publishers.values());
     for (Map.Entry<String, CommitStatusPublisher> pubEntry : publishers.entrySet()) {
