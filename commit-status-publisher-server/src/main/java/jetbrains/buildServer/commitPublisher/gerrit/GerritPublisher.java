@@ -63,7 +63,7 @@ class GerritPublisher extends BaseCommitStatusPublisher {
 
     StringBuilder command = new StringBuilder();
     command.append("gerrit review --project ").append(getGerritProject())
-           .append(" --verified ").append(vote)
+           .append(" --label Verified=").append(vote)
            .append(" -m \"").append(msg).append("\" ")
            .append(revision.getRevision());
     try {
