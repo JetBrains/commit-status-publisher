@@ -4,10 +4,7 @@ import jetbrains.buildServer.commitPublisher.BasePublisherSettings;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.serverSide.InvalidProperty;
-import jetbrains.buildServer.serverSide.PropertiesProcessor;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
@@ -76,5 +73,17 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
         return errors;
       }
     };
+  }
+
+
+  /**
+   * GitLab REST API fails to interpret dots in user/group and project names
+   * used within project ids in URLs for some calls.
+   */
+  public static String encodeDots(@NotNull String s) {
+    if (!s.contains(".")
+        || TeamCityProperties.getBoolean("teamcity.commitStatusPublisher.gitlab.disableUrlEncodingDots"))
+      return s;
+    return s.replace(".", "%2E");
   }
 }

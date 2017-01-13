@@ -97,7 +97,8 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   private void publish(@NotNull String commit, @NotNull String data, @NotNull Repository repository, @NotNull String buildDescription) throws Exception {
-    String url = getApiUrl() + "/projects/" + repository.owner() + "%2F" + repository.repositoryName() + "/statuses/" + commit;
+    String url = getApiUrl() + "/projects/" + GitlabSettings.encodeDots(repository.owner())
+                 + "%2F" + GitlabSettings.encodeDots(repository.repositoryName()) + "/statuses/" + commit;
     LOG.debug("Request url: " + url + ", message: " + data);
     postAsync(url, null, null, data, ContentType.APPLICATION_JSON, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), buildDescription);
   }
