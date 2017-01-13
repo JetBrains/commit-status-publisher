@@ -11,8 +11,9 @@ import java.util.concurrent.locks.Lock;
 
 public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher {
 
+  public static final int DEFAULT_CONNECTION_TIMEOUT = 300 * 1000;
   protected final Map<String, String> myParams;
-  private int myConnectionTimeout = 300 * 1000;
+  private int myConnectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
   protected CommitStatusPublisherProblems myProblems;
   protected SBuildType myBuildType;
   private final String myBuildFeatureId;

@@ -26,7 +26,7 @@ import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -83,13 +83,14 @@ public class ChangeStatusUpdater {
     }
   }
 
-  @NotNull
-  Handler getUpdateHandler(@NotNull VcsRootInstance root,
-                           @NotNull Map<String, String> params,
-                           @NotNull final GitHubPublisher publisher) throws HttpPublisherException {
-
+  void testConnection(@NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
     final GitHubApi api = getGitHubApi(params);
+    Repository repo = parseRepository(root);
+    api.testConnection(repo.owner(), repo.repositoryName());
+  }
 
+  @NotNull
+  private Repository parseRepository(VcsRoot root) throws PublisherException {
     String url = root.getProperty("url");
     Repository repo;
     if (null == url) {
@@ -98,7 +99,18 @@ public class ChangeStatusUpdater {
       repo = GitRepositoryParser.parseRepository(url);
     }
     if (null == repo)
-      throw new HttpPublisherException("Cannot parse repository URL from VCS root " + root.getName());
+      throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
+    return repo;
+  }
+
+  @NotNull
+  Handler getUpdateHandler(@NotNull VcsRoot root,
+                           @NotNull Map<String, String> params,
+                           @NotNull final GitHubPublisher publisher) throws PublisherException {
+
+    final GitHubApi api = getGitHubApi(params);
+
+    Repository repo = parseRepository(root);
 
     final String repositoryOwner = repo.owner();
     final String repositoryName = repo.repositoryName();
@@ -273,7 +285,7 @@ public class ChangeStatusUpdater {
                         "buildId: " + build.getBuildId() + ", " +
                         "status: " + status);
                 return hash;
-              } catch (IOException e) {
+              } catch (Exception e) {
                 LOG.warn("Failed to find status update hash for " + vcsBranch + " for repository " + repositoryName);
               }
             }

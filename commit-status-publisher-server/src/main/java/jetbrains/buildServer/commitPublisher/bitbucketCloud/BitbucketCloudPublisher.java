@@ -23,7 +23,7 @@ import java.util.Map;
 
 class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   private static final Logger LOG = Logger.getInstance(BitbucketCloudPublisher.class.getName());
-  private String myBaseUrl = "https://api.bitbucket.org/";
+  private String myBaseUrl = BitbucketCloudSettings.DEFAULT_API_URL;
   private final WebLinks myLinks;
 
   BitbucketCloudPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId,
@@ -132,7 +132,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
 
 
   @Override
-  protected void processResponse(HttpResponse response) throws HttpPublisherException {
+  public void processResponse(HttpResponse response) throws HttpPublisherException {
     StatusLine statusLine = response.getStatusLine();
     if (statusLine.getStatusCode() >= 400)
       throw new HttpPublisherException(statusLine.getStatusCode(), statusLine.getReasonPhrase(), parseErrorMessage(response));

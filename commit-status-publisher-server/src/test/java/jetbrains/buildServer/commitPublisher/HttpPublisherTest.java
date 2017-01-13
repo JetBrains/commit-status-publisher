@@ -12,14 +12,17 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.*;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 /**
  * @author anton.zamolotskikh, 05/10/16.
  */
 @Test
-public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedTest {
+public abstract class HttpPublisherTest extends AsyncPublisherTest {
+
+  protected String OWNER = "owner";
+  protected String CORRECT_REPO = "project";
+  protected String READ_ONLY_REPO = "readonly";
 
   private HttpServer myHttpServer;
   private int myNumberOfCurrentRequests = 0;
@@ -67,7 +70,10 @@ public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedT
                   InputStream is = entity.getContent();
                   myLastRequest += "\tENTITY: " + StreamUtil.readText(is);
                   httpResponse.setStatusCode(201);
+                } else {
+                  httpResponse.setStatusCode(200);
                 }
+                populateResponse(httpRequest, httpResponse);
                 myNumberOfCurrentRequests--;
                 myProcessingFinished.release();
               }
@@ -75,8 +81,13 @@ public abstract class HttpPublisherServerBasedTest extends PublisherServerBasedT
 
     myHttpServer = bootstrap.create();
     myHttpServer.start();
-    myVcsURL = getServerUrl() + "/owner/project";
+    myVcsURL = getServerUrl() + "/" + OWNER + "/" + CORRECT_REPO;
+    myReadOnlyVcsURL = getServerUrl()  + "/" + OWNER + "/" + READ_ONLY_REPO;
     super.setUp();
+  }
+
+  protected void populateResponse(HttpRequest httpRequest, HttpResponse httpResponse) {
+
   }
 
   @AfterMethod

@@ -1,7 +1,9 @@
 package jetbrains.buildServer.commitPublisher;
 
+import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -53,5 +55,15 @@ class DummyPublisherSettings implements CommitStatusPublisherSettings {
 
   public boolean isEnabled() {
     return true;
+  }
+
+  @Override
+  public boolean isTestConnectionSupported() {
+    return false;
+  }
+
+  @Override
+  public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) {
+    // does nothing
   }
 }

@@ -18,6 +18,7 @@ package jetbrains.buildServer.commitPublisher.github.api.impl;
 
 import com.google.gson.Gson;
 import com.intellij.openapi.diagnostic.Logger;
+import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.*;
@@ -83,6 +84,27 @@ public abstract class GitHubApiImpl implements GitHubApi {
     return pullRequestId;
   }
 
+  public void testConnection(@NotNull final String repoOwner,
+                             @NotNull final String repoName) throws PublisherException {
+    final HttpGet get = new HttpGet(myUrls.getRepoInfo(repoOwner, repoName));
+    try {
+      includeAuthentication(get);
+      setDefaultHeaders(get);
+      logRequest(get, null);
+      final RepoInfo repoInfo = processResponse(get, RepoInfo.class);
+      if (null == repoInfo.name || null == repoInfo.permissions) {
+        throw new PublisherException(String.format("Repository %s/%s is inaccessible", repoOwner, repoName));
+      }
+      if (!repoInfo.permissions.push) {
+        throw new PublisherException(String.format("There is no push access to the repository %s/%s", repoOwner, repoName));
+      }
+    } catch (IOException ioEx) {
+      throw new PublisherException(String.format("I/O error while retrieving %s/%s repository information", repoOwner, repoName), ioEx);
+    } finally {
+      get.abort();
+    }
+  }
+
   public String readChangeStatus(@NotNull final String repoOwner,
                                  @NotNull final String repoName,
                                  @NotNull final String hash) throws IOException {
@@ -142,7 +164,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
   @Nullable
   public String findPullRequestCommit(@NotNull String repoOwner,
                                       @NotNull String repoName,
-                                      @NotNull String branchName) throws IOException {
+                                      @NotNull String branchName) throws IOException, PublisherException {
 
     final String pullRequestId = getPullRequestId(repoName, branchName);
     if (pullRequestId == null) return null;
@@ -156,7 +178,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
 
     final PullRequestInfo pullRequestInfo = processResponse(get, PullRequestInfo.class);
 
-    final RepoInfo head = pullRequestInfo.head;
+    final RepoRefInfo head = pullRequestInfo.head;
     if (head != null) {
       return head.sha;
     }
@@ -164,7 +186,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
   }
 
   @NotNull
-  public Collection<String> getCommitParents(@NotNull String repoOwner, @NotNull String repoName, @NotNull String hash) throws IOException {
+  public Collection<String> getCommitParents(@NotNull String repoOwner, @NotNull String repoName, @NotNull String hash) throws IOException, PublisherException {
 
     final String requestUrl = myUrls.getCommitInfo(repoOwner, repoName, hash);
     final HttpGet get = new HttpGet(requestUrl);
@@ -184,7 +206,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
   }
 
   @NotNull
-  private <T> T processResponse(@NotNull HttpUriRequest request, @NotNull final Class<T> clazz) throws IOException {
+  private <T> T processResponse(@NotNull HttpUriRequest request, @NotNull final Class<T> clazz) throws IOException, PublisherException {
     setDefaultHeaders(request);
     try {
       logRequest(request, null);
@@ -206,7 +228,11 @@ public abstract class GitHubApiImpl implements GitHubApi {
         entity.writeTo(bos);
         final String json = bos.toString("utf-8");
         LOG.debug("Parsing json for " + request.getURI().toString() + ": " + json);
-        return myGson.fromJson(json, clazz);
+        T result = myGson.fromJson(json, clazz);
+        if (null == result) {
+          throw new PublisherException("GitHub publisher fails to parse a response");
+        }
+        return result;
       } finally {
         EntityUtils.consume(entity);
       }
@@ -247,7 +273,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
   }
 
   private void logRequest(@NotNull HttpUriRequest request,
-                          @Nullable String requestEntity) throws IOException {
+                          @Nullable String requestEntity) {
     if (!LOG.isDebugEnabled()) return;
 
     if (requestEntity == null) {

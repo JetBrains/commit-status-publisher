@@ -6,6 +6,18 @@
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
 <jsp:useBean id="currentUser" type="jetbrains.buildServer.users.SUser" scope="request"/>
+<span id="buildFeatureTestConnectionButton" style="display:hidden">
+  <forms:submit id="testConnectionButton" type="button" label="Test connection" onclick="PublisherFeature.testConnection();"/>
+</span>
+<script>
+    $j(document).ready(function() {
+        placeholder = $j("span#editBuildFeatureAdditionalButtons");
+        if(placeholder) {
+            placeholder.empty();
+            placeholder.append($j("span#buildFeatureTestConnectionButton *"));
+        }
+    });
+</script>
 <table style="width: 100%">
     <tr>
         <th><label for="${keys.upsourceServerUrl}">Upsource URL: <l:star/></label></th>

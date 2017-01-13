@@ -24,11 +24,11 @@ import org.jetbrains.annotations.Nullable;
  */
 public class RepoInfo {
   @Nullable
-  public String label;
+  public Long id;
 
   @Nullable
-  public String ref;
+  public String name;
 
   @Nullable
-  public String sha;
+  public Permissions permissions;
 }

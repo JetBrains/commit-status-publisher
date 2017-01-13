@@ -31,6 +31,13 @@ public class GitHubApiPaths {
   }
 
   @NotNull
+  public String getRepoInfo(@NotNull final String repoOwner,
+                            @NotNull final String repoName) {
+    // /repos/:owner/:repo
+    return myUrl + "/repos/" + repoOwner + "/" + repoName;
+  }
+
+  @NotNull
   public String getCommitInfo(@NotNull final String repoOwner,
                               @NotNull final String repoName,
                               @NotNull final String hash) {

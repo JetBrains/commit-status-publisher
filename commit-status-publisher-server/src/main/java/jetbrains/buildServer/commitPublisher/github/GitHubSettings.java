@@ -1,16 +1,14 @@
 package jetbrains.buildServer.commitPublisher.github;
 
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
-import jetbrains.buildServer.commitPublisher.Constants;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.parameters.ReferencesResolverUtil;
-import jetbrains.buildServer.serverSide.InvalidProperty;
-import jetbrains.buildServer.serverSide.PropertiesProcessor;
-import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
@@ -20,15 +18,17 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-public class GitHubSettings implements CommitStatusPublisherSettings {
+public class GitHubSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
   private final ChangeStatusUpdater myUpdater;
-  private CommitStatusPublisherProblems myProblems;
 
   public GitHubSettings(@NotNull ChangeStatusUpdater updater,
+                        @NotNull ExecutorServices executorServices,
+                        @NotNull PluginDescriptor descriptor,
+                        @NotNull WebLinks links,
                         @NotNull CommitStatusPublisherProblems problems) {
+    super(executorServices, descriptor, links, problems);
     myUpdater = updater;
-    myProblems = problems;
   }
 
   @NotNull
@@ -66,6 +66,16 @@ public class GitHubSettings implements CommitStatusPublisherSettings {
       return result;
     }
     return null;
+  }
+
+  @Override
+  public boolean isTestConnectionSupported() {
+    return true;
+  }
+
+  @Override
+  public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
+    myUpdater.testConnection(root, params);
   }
 
   @Nullable
@@ -123,9 +133,5 @@ public class GitHubSettings implements CommitStatusPublisherSettings {
         return result;
       }
     };
-  }
-
-  public boolean isEnabled() {
-    return true;
   }
 }

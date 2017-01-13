@@ -155,7 +155,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  protected void processResponse(HttpResponse response) throws HttpPublisherException {
+  public void processResponse(HttpResponse response) throws HttpPublisherException {
     StatusLine statusLine = response.getStatusLine();
     if (statusLine.getStatusCode() >= 400)
       throw new HttpPublisherException(statusLine.getStatusCode(), statusLine.getReasonPhrase(), parseErrorMessage(response));

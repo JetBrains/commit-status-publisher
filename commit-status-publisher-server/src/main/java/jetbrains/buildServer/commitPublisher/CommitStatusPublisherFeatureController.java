@@ -54,6 +54,7 @@ public class CommitStatusPublisherFeatureController extends BaseController {
     List<VcsRoot> vcsRoots = getVcsRoots(request);
     mv.addObject("vcsRoots", vcsRoots);
     Map <String, String> params = props.getProperties();
+
     if (params.containsKey(Constants.VCS_ROOT_ID_PARAM)) {
       Long internalId;
       String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
@@ -62,23 +63,22 @@ public class CommitStatusPublisherFeatureController extends BaseController {
       } catch (NumberFormatException ex) {
         internalId = null;
       }
-      boolean bingo = false;
+      SVcsRoot vcsRoot = null;
       for (VcsRoot vcs: vcsRoots) {
         if (!(vcs instanceof SVcsRoot)) continue;
-        SVcsRoot sVcs = (SVcsRoot) vcs;
-        if (sVcs.getExternalId().equals(vcsRootId)) {
-          bingo = true;
+        SVcsRoot candidate = (SVcsRoot) vcs;
+        if (candidate.getExternalId().equals(vcsRootId)) {
+          vcsRoot = candidate;
           break;
         }
-        if (null != internalId && internalId.equals(sVcs.getId())) {
-          props.setProperty(Constants.VCS_ROOT_ID_PARAM, sVcs.getExternalId());
-          bingo = true;
+        if (null != internalId && internalId.equals(candidate.getId())) {
+          props.setProperty(Constants.VCS_ROOT_ID_PARAM, candidate.getExternalId());
+          vcsRoot = candidate;
           break;
         }
       }
-      if(!bingo) {
+      if(null == vcsRoot) {
         mv.addObject("hasMissingVcsRoot", true);
-        VcsRoot vcsRoot;
         if (null != internalId) {
           vcsRoot = myProjectManager.findVcsRootById(internalId);
         } else {

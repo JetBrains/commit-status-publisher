@@ -18,17 +18,6 @@ import java.util.Map;
 
 class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
 
-  private static final String UPSOURCE_ENDPOINT = "~buildStatus";
-  private static final String PROJECT_FIELD = "project";
-  private static final String KEY_FIELD = "key";
-  private static final String STATE_FIELD = "state";
-  private static final String BUILD_URL_FIELD = "url";
-  private static final String BUILD_NAME_FIELD = "name";
-  private static final String DESCRIPTION_FIELD = "description";
-  private static final String REVISION_FIELD = "revision";
-  private static final String REVISION_MESSAGE_FIELD = "revisionMessage";
-  private static final String REVISION_DATE_FIELD = "revisionDate";
-
   private final VcsModificationHistory myVcsHistory;
   private final WebLinks myLinks;
   private final Gson myGson = new Gson();
@@ -125,7 +114,7 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
 
 
   private void publish(@NotNull String payload, @NotNull String buildDescription) {
-    String url = myParams.get(Constants.UPSOURCE_SERVER_URL) + "/" + UPSOURCE_ENDPOINT;
+    String url = myParams.get(Constants.UPSOURCE_SERVER_URL) + "/" + UpsourceSettings.ENDPOINT_BUILD_STATUS;
     postAsync(url, myParams.get(Constants.UPSOURCE_USERNAME),
             myParams.get(Constants.UPSOURCE_PASSWORD), payload, ContentType.APPLICATION_JSON, null, buildDescription);
   }
@@ -141,17 +130,17 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
                                @Nullable String commitMessage,
                                @Nullable Long commitDate) {
     Map<String, String> data = new HashMap<String, String>();
-    data.put(PROJECT_FIELD, project);
-    data.put(KEY_FIELD, statusKey);
-    data.put(STATE_FIELD, status.getName());
-    data.put(BUILD_NAME_FIELD, buildName);
-    data.put(BUILD_URL_FIELD, buildUrl);
-    data.put(DESCRIPTION_FIELD, description);
-    data.put(REVISION_FIELD, commitRevision);
+    data.put(UpsourceSettings.PROJECT_FIELD, project);
+    data.put(UpsourceSettings.KEY_FIELD, statusKey);
+    data.put(UpsourceSettings.STATE_FIELD, status.getName());
+    data.put(UpsourceSettings.BUILD_NAME_FIELD, buildName);
+    data.put(UpsourceSettings.BUILD_URL_FIELD, buildUrl);
+    data.put(UpsourceSettings.DESCRIPTION_FIELD, description);
+    data.put(UpsourceSettings.REVISION_FIELD, commitRevision);
     if (commitMessage != null)
-      data.put(REVISION_MESSAGE_FIELD, commitMessage);
+      data.put(UpsourceSettings.REVISION_MESSAGE_FIELD, commitMessage);
     if (commitDate != null)
-      data.put(REVISION_DATE_FIELD, commitDate.toString());
+      data.put(UpsourceSettings.REVISION_DATE_FIELD, commitDate.toString());
     return myGson.toJson(data);
   }
 }

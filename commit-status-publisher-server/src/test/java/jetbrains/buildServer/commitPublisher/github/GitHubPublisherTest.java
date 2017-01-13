@@ -1,15 +1,22 @@
 package jetbrains.buildServer.commitPublisher.github;
 
+import com.google.gson.Gson;
 import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.commitPublisher.HttpPublisherServerBasedTest;
+import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
+import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.commitPublisher.github.api.impl.GitHubApiFactoryImpl;
 import jetbrains.buildServer.commitPublisher.github.api.impl.HttpClientWrapperImpl;
+import jetbrains.buildServer.commitPublisher.github.api.impl.data.Permissions;
+import jetbrains.buildServer.commitPublisher.github.api.impl.data.RepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BasePropertiesModel;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.entity.StringEntity;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -24,7 +31,7 @@ import static org.assertj.core.api.BDDAssertions.then;
  * @author anton.zamolotskikh, 05/10/16.
  */
 @Test
-public class GitHubPublisherTest extends HttpPublisherServerBasedTest {
+public class GitHubPublisherTest extends HttpPublisherTest {
 
   public GitHubPublisherTest() {
     myExpectedRegExps.put(Events.QUEUED, null); // not to be tested
@@ -40,6 +47,7 @@ public class GitHubPublisherTest extends HttpPublisherServerBasedTest {
     myExpectedRegExps.put(Events.FAILURE_DETECTED, null); // not to be tested
     myExpectedRegExps.put(Events.MARKED_SUCCESSFUL, null); // not to be tested
     myExpectedRegExps.put(Events.MARKED_RUNNING_SUCCESSFUL, null); // not to be tested
+    myExpectedRegExps.put(Events.TEST_CONNECTION, String.format(".*/repos/owner/project .*")); // not to be tested
   }
 
 
@@ -69,14 +77,46 @@ public class GitHubPublisherTest extends HttpPublisherServerBasedTest {
         }
       });
     }};
-    Map<String, String> params = new HashMap<String, String>() {{
+
+
+    Map<String, String> params = getPublisherParams();
+
+    ChangeStatusUpdater changeStatusUpdater = new ChangeStatusUpdater(myExecServices,
+            new GitHubApiFactoryImpl(new HttpClientWrapperImpl()), myWebLinks);
+
+    myPublisherSettings = new GitHubSettings(changeStatusUpdater, myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
+    myPublisher = new GitHubPublisher(myBuildType, FEATURE_ID, changeStatusUpdater, params, myProblems);
+  }
+
+  @Override
+  protected void populateResponse(HttpRequest httpRequest, HttpResponse httpResponse) {
+    super.populateResponse(httpRequest, httpResponse);
+    if (httpRequest.getRequestLine().getMethod().equals("GET")) {
+      if (httpRequest.getRequestLine().getUri().contains("/repos" +  "/" + OWNER + "/" + CORRECT_REPO)) {
+        respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
+      } else if (httpRequest.getRequestLine().getUri().contains("/repos"  + "/" + OWNER + "/" +  READ_ONLY_REPO)) {
+        respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false);
+      }
+    }
+  }
+
+  private void respondWithRepoInfo(HttpResponse httpResponse, String repoName, boolean isPushPermitted) {
+    Gson gson = new Gson();
+    RepoInfo repoInfo = new RepoInfo();
+    repoInfo.name = repoName;
+    repoInfo.permissions = new Permissions();
+    repoInfo.permissions.pull = true;
+    repoInfo.permissions.push = isPushPermitted;
+    String jsonResponse = gson.toJson(repoInfo);
+    httpResponse.setEntity(new StringEntity(jsonResponse, "UTF-8"));
+  }
+
+  @Override
+  protected Map<String, String> getPublisherParams() {
+    return new HashMap<String, String>() {{
       put(Constants.GITHUB_USERNAME, "user");
       put(Constants.GITHUB_PASSWORD, "pwd");
       put(Constants.GITHUB_SERVER, getServerUrl());
     }};
-
-    ChangeStatusUpdater changeStatusUpdater = new ChangeStatusUpdater(myExecServices,
-            new GitHubApiFactoryImpl(new HttpClientWrapperImpl()), myWebLinks);
-    myPublisher = new GitHubPublisher(myBuildType, FEATURE_ID, changeStatusUpdater, params, myProblems);
   }
 }

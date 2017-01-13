@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.commitPublisher.github.api;
 
+import jetbrains.buildServer.commitPublisher.PublisherException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -27,6 +28,9 @@ import java.util.Collection;
  * Date: 06.09.12 2:39
  */
 public interface GitHubApi {
+
+  void testConnection(@NotNull String repoOwner, @NotNull String repositoryName) throws PublisherException;
+
   String readChangeStatus(@NotNull String repoOwner,
                           @NotNull String repositoryName,
                           @NotNull String hash) throws IOException;
@@ -64,7 +68,7 @@ public interface GitHubApi {
   @Nullable
   String findPullRequestCommit(@NotNull String repoOwner,
                                @NotNull String repoName,
-                               @NotNull String branchName) throws IOException;
+                               @NotNull String branchName) throws IOException, PublisherException;
 
   /**
    * return parent commits for given commit
@@ -77,7 +81,7 @@ public interface GitHubApi {
   @NotNull
   Collection<String> getCommitParents(@NotNull String repoOwner,
                                       @NotNull String repoName,
-                                      @NotNull String hash) throws IOException;
+                                      @NotNull String hash) throws IOException, PublisherException;
    /* Post comment to pull request
    * @param repoName
    * @param hash

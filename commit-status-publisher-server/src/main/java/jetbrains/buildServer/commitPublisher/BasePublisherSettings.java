@@ -1,7 +1,9 @@
 package jetbrains.buildServer.commitPublisher;
 
+import com.google.gson.Gson;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -13,6 +15,7 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
   protected final WebLinks myLinks;
   protected final ExecutorServices myExecutorServices;
   protected CommitStatusPublisherProblems myProblems;
+  protected final Gson myGson = new Gson();
 
   public BasePublisherSettings(@NotNull final ExecutorServices executorServices,
                                @NotNull PluginDescriptor descriptor,
@@ -37,5 +40,11 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
 
   public boolean isEnabled() {
     return true;
+  }
+
+  public boolean isTestConnectionSupported() { return false; }
+
+  public void testConnection(@NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
+    throw new UnsupportedOperationException(String.format("Test connection functionality is not supported by %s publisher", getName()));
   }
 }

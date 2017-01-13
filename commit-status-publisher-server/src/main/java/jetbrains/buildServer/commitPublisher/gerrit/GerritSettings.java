@@ -1,14 +1,11 @@
 package jetbrains.buildServer.commitPublisher.gerrit;
 
 import jetbrains.buildServer.ExtensionHolder;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
-import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.serverSide.InvalidProperty;
-import jetbrains.buildServer.serverSide.PropertiesProcessor;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
+import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -18,25 +15,24 @@ import java.util.*;
 
 import static jetbrains.buildServer.ssh.ServerSshKeyManager.TEAMCITY_SSH_KEY_PROP;
 
-public class GerritSettings implements CommitStatusPublisherSettings {
+public class GerritSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
-  private final PluginDescriptor myDescriptor;
   private final ExtensionHolder myExtensionHolder;
-  private final WebLinks myLinks;
   private final String[] myMandatoryProperties = new String[] {
           Constants.GERRIT_SERVER, Constants.GERRIT_PROJECT, Constants.GERRIT_USERNAME,
           Constants.GERRIT_SUCCESS_VOTE, Constants.GERRIT_FAILURE_VOTE, TEAMCITY_SSH_KEY_PROP};
-  private CommitStatusPublisherProblems myProblems;
+  private GerritClient myGerritClient;
 
 
-  public GerritSettings(@NotNull PluginDescriptor descriptor,
+  public GerritSettings(@NotNull ExecutorServices executorServices,
+                        @NotNull PluginDescriptor descriptor,
                         @NotNull ExtensionHolder extensionHolder,
+                        @NotNull GerritClient gerritClient,
                         @NotNull WebLinks links,
                         @NotNull CommitStatusPublisherProblems problems) {
-    myDescriptor = descriptor;
+    super(executorServices, descriptor, links, problems);
     myExtensionHolder = extensionHolder;
-    myLinks = links;
-    myProblems = problems;
+    myGerritClient = gerritClient;
   }
 
   @NotNull
@@ -70,12 +66,7 @@ public class GerritSettings implements CommitStatusPublisherSettings {
 
   @Nullable
   public GerritPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    Collection<ServerSshKeyManager> extensions = myExtensionHolder.getExtensions(ServerSshKeyManager.class);
-    if (extensions.isEmpty()) {
-      return new GerritPublisher(buildType, buildFeatureId, null, myLinks, params, myProblems);
-    } else {
-      return new GerritPublisher(buildType, buildFeatureId, extensions.iterator().next(), myLinks, params, myProblems);
-    }
+    return new GerritPublisher(buildType, buildFeatureId, myGerritClient, myLinks, params, myProblems);
   }
 
   @NotNull
@@ -97,7 +88,26 @@ public class GerritSettings implements CommitStatusPublisherSettings {
     };
   }
 
+  @Override
+  public boolean isTestConnectionSupported() {
+    return true;
+  }
+
+  @Override
+  public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
+    try {
+      myGerritClient.testConnection(
+        new GerritConnectionDetails(buildTypeOrTemplate.getProject(), params.get(Constants.GERRIT_PROJECT),
+                                    params.get(Constants.GERRIT_SERVER), params.get(Constants.GERRIT_USERNAME),
+                                    params.get(ServerSshKeyManager.TEAMCITY_SSH_KEY_PROP))
+      );
+    } catch (Exception e) {
+      throw new PublisherException("Gerrit publisher connection test has failed", e);
+    }
+  }
+
   public boolean isEnabled() {
     return true;
   }
+
 }

@@ -24,7 +24,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class PullRequestInfo {
   @Nullable
-  public RepoInfo head;
+  public RepoRefInfo head;
   @Nullable
-  public RepoInfo base;
+  public RepoRefInfo base;
 }

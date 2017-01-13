@@ -12,7 +12,7 @@
 
 <c:url value="${publisherSettingsUrl}" var="settingsUrl"/>
 <script type="text/javascript">
-  PublisherFeature = {
+  PublisherFeature = OO.extend(BS.BuildFeatureDialog, {
     showPublisherSettings: function() {
       var url = '${settingsUrl}?${constants.publisherIdParam}=' + $('${constants.publisherIdParam}').value  + "&projectId=${projectId}";
       $j('#publisherSettingsProgress').show();
@@ -22,8 +22,33 @@
         BS.AvailableParams.attachPopups('settingsId=${buildForm.settingsId}', 'textProperty', 'multilineProperty');
       });
       return false;
+    },
+
+    testConnection: function() {
+      var that = this;
+      var info = "";
+      var success = true;
+      var url = '${settingsUrl}?${constants.publisherIdParam}=' + $('${constants.publisherIdParam}').value  + "&projectId=${projectId}&testconnection=yes";
+      BS.PasswordFormSaver.save(that, url, OO.extend(BS.ErrorsAwareListener, {
+        onBeginSave: function(form) {
+          form.setSaving(true);
+          form.disable();
+        },
+
+        onTestConnectionFailedError: function(elem) {
+          info = elem.textContent;
+          success = false;
+        },
+
+        onCompleteSave: function (form, responseXML, err) {
+          BS.XMLResponse.processErrors(responseXML, that, null);
+          BS.TestConnectionDialog.show(success, info, null);
+          form.setSaving(false);
+          form.enable();
+        }
+      }));
     }
-  };
+  });
 </script>
 <c:if test="${fn:length(vcsRoots) == 0}">
 <tr>
@@ -96,3 +121,8 @@
     </td>
   </tr>
 </c:if>
+<bs:dialog dialogId="testConnectionDialog" title="Test Connection" closeCommand="BS.TestConnectionDialog.close();"
+           closeAttrs="showdiscardchangesmessage='false'">
+  <div id="testConnectionStatus"></div>
+  <div id="testConnectionDetails" class="mono"></div>
+</bs:dialog>

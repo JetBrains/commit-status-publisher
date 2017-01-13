@@ -1,7 +1,9 @@
 package jetbrains.buildServer.commitPublisher;
 
+import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -39,4 +41,8 @@ public interface CommitStatusPublisherSettings {
   PropertiesProcessor getParametersProcessor();
 
   boolean isEnabled();
+
+  boolean isTestConnectionSupported();
+
+  void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException;
 }

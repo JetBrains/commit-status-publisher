@@ -11,6 +11,8 @@ public class Constants {
   public static final String PUBLISHER_ID_PARAM = "publisherId";
 
   public static final String PASSWORD_PARAMETER_TYPE = "password";
+  public static final String TEST_CONNECTION_PARAM = "testconnection";
+  public static final String TEST_CONNECTION_YES = "yes";
   public static final String GIT_VCS_NAME = "jetbrains.git";
   public static final String GIT_URL_PARAMETER = "url";
 

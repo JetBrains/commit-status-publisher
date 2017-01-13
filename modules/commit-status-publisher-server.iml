@@ -54,5 +54,6 @@
     <orderEntry type="module" module-name="vcs-plugin-api" scope="TEST" />
     <orderEntry type="module" module-name="server-test-core" scope="TEST" />
     <orderEntry type="module" module-name="web-test-core" scope="TEST" />
+    <orderEntry type="module" module-name="web" />
   </component>
 </module>

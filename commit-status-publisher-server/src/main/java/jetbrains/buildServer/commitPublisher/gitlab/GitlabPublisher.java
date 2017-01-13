@@ -5,6 +5,7 @@ import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
@@ -133,7 +134,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Nullable
-  private Repository parseRepository(@NotNull VcsRootInstance root) {
+  static Repository parseRepository(@NotNull VcsRoot root) {
     if ("jetbrains.git".equals(root.getVcsName())) {
       String url = root.getProperty("url");
       return url == null ? null : GitRepositoryParser.parseRepository(url);

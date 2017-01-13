@@ -19,7 +19,6 @@ import org.jetbrains.annotations.Nullable;
 import org.springframework.web.servlet.mvc.Controller;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.File;
 import java.util.Collections;
 
 /**
@@ -48,7 +47,7 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     myProjectManager = myFixture.getProjectManager();
     final PublisherManager publisherManager = new PublisherManager(Collections.<CommitStatusPublisherSettings>emptyList());
     myController = new CommitStatusPublisherFeatureController(myProjectManager, wcm, pluginDescr, publisherManager,
-            new PublisherSettingsController(wcm, pluginDescr, publisherManager));
+            new PublisherSettingsController(wcm, pluginDescr, publisherManager, myProjectManager));
     myVcsManager = myFixture.getVcsManager();
 
     ServerVcsSupport vcsSupport = new MockVcsSupport("svn") {
@@ -95,36 +94,6 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     @NotNull
     @Override
     public PagePlace getPlaceById(@NotNull PlaceId placeId) {
-      return null;
-    }
-  }
-
-  private class MockPluginDescriptor implements PluginDescriptor {
-    public String getParameterValue(@NotNull final String key) {
-      return null;
-    }
-
-    @NotNull
-    public String getPluginName() {
-      return "";
-    }
-
-    @NotNull
-    public String getPluginResourcesPath() {
-      return "";
-    }
-
-    @NotNull
-    public String getPluginResourcesPath(@NotNull final String relativePath) {
-      return relativePath;
-    }
-
-    public String getPluginVersion() {
-      return null;
-    }
-
-    @NotNull
-    public File getPluginRoot() {
       return null;
     }
   }

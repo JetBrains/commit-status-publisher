@@ -1,11 +1,19 @@
 package jetbrains.buildServer.commitPublisher.gitlab;
 
+import com.google.gson.Gson;
 import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.commitPublisher.HttpPublisherServerBasedTest;
+import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
+import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.PublisherException;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabPermissions;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabProjectAccess;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.entity.StringEntity;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -19,7 +27,7 @@ import static org.assertj.core.api.BDDAssertions.then;
  * @author anton.zamolotskikh, 05/10/16.
  */
 @Test
-public class GitlabPublisherTest extends HttpPublisherServerBasedTest {
+public class GitlabPublisherTest extends HttpPublisherTest {
 
   public GitlabPublisherTest() {
     myExpectedRegExps.put(Events.QUEUED, null); // not to be tested
@@ -35,6 +43,7 @@ public class GitlabPublisherTest extends HttpPublisherServerBasedTest {
     myExpectedRegExps.put(Events.FAILURE_DETECTED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*failed.*%s.*", REVISION, PROBLEM_DESCR));
     myExpectedRegExps.put(Events.MARKED_SUCCESSFUL, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*success.*marked as successful.*", REVISION));
     myExpectedRegExps.put(Events.MARKED_RUNNING_SUCCESSFUL, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*running.*Build marked as successful.*", REVISION));
+    myExpectedRegExps.put(Events.TEST_CONNECTION, ".*/projects/owner%2Fproject .*");
   }
 
   public void should_fail_with_error_on_wrong_vcs_url() throws InterruptedException {
@@ -53,10 +62,40 @@ public class GitlabPublisherTest extends HttpPublisherServerBasedTest {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
-    Map<String, String> params = new HashMap<String, String>() {{
+    myPublisherSettings = new GitlabSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
+    Map<String, String> params = getPublisherParams();
+    myPublisher = new GitlabPublisher(myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
+  }
+
+  @Override
+  protected Map<String, String> getPublisherParams() {
+    return new HashMap<String, String>() {{
       put(Constants.GITLAB_TOKEN, "TOKEN");
       put(Constants.GITLAB_API_URL, getServerUrl());
     }};
-    myPublisher = new GitlabPublisher(myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
   }
+
+  @Override
+  protected void populateResponse(HttpRequest httpRequest, HttpResponse httpResponse) {
+    super.populateResponse(httpRequest, httpResponse);
+    if (httpRequest.getRequestLine().getMethod().equals("GET")) {
+      if (httpRequest.getRequestLine().getUri().contains("/projects" +  "/" + OWNER + "%2F" + CORRECT_REPO)) {
+        respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
+      } else if (httpRequest.getRequestLine().getUri().contains("/projects"  + "/" + OWNER + "%2F" +  READ_ONLY_REPO)) {
+        respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false);
+      }
+    }
+  }
+
+  private void respondWithRepoInfo(HttpResponse httpResponse, String repoName, boolean isPushPermitted) {
+    Gson gson = new Gson();
+    GitLabRepoInfo repoInfo = new GitLabRepoInfo();
+    repoInfo.id = "111";
+    repoInfo.permissions = new GitLabPermissions();
+    repoInfo.permissions.project_access = new GitLabProjectAccess();
+    repoInfo.permissions.project_access.access_level = isPushPermitted ? 30 : 20;
+    String jsonResponse = gson.toJson(repoInfo);
+    httpResponse.setEntity(new StringEntity(jsonResponse, "UTF-8"));
+  }
+
 }
