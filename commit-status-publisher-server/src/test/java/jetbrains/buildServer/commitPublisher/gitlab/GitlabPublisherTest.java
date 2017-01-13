@@ -58,6 +58,14 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     }
   }
 
+  public void should_work_with_dots_in_id() throws PublisherException, InterruptedException {
+    myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/own.er/pro.ject"));
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
+    BuildRevision revision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
+    myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), revision);
+    then(waitForRequest()).isNotNull().matches(String.format(".*/projects/own%%2Eer%%2Fpro%%2Eject/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
+  }
+
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {

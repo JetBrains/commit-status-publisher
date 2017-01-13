@@ -66,7 +66,8 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     String token = params.get(Constants.GITLAB_TOKEN);
     if (null == token || token.length() == 0)
       throw new PublisherException("Missing GitLab API access token");
-    String url = apiUrl + "/projects/" + repository.owner() + "%2F" + repository.repositoryName();
+    String url = apiUrl + "/projects/" + encodeDots(repository.owner())
+                 + "%2F" + encodeDots(repository.repositoryName());
     try {
       HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
         @Override
@@ -120,5 +121,16 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
         return errors;
       }
     };
+  }
+
+  /**
+   * GitLab REST API fails to interpret dots in user/group and project names
+   * used within project ids in URLs for some calls.
+   */
+  public static String encodeDots(@NotNull String s) {
+    if (!s.contains(".")
+        || TeamCityProperties.getBoolean("teamcity.commitStatusPublisher.gitlab.disableUrlEncodingDots"))
+      return s;
+    return s.replace(".", "%2E");
   }
 }
