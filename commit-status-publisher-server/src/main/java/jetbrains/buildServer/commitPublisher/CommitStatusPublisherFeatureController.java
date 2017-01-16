@@ -115,8 +115,10 @@ public class CommitStatusPublisherFeatureController extends BaseController {
     ModelAndView mv = new ModelAndView(myDescriptor.getPluginResourcesPath("editPublisher.jsp"));
     mv.addObject("publishers", getPublisherSettings(false));
     CommitStatusPublisherSettings publisherSettings = myPublisherManager.findSettings(publisherId);
-    if (publisherSettings != null)
+    if (publisherSettings != null) {
       mv.addObject("editedPublisherUrl", publisherSettings.getEditSettingsUrl());
+      mv.addObject("testConnectionSupported", publisherSettings.isTestConnectionSupported());
+    }
     return mv;
   }
 

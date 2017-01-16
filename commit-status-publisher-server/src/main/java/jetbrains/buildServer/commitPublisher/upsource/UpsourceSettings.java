@@ -99,7 +99,7 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
 
   @Override
   public boolean isTestConnectionSupported() {
-    return true;
+    return false;
   }
 
   @Override

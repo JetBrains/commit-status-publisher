@@ -62,6 +62,7 @@ public class PublisherSettingsController extends BaseController {
     }
     request.setAttribute("propertiesBean", new BasePropertiesBean(params));
     request.setAttribute("currentUser", SessionUser.getUser(request));
+    request.setAttribute("testConnectionSupported", settings.isTestConnectionSupported());
     if (settingsUrl != null)
       request.getRequestDispatcher(settingsUrl).include(request, response);
 

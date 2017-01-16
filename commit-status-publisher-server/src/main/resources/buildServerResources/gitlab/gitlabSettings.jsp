@@ -2,18 +2,7 @@
 <%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
 <%@ taglib prefix="l" tagdir="/WEB-INF/tags/layout" %>
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
-<span id="buildFeatureTestConnectionButton" style="display:hidden">
-  <forms:submit id="testConnectionButton" type="button" label="Test connection" onclick="PublisherFeature.testConnection();"/>
-</span>
-<script>
-    $j(document).ready(function() {
-        placeholder = $j("span#editBuildFeatureAdditionalButtons");
-        if(placeholder) {
-            placeholder.empty();
-            placeholder.append($j("span#buildFeatureTestConnectionButton *"));
-        }
-    });
-</script>
+
 <table style="width: 100%">
     <tr>
         <th><label for="${keys.gitlabServer}">GitLab URL: <l:star/></label></th>

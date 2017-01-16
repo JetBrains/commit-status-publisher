@@ -9,8 +9,21 @@
 <jsp:useBean id="propertiesBean" scope="request" type="jetbrains.buildServer.controllers.BasePropertiesBean"/>
 <jsp:useBean id="constants" class="jetbrains.buildServer.commitPublisher.Constants" scope="request" />
 <jsp:useBean id="buildForm" type="jetbrains.buildServer.controllers.admin.projects.EditableBuildTypeSettingsForm" scope="request"/>
-
 <c:url value="${publisherSettingsUrl}" var="settingsUrl"/>
+<c:if test="${testConnectionSupported}">
+  <span id="buildFeatureTestConnectionButton" style="display:none;">
+    <forms:submit id="testConnectionButton" type="button" label="Test connection" onclick="PublisherFeature.testConnection();"/>
+  </span>
+  <script>
+    $j(document).ready(function() {
+      placeholder = $j("span#editBuildFeatureAdditionalButtons");
+      if(placeholder.length) {
+        placeholder.empty();
+        placeholder.append($j("span#buildFeatureTestConnectionButton *"));
+      }
+    });
+  </script>
+</c:if>
 <script type="text/javascript">
   PublisherFeature = OO.extend(BS.BuildFeatureDialog, {
     showPublisherSettings: function() {
