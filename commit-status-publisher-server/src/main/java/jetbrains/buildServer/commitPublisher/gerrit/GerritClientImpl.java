@@ -28,7 +28,7 @@ public class GerritClientImpl extends GerritClientBase implements GerritClient {
   private final ExtensionHolder myExtensionHolder;
   private final CommitStatusPublisherProblems myProblems;
 
-  GerritClientImpl(@NotNull ExtensionHolder extensionHolder, @NotNull CommitStatusPublisherProblems problems) {
+  public GerritClientImpl(@NotNull ExtensionHolder extensionHolder, @NotNull CommitStatusPublisherProblems problems) {
     myExtensionHolder = extensionHolder;
     myProblems = problems;
   }
