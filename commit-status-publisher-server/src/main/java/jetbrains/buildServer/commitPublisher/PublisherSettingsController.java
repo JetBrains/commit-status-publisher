@@ -1,5 +1,6 @@
 package jetbrains.buildServer.commitPublisher;
 
+import com.intellij.openapi.diagnostic.Logger;
 import java.util.HashMap;
 import jetbrains.buildServer.controllers.*;
 import jetbrains.buildServer.controllers.admin.projects.EditBuildTypeFormFactory;
@@ -29,6 +30,7 @@ public class PublisherSettingsController extends BaseController {
   private final String myUrl;
   private final PublisherManager myPublisherManager;
   private final ProjectManager myProjectManager;
+  private final static Logger LOG = Logger.getInstance(PublisherSettingsController.class.getName());
 
   public PublisherSettingsController(@NotNull WebControllerManager controllerManager,
                                      @NotNull PluginDescriptor descriptor,
@@ -101,7 +103,13 @@ public class PublisherSettingsController extends BaseController {
           PluginPropertiesUtil.bindPropertiesFromRequest(request, propBean);
           testConnection(settings, propBean.getProperties(), getBuildTypeOrTemplate(request.getParameter("id")));
         } catch (PublisherException ex) {
-          final String msg = ex.getMessage();
+          StringBuffer msgBuf = new StringBuffer(ex.getMessage());
+          Throwable cause = ex.getCause();
+          if (null != cause) {
+            msgBuf.append(String.format(": %s", cause.getMessage()));
+          }
+          final String msg = msgBuf.toString();
+          LOG.debug("Test connection failure", ex);
           XmlResponseUtil.writeErrors(xmlResponse, new ActionErrors() {{ addError("testConnectionFailed", msg); }});
         }
       }
