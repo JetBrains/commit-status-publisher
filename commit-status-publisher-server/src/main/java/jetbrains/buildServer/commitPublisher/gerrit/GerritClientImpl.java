@@ -53,7 +53,8 @@ public class GerritClientImpl extends GerritClientBase implements GerritClient {
       channel.connect();
       out = readFully(stdout);
       String err = readFully(stderr);
-      LOG.info("Command '" + command + "' finished, stdout: '" + out + "', stderr: '" + err + "', exitCode: " + channel.getExitStatus());
+      LOG.info("Command '" + command + "' finished, exitCode: " + channel.getExitStatus());
+      LOG.debug("Command '" + command + "' has returned stdout: '" + out + "', stderr: '" + err + "'");
       if (err.length() > 0)
         throw new IOException(err);
     } finally {
