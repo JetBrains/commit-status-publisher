@@ -105,7 +105,7 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
                            @NotNull final String command) throws IOException {
       myLastRequest = String.format("project: %s, server: %s, user: %s, command: %s",
                                     connection.getProject().getName(), connection.getServer(), connection.getUserName(), command);
-      return "{\"PRJ1\":{\"id\":\"123\"}}"; // TODO: must return some result
+      return "{\"PRJ1\":{\"id\":\"123\"}}"; 
     }
   }
 }

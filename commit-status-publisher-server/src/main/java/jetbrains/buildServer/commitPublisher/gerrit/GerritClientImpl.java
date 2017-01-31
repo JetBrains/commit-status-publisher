@@ -33,7 +33,6 @@ public class GerritClientImpl extends GerritClientBase implements GerritClient {
     myProblems = problems;
   }
 
-  // TODO: must return response
   public String runCommand(@NotNull GerritConnectionDetails connectionDetails, @NotNull String command) throws JSchException, IOException {
     ChannelExec channel = null;
     Session session = null;
