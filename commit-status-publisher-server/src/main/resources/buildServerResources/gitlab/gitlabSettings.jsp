@@ -2,7 +2,13 @@
 <%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
 <%@ taglib prefix="l" tagdir="/WEB-INF/tags/layout" %>
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
-
+<c:if test="${testConnectionSupported}">
+    <script>
+        $j(document).ready(function() {
+            PublisherFeature.showTestConnection();
+        });
+    </script>
+</c:if>
 <table style="width: 100%">
     <tr>
         <th><label for="${keys.gitlabServer}">GitLab URL: <l:star/></label></th>

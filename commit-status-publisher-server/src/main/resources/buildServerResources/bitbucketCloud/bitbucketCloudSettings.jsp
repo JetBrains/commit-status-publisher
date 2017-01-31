@@ -5,6 +5,13 @@
 <%@ taglib prefix="bs" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
+<c:if test="${testConnectionSupported}">
+  <script>
+    $j(document).ready(function() {
+      PublisherFeature.showTestConnection();
+    });
+  </script>
+</c:if>
 <table style="width: 100%">
   <tr>
     <th><label for="${keys.bitbucketCloudUsername}">Bitbucket Username: <l:star/></label></th>

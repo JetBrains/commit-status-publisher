@@ -18,7 +18,13 @@
   --%>
 
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants"/>
-
+<c:if test="${testConnectionSupported}">
+  <script>
+    $j(document).ready(function() {
+      PublisherFeature.showTestConnection();
+    });
+  </script>
+</c:if>
 <table style="width: 100%">
   <props:selectSectionProperty name="${keys.authenticationTypeKey}" title="Authentication Type">
 

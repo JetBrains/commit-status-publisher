@@ -138,10 +138,6 @@ public class PublisherSettingsController extends BaseController {
     if (null == vcsRoot) {
       throw new PublisherException(String.format("Unknown VCS root id '%s'", vcsRootId));
     }
-
-    // TODO: try actual publishing of the status! (manually)
-
-
     settings.testConnection(buildTypeOrTemplate, vcsRoot, resolvedProperties);
   }
 

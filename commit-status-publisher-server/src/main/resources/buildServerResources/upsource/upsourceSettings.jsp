@@ -6,7 +6,13 @@
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
 <jsp:useBean id="currentUser" type="jetbrains.buildServer.users.SUser" scope="request"/>
-
+<c:if test="${testConnectionSupported}">
+    <script>
+        $j(document).ready(function() {
+            PublisherFeature.showTestConnection();
+        });
+    </script>
+</c:if>
 <table style="width: 100%">
     <tr>
         <th><label for="${keys.upsourceServerUrl}">Upsource URL: <l:star/></label></th>
