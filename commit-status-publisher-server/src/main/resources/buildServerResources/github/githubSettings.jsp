@@ -84,6 +84,26 @@
 <table style="width: 100%">
   <props:selectSectionProperty name="${keys.authenticationTypeKey}" title="Authentication Type">
 
+    <props:selectSectionPropertyContent value="${keys.authenticationTypeTokenValue}" caption="Access Token">
+      <tr>
+        <th><label for="${keys.accessTokenKey}">Access Token: <l:star/></label></th>
+        <td>
+          <props:passwordProperty name="${keys.accessTokenKey}" className="longField"/>
+            ${oauth_connection_fragment}
+          <props:hiddenProperty name="${keys.OAuthUserKey}" />
+          <props:hiddenProperty name="${keys.OAuthProviderIdKey}" />
+          <span class="error" id="error_${keys.accessTokenKey}"></span>
+          <span class="smallNote">
+            GitHub <a href="https://github.com/settings/applications" target="_blank">Personal Access Token</a>
+            <br />
+            It is required to have the following permissions:
+            <strong><em>repo:status</em></strong> and
+            <strong><em>public_repo</em></strong> or <strong><em>repo</em></strong> depending on the repository type
+          </span>
+        </td>
+      </tr>
+    </props:selectSectionPropertyContent>
+
     <props:selectSectionPropertyContent value="${keys.authenticationTypePasswordValue}" caption="Password">
       <tr>
         <th><label for="${keys.userNameKey}">GitHub Username: <l:star/></label></th>
@@ -101,25 +121,6 @@
       </tr>
     </props:selectSectionPropertyContent>
 
-    <props:selectSectionPropertyContent value="${keys.authenticationTypeTokenValue}" caption="Access Token">
-      <tr>
-        <th><label for="${keys.accessTokenKey}">Access Token: <l:star/></label></th>
-        <td>
-          <props:passwordProperty name="${keys.accessTokenKey}" className="longField"/>
-          ${oauth_connection_fragment}
-          <props:hiddenProperty name="${keys.OAuthUserKey}" />
-          <props:hiddenProperty name="${keys.OAuthProviderIdKey}" />
-          <span class="error" id="error_${keys.accessTokenKey}"></span>
-          <span class="smallNote">
-            GitHub <a href="https://github.com/settings/applications" target="_blank">Personal Access Token</a>
-            <br />
-            It is required to have the following permissions:
-            <strong><em>repo:status</em></strong> and
-            <strong><em>public_repo</em></strong> or <strong><em>repo</em></strong> depending on the repository type
-          </span>
-        </td>
-      </tr>
-    </props:selectSectionPropertyContent>
   </props:selectSectionProperty>
 
   <tr>
