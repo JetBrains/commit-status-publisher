@@ -61,8 +61,8 @@ public class StashPublisherTest extends HttpPublisherTest {
   }
 
   @Override
-  protected void populateResponse(HttpRequest httpRequest, HttpResponse httpResponse) {
-    super.populateResponse(httpRequest, httpResponse);
+  protected void populateResponse(HttpRequest httpRequest, String requestData, HttpResponse httpResponse) {
+    super.populateResponse(httpRequest, requestData, httpResponse);
     if (httpRequest.getRequestLine().getMethod().equals("GET")) {
       if (httpRequest.getRequestLine().getUri().endsWith(OWNER + "/repos/" + CORRECT_REPO)) {
         respondWithRepoInfo(httpResponse, CORRECT_REPO, true);

@@ -8,9 +8,7 @@ import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.upsource.data.UpsourceCurrentUser;
 import jetbrains.buildServer.commitPublisher.upsource.data.UpsourceGetCurrentUserResult;
-import org.apache.http.Header;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
+import org.apache.http.*;
 import org.apache.http.entity.StringEntity;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -38,7 +36,7 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, String.format(".*~buildStatus.*ENTITY:.*PRJ1.*%s.*failed.*%s.*", PROBLEM_DESCR, REVISION));
     myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*~buildStatus.*ENTITY:.*PRJ1.*Build marked as successful.*success.*%s.*", REVISION));
     myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*~buildStatus.*ENTITY:.*PRJ1.*Build marked as successful.*in_progress.*%s.*", REVISION));
-    myExpectedRegExps.put(EventToTest.TEST_CONNECTION, String.format(".*~rpc/getCurrentUser.*"));
+    myExpectedRegExps.put(EventToTest.TEST_CONNECTION, String.format(".*~buildStatusTestConnection.*\"project\":\"PRJ1\".*"));
   }
 
   @BeforeMethod
@@ -48,6 +46,13 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
     myPublisherSettings = new UpsourceSettings(myFixture.getVcsHistory(), myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
     Map<String, String> params = getPublisherParams();
     myPublisher = new UpsourcePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myFixture.getVcsHistory(), myExecServices, myWebLinks, params, myProblems);
+  }
+
+  @Override
+  protected void test_testConnection_failure(String repoURL, Map <String, String> params) throws InterruptedException {
+    // releases extra 1 permit, as Upsource testConnection can carry out up to two requests
+    myServerMutex.release(1);
+    super.test_testConnection_failure(repoURL, params);
   }
 
   @Override
@@ -83,23 +88,38 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
     }};
   }
 
-  @Override
-  protected void populateResponse(HttpRequest httpRequest, HttpResponse httpResponse) {
-    super.populateResponse(httpRequest, httpResponse);
-    if (httpRequest.getRequestLine().getMethod().equals("GET") &&
-        httpRequest.getRequestLine().getUri().contains(UpsourceSettings.ENDPOINT_RPC + "/" + UpsourceSettings.QUERY_GET_CURRENT_USER)) {
-      final Header [] headers = httpRequest.getHeaders("Authorization");
-      String username = null;
-      if (headers.length > 0) {
-        String auth = headers[0].getValue();
-        if (auth.startsWith("Basic")) {
-          String base64Credentials = auth.substring("Basic".length()).trim();
-          String credentials = new String(Base64.getDecoder().decode(base64Credentials), Charset.forName("UTF-8"));
-          final String[] values = credentials.split(":", 2);
-          username = values[0];
-        }
+  private boolean isCorrectUser(HttpRequest httpRequest, String correctUsername) {
+    final Header [] headers = httpRequest.getHeaders("Authorization");
+    if (headers.length > 0) {
+      String auth = headers[0].getValue();
+      if (auth.startsWith("Basic")) {
+        String base64Credentials = auth.substring("Basic".length()).trim();
+        String credentials = new String(Base64.getDecoder().decode(base64Credentials), Charset.forName("UTF-8"));
+        final String[] values = credentials.split(":", 2);
+        return correctUsername.equals(values[0]);
       }
-      if (!"user".equals(username)) {
+    }
+    return false;
+  }
+
+  @Override
+  protected void populateResponse(HttpRequest httpRequest, String requestData, HttpResponse httpResponse) {
+    super.populateResponse(httpRequest, requestData, httpResponse);
+    if (httpRequest.getRequestLine().getUri().contains(UpsourceSettings.ENDPOINT_TEST_CONNECTION)) {
+      if (!isCorrectUser(httpRequest, "user")) {
+        httpResponse.setStatusCode(401);
+        return;
+      }
+      if (null == requestData) {
+        fail(String.format("No data submitted to %s endpoint", UpsourceSettings.ENDPOINT_TEST_CONNECTION));
+      }
+      if (requestData.contains("\"PRJ1\"")) {
+        httpResponse.setStatusCode(200);
+      } else {
+        httpResponse.setStatusCode(404);
+      }
+    }  else if (httpRequest.getRequestLine().getUri().contains(UpsourceSettings.ENDPOINT_RPC + "/" + UpsourceSettings.QUERY_GET_CURRENT_USER)) {
+      if (!isCorrectUser(httpRequest, "user")) {
         httpResponse.setStatusCode(401);
         return;
       }

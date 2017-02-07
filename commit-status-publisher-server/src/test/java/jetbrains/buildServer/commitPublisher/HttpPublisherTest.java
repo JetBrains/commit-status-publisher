@@ -65,15 +65,17 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
                   return;
                 }
                 myLastRequest = httpRequest.getRequestLine().toString();
+                String requestData = null;
                 if (httpRequest instanceof HttpEntityEnclosingRequest) {
                   HttpEntity entity = ((HttpEntityEnclosingRequest) httpRequest).getEntity();
                   InputStream is = entity.getContent();
-                  myLastRequest += "\tENTITY: " + StreamUtil.readText(is);
+                  requestData = StreamUtil.readText(is);
+                  myLastRequest += "\tENTITY: " + requestData;
                   httpResponse.setStatusCode(201);
                 } else {
                   httpResponse.setStatusCode(200);
                 }
-                populateResponse(httpRequest, httpResponse);
+                populateResponse(httpRequest, requestData, httpResponse);
                 myNumberOfCurrentRequests--;
                 myProcessingFinished.release();
               }
@@ -86,7 +88,7 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
     super.setUp();
   }
 
-  protected void populateResponse(HttpRequest httpRequest, HttpResponse httpResponse) {
+  protected void populateResponse(HttpRequest httpRequest, String requestData, HttpResponse httpResponse) {
 
   }
 
