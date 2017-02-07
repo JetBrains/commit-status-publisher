@@ -76,8 +76,8 @@
 
 <c:set var="oauth_connection_fragment">
   <c:forEach items="${oauthConnections.keySet()}" var="connection">
-    <c:set var="title">Pick repository from <c:out value="${connection.parameters['gitHubUrl']}"/></c:set>
-    <span class="githubRepoControl"><i class="tc-icon icon16 tc-icon_github${connection.oauthProvider.type == 'GHE' ? '-enterprise' : ''}" title="${title}" onclick="BS.GitHubAccessTokenPopup.showPopup(this, '${connection.id}')"></i></span>
+    <c:set var="title">Acquire an access token from <c:out value="${connection.parameters['gitHubUrl']}"/></c:set>
+    <span class="githubRepoControl"><i class="icon-magic" style="cursor:pointer;" title="${title}" onclick="BS.GitHubAccessTokenPopup.showPopup(this, '${connection.id}')"></i></span>
   </c:forEach>
 </c:set>
 
