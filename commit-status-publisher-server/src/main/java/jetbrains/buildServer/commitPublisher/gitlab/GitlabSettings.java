@@ -101,7 +101,7 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
   @NotNull
   @Override
   public String describeParameters(@NotNull Map<String, String> params) {
-    String result = "Publish status to GitLab";
+    String result = super.describeParameters(params);
     String url = params.get(Constants.GITLAB_API_URL);
     if (url != null)
       result += " " + WebUtil.escapeXml(url);

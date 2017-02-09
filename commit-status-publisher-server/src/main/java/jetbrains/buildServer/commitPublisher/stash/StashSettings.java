@@ -49,7 +49,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
     String url = params.get(Constants.STASH_BASE_URL);
-    return getName() + (url != null ? " " + WebUtil.escapeXml(url) : "");
+    return super.describeParameters(params) + (url != null ? ": " + WebUtil.escapeXml(url) : "");
   }
 
   @Nullable

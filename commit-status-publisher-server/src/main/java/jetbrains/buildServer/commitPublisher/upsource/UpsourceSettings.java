@@ -69,9 +69,10 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
   public String describeParameters(@NotNull Map<String, String> params) {
     String serverUrl = params.get(Constants.UPSOURCE_SERVER_URL);
     String projectId = params.get(Constants.UPSOURCE_PROJECT_ID);
-    if (serverUrl == null || projectId == null)
-      return getName();
-    return "Upsource URL: " + WebUtil.escapeXml(serverUrl) + ", Upsource project ID: " + WebUtil.escapeXml(projectId);
+    String result = super.describeParameters(params);
+    if (serverUrl != null && projectId != null)
+      result += ": " + WebUtil.escapeXml(serverUrl) + ", Project ID: " + WebUtil.escapeXml(projectId);
+    return result;
   }
 
   @Nullable

@@ -18,6 +18,7 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.SessionUser;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
@@ -117,7 +118,12 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
 
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
-    return "Update change status into GitHub";
+    String result = super.describeParameters(params);
+    String url = params.get(Constants.GITHUB_SERVER);
+    if (null != url && !url.equals(GitHubApiFactory.DEFAULT_URL)) {
+      result += ": " + WebUtil.escapeXml(url);
+    }
+    return result;
   }
 
   @Nullable

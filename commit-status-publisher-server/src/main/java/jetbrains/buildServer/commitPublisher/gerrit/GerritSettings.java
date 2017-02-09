@@ -71,7 +71,7 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
 
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
-    return "Gerrit " + WebUtil.escapeXml(params.get(Constants.GERRIT_SERVER)) + "/" + WebUtil.escapeXml(params.get(Constants.GERRIT_PROJECT));
+    return super.describeParameters(params) + ": " + WebUtil.escapeXml(params.get(Constants.GERRIT_SERVER)) + "/" + WebUtil.escapeXml(params.get(Constants.GERRIT_PROJECT));
   }
 
   @Nullable

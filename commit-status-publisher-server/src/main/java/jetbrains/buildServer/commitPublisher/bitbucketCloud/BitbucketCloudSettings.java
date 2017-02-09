@@ -53,11 +53,6 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
     return new BitbucketCloudPublisher(buildType, buildFeatureId, myExecutorServices, myLinks, params, myProblems);
   }
 
-  @NotNull
-  public String describeParameters(@NotNull Map<String, String> params) {
-    return "Bitbucket Cloud";
-  }
-
   @Nullable
   public PropertiesProcessor getParametersProcessor() {
     return new PropertiesProcessor() {

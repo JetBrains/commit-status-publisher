@@ -44,6 +44,12 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
 
   @NotNull
   @Override
+  public String describeParameters(@NotNull final Map<String, String> params) {
+    return String.format("Post commit status to %s", getName());
+  }
+
+  @NotNull
+  @Override
   public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(final SProject project, final SUser user) {
     return Collections.emptyMap();
   }
