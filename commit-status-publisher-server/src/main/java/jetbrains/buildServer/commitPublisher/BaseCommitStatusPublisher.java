@@ -3,6 +3,7 @@ package jetbrains.buildServer.commitPublisher;
 import com.google.common.util.concurrent.Striped;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -83,6 +84,12 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   @Override
   public CommitStatusPublisherSettings getSettings() {
     return mySettings;
+  }
+
+  @Override
+  public boolean isPublishingForRevision(@NotNull final BuildRevision revision) {
+    VcsRoot vcsRoot = revision.getRoot();
+    return getSettings().isPublishingForVcsRoot(vcsRoot);
   }
 
   @NotNull

@@ -41,5 +41,7 @@ public interface CommitStatusPublisher {
   @NotNull
   CommitStatusPublisherSettings getSettings();
 
+  boolean isPublishingForRevision(@NotNull BuildRevision revision);
+
   void setConnectionTimeout(int timeout);
 }

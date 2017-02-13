@@ -134,7 +134,7 @@ public class CommitStatusPublisherFeatureController extends BaseController {
   }
 
   @NotNull
-  private List<VcsRoot> getVcsRoots(@NotNull HttpServletRequest request) {
+  private static List<VcsRoot> getVcsRoots(@NotNull HttpServletRequest request) {
     List<VcsRoot> roots = new ArrayList<VcsRoot>();
     BuildTypeForm buildTypeForm = (BuildTypeForm) request.getAttribute("buildForm");
     for (VcsRootEntry entry : buildTypeForm.getVcsRootsBean().getVcsRoots()) {
@@ -144,11 +144,10 @@ public class CommitStatusPublisherFeatureController extends BaseController {
   }
 
   @NotNull
-  private SProject getProject(@NotNull HttpServletRequest request) {
+  private static SProject getProject(@NotNull HttpServletRequest request) {
     BuildTypeForm buildTypeForm = (BuildTypeForm) request.getAttribute("buildForm");
     return buildTypeForm.getProject();
   }
-
 
   private List<CommitStatusPublisherSettings> getPublisherSettings(boolean newPublisher) {
     List<CommitStatusPublisherSettings> publishers = new ArrayList<CommitStatusPublisherSettings>(myPublisherManager.getAllPublisherSettings());

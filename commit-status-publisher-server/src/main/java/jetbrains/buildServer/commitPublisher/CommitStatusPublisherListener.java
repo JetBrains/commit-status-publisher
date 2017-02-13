@@ -1,6 +1,7 @@
 package jetbrains.buildServer.commitPublisher;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.*;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -10,9 +11,6 @@ import jetbrains.buildServer.util.EventDispatcher;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 public class CommitStatusPublisherListener extends BuildServerAdapter {
 
@@ -188,13 +186,14 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     LOG.debug("Event: " + event + ", build " + LogUtil.describe(build) + ", publishers: " + publishers.values());
     for (Map.Entry<String, CommitStatusPublisher> pubEntry : publishers.entrySet()) {
       CommitStatusPublisher publisher = pubEntry.getValue();
-      BuildRevision revision = getBuildRevisionForVote(event, publisher, build);
-      if (revision == null) {
-        LOG.info("Event: " + event + ", build " + LogUtil.describe(build) + ", cannot find revision for publisher " +
-                publisher + ", skip it");
-        continue;
+      List<BuildRevision> revisions = getBuildRevisionForVote(publisher, build);
+      if (revisions.isEmpty()) {
+        LOG.info("Event: " + event + ", build " + LogUtil.describe(build) + ", publisher " + publisher +
+                 ": no compatible revisions found");
       }
-      runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision);
+      for (BuildRevision revision: revisions) {
+        runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision);
+      }
     }
     myProblems.clearObsoleteProblems(buildType, publishers.keySet());
   }
@@ -210,13 +209,14 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     LOG.debug("Event: " + event + ", build " + LogUtil.describe(build) + ", publishers: " + publishers.values());
     for (Map.Entry<String, CommitStatusPublisher> pubEntry : publishers.entrySet()) {
       CommitStatusPublisher publisher = pubEntry.getValue();
-      BuildRevision revision = getQueuedBuildRevisionForVote(event, buildType, publisher, build);
-      if (revision == null) {
-        LOG.info("Event: " + event + ", build " + LogUtil.describe(build) + ", cannot find revision for publisher " +
-                publisher + ", skip it");
-        continue;
+      List<BuildRevision> revisions = getQueuedBuildRevisionForVote(buildType, publisher, build);
+      if (revisions.isEmpty()) {
+        LOG.info("Event: " + event + ", build " + LogUtil.describe(build) + ", publisher " + publisher +
+                 ": no compatible revisions found");
       }
-      runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision);
+      for (BuildRevision revision: revisions) {
+        runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision);
+      }
     }
     myProblems.clearObsoleteProblems(buildType, publishers.keySet());
   }
@@ -255,30 +255,34 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     return publishers;
   }
 
-  @Nullable
-  private BuildRevision getBuildRevisionForVote(@NotNull String event, @NotNull CommitStatusPublisher publisher, @NotNull SBuild build) {
+  @NotNull
+  private List<BuildRevision> getBuildRevisionForVote(@NotNull CommitStatusPublisher publisher, @NotNull SBuild build) {
 
-    if (build.getBuildPromotion().isFailedToCollectChanges()) return null;
+    if (build.getBuildPromotion().isFailedToCollectChanges()) return Collections.emptyList();
 
     String vcsRootId = publisher.getVcsRootId();
     if (vcsRootId == null) {
-      LOG.info("Event: " + event + ", build " + LogUtil.describe(build) + ", publisher " + publisher +
-              ": VCS root is not specified");
-      return null;
+      List<BuildRevision> revisions = new ArrayList<BuildRevision>();
+      for (BuildRevision revision : build.getRevisions()) {
+        if (publisher.isPublishingForRevision(revision)) {
+          revisions.add(revision);
+        }
+      }
+      return revisions;
     }
 
     try {
       long parentRootId = Long.valueOf(vcsRootId);
-      return findRevisionByInternalId(build, parentRootId);
+      return Arrays.asList(findRevisionByInternalId(build, parentRootId));
     } catch (NumberFormatException e) {
       // external id
       for (BuildRevision revision : build.getRevisions()) {
         if (vcsRootId.equals(revision.getRoot().getParent().getExternalId()))
-          return revision;
+          return Arrays.asList(revision);
       }
     }
 
-    return null;
+    return Collections.emptyList();
   }
 
   @Nullable
@@ -291,22 +295,21 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     return null;
   }
 
-  @Nullable
-  private BuildRevision getQueuedBuildRevisionForVote(@NotNull String event,
-                                                      @NotNull SBuildType buildType,
-                                                      @NotNull CommitStatusPublisher publisher,
-                                                      @NotNull SQueuedBuild build) {
+  @NotNull
+  private List<BuildRevision> getQueuedBuildRevisionForVote(@NotNull SBuildType buildType,
+                                                            @NotNull CommitStatusPublisher publisher,
+                                                            @NotNull SQueuedBuild build) {
     BuildPromotion p = build.getBuildPromotion();
     SBuild b = p.getAssociatedBuild();
     if (b != null) {
-      BuildRevision revision = getBuildRevisionForVote(event, publisher, b);
-      if (revision != null)
-        return revision;
+      List<BuildRevision> revisions = getBuildRevisionForVote(publisher, b);
+      if (!revisions.isEmpty())
+        return revisions;
     }
 
     String branchName = getBranchName(p);
     BranchEx branch = ((BuildTypeEx) buildType).getBranch(branchName);
-    return getBuildRevisionForVote(event, publisher, branch.getDummyBuild());
+    return getBuildRevisionForVote(publisher, branch.getDummyBuild());
   }
 
   @NotNull

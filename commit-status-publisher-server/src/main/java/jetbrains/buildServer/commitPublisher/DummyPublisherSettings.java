@@ -68,6 +68,11 @@ class DummyPublisherSettings implements CommitStatusPublisherSettings {
   }
 
   @Override
+  public boolean isPublishingForVcsRoot(final VcsRoot vcsRoot) {
+    return true;
+  }
+
+  @Override
   public boolean isTestConnectionSupported() {
     return false;
   }

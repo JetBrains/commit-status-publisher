@@ -20,15 +20,6 @@ public class CommitStatusPublisherFeatureTest extends CommitStatusPublisherTestB
     super.setUp();
   }
 
-
-  @TestFor(issues = "TW-41888")
-  public void should_not_allow_to_save_feature_without_selected_vcs_root() {
-    PropertiesProcessor processor = myFeature.getParametersProcessor();
-    Collection<InvalidProperty> errors = processor.process(map(Constants.PUBLISHER_ID_PARAM, "somePublisherId"));
-    then(errors).extracting("propertyName", "invalidReason").contains(tuple(Constants.VCS_ROOT_ID_PARAM, "Choose a VCS root"));
-  }
-
-
   public void should_not_allow_to_save_feature_without_publisher_selected() {
     PropertiesProcessor processor = myFeature.getParametersProcessor();
     Collection<InvalidProperty> errors = processor.process(map(Constants.VCS_ROOT_ID_PARAM, "someRootId"));

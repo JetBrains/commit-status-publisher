@@ -58,6 +58,11 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
     return true;
   }
 
+  @Override
+  public boolean isPublishingForVcsRoot(final VcsRoot vcsRoot) {
+    return true;
+  }
+
   public boolean isTestConnectionSupported() { return false; }
 
   public void testConnection(@NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {

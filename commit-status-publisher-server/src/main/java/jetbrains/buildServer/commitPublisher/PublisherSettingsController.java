@@ -3,6 +3,7 @@ package jetbrains.buildServer.commitPublisher;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import jetbrains.buildServer.controllers.*;
+import jetbrains.buildServer.controllers.admin.projects.BuildTypeForm;
 import jetbrains.buildServer.controllers.admin.projects.EditBuildTypeFormFactory;
 import jetbrains.buildServer.controllers.admin.projects.PluginPropertiesUtil;
 import jetbrains.buildServer.parameters.ValueResolver;
@@ -10,6 +11,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcs.VcsRootEntry;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
 import jetbrains.buildServer.web.util.SessionUser;
@@ -111,7 +113,7 @@ public class PublisherSettingsController extends BaseController {
           PluginPropertiesUtil.bindPropertiesFromRequest(request, propBean);
           Map<String, String> props = propBean.getProperties();
           settings.getParametersProcessor().process(props);
-          testConnection(settings, props, getBuildTypeOrTemplate(request.getParameter("id")));
+          testConnection(settings, props, request);
         } catch (PublisherException ex) {
           StringBuffer msgBuf = new StringBuffer(ex.getMessage());
           Throwable cause = ex.getCause();
@@ -126,37 +128,56 @@ public class PublisherSettingsController extends BaseController {
     });
   }
 
-  private void testConnection(CommitStatusPublisherSettings settings, Map<String, String> params, BuildTypeIdentity buildTypeOrTemplate) throws PublisherException {
-    Map<String, String> resolvedProperties;
+  private static Map<String, String> resolveProperties(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull Map<String, String> params) {
     if (buildTypeOrTemplate instanceof ParametersSupport) {
       ValueResolver valueResolver = ((ParametersSupport)buildTypeOrTemplate).getValueResolver();
-      resolvedProperties = valueResolver.resolve(params);
-    } else {
-      resolvedProperties = new HashMap<String, String>(params);
+      return valueResolver.resolve(params);
     }
-    String vcsRootId = resolvedProperties.get(Constants.VCS_ROOT_ID_PARAM);
-    SVcsRoot sVcsRoot = myProjectManager.findVcsRootByExternalId(vcsRootId);
-    if (null == sVcsRoot) {
-      throw new PublisherException(String.format("VCS root not found for id '%s'", vcsRootId));
-    }
-    VcsRoot vcsRoot;
-    if (buildTypeOrTemplate instanceof SBuildType) {
-      vcsRoot = ((SBuildType) buildTypeOrTemplate).getVcsRootInstanceForParent(sVcsRoot);
-    } else {
-      vcsRoot = sVcsRoot;
-    }
-    if (null == vcsRoot) {
-      try {
-        Long internalId = Long.valueOf(vcsRootId);
-        vcsRoot = myProjectManager.findVcsRootById(internalId);
-      } catch (NumberFormatException ex) {
-        vcsRoot = null;
-      }
-    }
-    if (null == vcsRoot) {
-      throw new PublisherException(String.format("Unknown VCS root id '%s'", vcsRootId));
-    }
-    settings.testConnection(buildTypeOrTemplate, vcsRoot, resolvedProperties);
+    return new HashMap<String, String>(params);
   }
 
+  private static VcsRoot getVcsRootInstanceIfPossible(BuildTypeIdentity buildTypeOrTemplate, SVcsRoot sVcsRoot) {
+    if (buildTypeOrTemplate instanceof SBuildType) {
+      return ((SBuildType)buildTypeOrTemplate).getVcsRootInstanceForParent(sVcsRoot);
+    } else {
+      return sVcsRoot;
+    }
+  }
+
+  private void testConnection(CommitStatusPublisherSettings settings, Map<String, String> params, @NotNull final HttpServletRequest request) throws PublisherException {
+    BuildTypeIdentity buildTypeOrTemplate = getBuildTypeOrTemplate(request.getParameter("id"));
+    Map<String, String> resolvedProperties = resolveProperties(buildTypeOrTemplate, params);
+
+    String vcsRootId = resolvedProperties.get(Constants.VCS_ROOT_ID_PARAM);
+
+    if ((null == vcsRootId || vcsRootId.isEmpty())) {
+      List<SVcsRoot> roots = null;
+      if (buildTypeOrTemplate instanceof BuildTypeSettings) {
+        roots = ((BuildTypeSettings) buildTypeOrTemplate).getVcsRoots();
+      }
+      if (null == roots || roots.isEmpty()) {
+        throw new PublisherException("No VCS roots attached");
+      }
+
+      for (SVcsRoot sVcsRoot: roots) {
+        VcsRoot vcsRoot = getVcsRootInstanceIfPossible(buildTypeOrTemplate, sVcsRoot);
+        settings.testConnection(buildTypeOrTemplate, vcsRoot, resolvedProperties);
+      }
+    } else {
+      SVcsRoot sVcsRoot = myProjectManager.findVcsRootByExternalId(vcsRootId);
+      if (null == sVcsRoot) {
+        try {
+          Long internalId = Long.valueOf(vcsRootId);
+          sVcsRoot = myProjectManager.findVcsRootById(internalId);
+        } catch (NumberFormatException ex) {
+          throw new PublisherException(String.format("Unknown VCS root id '%s'", vcsRootId));
+        }
+      }
+      if (null == sVcsRoot) {
+        throw new PublisherException(String.format("VCS root not found for id '%s'", vcsRootId));
+      }
+      VcsRoot vcsRoot = getVcsRootInstanceIfPossible(buildTypeOrTemplate, sVcsRoot);
+      settings.testConnection(buildTypeOrTemplate, vcsRoot, resolvedProperties);
+    }
+  }
 }

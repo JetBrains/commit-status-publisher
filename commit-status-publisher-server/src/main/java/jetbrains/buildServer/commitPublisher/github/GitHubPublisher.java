@@ -52,6 +52,9 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     return true;
   }
 
+  public String getServerUrl() {
+    return myParams.get(Constants.GITHUB_SERVER);
+  }
 
   private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) throws PublisherException {
     final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), getParams(build), this);

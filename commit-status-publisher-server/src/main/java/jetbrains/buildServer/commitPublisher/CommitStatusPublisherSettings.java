@@ -48,6 +48,8 @@ public interface CommitStatusPublisherSettings {
 
   boolean isEnabled();
 
+  boolean isPublishingForVcsRoot(VcsRoot vcsRoot);
+
   boolean isTestConnectionSupported();
 
   void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException;

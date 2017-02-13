@@ -71,58 +71,54 @@
   });
 </script>
 <c:if test="${fn:length(vcsRoots) == 0}">
-<tr>
-  <td colspan="2">
-    <span class="error">
-      <c:choose>
-        <c:when test="${hasMissingVcsRoot}">
+  <tr>
+    <td colspan="2">
+      <span class="error">
+        <c:choose>
+          <c:when test="${hasMissingVcsRoot}">
+            VCS root
+            <c:if test="${not empty missingVcsRoot}">
+              <admin:editVcsRootLink vcsRoot="${missingVcsRoot}" editingScope="" cameFromUrl="${pageUrl}">
+                <c:out value="${missingVcsRoot.name}" />
+              </admin:editVcsRootLink>
+            </c:if>
+            used by the build feature is not attached to the configuration and
+            there are no other VCS roots configured.
+          </c:when>
+          <c:otherwise>
+            There are no VCS roots configured.
+          </c:otherwise>
+        </c:choose>
+      </span>
+    </td>
+  </tr>
+</c:if>
+  <tr>
+    <th><label for="${constants.vcsRootIdParam}">VCS Root:&nbsp;<l:star/></label></th>
+    <td>
+      <props:selectProperty name="${constants.vcsRootIdParam}" enableFilter="true">
+        <props:option value="">All VCS Roots</props:option>
+        <c:forEach var="vcsRoot" items="${vcsRoots}">
+          <props:option value="${vcsRoot.externalId}"><c:out value="${vcsRoot.name}"/></props:option>
+        </c:forEach>
+      </props:selectProperty>
+      <c:if test="${hasMissingVcsRoot}">
+        <span class="error">
           VCS root
           <c:if test="${not empty missingVcsRoot}">
             <admin:editVcsRootLink vcsRoot="${missingVcsRoot}" editingScope="" cameFromUrl="${pageUrl}">
               <c:out value="${missingVcsRoot.name}" />
             </admin:editVcsRootLink>
           </c:if>
-          used by the build feature is not attached to the configuration and
-          there are no other VCS roots configured.
-        </c:when>
-        <c:otherwise>
-          There are no VCS roots configured.
-        </c:otherwise>
-      </c:choose>
-    </span>
-  </td>
-</tr>
-</c:if>
-<c:if test="${fn:length(vcsRoots) > 0}">
-  <c:choose>
-    <c:when test="${fn:length(vcsRoots) > 1 or hasMissingVcsRoot}">
-      <tr>
-        <th><label for="${constants.vcsRootIdParam}">VCS Root:&nbsp;<l:star/></label></th>
-        <td>
-          <props:selectProperty name="${constants.vcsRootIdParam}" enableFilter="true">
-            <props:option value="">-- Choose a VCS root --</props:option>
-            <c:forEach var="vcsRoot" items="${vcsRoots}">
-              <props:option value="${vcsRoot.externalId}"><c:out value="${vcsRoot.name}"/></props:option>
-            </c:forEach>
-          </props:selectProperty>
-          <c:if test="${hasMissingVcsRoot}">
-            <span class="error">
-              VCS root
-              <c:if test="${not empty missingVcsRoot}">
-                <admin:editVcsRootLink vcsRoot="${missingVcsRoot}" editingScope="" cameFromUrl="${pageUrl}">
-                  <c:out value="${missingVcsRoot.name}" />
-                </admin:editVcsRootLink>
-              </c:if>
-              used by the build feature is not attached to the configuration.
-              Please select another VCS root.
-            </span>
-          </c:if>
-          <span class="error" id="error_${constants.vcsRootIdParam}"></span>
-          <span class="smallNote">Choose a repository to use for publishing a build status.</span>
-        </td>
-      </tr>
-    </c:when>
-  </c:choose>
+          used by the build feature is not attached to the configuration.
+          Please select another VCS root.
+        </span>
+      </c:if>
+      <span class="error" id="error_${constants.vcsRootIdParam}"></span>
+      <span class="smallNote">Choose a repository to use for publishing a build status. Choose All VCS Roots option if you want Commit Status Publisher to attempt
+        publishing statuses for commits in all attached VCS roots.</span>
+    </td>
+  </tr>
   <tr>
     <th>
       <label for="${constants.publisherIdParam}">Publisher:&nbsp;<l:star/></label>
@@ -134,13 +130,8 @@
         </c:forEach>
       </props:selectProperty> <forms:progressRing id="publisherSettingsProgress" style="float:none; display: none;"/>
       <span class="error" id="error_${constants.publisherIdParam}"></span>
-
-      <c:if test="${fn:length(vcsRoots) == 1}">
-        <props:hiddenProperty name="${constants.vcsRootIdParam}" value="${vcsRoots[0].externalId}"/>
-      </c:if>
     </td>
   </tr>
-</c:if>
 <bs:dialog dialogId="testConnectionDialog" title="Test Connection" closeCommand="BS.TestConnectionDialog.close();"
            closeAttrs="showdiscardchangesmessage='false'">
   <div id="testConnectionStatus"></div>

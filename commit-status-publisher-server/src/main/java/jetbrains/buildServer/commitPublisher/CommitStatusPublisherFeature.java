@@ -65,12 +65,6 @@ public class CommitStatusPublisherFeature extends BuildFeature {
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
-        String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
-        if (StringUtil.isEmptyOrSpaces(vcsRootId)) {
-          errors.add(new InvalidProperty(Constants.VCS_ROOT_ID_PARAM, "Choose a VCS root"));
-          return errors;
-        }
-
         String publisherId = params.get(Constants.PUBLISHER_ID_PARAM);
         if (StringUtil.isEmptyOrSpaces(publisherId) || DummyPublisherSettings.ID.equals(publisherId)) {
           errors.add(new InvalidProperty(Constants.PUBLISHER_ID_PARAM, "Choose a publisher"));
