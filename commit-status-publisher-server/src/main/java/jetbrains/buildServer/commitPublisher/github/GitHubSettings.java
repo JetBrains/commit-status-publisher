@@ -113,7 +113,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new GitHubPublisher(buildType, buildFeatureId, myUpdater, params, myProblems);
+    return new GitHubPublisher(this, buildType, buildFeatureId, myUpdater, params, myProblems);
   }
 
   @NotNull

@@ -43,7 +43,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new StashPublisher(buildType, buildFeatureId, myExecutorServices, myLinks, params, myProblems);
+    return new StashPublisher(this, buildType, buildFeatureId, myExecutorServices, myLinks, params, myProblems);
   }
 
   @NotNull

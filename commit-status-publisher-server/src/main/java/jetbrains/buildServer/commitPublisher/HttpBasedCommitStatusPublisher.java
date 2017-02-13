@@ -21,11 +21,12 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
   private final ExecutorServices myExecutorServices;
   private final HttpResponseProcessor myHttpResponseProcessor;
 
-  public HttpBasedCommitStatusPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId,
+  public HttpBasedCommitStatusPublisher(@NotNull CommitStatusPublisherSettings settings,
+                                        @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                                         @NotNull final ExecutorServices executorServices,
                                         @NotNull Map<String, String> params,
                                         @NotNull CommitStatusPublisherProblems problems) {
-    super(buildType, buildFeatureId, params, problems);
+    super(settings, buildType, buildFeatureId, params, problems);
     myExecutorServices = executorServices;
     myHttpResponseProcessor = new DefaultHttpResponseProcessor();
   }

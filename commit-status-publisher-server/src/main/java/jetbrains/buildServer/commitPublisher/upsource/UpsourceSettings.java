@@ -62,7 +62,7 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new UpsourcePublisher(buildType, buildFeatureId, myVcsHistory, myExecutorServices, myLinks, params, myProblems);
+    return new UpsourcePublisher(this, buildType, buildFeatureId, myVcsHistory, myExecutorServices, myLinks, params, myProblems);
   }
 
   @NotNull

@@ -72,7 +72,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     super.setUp();
     myPublisherSettings = new GitlabSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
     Map<String, String> params = getPublisherParams();
-    myPublisher = new GitlabPublisher(myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
   }
 
   @Override

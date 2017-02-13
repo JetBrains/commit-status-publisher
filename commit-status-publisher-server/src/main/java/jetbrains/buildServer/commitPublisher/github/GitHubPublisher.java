@@ -14,11 +14,12 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
 
   private final ChangeStatusUpdater myUpdater;
 
-  GitHubPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId,
-                         @NotNull ChangeStatusUpdater updater,
-                         @NotNull Map<String, String> params,
-                         @NotNull CommitStatusPublisherProblems problems) {
-    super(buildType, buildFeatureId, params, problems);
+  GitHubPublisher(@NotNull CommitStatusPublisherSettings settings,
+                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
+                  @NotNull ChangeStatusUpdater updater,
+                  @NotNull Map<String, String> params,
+                  @NotNull CommitStatusPublisherProblems problems) {
+    super(settings, buildType, buildFeatureId, params, problems);
     myUpdater = updater;
   }
 

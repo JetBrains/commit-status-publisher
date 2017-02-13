@@ -17,11 +17,14 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   protected CommitStatusPublisherProblems myProblems;
   protected SBuildType myBuildType;
   private final String myBuildFeatureId;
+  protected final CommitStatusPublisherSettings mySettings;
   private static final Striped<Lock> myLocks = Striped.lazyWeakLock(100);
 
-  protected BaseCommitStatusPublisher(@NotNull SBuildType buildType,@NotNull String buildFeatureId,
+  protected BaseCommitStatusPublisher(@NotNull CommitStatusPublisherSettings settings,
+                                      @NotNull SBuildType buildType,@NotNull String buildFeatureId,
                                       @NotNull Map<String, String> params,
                                       @NotNull CommitStatusPublisherProblems problems) {
+    mySettings = settings;
     myParams = params;
     myProblems = problems;
     myBuildType = buildType;
@@ -74,6 +77,12 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   @Nullable
   public String getVcsRootId() {
     return myParams.get(Constants.VCS_ROOT_ID_PARAM);
+  }
+
+  @NotNull
+  @Override
+  public CommitStatusPublisherSettings getSettings() {
+    return mySettings;
   }
 
   @NotNull

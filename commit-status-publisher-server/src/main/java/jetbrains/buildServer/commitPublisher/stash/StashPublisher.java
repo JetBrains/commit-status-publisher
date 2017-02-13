@@ -25,12 +25,12 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   private final WebLinks myLinks;
 
-  StashPublisher(@NotNull SBuildType buildType,@NotNull String buildFeatureId,
-                        @NotNull final ExecutorServices executorServices,
-                        @NotNull WebLinks links,
-                        @NotNull Map<String, String> params,
-                        @NotNull CommitStatusPublisherProblems problems) {
-    super(buildType, buildFeatureId, executorServices, params, problems);
+  StashPublisher(@NotNull CommitStatusPublisherSettings settings,
+                 @NotNull SBuildType buildType, @NotNull String buildFeatureId,
+                 @NotNull final ExecutorServices executorServices,
+                 @NotNull WebLinks links, @NotNull Map<String, String> params,
+                 @NotNull CommitStatusPublisherProblems problems) {
+    super(settings, buildType, buildFeatureId, executorServices, params, problems);
     myLinks = links;
   }
 

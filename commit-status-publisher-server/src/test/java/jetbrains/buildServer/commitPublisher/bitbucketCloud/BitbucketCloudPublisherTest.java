@@ -91,7 +91,7 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     super.setUp();
     Map<String, String> params = getPublisherParams();
     myPublisherSettings = new BitbucketCloudSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
-    BitbucketCloudPublisher publisher = new BitbucketCloudPublisher(myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
+    BitbucketCloudPublisher publisher = new BitbucketCloudPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
     publisher.setBaseUrl(getServerUrl() + "/");
     ((BitbucketCloudSettings)myPublisherSettings).setDefaultApiUrl(getServerUrl() + "/");
     myPublisher = publisher;

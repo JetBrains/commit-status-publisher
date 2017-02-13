@@ -26,12 +26,13 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   private String myBaseUrl = BitbucketCloudSettings.DEFAULT_API_URL;
   private final WebLinks myLinks;
 
-  BitbucketCloudPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId,
-                                 @NotNull final ExecutorServices executorServices,
-                                 @NotNull WebLinks links,
-                                 @NotNull Map<String, String> params,
-                                 @NotNull CommitStatusPublisherProblems problems) {
-    super(buildType, buildFeatureId, executorServices, params, problems);
+  BitbucketCloudPublisher(@NotNull CommitStatusPublisherSettings settings,
+                          @NotNull SBuildType buildType, @NotNull String buildFeatureId,
+                          @NotNull final ExecutorServices executorServices,
+                          @NotNull WebLinks links,
+                          @NotNull Map<String, String> params,
+                          @NotNull CommitStatusPublisherProblems problems) {
+    super(settings, buildType, buildFeatureId, executorServices, params, problems);
     myLinks = links;
   }
 

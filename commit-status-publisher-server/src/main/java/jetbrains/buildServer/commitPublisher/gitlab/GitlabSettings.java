@@ -47,7 +47,7 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
   @NotNull
   @Override
   public GitlabPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new GitlabPublisher(buildType, buildFeatureId, myExecutorServices, myLinks, params, myProblems);
+    return new GitlabPublisher(this, buildType, buildFeatureId, myExecutorServices, myLinks, params, myProblems);
   }
 
   @Override

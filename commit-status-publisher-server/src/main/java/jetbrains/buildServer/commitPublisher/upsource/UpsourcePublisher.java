@@ -1,10 +1,7 @@
 package jetbrains.buildServer.commitPublisher.upsource;
 
 import com.google.gson.Gson;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
-import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.commitPublisher.HttpBasedCommitStatusPublisher;
-import jetbrains.buildServer.commitPublisher.PublisherException;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -22,13 +19,13 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
   private final WebLinks myLinks;
   private final Gson myGson = new Gson();
 
-  UpsourcePublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId,
-                           @NotNull VcsModificationHistory vcsHistory,
-                           @NotNull final ExecutorServices executorServices,
-                           @NotNull WebLinks links,
-                           @NotNull Map<String, String> params,
-                           @NotNull CommitStatusPublisherProblems problems) {
-    super(buildType, buildFeatureId, executorServices, params, problems);
+  UpsourcePublisher(@NotNull CommitStatusPublisherSettings settings,
+                    @NotNull SBuildType buildType, @NotNull String buildFeatureId,
+                    @NotNull VcsModificationHistory vcsHistory,
+                    @NotNull final ExecutorServices executorServices,
+                    @NotNull WebLinks links, @NotNull Map<String, String> params,
+                    @NotNull CommitStatusPublisherProblems problems) {
+    super(settings, buildType, buildFeatureId, executorServices, params, problems);
     myVcsHistory = vcsHistory;
     myLinks = links;
   }

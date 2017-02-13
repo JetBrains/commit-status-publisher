@@ -1,9 +1,6 @@
 package jetbrains.buildServer.commitPublisher.gerrit;
 
-import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
-import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.commitPublisher.PublisherException;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import org.jetbrains.annotations.NotNull;
@@ -15,12 +12,13 @@ class GerritPublisher extends BaseCommitStatusPublisher {
   private final WebLinks myLinks;
   private final GerritClient myGerritClient;
 
-  GerritPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId,
+  GerritPublisher(@NotNull CommitStatusPublisherSettings settings,
+                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                   @NotNull GerritClient gerritClient,
                   @NotNull WebLinks links,
                   @NotNull Map<String, String> params,
                   @NotNull CommitStatusPublisherProblems problems) {
-    super(buildType, buildFeatureId, params, problems);
+    super(settings, buildType, buildFeatureId, params, problems);
     myLinks = links;
     myGerritClient = gerritClient;
   }

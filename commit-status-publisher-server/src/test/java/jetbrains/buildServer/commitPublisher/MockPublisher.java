@@ -16,11 +16,12 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   private String myVcsRootId;
 
 
-  MockPublisher(@NotNull String publisherType,
-                         @NotNull SBuildType buildType, @NotNull String buildFeatureId,
-                         @NotNull Map<String, String> params,
-                         @NotNull CommitStatusPublisherProblems problems) {
-    super(buildType, buildFeatureId, params, problems);
+  MockPublisher(@NotNull CommitStatusPublisherSettings settings,
+                @NotNull String publisherType,
+                @NotNull SBuildType buildType, @NotNull String buildFeatureId,
+                @NotNull Map<String, String> params,
+                @NotNull CommitStatusPublisherProblems problems) {
+    super(settings, buildType, buildFeatureId, params, problems);
     myType = publisherType;
     myVcsRootId = "MyDefaultVcsRootId";
   }

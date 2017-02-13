@@ -38,5 +38,8 @@ public interface CommitStatusPublisher {
   @NotNull
   String getId();
 
+  @NotNull
+  CommitStatusPublisherSettings getSettings();
+
   void setConnectionTimeout(int timeout);
 }

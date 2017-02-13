@@ -43,7 +43,7 @@ public class StashPublisherTest extends HttpPublisherTest {
     super.setUp();
     Map<String, String> params = getPublisherParams();
     myPublisherSettings = new StashSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
-    myPublisher = new StashPublisher(myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
   }
 
   @Override

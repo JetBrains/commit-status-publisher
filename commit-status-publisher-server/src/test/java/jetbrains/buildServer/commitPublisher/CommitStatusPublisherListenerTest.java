@@ -24,16 +24,19 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   private static final String PUBLISHER_ERROR = "Simulated publisher exception";
 
   private CommitStatusPublisherListener myListener;
+  private MockPublisherSettings myPublisherSettings;
   private MockPublisherRegisterFailure myPublisher;
   private VcsRootInstance myVcsRootInstance;
 
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    final PublisherManager myPublisherManager = new PublisherManager(Collections.<CommitStatusPublisherSettings>singletonList(new CommitStatusPublisherListenerTest.MockPublisherSettings()));
+    myPublisherSettings = new MockPublisherSettings(myProblems);
+    final PublisherManager myPublisherManager = new PublisherManager(Collections.<CommitStatusPublisherSettings>singletonList(myPublisherSettings));
     final BuildHistory history = myFixture.getHistory();
     myListener = new CommitStatusPublisherListener(EventDispatcher.create(BuildServerListener.class), myPublisherManager, history, myRBManager, myProblems);
     myPublisher = new MockPublisherRegisterFailure(myBuildType, myProblems);
+    myPublisherSettings.setPublisher(myPublisher);
   }
 
   public void should_publish_failure() {
@@ -114,7 +117,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     private boolean myShouldRiseError = false;
 
     MockPublisherRegisterFailure(SBuildType buildType, CommitStatusPublisherProblems problems) {
-      super(PUBLISHER_ID, buildType, myFeatureDescriptor.getId(), Collections.<String, String>emptyMap(), problems);
+      super(myPublisherSettings, PUBLISHER_ID, buildType, myFeatureDescriptor.getId(), Collections.<String, String>emptyMap(), problems);
     }
 
     boolean isFailureReceived() { return myFailureReceived; }
@@ -146,19 +149,5 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
       return super.buildMarkedAsSuccessful(build, revision, buildInProgress);
     }
 
-  }
-
-
-  private class MockPublisherSettings extends DummyPublisherSettings {
-    @Override
-    @NotNull
-    public String getId() {
-      return PUBLISHER_ID;
-    }
-
-    @Override
-    public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-      return myPublisher;
-    }
   }
 }

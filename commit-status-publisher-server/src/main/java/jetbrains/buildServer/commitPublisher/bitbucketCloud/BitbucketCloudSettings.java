@@ -50,7 +50,7 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new BitbucketCloudPublisher(buildType, buildFeatureId, myExecutorServices, myLinks, params, myProblems);
+    return new BitbucketCloudPublisher(this, buildType, buildFeatureId, myExecutorServices, myLinks, params, myProblems);
   }
 
   @Nullable

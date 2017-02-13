@@ -1,10 +1,16 @@
 package jetbrains.buildServer.commitPublisher;
 
 import com.intellij.openapi.diagnostic.Logger;
+import jetbrains.buildServer.serverSide.BuildTypeIdentity;
+import jetbrains.buildServer.serverSide.PropertiesProcessor;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.systemProblems.*;
+import jetbrains.buildServer.vcs.VcsRoot;
 import org.apache.log4j.Level;
 import org.jetbrains.annotations.NonNls;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -26,6 +32,7 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
   private SystemProblemNotificationEngine myProblemEngine;
   private CommitStatusPublisher myPublisher;
   private PublisherLogger myLogger;
+  private CommitStatusPublisherSettings myPublisherSettings;
 
   @BeforeMethod
   public void setUp() throws Exception {
@@ -33,7 +40,8 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
     myLogger = new PublisherLogger();
     myProblemEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
     myProblems = new CommitStatusPublisherProblems(myProblemEngine);
-    myPublisher = new MockPublisher("PUBLISHER1", myBuildType, FEATURE_1, Collections.<String, String>emptyMap(), myProblems);
+    myPublisherSettings = new MockPublisherSettings(myProblems);
+    myPublisher = new MockPublisher(myPublisherSettings, "PUBLISHER1", myBuildType, FEATURE_1, Collections.<String, String>emptyMap(), myProblems);
   }
 
   public void must_add_and_delete_problems() {
@@ -51,7 +59,7 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
     final String PUB1_P1 = "First issue of publisher 1";
     final String PUB2_P1 = "First issue of publisher 2";
     final String PUB2_P2 = "Second issue of publisher 2";
-    CommitStatusPublisher publisher2 = new MockPublisher("PUBLISHER2", myBuildType, FEATURE_2, Collections.<String, String>emptyMap(), myProblems);
+    CommitStatusPublisher publisher2 = new MockPublisher(myPublisherSettings, "PUBLISHER2", myBuildType, FEATURE_2, Collections.<String, String>emptyMap(), myProblems);
 
     myProblems.reportProblem(PUB2_P1, publisher2, "Build description", null, null, myLogger);
     myProblems.reportProblem(PUB1_P1, myPublisher, "Build description", null, null, myLogger);

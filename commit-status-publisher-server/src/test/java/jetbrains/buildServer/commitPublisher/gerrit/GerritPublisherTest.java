@@ -54,7 +54,7 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
                                              myGerritClient,
                                              myWebLinks, myProblems);
     Map<String, String> params = getPublisherParams();
-    myPublisher = new GerritPublisher(myBuildType, FEATURE_ID, myGerritClient, myWebLinks, params, myProblems);
+    myPublisher = new GerritPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myGerritClient, myWebLinks, params, myProblems);
     myBranch = "custom_branch";
   }
 

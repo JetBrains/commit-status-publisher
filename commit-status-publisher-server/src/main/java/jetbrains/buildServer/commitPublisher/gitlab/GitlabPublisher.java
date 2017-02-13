@@ -22,10 +22,12 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   private final WebLinks myLinks;
 
-  GitlabPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId,
-                         @NotNull ExecutorServices executorServices, @NotNull WebLinks links, @NotNull Map<String, String> params,
-                         @NotNull CommitStatusPublisherProblems problems) {
-    super(buildType, buildFeatureId, executorServices, params, problems);
+  GitlabPublisher(@NotNull CommitStatusPublisherSettings settings,
+                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
+                  @NotNull ExecutorServices executorServices, @NotNull WebLinks links,
+                  @NotNull Map<String, String> params,
+                  @NotNull CommitStatusPublisherProblems problems) {
+    super(settings, buildType, buildFeatureId, executorServices, params, problems);
     myLinks = links;
   }
 

@@ -66,7 +66,7 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
 
   @Nullable
   public GerritPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new GerritPublisher(buildType, buildFeatureId, myGerritClient, myLinks, params, myProblems);
+    return new GerritPublisher(this, buildType, buildFeatureId, myGerritClient, myLinks, params, myProblems);
   }
 
   @NotNull
