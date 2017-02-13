@@ -18,7 +18,7 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   protected CommitStatusPublisherProblems myProblems;
   protected SBuildType myBuildType;
   private final String myBuildFeatureId;
-  protected final CommitStatusPublisherSettings mySettings;
+  private final CommitStatusPublisherSettings mySettings;
   private static final Striped<Lock> myLocks = Striped.lazyWeakLock(100);
 
   protected BaseCommitStatusPublisher(@NotNull CommitStatusPublisherSettings settings,
@@ -81,15 +81,17 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   }
 
   @NotNull
-  @Override
   public CommitStatusPublisherSettings getSettings() {
     return mySettings;
   }
 
-  @Override
   public boolean isPublishingForRevision(@NotNull final BuildRevision revision) {
     VcsRoot vcsRoot = revision.getRoot();
     return getSettings().isPublishingForVcsRoot(vcsRoot);
+  }
+
+  public boolean isEventSupported(Event event) {
+    return mySettings.isEventSupported(event);
   }
 
   @NotNull

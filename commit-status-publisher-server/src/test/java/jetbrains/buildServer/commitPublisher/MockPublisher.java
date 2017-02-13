@@ -13,7 +13,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
 
 
   private String myType;
-  private String myVcsRootId;
+  private String myVcsRootId = null;
 
 
   MockPublisher(@NotNull CommitStatusPublisherSettings settings,
@@ -23,7 +23,6 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
                 @NotNull CommitStatusPublisherProblems problems) {
     super(settings, buildType, buildFeatureId, params, problems);
     myType = publisherType;
-    myVcsRootId = "MyDefaultVcsRootId";
   }
 
   @Nullable

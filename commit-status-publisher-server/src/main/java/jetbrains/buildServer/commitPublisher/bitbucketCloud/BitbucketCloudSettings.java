@@ -14,12 +14,21 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 public class BitbucketCloudSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
   final static String DEFAULT_API_URL = "https://api.bitbucket.org/";
 
   private String myDefaultApiUrl = DEFAULT_API_URL;
+  private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
+    add(Event.STARTED);
+    add(Event.FINISHED);
+    add(Event.COMMENTED);
+    add(Event.MARKED_AS_SUCCESSFUL);
+    add(Event.INTERRUPTED);
+    add(Event.FAILURE_DETECTED);
+  }};
 
   public BitbucketCloudSettings(@NotNull final ExecutorServices executorServices,
                                 @NotNull PluginDescriptor descriptor,
@@ -114,4 +123,8 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
     }
   }
 
+  @Override
+  protected Set<Event> getSupportedEvents() {
+    return mySupportedEvents;
+  }
 }

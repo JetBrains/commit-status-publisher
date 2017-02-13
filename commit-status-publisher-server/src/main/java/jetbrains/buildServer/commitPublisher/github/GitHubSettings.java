@@ -17,13 +17,13 @@ import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
-import jetbrains.buildServer.web.util.SessionUser;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 public class GitHubSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
@@ -31,7 +31,11 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
   private final OAuthConnectionsManager myOauthConnectionsManager;
   private final OAuthTokensStorage myOAuthTokensStorage;
   private final SecurityContext mySecurityContext;
-
+  private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
+    add(Event.STARTED);
+    add(Event.FINISHED);
+    add(Event.INTERRUPTED);
+  }};
 
   public GitHubSettings(@NotNull ChangeStatusUpdater updater,
                         @NotNull ExecutorServices executorServices,
@@ -185,5 +189,10 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
         return result;
       }
     };
+  }
+
+  @Override
+  protected Set<Event> getSupportedEvents() {
+    return mySupportedEvents;
   }
 }

@@ -41,7 +41,7 @@ public abstract class AsyncPublisherTest extends CommitStatusPublisherTest {
     myServerMutex.acquire();
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
     myServerMutex.release();
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.FINISHED));
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.FINISHED));
   }
 
 

@@ -16,7 +16,7 @@ import org.jetbrains.annotations.Nullable;
 public class CommitStatusPublisherProblems {
 
   private final SystemProblemNotification myProblems;
-  private final ConcurrentHashMap<String, ConcurrentHashMap<String, SystemProblemTicket>> myTickets = new ConcurrentHashMap<String, ConcurrentHashMap<String, SystemProblemTicket>> ();
+  private final ConcurrentHashMap<String, Map<String, Set<SystemProblemTicket>>> myTickets = new ConcurrentHashMap<String, Map<String, Set<SystemProblemTicket>>> ();
   private final Striped<Lock> myLocks = Striped.lazyWeakLock(256);
 
   public CommitStatusPublisherProblems(@NotNull SystemProblemNotification systemProblems) {
@@ -56,7 +56,6 @@ public class CommitStatusPublisherProblems {
     Lock lock = myLocks.get(buildType);
     lock.lock();
     try {
-      clearProblem(publisher);
       SystemProblem problem = new SystemProblem(errorDescription, null, Constants.COMMIT_STATUS_PUBLISHER_PROBLEM_TYPE, null);
       putTicket(buildType.getInternalId(), publisher.getBuildFeatureId(), myProblems.raiseProblem(buildType, problem));
     } finally {
@@ -72,13 +71,13 @@ public class CommitStatusPublisherProblems {
     try {
       String btId = buildType.getInternalId();
       if (myTickets.containsKey(btId)) {
-        Map<String, SystemProblemTicket> tickets = myTickets.get(btId);
-        if (tickets.containsKey(featureId)) {
-          SystemProblemTicket ticket = tickets.get(featureId);
-          if (ticket != null) {
-            ticket.cancel();
-            tickets.remove(featureId);
+        Map<String, Set<SystemProblemTicket>> ticketsForPublishers = myTickets.get(btId);
+        if (ticketsForPublishers.containsKey(featureId)) {
+          Set<SystemProblemTicket> tickets = ticketsForPublishers.get(featureId);
+          for (SystemProblemTicket ticket: tickets) {
+              ticket.cancel();
           }
+          ticketsForPublishers.remove(featureId);
         }
       }
     } finally {
@@ -92,14 +91,16 @@ public class CommitStatusPublisherProblems {
     try {
       String btId = buildType.getInternalId();
       if (myTickets.containsKey(btId)) {
-        Map<String, SystemProblemTicket> tickets = myTickets.get(btId);
-        Set<String> featureIdsToRemove = new HashSet<String>(tickets.keySet());
+        Map<String, Set<SystemProblemTicket>> ticketsForPublishers = myTickets.get(btId);
+        Set<String> featureIdsToRemove = new HashSet<String>(ticketsForPublishers.keySet());
         featureIdsToRemove.removeAll(currentFeatureIds);
         for (String featureId: featureIdsToRemove) {
-          if (tickets.containsKey(featureId)) {
-            SystemProblemTicket ticket = tickets.get(featureId);
-            ticket.cancel();
-            tickets.remove(featureId);
+          if (ticketsForPublishers.containsKey(featureId)) {
+            Set<SystemProblemTicket> tickets = ticketsForPublishers.get(featureId);
+            for (SystemProblemTicket ticket: tickets) {
+              ticket.cancel();
+            }
+            ticketsForPublishers.remove(featureId);
           }
         }
       }
@@ -109,13 +110,22 @@ public class CommitStatusPublisherProblems {
   }
 
   private void putTicket(String buildTypeInternalId, String publisherBuildFeatureId, SystemProblemTicket ticket) {
-    ConcurrentHashMap<String, SystemProblemTicket> tickets;
+    Map<String, Set<SystemProblemTicket>> ticketsForPublishers;
     if (myTickets.containsKey(buildTypeInternalId)) {
-      tickets = myTickets.get(buildTypeInternalId);
+      ticketsForPublishers = myTickets.get(buildTypeInternalId);
     } else {
-      tickets = new ConcurrentHashMap<String, SystemProblemTicket>();
-      myTickets.put(buildTypeInternalId, tickets);
+      ticketsForPublishers = new HashMap<String, Set<SystemProblemTicket>>();
+      myTickets.put(buildTypeInternalId, ticketsForPublishers);
     }
-    tickets.put(publisherBuildFeatureId, ticket);
+
+    Set<SystemProblemTicket> tickets;
+
+    if (ticketsForPublishers.containsKey(publisherBuildFeatureId)) {
+      tickets = ticketsForPublishers.get(publisherBuildFeatureId);
+    } else {
+      tickets = new HashSet<SystemProblemTicket>();
+      ticketsForPublishers.put(publisherBuildFeatureId, tickets);
+    }
+    tickets.add(ticket);
   }
 }

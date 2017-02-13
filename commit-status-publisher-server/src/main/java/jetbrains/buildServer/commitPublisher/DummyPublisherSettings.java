@@ -73,6 +73,11 @@ class DummyPublisherSettings implements CommitStatusPublisherSettings {
   }
 
   @Override
+  public boolean isEventSupported(final CommitStatusPublisher.Event event) {
+    return false;
+  }
+
+  @Override
   public boolean isTestConnectionSupported() {
     return false;
   }

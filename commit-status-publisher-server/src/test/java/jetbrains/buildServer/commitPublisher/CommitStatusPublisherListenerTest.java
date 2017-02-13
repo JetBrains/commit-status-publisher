@@ -26,11 +26,13 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   private CommitStatusPublisherListener myListener;
   private MockPublisherSettings myPublisherSettings;
   private MockPublisherRegisterFailure myPublisher;
-  private VcsRootInstance myVcsRootInstance;
+  private PublisherLogger myLogger;
+
 
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
+    myLogger = new PublisherLogger();
     myPublisherSettings = new MockPublisherSettings(myProblems);
     final PublisherManager myPublisherManager = new PublisherManager(Collections.<CommitStatusPublisherSettings>singletonList(myPublisherSettings));
     final BuildHistory history = myFixture.getHistory();
@@ -55,10 +57,22 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.isSuccessReceived()).isTrue();
   }
 
-  public void should_handle_publisher_error() {
+  public void should_publish_for_multiple_roots() {
+    prepareVcs("vcs1", "111", "rev1_2", false);
+    prepareVcs("vcs2", "222", "rev2_2", false);
+    prepareVcs("vcs3", "333", "rev3_2", false);
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myFixture.finishBuild(runningBuild, false);
+    myListener.buildFinished(runningBuild);
+    then(myPublisher.finishedReceived()).isEqualTo(3);
+    then(myPublisher.successReceived()).isEqualTo(3);
+  }
+
+
+  public void should_handle_publisher_exception() {
     prepareVcs();
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
-    myPublisher.shouldRaiseError();
+    myPublisher.shouldThrowException();
     myFixture.finishBuild(runningBuild, false);
     myListener.buildFinished(runningBuild);
     Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
@@ -70,6 +84,32 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(problem.getDescription()).contains(PUBLISHER_ERROR);
     then(problem.getDescription()).contains(myPublisher.getId());
   }
+
+  public void should_handle_async_errors() {
+    prepareVcs();
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myFixture.finishBuild(runningBuild, false);
+    myListener.buildFinished(runningBuild);
+    myProblems.reportProblem(myPublisher, "My build", null, null, myLogger);
+    Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
+    then(problems.size()).isEqualTo(1);
+  }
+
+  public void should_retain_all_errors_for_multiple_roots() {
+    prepareVcs("vcs1", "111", "rev1_2", false);
+    prepareVcs("vcs2", "222", "rev2_2", false);
+    prepareVcs("vcs3", "333", "rev3_2", false);
+    myProblems.reportProblem(myPublisher, "My build", null, null, myLogger); // This problem should be cleaned during buildFinished(...)
+    then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myPublisher.shouldReportError();
+    myFixture.finishBuild(runningBuild, false);
+    myListener.buildFinished(runningBuild); // three problems should be reported here
+    myProblems.reportProblem(myPublisher, "My build", null, null, myLogger); // and one more - later
+    Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
+    then(problems.size()).isEqualTo(4); // Must be 4 in total, neither 1 nor 5
+  }
+
 
   public void should_not_publish_failure_if_marked_successful() {
     prepareVcs();
@@ -98,49 +138,65 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   }
 
   private void prepareVcs() {
-    final SVcsRoot vcsRoot = myFixture.addVcsRoot("svn", "vcs1");
-    myPublisher.setVcsRootId(vcsRoot.getExternalId());
+   prepareVcs("vcs1", "111", "rev1_2", true);
+  }
+
+  private void prepareVcs(String vcsRootName, String currentVersion, String revNo, boolean setVcsRootIdParam) {
+    final SVcsRoot vcsRoot = myFixture.addVcsRoot("svn", vcsRootName);
+    if (setVcsRootIdParam) {
+      myPublisher.setVcsRootId(vcsRoot.getExternalId());
+    }
     myBuildType.addVcsRoot(vcsRoot);
-    myVcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
-    myCurrentVersion = "111";
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
+    myCurrentVersions.put(vcsRoot.getName(), currentVersion);
     myFixture.addModification(new ModificationData(new Date(),
             Collections.singletonList(new VcsChange(VcsChangeInfo.Type.CHANGED, "changed", "file", "file","1", "2")),
-            "descr2", "user", myVcsRootInstance, "rev2", "rev2"));
+            "descr2", "user", vcsRootInstance, revNo, revNo));
   }
 
   private class MockPublisherRegisterFailure extends MockPublisher {
 
-    private boolean myFailureReceived = false;
-    private boolean myFinishedReceived = false;
-    private boolean mySuccessReceived = false;
+    private int myFailuresReceived = 0;
+    private int myFinishedReceived = 0;
+    private int mySuccessReceived = 0;
 
-    private boolean myShouldRiseError = false;
+    private boolean myShouldThrowException = false;
+    private boolean myShouldReportError = false;
 
     MockPublisherRegisterFailure(SBuildType buildType, CommitStatusPublisherProblems problems) {
       super(myPublisherSettings, PUBLISHER_ID, buildType, myFeatureDescriptor.getId(), Collections.<String, String>emptyMap(), problems);
     }
 
-    boolean isFailureReceived() { return myFailureReceived; }
-    boolean isFinishedReceived() { return myFinishedReceived; }
-    boolean isSuccessReceived() { return mySuccessReceived; }
+    boolean isFailureReceived() { return myFailuresReceived > 0; }
+    boolean isFinishedReceived() { return myFinishedReceived > 0; }
+    boolean isSuccessReceived() { return mySuccessReceived > 0; }
 
-    void shouldRaiseError() { myShouldRiseError = true; }
+    int failuresReceived() { return myFailuresReceived; }
+
+    int finishedReceived() { return myFinishedReceived; }
+
+    int successReceived() { return mySuccessReceived; }
+
+    void shouldThrowException() {myShouldThrowException = true; }
+    void shouldReportError() {myShouldReportError = true; }
 
     @Override
     public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
-      myFinishedReceived = true;
+      myFinishedReceived++;
       Status s = build.getBuildStatus();
-      if (s.equals(Status.NORMAL)) mySuccessReceived = true;
-      if (s.equals(Status.FAILURE)) myFailureReceived = true;
-      if (myShouldRiseError) {
+      if (s.equals(Status.NORMAL)) mySuccessReceived++;
+      if (s.equals(Status.FAILURE)) myFailuresReceived++;
+      if (myShouldThrowException) {
         throw new PublisherException(PUBLISHER_ERROR);
+      } else if (myShouldReportError) {
+        myProblems.reportProblem(this, "My build", null, null, myLogger);
       }
       return true;
     }
 
     @Override
     public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
-      myFailureReceived = true;
+      myFailuresReceived++;
       return true;
     }
 

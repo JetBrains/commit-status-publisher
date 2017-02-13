@@ -3,7 +3,6 @@ package jetbrains.buildServer.commitPublisher;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import jetbrains.buildServer.controllers.*;
-import jetbrains.buildServer.controllers.admin.projects.BuildTypeForm;
 import jetbrains.buildServer.controllers.admin.projects.EditBuildTypeFormFactory;
 import jetbrains.buildServer.controllers.admin.projects.PluginPropertiesUtil;
 import jetbrains.buildServer.parameters.ValueResolver;
@@ -11,7 +10,6 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
-import jetbrains.buildServer.vcs.VcsRootEntry;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
 import jetbrains.buildServer.web.util.SessionUser;
@@ -112,7 +110,10 @@ public class PublisherSettingsController extends BaseController {
           BasePropertiesBean propBean = new BasePropertiesBean(params);
           PluginPropertiesUtil.bindPropertiesFromRequest(request, propBean);
           Map<String, String> props = propBean.getProperties();
-          settings.getParametersProcessor().process(props);
+          PropertiesProcessor processor = settings.getParametersProcessor();
+          if (null != processor) {
+            processor.process(props);
+          }
           testConnection(settings, props, request);
         } catch (PublisherException ex) {
           StringBuffer msgBuf = new StringBuffer(ex.getMessage());

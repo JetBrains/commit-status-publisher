@@ -1,17 +1,11 @@
 package jetbrains.buildServer.commitPublisher.gerrit;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.commitPublisher.*;
-import jetbrains.buildServer.messages.Status;
-import jetbrains.buildServer.serverSide.BuildRevision;
-import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -27,20 +21,20 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
   private String myLastRequest;
 
   public GerritPublisherTest() {
-    myExpectedRegExps.put(Events.QUEUED, null); // not to be tested
-    myExpectedRegExps.put(Events.REMOVED, null); // not to be tested
-    myExpectedRegExps.put(Events.STARTED, null);
-    myExpectedRegExps.put(Events.FINISHED, ".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\+1.*");
-    myExpectedRegExps.put(Events.FAILED, ".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\-1.*");
-    myExpectedRegExps.put(Events.COMMENTED_SUCCESS, null); // not to be tested
-    myExpectedRegExps.put(Events.COMMENTED_FAILED, null); // not to be tested
-    myExpectedRegExps.put(Events.COMMENTED_INPROGRESS, null); // not to be tested
-    myExpectedRegExps.put(Events.COMMENTED_INPROGRESS_FAILED, null); // not to be tested
-    myExpectedRegExps.put(Events.INTERRUPTED, null);
-    myExpectedRegExps.put(Events.FAILURE_DETECTED, null);
-    myExpectedRegExps.put(Events.MARKED_SUCCESSFUL, null);
-    myExpectedRegExps.put(Events.MARKED_RUNNING_SUCCESSFUL, null);
-    myExpectedRegExps.put(Events.TEST_CONNECTION, ".*server: gerrit_server, user: gerrit_user, command: gerrit ls-projects --format JSON.*");
+    myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.REMOVED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.STARTED, null);
+    myExpectedRegExps.put(EventToTest.FINISHED, ".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\+1.*");
+    myExpectedRegExps.put(EventToTest.FAILED, ".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\-1.*");
+    myExpectedRegExps.put(EventToTest.COMMENTED_SUCCESS, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.COMMENTED_FAILED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.INTERRUPTED, null);
+    myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, null);
+    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, null);
+    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, null);
+    myExpectedRegExps.put(EventToTest.TEST_CONNECTION, ".*server: gerrit_server, user: gerrit_user, command: gerrit ls-projects --format JSON.*");
   }
 
   @BeforeMethod

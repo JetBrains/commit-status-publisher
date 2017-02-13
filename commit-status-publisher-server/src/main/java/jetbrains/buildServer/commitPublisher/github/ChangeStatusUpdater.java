@@ -314,7 +314,7 @@ public class ChangeStatusUpdater {
                 );
                 LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
               } catch (IOException e) {
-                problems.reportProblem(publisher, LogUtil.describe(build), publisher.getServerUrl(), e, LOG);
+                problems.reportProblem(String.format("Commit Status Publisher error. GitHub status: '%s'", status.toString()), publisher, LogUtil.describe(build), publisher.getServerUrl(), e, LOG);
               }
               if (addComments) {
                 try {

@@ -12,12 +12,29 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
 
+import static jetbrains.buildServer.commitPublisher.stash.StashPublisher.PUBLISH_QUEUED_BUILD_STATUS;
+
 public class StashSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
+
+  private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
+    if (TeamCityProperties.getBoolean(PUBLISH_QUEUED_BUILD_STATUS)) {
+      add(Event.QUEUED);
+      add(Event.REMOVED_FROM_QUEUE);
+    }
+    add(Event.STARTED);
+    add(Event.FINISHED);
+    add(Event.COMMENTED);
+    add(Event.MARKED_AS_SUCCESSFUL);
+    add(Event.INTERRUPTED);
+    add(Event.FAILURE_DETECTED);
+
+  }};
 
   public StashSettings(@NotNull final ExecutorServices executorServices,
                        @NotNull PluginDescriptor descriptor,
@@ -122,5 +139,8 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     }
   }
 
-
+  @Override
+  protected Set<Event> getSupportedEvents() {
+    return mySupportedEvents;
+  }
 }

@@ -44,4 +44,23 @@ public interface CommitStatusPublisher {
   boolean isPublishingForRevision(@NotNull BuildRevision revision);
 
   void setConnectionTimeout(int timeout);
+
+  boolean isEventSupported(Event event);
+
+  enum Event {
+    STARTED("buildStarted"), FINISHED("buildFinished"),
+    QUEUED("buildQueued"), REMOVED_FROM_QUEUE("buildRemovedFromQueue"),
+    COMMENTED("buildCommented"), INTERRUPTED("buildInterrupted"),
+    FAILURE_DETECTED("buildFailureDetected"), MARKED_AS_SUCCESSFUL("buildMarkedAsSuccessful");
+
+    private final String myName;
+
+    Event(String name) {
+      myName = name;
+    }
+
+    public String getName() {
+      return myName;
+    }
+  }
 }

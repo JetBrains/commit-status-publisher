@@ -9,6 +9,7 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 import java.util.Map;
 
@@ -49,6 +50,8 @@ public interface CommitStatusPublisherSettings {
   boolean isEnabled();
 
   boolean isPublishingForVcsRoot(VcsRoot vcsRoot);
+
+  public boolean isEventSupported(Event event);
 
   boolean isTestConnectionSupported();
 

@@ -30,20 +30,20 @@ import static org.assertj.core.api.BDDAssertions.then;
 public class GitlabPublisherTest extends HttpPublisherTest {
 
   public GitlabPublisherTest() {
-    myExpectedRegExps.put(Events.QUEUED, null); // not to be tested
-    myExpectedRegExps.put(Events.REMOVED, null); // not to be tested
-    myExpectedRegExps.put(Events.STARTED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*running.*Build started.*", REVISION));
-    myExpectedRegExps.put(Events.FINISHED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
-    myExpectedRegExps.put(Events.FAILED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*failed.*Failure.*", REVISION));
-    myExpectedRegExps.put(Events.COMMENTED_SUCCESS, null); // not to be tested
-    myExpectedRegExps.put(Events.COMMENTED_FAILED, null); // not to be tested
-    myExpectedRegExps.put(Events.COMMENTED_INPROGRESS, null); // not to be tested
-    myExpectedRegExps.put(Events.COMMENTED_INPROGRESS_FAILED, null); // not to be tested
-    myExpectedRegExps.put(Events.INTERRUPTED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*canceled.*%s.*", REVISION, PROBLEM_DESCR));
-    myExpectedRegExps.put(Events.FAILURE_DETECTED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*failed.*%s.*", REVISION, PROBLEM_DESCR));
-    myExpectedRegExps.put(Events.MARKED_SUCCESSFUL, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*success.*marked as successful.*", REVISION));
-    myExpectedRegExps.put(Events.MARKED_RUNNING_SUCCESSFUL, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*running.*Build marked as successful.*", REVISION));
-    myExpectedRegExps.put(Events.TEST_CONNECTION, ".*/projects/owner%2Fproject .*");
+    myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.REMOVED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.STARTED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*running.*Build started.*", REVISION));
+    myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
+    myExpectedRegExps.put(EventToTest.FAILED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*failed.*Failure.*", REVISION));
+    myExpectedRegExps.put(EventToTest.COMMENTED_SUCCESS, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.COMMENTED_FAILED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*canceled.*%s.*", REVISION, PROBLEM_DESCR));
+    myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*failed.*%s.*", REVISION, PROBLEM_DESCR));
+    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*success.*marked as successful.*", REVISION));
+    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*running.*Build marked as successful.*", REVISION));
+    myExpectedRegExps.put(EventToTest.TEST_CONNECTION, ".*/projects/owner%2Fproject .*");
   }
 
   public void should_fail_with_error_on_wrong_vcs_url() throws InterruptedException {

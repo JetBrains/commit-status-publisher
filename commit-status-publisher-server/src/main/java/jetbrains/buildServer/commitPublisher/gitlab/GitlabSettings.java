@@ -11,6 +11,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -18,6 +19,13 @@ import java.util.*;
 
 public class GitlabSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
+  private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
+    add(Event.STARTED);
+    add(Event.FINISHED);
+    add(Event.MARKED_AS_SUCCESSFUL);
+    add(Event.INTERRUPTED);
+    add(Event.FAILURE_DETECTED);
+  }};
 
   public GitlabSettings(@NotNull ExecutorServices executorServices,
                         @NotNull PluginDescriptor descriptor,
@@ -132,5 +140,10 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
         || TeamCityProperties.getBoolean("teamcity.commitStatusPublisher.gitlab.disableUrlEncodingDots"))
       return s;
     return s.replace(".", "%2E");
+  }
+
+  @Override
+  protected Set<Event> getSupportedEvents() {
+    return mySupportedEvents;
   }
 }

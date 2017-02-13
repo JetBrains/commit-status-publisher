@@ -17,6 +17,7 @@ import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.Test;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,7 +39,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   protected CommitStatusPublisher myPublisher;
   protected CommitStatusPublisherSettings myPublisherSettings;
   protected CommitStatusPublisherProblems myProblems;
-  protected Map<Events, String> myExpectedRegExps = new HashMap<Events, String>();
+  protected Map<EventToTest, String> myExpectedRegExps = new HashMap<EventToTest, String>();
   protected SimpleExecutorServices myExecServices;
   protected String myVcsURL = "http://localhost/defaultvcs";
   protected String myReadOnlyVcsURL = "http://localhost/owner/readonly";
@@ -50,14 +51,24 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   protected OAuthConnectionsManager myOAuthConnectionsManager;
   protected OAuthTokensStorage myOAuthTokenStorage;
 
-  protected enum Events {
-    QUEUED, REMOVED, STARTED,
-    FINISHED, FAILED,
-    COMMENTED_SUCCESS, COMMENTED_FAILED,
-    COMMENTED_INPROGRESS, COMMENTED_INPROGRESS_FAILED,
-    INTERRUPTED, FAILURE_DETECTED,
-    MARKED_SUCCESSFUL, MARKED_RUNNING_SUCCESSFUL,
-    TEST_CONNECTION
+  protected enum EventToTest {
+    QUEUED(Event.QUEUED), REMOVED(Event.REMOVED_FROM_QUEUE), STARTED(Event.STARTED),
+    FINISHED(Event.FINISHED), FAILED(Event.FINISHED),
+    COMMENTED_SUCCESS(Event.COMMENTED), COMMENTED_FAILED(Event.COMMENTED),
+    COMMENTED_INPROGRESS(Event.COMMENTED), COMMENTED_INPROGRESS_FAILED(Event.COMMENTED),
+    INTERRUPTED(Event.INTERRUPTED), FAILURE_DETECTED(Event.FAILURE_DETECTED),
+    MARKED_SUCCESSFUL(Event.MARKED_AS_SUCCESSFUL), MARKED_RUNNING_SUCCESSFUL(Event.MARKED_AS_SUCCESSFUL),
+    TEST_CONNECTION(null);
+
+    private final Event myEvent;
+
+    EventToTest(Event event) {
+      myEvent = event;
+    }
+
+    public Event getEvent() {
+      return myEvent;
+    }
   }
 
   @Override
@@ -80,7 +91,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   public void test_testConnection() throws Exception {
     if (!myPublisherSettings.isTestConnectionSupported()) return;
     myPublisherSettings.testConnection(myBuildType, myVcsRoot, getPublisherParams());
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.TEST_CONNECTION));
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.TEST_CONNECTION));
   }
 
   public void test_testConnection_fails_on_readonly() throws InterruptedException {
@@ -109,100 +120,112 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   protected abstract Map<String, String> getPublisherParams();
 
   public void test_buildQueued() throws Exception {
-    if (!isToBeTested(Events.QUEUED)) return;
+    if (!isToBeTested(EventToTest.QUEUED)) return;
     myPublisher.buildQueued(myBuildType.addToQueue(""), myRevision);
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.QUEUED));
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.QUEUED));
   }
 
   public void test_buildRemovedFromQueue()  throws Exception {
-    if (!isToBeTested(Events.REMOVED)) return;
+    if (!isToBeTested(EventToTest.REMOVED)) return;
     myPublisher.buildRemovedFromQueue(myBuildType.addToQueue(""), myRevision, myUser, COMMENT);
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.REMOVED));
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.REMOVED));
   }
 
   public void test_buildStarted() throws Exception {
-    if (!isToBeTested(Events.STARTED)) return;
+    if (!isToBeTested(EventToTest.STARTED)) return;
     myPublisher.buildStarted(startBuildInCurrentBranch(myBuildType), myRevision);
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.STARTED));
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.STARTED));
   }
 
   public void test_buildFinished_Successfully() throws Exception {
-    if (!isToBeTested(Events.FINISHED)) return;
+    if (!isToBeTested(EventToTest.FINISHED)) return;
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.FINISHED));
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.FINISHED));
   }
 
   // the implementation must return the number of publishing requests currently being processed by the mock server
   protected abstract int getNumberOfCurrentRequests();
 
   public void test_buildFinished_Failed() throws Exception {
-    if (!isToBeTested(Events.FAILED)) return;
+    if (!isToBeTested(EventToTest.FAILED)) return;
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.FAILURE), myRevision);
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.FAILED));
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.FAILED));
   }
 
   public void test_buildCommented_Success() throws Exception {
-    if (!isToBeTested(Events.COMMENTED_SUCCESS)) return;
+    if (!isToBeTested(EventToTest.COMMENTED_SUCCESS)) return;
     myPublisher.buildCommented(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision, myUser, COMMENT, false);
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.COMMENTED_SUCCESS));
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.COMMENTED_SUCCESS));
   }
 
   public void test_buildCommented_Failed() throws Exception {
-    if (!isToBeTested(Events.COMMENTED_FAILED)) return;
+    if (!isToBeTested(EventToTest.COMMENTED_FAILED)) return;
     myPublisher.buildCommented(createBuildInCurrentBranch(myBuildType, Status.FAILURE), myRevision, myUser, COMMENT, false);
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.COMMENTED_FAILED));
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.COMMENTED_FAILED));
   }
 
   public void test_buildCommented_InProgress() throws Exception {
-    if (!isToBeTested(Events.COMMENTED_INPROGRESS)) return;
+    if (!isToBeTested(EventToTest.COMMENTED_INPROGRESS)) return;
     myPublisher.buildCommented(startBuildInCurrentBranch(myBuildType), myRevision, myUser, COMMENT, true);
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.COMMENTED_INPROGRESS));
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.COMMENTED_INPROGRESS));
   }
 
   public void test_buildCommented_InProgress_Failed() throws Exception {
-    if (!isToBeTested(Events.COMMENTED_INPROGRESS_FAILED)) return;
+    if (!isToBeTested(EventToTest.COMMENTED_INPROGRESS_FAILED)) return;
     SRunningBuild runningBuild = startBuildInCurrentBranch(myBuildType);
     runningBuild.addBuildProblem(BuildProblemData.createBuildProblem("problem", "type", PROBLEM_DESCR));
     myPublisher.buildCommented(runningBuild, myRevision, myUser, COMMENT, true);
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.COMMENTED_INPROGRESS_FAILED));
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.COMMENTED_INPROGRESS_FAILED));
   }
 
 
   public void test_buildInterrupted() throws Exception {
-    if (!isToBeTested(Events.INTERRUPTED)) return;
+    if (!isToBeTested(EventToTest.INTERRUPTED)) return;
     SFinishedBuild finishedBuild = createBuildInCurrentBranch(myBuildType, Status.NORMAL);
     finishedBuild.addBuildProblem(BuildProblemData.createBuildProblem("problem", "type", PROBLEM_DESCR));
     myPublisher.buildInterrupted(finishedBuild, myRevision);
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.INTERRUPTED));
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.INTERRUPTED));
   }
 
   public void test_buildFailureDetected() throws Exception {
-    if (!isToBeTested(Events.FAILURE_DETECTED)) return;
+    if (!isToBeTested(EventToTest.FAILURE_DETECTED)) return;
     SRunningBuild runningBuild = startBuildInCurrentBranch(myBuildType);
     runningBuild.addBuildProblem(BuildProblemData.createBuildProblem("problem", "type", PROBLEM_DESCR));
     myPublisher.buildFailureDetected(runningBuild, myRevision);
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.FAILURE_DETECTED));
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.FAILURE_DETECTED));
   }
 
   public void test_buildMarkedAsSuccessful() throws Exception {
-    if (!isToBeTested(Events.MARKED_SUCCESSFUL)) return;
+    if (!isToBeTested(EventToTest.MARKED_SUCCESSFUL)) return;
     myPublisher.buildMarkedAsSuccessful(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision, false);
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.MARKED_SUCCESSFUL));
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.MARKED_SUCCESSFUL));
   }
 
   public void test_buildMarkedAsSuccessful_WhileRunning() throws Exception {
-    if (!isToBeTested(Events.MARKED_RUNNING_SUCCESSFUL)) return;
+    if (!isToBeTested(EventToTest.MARKED_RUNNING_SUCCESSFUL)) return;
     myPublisher.buildMarkedAsSuccessful(startBuildInCurrentBranch(myBuildType), myRevision, true);
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(Events.MARKED_RUNNING_SUCCESSFUL));
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.MARKED_RUNNING_SUCCESSFUL));
   }
 
-  private boolean isToBeTested(@NotNull Events eventType) {
+  private boolean isToBeTested(@NotNull EventToTest eventType) {
     // the key must be there, to enforce explicit "not-to-be tested" declaration
     then(myExpectedRegExps.containsKey(eventType))
             .as(String.format("Event '%s' must either be tested or explicitly declared as not to be tested.", eventType.toString()))
             .isTrue();
+    String regExp = myExpectedRegExps.get(eventType);
+    Event event = eventType.getEvent();
+    if (null != event) {
+      if (null == regExp)
+        then(myPublisher.isEventSupported(event))
+          .as(String.format("Commit Status Publisher Event %s is supported by the publisher, but not tested", event.getName()))
+          .isFalse();
+      else
+        then(myPublisher.isEventSupported(event))
+          .as(String.format("Commit Status Publisher Event %s is not supported by the publisher, but tested", event.getName()))
+          .isTrue();
+    }
     // if corresponding expected value is null, it is not to be tested
-    return null != myExpectedRegExps.get(eventType);
+    return null != regExp;
   }
 
   protected String waitForRequest() throws InterruptedException {

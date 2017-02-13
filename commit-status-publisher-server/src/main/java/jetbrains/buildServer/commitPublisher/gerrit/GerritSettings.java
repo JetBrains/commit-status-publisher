@@ -10,6 +10,7 @@ import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 import java.util.*;
 
@@ -22,6 +23,9 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
           Constants.GERRIT_SERVER, Constants.GERRIT_PROJECT, Constants.GERRIT_USERNAME,
           Constants.GERRIT_SUCCESS_VOTE, Constants.GERRIT_FAILURE_VOTE, TEAMCITY_SSH_KEY_PROP};
   private GerritClient myGerritClient;
+  private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
+    add(Event.FINISHED);
+  }};
 
 
   public GerritSettings(@NotNull ExecutorServices executorServices,
@@ -110,4 +114,8 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
     return true;
   }
 
+  @Override
+  protected Set<Event> getSupportedEvents() {
+    return mySupportedEvents;
+  }
 }

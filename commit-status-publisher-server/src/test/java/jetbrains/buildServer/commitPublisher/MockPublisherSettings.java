@@ -31,4 +31,9 @@ public class MockPublisherSettings extends DummyPublisherSettings {
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
     return null == myPublisher ? new MockPublisher(this, getId(), buildType, buildFeatureId, params, myProblems) : myPublisher;
   }
+
+  @Override
+  public boolean isEventSupported(final CommitStatusPublisher.Event event) {
+    return true; // Mock publisher "supports" all events
+  }
 }

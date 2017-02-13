@@ -1,5 +1,7 @@
 package jetbrains.buildServer.commitPublisher;
 
+import java.util.HashMap;
+import java.util.Map;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.controllers.admin.projects.BuildTypeForm;
@@ -37,7 +39,7 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
   RunningBuildsManager myRBManager;
   CommitStatusPublisherProblems myProblems;
   CommitStatusPublisherFeature myFeature;
-  String myCurrentVersion = null;
+  Map<String, String> myCurrentVersions;
   protected SystemProblemNotificationEngine myProblemNotificationEngine;
 
   protected void setUp() throws Exception {
@@ -46,16 +48,23 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     PluginDescriptor pluginDescr = new MockPluginDescriptor();
     myProjectManager = myFixture.getProjectManager();
     final PublisherManager publisherManager = new PublisherManager(Collections.<CommitStatusPublisherSettings>emptyList());
+    myCurrentVersions = new HashMap<String, String>();
 
     myController = new CommitStatusPublisherFeatureController(myProjectManager, wcm, pluginDescr, publisherManager,
             new PublisherSettingsController(wcm, pluginDescr, publisherManager, myProjectManager));
     myVcsManager = myFixture.getVcsManager();
 
     ServerVcsSupport vcsSupport = new MockVcsSupport("svn") {
+
+      private final Map<String, String> myVersions = myCurrentVersions;
+
       @Override
       @NotNull
       public String getCurrentVersion(@NotNull final VcsRoot root) {
-        return myCurrentVersion;
+        if (!myVersions.containsKey(root.getName())) {
+          throw new IllegalArgumentException("Unknown VCS root");
+        }
+        return myCurrentVersions.get(root.getName());
       }
     };
     myVcsManager.registerVcsSupport(vcsSupport);

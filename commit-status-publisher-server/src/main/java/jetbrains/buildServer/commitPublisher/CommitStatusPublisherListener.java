@@ -11,6 +11,7 @@ import jetbrains.buildServer.util.EventDispatcher;
 import jetbrains.buildServer.vcs.SVcsModification;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 public class CommitStatusPublisherListener extends BuildServerAdapter {
 
@@ -35,12 +36,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   @Override
   public void changesLoaded(@NotNull final SRunningBuild build) {
-    String event = "changesLoaded";
-    SBuildType buildType = getBuildType(event, build);
+    SBuildType buildType = getBuildType(Event.STARTED, build);
     if (buildType == null)
       return;
 
-    runForEveryPublisher(event, buildType, build, new PublishTask() {
+    runForEveryPublisher(Event.STARTED, buildType, build, new PublishTask() {
       @Override
       public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
         return publisher.buildStarted(build, revision);
@@ -50,18 +50,17 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   @Override
   public void buildFinished(@NotNull SRunningBuild build) {
-    String event = "buildFinished";
-    SBuildType buildType = getBuildType(event, build);
+    SBuildType buildType = getBuildType(Event.FINISHED, build);
     if (buildType == null)
       return;
 
     final SFinishedBuild finishedBuild = myBuildHistory.findEntry(build.getBuildId());
     if (finishedBuild == null) {
-      LOG.debug("Event: " + event + ", cannot find finished build for build " + LogUtil.describe(build));
+      LOG.debug("Event: " + Event.FINISHED + ", cannot find finished build for build " + LogUtil.describe(build));
       return;
     }
 
-    runForEveryPublisher(event, buildType, build, new PublishTask() {
+    runForEveryPublisher(Event.FINISHED, buildType, build, new PublishTask() {
       @Override
       public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
         return publisher.buildFinished(finishedBuild, revision);
@@ -71,11 +70,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   @Override
   public void buildCommented(@NotNull final SBuild build, @Nullable final User user, @Nullable final String comment) {
-    String event = "buildCommented";
-    SBuildType buildType = getBuildType(event, build);
+    SBuildType buildType = getBuildType(Event.COMMENTED, build);
     if (buildType == null)
       return;
-    runForEveryPublisher(event, buildType, build, new PublishTask() {
+    runForEveryPublisher(Event.COMMENTED, buildType, build, new PublishTask() {
       @Override
       public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
         return publisher.buildCommented(build, revision, user, comment, isBuildInProgress(build));
@@ -85,18 +83,17 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   @Override
   public void buildInterrupted(@NotNull SRunningBuild build) {
-    String event = "buildInterrupted";
-    SBuildType buildType = getBuildType(event, build);
+    SBuildType buildType = getBuildType(Event.INTERRUPTED, build);
     if (buildType == null)
       return;
 
     final SFinishedBuild finishedBuild = myBuildHistory.findEntry(build.getBuildId());
     if (finishedBuild == null) {
-      LOG.debug("Event: " + event + ", cannot find finished build for build " + LogUtil.describe(build));
+      LOG.debug("Event: " + Event.INTERRUPTED.getName() + ", cannot find finished build for build " + LogUtil.describe(build));
       return;
     }
 
-    runForEveryPublisher(event, buildType, build, new PublishTask() {
+    runForEveryPublisher(Event.INTERRUPTED, buildType, build, new PublishTask() {
       @Override
       public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
         return publisher.buildInterrupted(finishedBuild, revision);
@@ -107,16 +104,14 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   @Override
   public void buildChangedStatus(@NotNull final SRunningBuild build, Status oldStatus, Status newStatus) {
-    String event = "buildChangedStatus";
-
     if (oldStatus.isFailed() || !newStatus.isFailed()) // we are supposed to report failures only
       return;
 
-    SBuildType buildType = getBuildType(event, build);
+    SBuildType buildType = getBuildType(Event.FAILURE_DETECTED, build);
     if (buildType == null)
       return;
 
-    runForEveryPublisher(event, buildType, build, new PublishTask() {
+    runForEveryPublisher(Event.FAILURE_DETECTED, buildType, build, new PublishTask() {
       @Override
       public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
         return publisher.buildFailureDetected(build, revision);
@@ -127,13 +122,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   @Override
   public void buildProblemsChanged(@NotNull final SBuild build, @NotNull final List<BuildProblemData> before, @NotNull final List<BuildProblemData> after) {
-    String event = "buildProblemsChanged";
-    SBuildType buildType = getBuildType(event, build);
+    SBuildType buildType = getBuildType(Event.MARKED_AS_SUCCESSFUL, build);
     if (buildType == null)
       return;
 
     if (!before.isEmpty() && after.isEmpty()) {
-      runForEveryPublisher(event, buildType, build, new PublishTask()  {
+      runForEveryPublisher(Event.MARKED_AS_SUCCESSFUL, buildType, build, new PublishTask()  {
         @Override
         public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
           return publisher.buildMarkedAsSuccessful(build, revision, isBuildInProgress(build));
@@ -144,12 +138,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   @Override
   public void buildTypeAddedToQueue(@NotNull final SQueuedBuild build) {
-    String event = "buildTypeAddedToQueue";
-    SBuildType buildType = getBuildType(event, build);
+    SBuildType buildType = getBuildType(Event.QUEUED, build);
     if (buildType == null)
       return;
 
-    runForEveryPublisherQueued(event, buildType, build, new PublishTask() {
+    runForEveryPublisherQueued(Event.QUEUED, buildType, build, new PublishTask() {
       @Override
       public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
         return publisher.buildQueued(build, revision);
@@ -159,15 +152,14 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   @Override
   public void buildRemovedFromQueue(@NotNull final SQueuedBuild build, final User user, final String comment) {
-    String event = "buildRemovedFromQueue";
-    SBuildType buildType = getBuildType(event, build);
+    SBuildType buildType = getBuildType(Event.REMOVED_FROM_QUEUE, build);
     if (buildType == null)
       return;
 
     if (user == null)
       return;
 
-    runForEveryPublisherQueued(event, buildType, build, new PublishTask() {
+    runForEveryPublisherQueued(Event.REMOVED_FROM_QUEUE, buildType, build, new PublishTask() {
       @Override
       public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
         return publisher.buildRemovedFromQueue(build, revision, user, comment);
@@ -175,7 +167,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     });
   }
 
-  private void runForEveryPublisher(@NotNull String event, @NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task) {
+  private void runForEveryPublisher(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task) {
     if (build.isPersonal()) {
       for(SVcsModification change: build.getBuildPromotion().getPersonalChanges()) {
         if (change.isPersonal())
@@ -183,14 +175,18 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       }
     }
     Map<String, CommitStatusPublisher> publishers = getPublishers(buildType);
-    LOG.debug("Event: " + event + ", build " + LogUtil.describe(build) + ", publishers: " + publishers.values());
+    LOG.debug("Event: " + event.getName() + ", build " + LogUtil.describe(build) + ", publishers: " + publishers.values());
     for (Map.Entry<String, CommitStatusPublisher> pubEntry : publishers.entrySet()) {
       CommitStatusPublisher publisher = pubEntry.getValue();
+      if (!publisher.isEventSupported(event))
+        continue;
       List<BuildRevision> revisions = getBuildRevisionForVote(publisher, build);
       if (revisions.isEmpty()) {
-        LOG.info("Event: " + event + ", build " + LogUtil.describe(build) + ", publisher " + publisher +
+        LOG.info("Event: " + event.getName() + ", build " + LogUtil.describe(build) + ", publisher " + publisher +
                  ": no compatible revisions found");
+        continue;
       }
+      myProblems.clearProblem(publisher);
       for (BuildRevision revision: revisions) {
         runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision);
       }
@@ -198,7 +194,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myProblems.clearObsoleteProblems(buildType, publishers.keySet());
   }
 
-  private void runForEveryPublisherQueued(@NotNull String event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task) {
+  private void runForEveryPublisherQueued(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task) {
     if (build.isPersonal()) {
       for(SVcsModification change: build.getBuildPromotion().getPersonalChanges()) {
         if (change.isPersonal())
@@ -206,14 +202,18 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       }
     }
     Map<String, CommitStatusPublisher> publishers = getPublishers(buildType);
-    LOG.debug("Event: " + event + ", build " + LogUtil.describe(build) + ", publishers: " + publishers.values());
+    LOG.debug("Event: " + event.getName() + ", build " + LogUtil.describe(build) + ", publishers: " + publishers.values());
     for (Map.Entry<String, CommitStatusPublisher> pubEntry : publishers.entrySet()) {
       CommitStatusPublisher publisher = pubEntry.getValue();
+      if (!publisher.isEventSupported(event))
+        continue;
       List<BuildRevision> revisions = getQueuedBuildRevisionForVote(buildType, publisher, build);
       if (revisions.isEmpty()) {
-        LOG.info("Event: " + event + ", build " + LogUtil.describe(build) + ", publisher " + publisher +
+        LOG.info("Event: " + event.getName() + ", build " + LogUtil.describe(build) + ", publisher " + publisher +
                  ": no compatible revisions found");
+        continue;
       }
+      myProblems.clearProblem(publisher);
       for (BuildRevision revision: revisions) {
         runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision);
       }
@@ -221,17 +221,16 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myProblems.clearObsoleteProblems(buildType, publishers.keySet());
   }
 
-  private void runTask(@NotNull String event,
+  private void runTask(@NotNull Event event,
                        @NotNull BuildPromotion promotion,
                        @NotNull String buildDescription,
                        @NotNull PublishTask task,
                        @NotNull CommitStatusPublisher publisher,
                        @NotNull BuildRevision revision) {
     try {
-      if (task.run(publisher, revision))
-        myProblems.clearProblem(publisher);
+      task.run(publisher, revision);
     } catch (Throwable t) {
-      myProblems.reportProblem(String.format("Commit Status Publisher has failed to publish %s status", event), publisher, buildDescription, null, t, LOG);
+      myProblems.reportProblem(String.format("Commit Status Publisher has failed to publish %s status", event.getName()), publisher, buildDescription, null, t, LOG);
       if (shouldFailBuild(publisher.getBuildType())) {
         String problemId = "commitStatusPublisher." + publisher.getId() + "." + revision.getRoot().getId();
         String problemDescription = t instanceof PublisherException ? t.getMessage() : t.toString();
@@ -321,19 +320,19 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   @Nullable
-  private SBuildType getBuildType(@NotNull String event, @NotNull SBuild build) {
+  private SBuildType getBuildType(@NotNull CommitStatusPublisher.Event event, @NotNull SBuild build) {
     SBuildType buildType = build.getBuildType();
     if (buildType == null)
-      LOG.debug("Event: " + event + ", cannot find buildType for build " + LogUtil.describe(build));
+      LOG.debug("Event: " + event.getName() + ", cannot find buildType for build " + LogUtil.describe(build));
     return buildType;
   }
 
   @Nullable
-  private SBuildType getBuildType(@NotNull String event, @NotNull SQueuedBuild build) {
+  private SBuildType getBuildType(@NotNull CommitStatusPublisher.Event event, @NotNull SQueuedBuild build) {
     try {
       return build.getBuildType();
     } catch (BuildTypeNotFoundException e) {
-      LOG.debug("Event: " + event + ", cannot find buildType for build " + LogUtil.describe(build));
+      LOG.debug("Event: " + event.getName() + ", cannot find buildType for build " + LogUtil.describe(build));
       return null;
     }
   }

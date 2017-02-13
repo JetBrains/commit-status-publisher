@@ -1,16 +1,7 @@
 package jetbrains.buildServer.commitPublisher;
 
-import com.intellij.openapi.diagnostic.Logger;
-import jetbrains.buildServer.serverSide.BuildTypeIdentity;
-import jetbrains.buildServer.serverSide.PropertiesProcessor;
-import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.systemProblems.*;
-import jetbrains.buildServer.vcs.VcsRoot;
-import org.apache.log4j.Level;
-import org.jetbrains.annotations.NonNls;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -65,64 +56,11 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
     myProblems.reportProblem(PUB1_P1, myPublisher, "Build description", null, null, myLogger);
     myProblems.reportProblem(PUB2_P2, publisher2, "Build description", null, null, myLogger);
     Collection<SystemProblemEntry> problems = myProblemEngine.getProblems(myBuildType);
-    then(problems.size()).isEqualTo(2);
-    for (SystemProblemEntry pe: problems) {
-      String description;
-      description = pe.getProblem().getDescription();
-      if(!description.contains(PUB1_P1))
-        then(description).contains(PUB2_P2);
-    }
+    then(problems.size()).isEqualTo(3);
     myProblems.clearObsoleteProblems(myBuildType, Collections.singletonList(FEATURE_1));
     Collection<SystemProblemEntry> remainingProblems = myProblemEngine.getProblems(myBuildType);
     then(remainingProblems.size()).isEqualTo(1);
     then(remainingProblems.iterator().next().getProblem().getDescription()).contains(PUB1_P1);
-  }
-
-  private class PublisherLogger extends Logger {
-
-    private Stack<String> entries = new Stack<String>();
-
-    String popLast() {
-      return entries.pop();
-    }
-
-    @Override
-    public boolean isDebugEnabled() {
-      return false;
-    }
-
-    @Override
-    public void debug(@NonNls final String message) {
-      entries.push("DEBUG: " + message);
-    }
-
-    @Override
-    public void debug(@NonNls final String message, final Throwable t) {
-      debug(message);
-    }
-
-    @Override
-    public void error(@NonNls final String message, final Throwable t, @NonNls final String... details) {
-      entries.push("ERROR: " + message);
-    }
-
-    @Override
-    public void info(@NonNls final String message) {
-      entries.push("INFO: " + message);
-    }
-
-    @Override
-    public void info(@NonNls final String message, final Throwable t) {
-      info(message);
-    }
-
-    @Override
-    public void warn(@NonNls final String message, final Throwable t) {
-      entries.push("WARN: " + message);
-    }
-
-    @Override
-    public void setLevel(final Level level) { }
   }
 
 }

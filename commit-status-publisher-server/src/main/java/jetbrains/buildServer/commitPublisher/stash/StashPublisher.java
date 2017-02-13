@@ -19,7 +19,7 @@ import java.io.IOException;
 import java.util.Map;
 
 class StashPublisher extends HttpBasedCommitStatusPublisher {
-  private static final String PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
+  public static final String PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
 
   private static final Logger LOG = Logger.getInstance(StashPublisher.class.getName());
 

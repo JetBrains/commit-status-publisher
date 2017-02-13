@@ -17,6 +17,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 public class UpsourceSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
@@ -35,6 +36,13 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
 
 
   private final VcsModificationHistory myVcsHistory;
+  private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
+    add(Event.STARTED);
+    add(Event.FINISHED);
+    add(Event.MARKED_AS_SUCCESSFUL);
+    add(Event.INTERRUPTED);
+    add(Event.FAILURE_DETECTED);
+  }};
 
   public UpsourceSettings(@NotNull VcsModificationHistory vcsHistory,
                           @NotNull final ExecutorServices executorServices,
@@ -150,5 +158,10 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
     } catch (Exception ex) {
       throw new PublisherException(String.format("Upsource publisher has failed to connect to project '%s'", projectId), ex);
     }
+  }
+
+  @Override
+  protected Set<Event> getSupportedEvents() {
+    return mySupportedEvents;
   }
 }

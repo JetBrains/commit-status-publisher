@@ -34,20 +34,20 @@ import static org.assertj.core.api.BDDAssertions.then;
 public class GitHubPublisherTest extends HttpPublisherTest {
 
   public GitHubPublisherTest() {
-    myExpectedRegExps.put(Events.QUEUED, null); // not to be tested
-    myExpectedRegExps.put(Events.REMOVED, null);  // not to be tested
-    myExpectedRegExps.put(Events.STARTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*build started.*", REVISION));
-    myExpectedRegExps.put(Events.FINISHED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*success.*build finished.*", REVISION));
-    myExpectedRegExps.put(Events.FAILED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*build failed.*", REVISION));
-    myExpectedRegExps.put(Events.COMMENTED_SUCCESS, null); // not to be tested
-    myExpectedRegExps.put(Events.COMMENTED_FAILED, null); // not to be tested
-    myExpectedRegExps.put(Events.COMMENTED_INPROGRESS, null); // not to be tested
-    myExpectedRegExps.put(Events.COMMENTED_INPROGRESS_FAILED, null); // not to be tested
-    myExpectedRegExps.put(Events.INTERRUPTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*", REVISION));
-    myExpectedRegExps.put(Events.FAILURE_DETECTED, null); // not to be tested
-    myExpectedRegExps.put(Events.MARKED_SUCCESSFUL, null); // not to be tested
-    myExpectedRegExps.put(Events.MARKED_RUNNING_SUCCESSFUL, null); // not to be tested
-    myExpectedRegExps.put(Events.TEST_CONNECTION, String.format(".*/repos/owner/project .*")); // not to be tested
+    myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.REMOVED, null);  // not to be tested
+    myExpectedRegExps.put(EventToTest.STARTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*build started.*", REVISION));
+    myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*success.*build finished.*", REVISION));
+    myExpectedRegExps.put(EventToTest.FAILED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*build failed.*", REVISION));
+    myExpectedRegExps.put(EventToTest.COMMENTED_SUCCESS, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.COMMENTED_FAILED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*", REVISION));
+    myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.TEST_CONNECTION, String.format(".*/repos/owner/project .*")); // not to be tested
   }
 
 
