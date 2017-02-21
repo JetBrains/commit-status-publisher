@@ -87,21 +87,22 @@ public abstract class GitHubApiImpl implements GitHubApi {
   public void testConnection(@NotNull final String repoOwner,
                              @NotNull final String repoName) throws PublisherException {
     final HttpGet get = new HttpGet(myUrls.getRepoInfo(repoOwner, repoName));
+    RepoInfo repoInfo;
     try {
       includeAuthentication(get);
       setDefaultHeaders(get);
       logRequest(get, null);
-      final RepoInfo repoInfo = processResponse(get, RepoInfo.class);
-      if (null == repoInfo.name || null == repoInfo.permissions) {
-        throw new PublisherException(String.format("Repository %s/%s is inaccessible", repoOwner, repoName));
-      }
-      if (!repoInfo.permissions.push) {
-        throw new PublisherException(String.format("There is no push access to the repository %s/%s", repoOwner, repoName));
-      }
-    } catch (IOException ioEx) {
-      throw new PublisherException(String.format("I/O error while retrieving %s/%s repository information", repoOwner, repoName), ioEx);
+      repoInfo = processResponse(get, RepoInfo.class);
+    } catch (Throwable ex) {
+      throw new PublisherException(String.format("Error while retrieving %s/%s repository information", repoOwner, repoName), ex);
     } finally {
       get.abort();
+    }
+    if (null == repoInfo.name || null == repoInfo.permissions) {
+      throw new PublisherException(String.format("Repository %s/%s is inaccessible", repoOwner, repoName));
+    }
+    if (!repoInfo.permissions.push) {
+      throw new PublisherException(String.format("There is no push access to the repository %s/%s", repoOwner, repoName));
     }
   }
 
