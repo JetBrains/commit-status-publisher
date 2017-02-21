@@ -34,6 +34,7 @@ public class Constants {
 
   public static final String GITHUB_PUBLISHER_ID = "githubStatusPublisher";
   public static final String GITHUB_SERVER = "github_host";
+  public static final String GITHUB_CONTEXT = "github_context";
   public static final String GITHUB_FAILONSIZE = "github_failonsize";
   public static final String GITHUB_ARTIFACTS = "github_artifacts";
   public static final String GITHUB_BYTES = "github_bytes";

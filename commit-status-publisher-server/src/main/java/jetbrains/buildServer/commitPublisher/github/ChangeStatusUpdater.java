@@ -102,7 +102,8 @@ public class ChangeStatusUpdater {
 
     final String repositoryOwner = repo.owner();
     final String repositoryName = repo.repositoryName();
-    final String context = "continuous-integration/teamcity/";
+    final String defaultContext = "continuous integration/teamcity/";
+    final String userSetContext = params.get(C.getContextKey());
 
     final boolean shouldReportOnStart = true;
     final boolean shouldReportOnFinish = true;
@@ -277,6 +278,12 @@ public class ChangeStatusUpdater {
             return version.getVersion();
           }
 
+          private String findContext(@NotNull final SBuild build) {
+            if (userSetContext == null)
+              return defaultContext + build.getParametersProvider().get("system.teamcity.buildType.id");
+            return userSetContext;
+          }
+
           public void run() {
             final String hash = resolveCommitHash();
             try {
@@ -287,7 +294,7 @@ public class ChangeStatusUpdater {
                       status,
                       getViewResultsUrl(build),
                       message,
-                      context + build.getParametersProvider().get("system.teamcity.buildType.id")
+                      findContext(build)
               );
               LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
             } catch (IOException e) {

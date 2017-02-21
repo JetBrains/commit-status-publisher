@@ -72,6 +72,14 @@
   </tr>
 
   <tr>
+    <th><label for="${keys.contextKey}">Context: </label></th>
+    <td>
+      <props:textProperty name="${keys.contextKey}" className="longField"/>
+      <span class="error" id="error_${keys.contextKey}"></span>
+    </td>
+  </tr>
+  
+  <tr>
     <th><label for="${keys.failOnSizeKey}">Fail on size: </label></th>
     <td>
       <props:checkboxProperty name="${keys.failOnSizeKey}"/>

@@ -25,6 +25,7 @@ import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationT
  */
 public class UpdateChangesConstants {
   public String getServerKey() { return Constants.GITHUB_SERVER; }
+  public String getContextKey() { return Constants.GITHUB_CONTEXT; }
   public String getFailOnSizeKey() { return Constants.GITHUB_FAILONSIZE; }
   public String getArtifactsKey() { return Constants.GITHUB_ARTIFACTS; }
   public String getBytesKey() { return Constants.GITHUB_BYTES; }

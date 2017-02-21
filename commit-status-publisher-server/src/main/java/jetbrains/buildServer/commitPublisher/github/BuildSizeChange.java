@@ -80,18 +80,18 @@ public class BuildSizeChange {
     String[] suffix = {"KiB", "MiB", "GiB"};
     double finalBytes = bytes / 1024.0;
     int index = 0;
-    while (finalBytes > 1024.0 && index < suffix.length) {
+    while (Math.abs(finalBytes) > 1024.0 && index < suffix.length) {
       finalBytes /= 1024.0;
       index++;
     }
     return String.format("%+.2f %s", finalBytes, suffix[index]);
   }
 
-  private boolean contains(String file) {
+  private String matchArtPattern(String file) {
     for(Pattern filePattern : desiredFiles) {
-      if (filePattern.matcher(file).matches()) return true;
+      if (filePattern.matcher(file).matches()) return filePattern.pattern();
     }
-    return false;
+    return null;
   }
 
   private SBuild getDefaultBuild(@NotNull SBuild build) {
@@ -123,21 +123,23 @@ public class BuildSizeChange {
 
     for (BuildArtifact buildArt : defaultArtRoot.getChildren()) {
       LOG.info("Master Artifact: " + buildArt.getSize() + " - " + buildArt.getName());
-      if (!contains(buildArt.getName())) continue;
-      artSizes.put(buildArt.getName(), buildArt.getSize());
+      String match = matchArtPattern(buildArt.getName());
+      if (match == null) continue;
+      artSizes.put(match, buildArt.getSize());
     }
 
     BuildArtifact prArtRoot = build.getArtifacts(BuildArtifactsViewMode.VIEW_DEFAULT).getRootArtifact();
     for (BuildArtifact buildArt : prArtRoot.getChildren()) {
       LOG.info("PR Artifact: " + buildArt.getSize() + " - " + buildArt.getName());
       String artName = buildArt.getName();
-      if (!contains(artName)) continue;
+      String match = matchArtPattern(artName);
+      if (match == null) continue;
 
-      if (artSizes.get(artName) != null) {
-        long sizeChange = (buildArt.getSize() - artSizes.get(artName));
+      if (artSizes.get(match) != null) {
+        long sizeChange = (buildArt.getSize() - artSizes.get(match));
         double sizeChangePct = 0.0;
-        if (artSizes.get(artName) != 0)
-          sizeChangePct = (sizeChange / artSizes.get(artName).doubleValue()) * 100;
+        if (artSizes.get(match) != 0)
+          sizeChangePct = (sizeChange / artSizes.get(match).doubleValue()) * 100;
 
         artChanges.put(artName, new SizeChange(sizeChange, sizeChangePct));
       }
