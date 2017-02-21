@@ -208,24 +208,18 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   }
 
   private boolean isToBeTested(@NotNull EventToTest eventType) {
-    // the key must be there, to enforce explicit "not-to-be tested" declaration
-    then(myExpectedRegExps.containsKey(eventType))
-            .as(String.format("Event '%s' must either be tested or explicitly declared as not to be tested.", eventType.toString()))
-            .isTrue();
-    String regExp = myExpectedRegExps.get(eventType);
     Event event = eventType.getEvent();
-    if (null != event) {
-      if (null == regExp)
-        then(myPublisher.isEventSupported(event))
-          .as(String.format("Commit Status Publisher Event %s is supported by the publisher, but not tested", event.getName()))
-          .isFalse();
-      else
-        then(myPublisher.isEventSupported(event))
-          .as(String.format("Commit Status Publisher Event %s is not supported by the publisher, but tested", event.getName()))
-          .isTrue();
-    }
-    // if corresponding expected value is null, it is not to be tested
-    return null != regExp;
+    if (null != event && !myPublisher.isEventSupported(event))
+      return false;
+    then(myExpectedRegExps.containsKey(eventType))
+      .as(String.format("Event '%s' must either be tested or explicitly declared as not to be tested.", eventType.toString()))
+      .isTrue();
+    String regExp = myExpectedRegExps.get(eventType);
+    boolean toBeTested = null != regExp;
+    then(null == event || toBeTested)
+      .as(String.format("Event '%s' is supported by the publisher, but not tested", eventType.toString()))
+      .isTrue();
+    return toBeTested;
   }
 
   protected String waitForRequest() throws InterruptedException {
