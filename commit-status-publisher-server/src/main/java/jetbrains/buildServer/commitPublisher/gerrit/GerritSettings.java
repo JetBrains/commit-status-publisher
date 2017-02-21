@@ -110,6 +110,11 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
     }
   }
 
+  @Override
+  public boolean isPublishingForVcsRoot(final VcsRoot vcsRoot) {
+    return "jetbrains.git".equals(vcsRoot.getVcsName());
+  }
+
   public boolean isEnabled() {
     return true;
   }

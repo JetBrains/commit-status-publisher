@@ -192,6 +192,11 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
   }
 
   @Override
+  public boolean isPublishingForVcsRoot(final VcsRoot vcsRoot) {
+    return "jetbrains.git".equals(vcsRoot.getVcsName());
+  }
+
+  @Override
   protected Set<Event> getSupportedEvents() {
     return mySupportedEvents;
   }

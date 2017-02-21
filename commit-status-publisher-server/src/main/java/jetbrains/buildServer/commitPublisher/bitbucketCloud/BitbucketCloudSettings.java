@@ -124,6 +124,11 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
   }
 
   @Override
+  public boolean isPublishingForVcsRoot(final VcsRoot vcsRoot) {
+    return "jetbrains.git".equals(vcsRoot.getVcsName()) || "mercurial".equals(vcsRoot.getVcsName());
+  }
+
+  @Override
   protected Set<Event> getSupportedEvents() {
     return mySupportedEvents;
   }
