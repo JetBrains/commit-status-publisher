@@ -68,6 +68,16 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.successReceived()).isEqualTo(3);
   }
 
+  public void should_publish_to_specified_root_with_multiple_roots_attached() {
+    prepareVcs("vcs1", "111", "rev1_2", false);
+    prepareVcs("vcs2", "222", "rev2_2", true);
+    prepareVcs("vcs3", "333", "rev3_2", false);
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myFixture.finishBuild(runningBuild, false);
+    myListener.buildFinished(runningBuild);
+    then(myPublisher.finishedReceived()).isEqualTo(1);
+    then(myPublisher.successReceived()).isEqualTo(1);
+  }
 
   public void should_handle_publisher_exception() {
     prepareVcs();
