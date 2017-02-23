@@ -3,7 +3,7 @@ package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.GitRepositoryParser;
 import jetbrains.buildServer.commitPublisher.Repository;
-import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,7 +17,7 @@ class BitbucketCloudRepositoryParser {
   private static final Pattern SSH_PATTERN = Pattern.compile("ssh://hg@bitbucket.org/([^/]+)/(.+)");
 
   @Nullable
-  public static Repository parseRepository(@NotNull VcsRootInstance root) {
+  public static Repository parseRepository(@NotNull VcsRoot root) {
     if ("jetbrains.git".equals(root.getVcsName())) {
       String url = root.getProperty("url");
       return url == null ? null : GitRepositoryParser.parseRepository(url);

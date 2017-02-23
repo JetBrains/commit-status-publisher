@@ -5,6 +5,7 @@ import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudRepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -48,6 +49,16 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
   @Override
   public void test_testConnection_fails_on_readonly() throws InterruptedException {
     // NOTE: Bitbucket Cloud Publisher cannot determine if it has just read only access during connection testing
+  }
+
+  public void test_testConnection_with_mercurial() throws Exception {
+    SVcsRoot vcsRoot = myFixture.addVcsRoot("mercurial", "", myBuildType);
+    vcsRoot.setProperties(Collections.singletonMap("repositoryPath", "http://owner@localhost/" + OWNER + "/" + CORRECT_REPO));
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(vcsRoot);
+    BuildRevision revision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
+    if (!myPublisherSettings.isTestConnectionSupported()) return;
+    myPublisherSettings.testConnection(myBuildType, vcsRoot, getPublisherParams());
+    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.TEST_CONNECTION));
   }
 
   public void should_fail_with_error_on_wrong_vcs_url() throws InterruptedException {

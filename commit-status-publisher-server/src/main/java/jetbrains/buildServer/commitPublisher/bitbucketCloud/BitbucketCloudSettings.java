@@ -87,8 +87,7 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
 
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    String vcsUrl = root.getProperty("url");
-    Repository repository = null == vcsUrl ? null : GitRepositoryParser.parseRepository(vcsUrl);
+    Repository repository = BitbucketCloudRepositoryParser.parseRepository(root);
     if (null == repository)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
     final String repoName = repository.repositoryName();
