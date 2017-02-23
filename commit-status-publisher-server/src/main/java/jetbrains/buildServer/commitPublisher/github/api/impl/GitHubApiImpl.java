@@ -54,7 +54,7 @@ import java.util.regex.Pattern;
  */
 public abstract class GitHubApiImpl implements GitHubApi {
   private static final Logger LOG = Logger.getInstance(GitHubApiImpl.class.getName());
-  private static final Pattern PULL_REQUEST_BRANCH = Pattern.compile("/?refs/pull/(\\d+)/(.*)");
+  private static final Pattern PULL_REQUEST_BRANCH = Pattern.compile("/?refs/[^/]*pull/(\\d+)/(.*)");
 
   private final HttpClientWrapper myClient;
   private final GitHubApiPaths myUrls;
