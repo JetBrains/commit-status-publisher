@@ -1,5 +1,6 @@
 package jetbrains.buildServer.commitPublisher;
 
+import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -11,17 +12,32 @@ import java.util.Map;
  */
 class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPublisher {
 
+  static final String PUBLISHER_ERROR = "Simulated publisher exception";
 
-  private String myType;
+  private final String myType;
   private String myVcsRootId = null;
+
+  private int myFailuresReceived = 0;
+  private int myFinishedReceived = 0;
+  private int mySuccessReceived = 0;
+
+  private boolean myShouldThrowException = false;
+  private boolean myShouldReportError = false;
+  private final PublisherLogger myLogger;
+
+  boolean isFailureReceived() { return myFailuresReceived > 0; }
+  boolean isFinishedReceived() { return myFinishedReceived > 0; }
+  boolean isSuccessReceived() { return mySuccessReceived > 0; }
 
 
   MockPublisher(@NotNull CommitStatusPublisherSettings settings,
                 @NotNull String publisherType,
                 @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                 @NotNull Map<String, String> params,
-                @NotNull CommitStatusPublisherProblems problems) {
+                @NotNull CommitStatusPublisherProblems problems,
+                @NotNull PublisherLogger logger) {
     super(settings, buildType, buildFeatureId, params, problems);
+    myLogger = logger;
     myType = publisherType;
   }
 
@@ -41,4 +57,37 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     return myType;
   }
 
+  int failuresReceived() { return myFailuresReceived; }
+
+  int finishedReceived() { return myFinishedReceived; }
+
+  int successReceived() { return mySuccessReceived; }
+
+  void shouldThrowException() {myShouldThrowException = true; }
+  void shouldReportError() {myShouldReportError = true; }
+
+  @Override
+  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
+    myFinishedReceived++;
+    Status s = build.getBuildStatus();
+    if (s.equals(Status.NORMAL)) mySuccessReceived++;
+    if (s.equals(Status.FAILURE)) myFailuresReceived++;
+    if (myShouldThrowException) {
+      throw new PublisherException(PUBLISHER_ERROR);
+    } else if (myShouldReportError) {
+      myProblems.reportProblem(this, "My build", null, null, myLogger);
+    }
+    return true;
+  }
+
+  @Override
+  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+    myFailuresReceived++;
+    return true;
+  }
+
+  @Override
+  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
+    return super.buildMarkedAsSuccessful(build, revision, buildInProgress);
+  }
 }

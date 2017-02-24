@@ -32,7 +32,7 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
     myProblemEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
     myProblems = new CommitStatusPublisherProblems(myProblemEngine);
     myPublisherSettings = new MockPublisherSettings(myProblems);
-    myPublisher = new MockPublisher(myPublisherSettings, "PUBLISHER1", myBuildType, FEATURE_1, Collections.<String, String>emptyMap(), myProblems);
+    myPublisher = new MockPublisher(myPublisherSettings, "PUBLISHER1", myBuildType, FEATURE_1, Collections.<String, String>emptyMap(), myProblems, myLogger);
   }
 
   public void must_add_and_delete_problems() {
@@ -50,7 +50,8 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
     final String PUB1_P1 = "First issue of publisher 1";
     final String PUB2_P1 = "First issue of publisher 2";
     final String PUB2_P2 = "Second issue of publisher 2";
-    CommitStatusPublisher publisher2 = new MockPublisher(myPublisherSettings, "PUBLISHER2", myBuildType, FEATURE_2, Collections.<String, String>emptyMap(), myProblems);
+    CommitStatusPublisher publisher2 = new MockPublisher(myPublisherSettings, "PUBLISHER2", myBuildType, FEATURE_2,
+                                                         Collections.<String, String>emptyMap(), myProblems, myLogger);
 
     myProblems.reportProblem(PUB2_P1, publisher2, "Build description", null, null, myLogger);
     myProblems.reportProblem(PUB1_P1, myPublisher, "Build description", null, null, myLogger);

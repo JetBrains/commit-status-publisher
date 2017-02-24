@@ -8,7 +8,6 @@ import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.util.EventDispatcher;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.*;
-import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -21,11 +20,8 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTestBase {
 
-  private static final String PUBLISHER_ERROR = "Simulated publisher exception";
-
   private CommitStatusPublisherListener myListener;
-  private MockPublisherSettings myPublisherSettings;
-  private MockPublisherRegisterFailure myPublisher;
+  private MockPublisher myPublisher;
   private PublisherLogger myLogger;
 
 
@@ -33,11 +29,11 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   public void setUp() throws Exception {
     super.setUp();
     myLogger = new PublisherLogger();
-    myPublisherSettings = new MockPublisherSettings(myProblems);
     final PublisherManager myPublisherManager = new PublisherManager(Collections.<CommitStatusPublisherSettings>singletonList(myPublisherSettings));
     final BuildHistory history = myFixture.getHistory();
     myListener = new CommitStatusPublisherListener(EventDispatcher.create(BuildServerListener.class), myPublisherManager, history, myRBManager, myProblems);
-    myPublisher = new MockPublisherRegisterFailure(myBuildType, myProblems);
+    myPublisher = new MockPublisher(myPublisherSettings, MockPublisherSettings.PUBLISHER_ID, myBuildType, myFeatureDescriptor.getId(),
+                                    Collections.<String, String>emptyMap(), myProblems, myLogger);
     myPublisherSettings.setPublisher(myPublisher);
   }
 
@@ -91,7 +87,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(problem.getDescription());
     then(problem.getDescription()).contains("Commit Status Publisher");
     then(problem.getDescription()).contains("buildFinished");
-    then(problem.getDescription()).contains(PUBLISHER_ERROR);
+    then(problem.getDescription()).contains(MockPublisher.PUBLISHER_ERROR);
     then(problem.getDescription()).contains(myPublisher.getId());
   }
 
@@ -162,58 +158,5 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myFixture.addModification(new ModificationData(new Date(),
             Collections.singletonList(new VcsChange(VcsChangeInfo.Type.CHANGED, "changed", "file", "file","1", "2")),
             "descr2", "user", vcsRootInstance, revNo, revNo));
-  }
-
-  private class MockPublisherRegisterFailure extends MockPublisher {
-
-    private int myFailuresReceived = 0;
-    private int myFinishedReceived = 0;
-    private int mySuccessReceived = 0;
-
-    private boolean myShouldThrowException = false;
-    private boolean myShouldReportError = false;
-
-    MockPublisherRegisterFailure(SBuildType buildType, CommitStatusPublisherProblems problems) {
-      super(myPublisherSettings, PUBLISHER_ID, buildType, myFeatureDescriptor.getId(), Collections.<String, String>emptyMap(), problems);
-    }
-
-    boolean isFailureReceived() { return myFailuresReceived > 0; }
-    boolean isFinishedReceived() { return myFinishedReceived > 0; }
-    boolean isSuccessReceived() { return mySuccessReceived > 0; }
-
-    int failuresReceived() { return myFailuresReceived; }
-
-    int finishedReceived() { return myFinishedReceived; }
-
-    int successReceived() { return mySuccessReceived; }
-
-    void shouldThrowException() {myShouldThrowException = true; }
-    void shouldReportError() {myShouldReportError = true; }
-
-    @Override
-    public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
-      myFinishedReceived++;
-      Status s = build.getBuildStatus();
-      if (s.equals(Status.NORMAL)) mySuccessReceived++;
-      if (s.equals(Status.FAILURE)) myFailuresReceived++;
-      if (myShouldThrowException) {
-        throw new PublisherException(PUBLISHER_ERROR);
-      } else if (myShouldReportError) {
-        myProblems.reportProblem(this, "My build", null, null, myLogger);
-      }
-      return true;
-    }
-
-    @Override
-    public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
-      myFailuresReceived++;
-      return true;
-    }
-
-    @Override
-    public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
-      return super.buildMarkedAsSuccessful(build, revision, buildInProgress);
-    }
-
   }
 }

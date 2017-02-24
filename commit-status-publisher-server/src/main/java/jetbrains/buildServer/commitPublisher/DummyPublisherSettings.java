@@ -83,7 +83,7 @@ class DummyPublisherSettings implements CommitStatusPublisherSettings {
   }
 
   @Override
-  public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) {
+  public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
     // does nothing
   }
 }

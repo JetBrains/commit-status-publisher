@@ -43,7 +43,12 @@
         },
 
         onTestConnectionFailedError: function(elem) {
-          info = elem.textContent;
+          if (success) {
+            info = ""
+          } else if ("" != info) {
+            info += "\n";
+          }
+          info += elem.textContent;
           success = false;
         },
 
