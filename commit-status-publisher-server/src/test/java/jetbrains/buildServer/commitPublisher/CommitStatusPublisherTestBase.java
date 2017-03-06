@@ -53,7 +53,7 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     myFeatureController = new CommitStatusPublisherFeatureController(myProjectManager, wcm, pluginDescr, publisherManager, mySettingsController);
     myVcsManager = myFixture.getVcsManager();
 
-    ServerVcsSupport vcsSupport = new MockVcsSupport("svn") {
+    ServerVcsSupport vcsSupport = new MockVcsSupport("jetbrains.git") {
 
       private final Map<String, String> myVersions = myCurrentVersions;
 

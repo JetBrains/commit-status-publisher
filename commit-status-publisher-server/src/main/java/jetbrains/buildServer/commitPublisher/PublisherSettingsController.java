@@ -169,13 +169,20 @@ public class PublisherSettingsController extends BaseController {
         throw new PublisherException("No VCS roots attached");
       }
 
+      boolean isTested = false;
       for (SVcsRoot sVcsRoot: roots) {
         try {
           VcsRoot vcsRoot = getVcsRootInstanceIfPossible(buildTypeOrTemplate, sVcsRoot);
-          settings.testConnection(buildTypeOrTemplate, vcsRoot, resolvedProperties);
+          if (settings.isPublishingForVcsRoot(vcsRoot)) {
+            settings.testConnection(buildTypeOrTemplate, vcsRoot, resolvedProperties);
+            isTested = true;
+          }
         } catch (PublisherException ex) {
           reportTestConnectionFailure(ex, errors);
         }
+      }
+      if (!isTested) {
+        throw new PublisherException("No relevant VCS roots attached");
       }
     } else {
       SVcsRoot sVcsRoot = myProjectManager.findVcsRootByExternalId(vcsRootId);

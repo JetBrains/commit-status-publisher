@@ -148,7 +148,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   }
 
   private void prepareVcs(String vcsRootName, String currentVersion, String revNo, boolean setVcsRootIdParam) {
-    final SVcsRoot vcsRoot = myFixture.addVcsRoot("svn", vcsRootName);
+    final SVcsRoot vcsRoot = myFixture.addVcsRoot("jetbrains.git", vcsRootName);
     if (setVcsRootIdParam) {
       myPublisher.setVcsRootId(vcsRoot.getExternalId());
     }

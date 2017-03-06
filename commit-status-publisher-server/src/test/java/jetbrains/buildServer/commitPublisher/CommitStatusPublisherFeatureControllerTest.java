@@ -37,7 +37,7 @@ public class CommitStatusPublisherFeatureControllerTest extends CommitStatusPubl
 
   public void must_find_attached_vcs_root() throws Exception {
     final String vcsRootId = "VcsId1";
-    final SVcsRoot vcs = myFixture.addVcsRoot("svn", "vcs1");
+    final SVcsRoot vcs = myFixture.addVcsRoot("jetbrains.git", "vcs1");
     vcs.setExternalId(vcsRootId);
 
     final Map<String, String> params = new HashMap<String, String>() {{

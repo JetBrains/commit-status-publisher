@@ -37,6 +37,11 @@ public class MockPublisherSettings extends DummyPublisherSettings {
   }
 
   @Override
+  public boolean isPublishingForVcsRoot(final VcsRoot vcsRoot) {
+    return vcsRoot.getVcsName().equals("jetbrains.git");
+  }
+
+  @Override
   public boolean isEventSupported(final CommitStatusPublisher.Event event) {
     return true; // Mock publisher "supports" all events
   }
