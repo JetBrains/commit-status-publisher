@@ -3,6 +3,7 @@ package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudRepoInfo;
 import jetbrains.buildServer.serverSide.*;
@@ -17,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 public class BitbucketCloudSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
+  private static final Pattern URL_WITH_FQDN_PATTERN = Pattern.compile("[a-z]+://[^\\.:/]+\\.(.+)");
 
   final static String DEFAULT_API_URL = "https://api.bitbucket.org/";
 
@@ -67,6 +69,9 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
+
+        if (!URL_WITH_FQDN_PATTERN.matcher(myLinks.getRootUrl()).matches())
+          errors.add(new InvalidProperty(Constants.PUBLISHER_ID_PARAM, "requires the TeamCity Server URL to contain fully qualified domain name"));
 
         if (StringUtil.isEmptyOrSpaces(params.get(Constants.BITBUCKET_CLOUD_USERNAME)))
           errors.add(new InvalidProperty(Constants.BITBUCKET_CLOUD_USERNAME, "must be specified"));
