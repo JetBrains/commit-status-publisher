@@ -179,10 +179,10 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
           checkNotEmpty(p, c.getAccessTokenKey(), "Personal Access Token must be specified", result);
         }
 
-        if (!checkNotEmpty(p, c.getServerKey(), "GitHub api URL", result)) {
+        if (!checkNotEmpty(p, c.getServerKey(), "GitHub API URL must be specified", result)) {
           final String url = "" + p.get(c.getServerKey());
           if (!ReferencesResolverUtil.mayContainReference(url) && !(url.startsWith("http://") || url.startsWith("https://"))) {
-            result.add(new InvalidProperty(c.getServerKey(), "GitHub api URL should start with http:// or https://"));
+            result.add(new InvalidProperty(c.getServerKey(), "GitHub API URL should start with http:// or https://"));
           }
         }
 

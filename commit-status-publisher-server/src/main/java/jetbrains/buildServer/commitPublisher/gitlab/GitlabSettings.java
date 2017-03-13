@@ -123,9 +123,9 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
         if (params.get(Constants.GITLAB_API_URL) == null)
-          errors.add(new InvalidProperty(Constants.GITLAB_API_URL, "must be specified"));
+          errors.add(new InvalidProperty(Constants.GITLAB_API_URL, "GitLab API URL must be specified"));
         if (params.get(Constants.GITLAB_TOKEN) == null)
-          errors.add(new InvalidProperty(Constants.GITLAB_TOKEN, "must be specified"));
+          errors.add(new InvalidProperty(Constants.GITLAB_TOKEN, "Access token must be specified"));
         return errors;
       }
     };

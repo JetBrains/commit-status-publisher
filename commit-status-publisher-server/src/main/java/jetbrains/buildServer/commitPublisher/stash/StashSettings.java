@@ -75,7 +75,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
         if (params.get(Constants.STASH_BASE_URL) == null)
-          errors.add(new InvalidProperty(Constants.STASH_BASE_URL, "must be specified"));
+          errors.add(new InvalidProperty(Constants.STASH_BASE_URL, "Server URL must be specified"));
         return errors;
       }
     };

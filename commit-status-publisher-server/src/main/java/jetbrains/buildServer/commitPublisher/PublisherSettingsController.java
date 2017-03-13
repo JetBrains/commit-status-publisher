@@ -113,9 +113,16 @@ public class PublisherSettingsController extends BaseController {
           Map<String, String> props = propBean.getProperties();
           PropertiesProcessor processor = settings.getParametersProcessor();
           if (null != processor) {
-            processor.process(props);
+            Collection<InvalidProperty> invalidProps = processor.process(props);
+            if (invalidProps != null) {
+              for (InvalidProperty prop : invalidProps) {
+                errors.addError("testConnectionFailed", prop.getInvalidReason());
+              }
+            }
           }
-          testConnection(settings, props, request, errors);
+          if (!errors.hasErrors()) {
+            testConnection(settings, props, request, errors);
+          }
         } catch (PublisherException ex) {
           reportTestConnectionFailure(ex, errors);
         }

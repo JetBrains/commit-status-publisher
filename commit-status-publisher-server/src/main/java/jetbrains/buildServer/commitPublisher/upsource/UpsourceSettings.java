@@ -90,18 +90,18 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
-        checkContains(params, Constants.UPSOURCE_SERVER_URL, errors);
-        checkContains(params, Constants.UPSOURCE_PROJECT_ID, errors);
-        checkContains(params, Constants.UPSOURCE_USERNAME, errors);
-        checkContains(params, Constants.UPSOURCE_PASSWORD, errors);
+        checkContains(params, Constants.UPSOURCE_SERVER_URL, "Server URL", errors);
+        checkContains(params, Constants.UPSOURCE_PROJECT_ID, "Project id", errors);
+        checkContains(params, Constants.UPSOURCE_USERNAME, "Username", errors);
+        checkContains(params, Constants.UPSOURCE_PASSWORD, "Password", errors);
         return errors;
       }
     };
   }
 
-  private void checkContains(@NotNull Map<String, String> params, @NotNull String key, @NotNull List<InvalidProperty> errors) {
+  private void checkContains(@NotNull Map<String, String> params, @NotNull String key, @NotNull String fieldName, @NotNull List<InvalidProperty> errors) {
     if (StringUtil.isEmpty(params.get(key)))
-      errors.add(new InvalidProperty(key, "must be specified"));
+      errors.add(new InvalidProperty(key, String.format("%s must be specified", fieldName)));
   }
 
   public boolean isEnabled() {

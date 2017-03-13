@@ -71,13 +71,13 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
 
         if (!URL_WITH_FQDN_PATTERN.matcher(myLinks.getRootUrl()).matches())
-          errors.add(new InvalidProperty(Constants.PUBLISHER_ID_PARAM, "requires the TeamCity Server URL to contain fully qualified domain name"));
+          errors.add(new InvalidProperty(Constants.PUBLISHER_ID_PARAM, "Bitbucket Cloud publisher requires the TeamCity Server URL to contain fully qualified domain name"));
 
         if (StringUtil.isEmptyOrSpaces(params.get(Constants.BITBUCKET_CLOUD_USERNAME)))
-          errors.add(new InvalidProperty(Constants.BITBUCKET_CLOUD_USERNAME, "must be specified"));
+          errors.add(new InvalidProperty(Constants.BITBUCKET_CLOUD_USERNAME, "Username must be specified"));
 
         if (StringUtil.isEmptyOrSpaces(params.get(Constants.BITBUCKET_CLOUD_PASSWORD)))
-          errors.add(new InvalidProperty(Constants.BITBUCKET_CLOUD_PASSWORD, "must be specified"));
+          errors.add(new InvalidProperty(Constants.BITBUCKET_CLOUD_PASSWORD, "Password must be specified"));
 
         return errors;
       }
