@@ -13,13 +13,19 @@
 <c:set var="featureId" value="${healthStatusItem.additionalData['featureId']}"/>
 <div>
     Commit Status Publisher in <admin:editBuildTypeLinkFull buildType="${buildType}" cameFromUrl="${cameFromUrl}"/>
-    refers to VCS root
-    <c:if test="${not empty missingVcsRoot}">
-        <admin:editVcsRootLink vcsRoot="${missingVcsRoot}" editingScope="" cameFromUrl="${cameFromUrl}">
-            <c:out value="${missingVcsRoot.name}" />
-        </admin:editVcsRootLink>
-    </c:if>
-    that is not attached to the configuration.
+    refers to
+    <c:choose>
+        <c:when test="${not empty missingVcsRoot}">
+            the VCS root
+            <admin:editVcsRootLink vcsRoot="${missingVcsRoot}" editingScope="" cameFromUrl="${cameFromUrl}">
+                <c:out value="${missingVcsRoot.name}" />
+            </admin:editVcsRootLink>
+        </c:when>
+        <c:otherwise>
+            a VCS root
+        </c:otherwise>
+    </c:choose>
+    that is not attached to the build configuration.
     <c:if test="${not buildType.readOnly}">
         <div>
             <c:url var="url" value="/admin/editBuildFeatures.html?init=1&id=buildType:${buildType.externalId}#editFeature=${featureId}" />
