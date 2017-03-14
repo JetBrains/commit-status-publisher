@@ -6,7 +6,7 @@ import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabPermissions;
-import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabProjectAccess;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabAccessLevel;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BuildRevision;
@@ -28,6 +28,8 @@ import static org.assertj.core.api.BDDAssertions.then;
  */
 @Test
 public class GitlabPublisherTest extends HttpPublisherTest {
+
+  private static final String GROUP_REPO = "group_repo";
 
   public GitlabPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
@@ -66,6 +68,15 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     then(waitForRequest()).isNotNull().matches(String.format(".*/projects/own%%2Eer%%2Fpro%%2Eject/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
   }
 
+  public void test_testConnection_group_repo() throws Exception {
+    if (!myPublisherSettings.isTestConnectionSupported()) return;
+    Map<String, String> params = getPublisherParams();
+    myVcsRoot.setProperties(Collections.singletonMap("url", getServerUrl()  + "/" + OWNER + "/" + GROUP_REPO));
+    myPublisherSettings.testConnection(myBuildType, myVcsRoot, params);
+    then(waitForRequest()).isNotNull().matches(".*/projects/owner%2Fgroup_repo .*");
+  }
+
+
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
@@ -88,20 +99,27 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     super.populateResponse(httpRequest, requestData, httpResponse);
     if (httpRequest.getRequestLine().getMethod().equals("GET")) {
       if (httpRequest.getRequestLine().getUri().contains("/projects" +  "/" + OWNER + "%2F" + CORRECT_REPO)) {
-        respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
+        respondWithRepoInfo(httpResponse, CORRECT_REPO, false, true);
+      } else if (httpRequest.getRequestLine().getUri().contains("/projects"  + "/" + OWNER + "%2F" +  GROUP_REPO)) {
+        respondWithRepoInfo(httpResponse, GROUP_REPO, true, true);
       } else if (httpRequest.getRequestLine().getUri().contains("/projects"  + "/" + OWNER + "%2F" +  READ_ONLY_REPO)) {
-        respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false);
+        respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false, false);
       }
     }
   }
 
-  private void respondWithRepoInfo(HttpResponse httpResponse, String repoName, boolean isPushPermitted) {
+  private void respondWithRepoInfo(HttpResponse httpResponse, String repoName, boolean isGroupRepo, boolean isPushPermitted) {
     Gson gson = new Gson();
     GitLabRepoInfo repoInfo = new GitLabRepoInfo();
     repoInfo.id = "111";
     repoInfo.permissions = new GitLabPermissions();
-    repoInfo.permissions.project_access = new GitLabProjectAccess();
-    repoInfo.permissions.project_access.access_level = isPushPermitted ? 30 : 20;
+    GitLabAccessLevel accessLevel = new GitLabAccessLevel();
+    accessLevel.access_level = isPushPermitted ? 30 : 20;
+    if (isGroupRepo) {
+      repoInfo.permissions.group_access = accessLevel;
+    } else {
+      repoInfo.permissions.project_access = accessLevel;
+    }
     String jsonResponse = gson.toJson(repoInfo);
     httpResponse.setEntity(new StringEntity(jsonResponse, "UTF-8"));
   }

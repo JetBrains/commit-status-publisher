@@ -1,6 +1,7 @@
 package jetbrains.buildServer.commitPublisher.gitlab;
 
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabAccessLevel;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
@@ -91,10 +92,15 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
           entity.writeTo(bos);
           final String json = bos.toString("utf-8");
           GitLabRepoInfo repoInfo = myGson.fromJson(json, GitLabRepoInfo.class);
-          if (null == repoInfo || null == repoInfo.id || null == repoInfo.permissions || null == repoInfo.permissions.project_access) {
+          int accessLevel = 0;
+          if (null == repoInfo || null == repoInfo.id || null == repoInfo.permissions) {
             throw new HttpPublisherException("GitLab publisher has received a malformed response");
           }
-          if (repoInfo.permissions.project_access.access_level < 30) {
+          if (null != repoInfo.permissions.project_access)
+            accessLevel = repoInfo.permissions.project_access.access_level;
+          if (null != repoInfo.permissions.group_access && accessLevel < repoInfo.permissions.group_access.access_level)
+            accessLevel = repoInfo.permissions.group_access.access_level;
+          if (accessLevel < 30) {
             throw new HttpPublisherException("GitLab does not grant enough permissions to publish a commit status");
           }
         }
