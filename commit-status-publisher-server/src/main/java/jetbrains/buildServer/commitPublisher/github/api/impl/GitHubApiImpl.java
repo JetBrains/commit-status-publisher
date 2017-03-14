@@ -92,7 +92,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
       includeAuthentication(get);
       setDefaultHeaders(get);
       logRequest(get, null);
-      repoInfo = processResponse(get, RepoInfo.class);
+      repoInfo = processResponse(get, RepoInfo.class, true);
     } catch (Throwable ex) {
       throw new PublisherException(String.format("Error while retrieving %s/%s repository information", repoOwner, repoName), ex);
     } finally {
@@ -177,7 +177,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     includeAuthentication(get);
     setDefaultHeaders(get);
 
-    final PullRequestInfo pullRequestInfo = processResponse(get, PullRequestInfo.class);
+    final PullRequestInfo pullRequestInfo = processResponse(get, PullRequestInfo.class, false);
 
     final RepoRefInfo head = pullRequestInfo.head;
     if (head != null) {
@@ -192,7 +192,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     final String requestUrl = myUrls.getCommitInfo(repoOwner, repoName, hash);
     final HttpGet get = new HttpGet(requestUrl);
 
-    final CommitInfo infos = processResponse(get, CommitInfo.class);
+    final CommitInfo infos = processResponse(get, CommitInfo.class, false);
     if (infos.parents != null) {
       final Set<String> parents = new HashSet<String>();
       for (CommitInfo p : infos.parents) {
@@ -207,20 +207,20 @@ public abstract class GitHubApiImpl implements GitHubApi {
   }
 
   @NotNull
-  private <T> T processResponse(@NotNull HttpUriRequest request, @NotNull final Class<T> clazz) throws IOException, PublisherException {
+  private <T> T processResponse(@NotNull HttpUriRequest request, @NotNull final Class<T> clazz, boolean logErrorsDebugOnly) throws IOException, PublisherException {
     setDefaultHeaders(request);
     try {
       logRequest(request, null);
 
       final HttpResponse execute = myClient.execute(request);
       if (execute.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
-        logFailedResponse(request, null, execute);
+        logFailedResponse(request, null, execute, logErrorsDebugOnly);
         throw new IOException("Failed to complete request to GitHub. Status: " + execute.getStatusLine());
       }
 
       final HttpEntity entity = execute.getEntity();
       if (entity == null) {
-        logFailedResponse(request, null, execute);
+        logFailedResponse(request, null, execute, logErrorsDebugOnly);
         throw new IOException("Failed to complete request to GitHub. Empty response. Status: " + execute.getStatusLine());
       }
 
@@ -256,6 +256,14 @@ public abstract class GitHubApiImpl implements GitHubApi {
   private void logFailedResponse(@NotNull HttpUriRequest request,
                                  @Nullable String requestEntity,
                                  @NotNull HttpResponse execute) throws IOException {
+    logFailedResponse(request, requestEntity, execute, false);
+  }
+
+
+  private void logFailedResponse(@NotNull HttpUriRequest request,
+                                 @Nullable String requestEntity,
+                                 @NotNull HttpResponse execute,
+                                 boolean debugOnly) throws IOException {
     String responseText = extractResponseEntity(execute);
     if (responseText == null) {
       responseText = "<none>";
@@ -264,13 +272,17 @@ public abstract class GitHubApiImpl implements GitHubApi {
       requestEntity = "<none>";
     }
 
-    LOG.warn("Failed to complete query to GitHub with:\n" +
+    final String logEntry = "Failed to complete query to GitHub with:\n" +
             "  requestURL: " + request.getURI().toString() + "\n" +
             "  requestMethod: " + request.getMethod() + "\n" +
             "  requestEntity: " + requestEntity + "\n" +
             "  response: " + execute.getStatusLine() + "\n" +
-            "  responseEntity: " + responseText
-    );
+            "  responseEntity: " + responseText;
+    if (debugOnly) {
+      LOG.debug(logEntry);
+    } else {
+      LOG.warn(logEntry);
+    }
   }
 
   private void logRequest(@NotNull HttpUriRequest request,
