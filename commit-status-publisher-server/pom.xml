@@ -113,6 +113,15 @@
 
 
     <dependency>
+      <groupId>org.jetbrains.teamcity.internal</groupId>
+      <artifactId>local-cloud-server-api</artifactId>
+      <version>1.7.2</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/cloud-server-api.jar</systemPath>
+    </dependency>
+
+
+    <dependency>
       <groupId>local-hsqldb</groupId>
       <artifactId>org.jetbrains.teamcity.internal</artifactId>
       <version>${teamcity-version}</version>
