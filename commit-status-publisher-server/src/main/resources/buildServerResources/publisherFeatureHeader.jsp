@@ -78,7 +78,7 @@
   <tr>
     <th><label for="${constants.vcsRootIdParam}">VCS Root:&nbsp;<l:star/></label></th>
     <td>
-      <props:selectProperty name="${constants.vcsRootIdParam}" enableFilter="true">
+      <props:selectProperty name="${constants.vcsRootIdParam}" className="longField" enableFilter="true" style="width: 95%;">
         <props:option value="">All attached VCS Roots</props:option>
         <c:forEach var="vcsRoot" items="${vcsRoots}">
           <props:option value="${vcsRoot.externalId}"><c:out value="${vcsRoot.name}"/></props:option>
@@ -105,7 +105,7 @@
       <label for="${constants.publisherIdParam}">Publisher:&nbsp;<l:star/></label>
     </th>
     <td>
-      <props:selectProperty name="${constants.publisherIdParam}" onchange="PublisherFeature.showPublisherSettings()" enableFilter="true">
+      <props:selectProperty name="${constants.publisherIdParam}" onchange="PublisherFeature.showPublisherSettings()" enableFilter="true" className="mediumField">
         <c:forEach var="publisher" items="${publishers}">
           <props:option value="${publisher.id}"><c:out value="${publisher.name}"/></props:option>
         </c:forEach>
