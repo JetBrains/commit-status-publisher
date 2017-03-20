@@ -24,6 +24,8 @@ public class Constants {
 
   public static final String STASH_PUBLISHER_ID = "atlassianStashPublisher";
   public static final String STASH_BASE_URL = "stashBaseUrl";
+  public static final String STASH_PROJECT_KEY = "stashProjectKey";
+  public static final String STASH_REPO_NAME = "stashRepoName";
   public static final String STASH_USERNAME = "stashUsername";
   public static final String STASH_PASSWORD = "secure:stashPassword";
 
@@ -91,9 +93,13 @@ public class Constants {
   }
 
   @NotNull
-  public String getStashBaseUrl() {
-    return STASH_BASE_URL;
-  }
+  public String getStashBaseUrl() { return STASH_BASE_URL; }
+
+  @NotNull
+  public String getStashProjectKey() { return STASH_PROJECT_KEY; }
+
+  @NotNull
+  public String getStashRepoName() { return STASH_REPO_NAME; }
 
   @NotNull
   public String getStashUsername() {

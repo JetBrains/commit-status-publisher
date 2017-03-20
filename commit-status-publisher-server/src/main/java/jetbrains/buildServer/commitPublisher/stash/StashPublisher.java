@@ -1,27 +1,33 @@
 package jetbrains.buildServer.commitPublisher.stash;
 
+import com.google.common.collect.Iterables;
 import com.google.gson.*;
 import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.stash.data.PullRequestInfo;
+import jetbrains.buildServer.commitPublisher.stash.data.StashCommit;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
+import org.apache.http.*;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 class StashPublisher extends HttpBasedCommitStatusPublisher {
   public static final String PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
 
   private static final Logger LOG = Logger.getInstance(StashPublisher.class.getName());
+
+  protected final Gson myGson = new Gson();
 
   private final WebLinks myLinks;
 
@@ -121,7 +127,16 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) {
     String msg = createMessage(status, build.getBuildPromotion().getBuildTypeExternalId(), getBuildName(build), myLinks.getViewResultsUrl(build), comment);
-    vote(revision.getRevision(), msg, LogUtil.describe(build));
+    String commitRevision = revision.getRevision();
+    try {
+      StashCommit commit = findPullRequestCommit(build);
+      if (commit != null) {
+        commitRevision = commit.id;
+      }
+    } catch (PublisherException e) {
+      e.printStackTrace();
+    }
+    vote(commitRevision, msg, LogUtil.describe(build));
   }
 
   private void vote(@NotNull SQueuedBuild build,
@@ -213,5 +228,59 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   private String getPassword() {
     return myParams.get(Constants.STASH_PASSWORD);
+  }
+
+  private StashCommit findPullRequestCommit(@NotNull SBuild build) throws PublisherException {
+    String apiUrl = myParams.get(Constants.STASH_BASE_URL);
+    String projectKey = myParams.get(Constants.STASH_PROJECT_KEY);
+    String repository = myParams.get(Constants.STASH_REPO_NAME);
+
+    final List<StashCommit> lastCommit = new ArrayList<StashCommit>();
+
+    // Plugin will recognize pull request only when Branch specification parameter will be configured as below:
+    // +:refs/pull-requests/(*/merge)
+    // https://blog.jetbrains.com/teamcity/2013/02/automatically-building-pull-requests-from-github-with-teamcity
+
+    if (build.getBranch().getName().contains("merge")) { // try to find pull request only for branches with merge in the name
+      String pullRequestNumber = build.getBranch().getName().replace("/merge",""); //remove merge from brache name to get only pull request number
+      apiUrl = apiUrl + "/rest/api/1.0/projects/" + projectKey + "/repos/" + repository + "/pull-requests/" + pullRequestNumber + "/commits/";
+      LOG.debug("Bitbucket Pull Request apiUrl: " + apiUrl);
+    }
+
+    if (null != apiUrl || apiUrl.length() != 0) {
+      try {
+        HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
+          @Override
+          public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+
+            final HttpEntity entity = response.getEntity();
+            if (null == entity) {
+              throw new HttpPublisherException("Bitbucket publisher has received no response");
+            }
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            entity.writeTo(bos);
+            final String json = bos.toString("utf-8");
+            PullRequestInfo commitInfo = myGson.fromJson(json, PullRequestInfo.class);
+            if (null == commitInfo)
+              throw new HttpPublisherException("Bitbucket Server publisher has received a malformed response");
+            if (null != commitInfo.values && !commitInfo.values.isEmpty()) {
+              StashCommit commit = Iterables.get(commitInfo.values, 0);
+              if (commit != null) {
+                lastCommit.add(commit);
+              }
+            }
+          }
+        };
+
+        HttpHelper.get(apiUrl, getUsername(), getPassword(),
+                Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processor);
+      } catch (Exception ex) {
+        throw new PublisherException(String.format("Bitbucket Server publisher has failed to connect to %s repository", apiUrl), ex);
+      }
+    }
+    if (!lastCommit.isEmpty() && lastCommit.size() > 0) {
+      return lastCommit.get(0);
+    }
+    return null;
   }
 }
