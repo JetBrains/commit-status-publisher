@@ -21,19 +21,35 @@
       <span class="error" id="error_${keys.stashBaseUrl}"></span>
     </td>
   </tr>
-
-  <tr>
-    <th><label for="${keys.stashUsername}">Username: <l:star/></label></th>
-    <td>
-      <props:textProperty name="${keys.stashUsername}" style="width:18em;"/>
-    </td>
-  </tr>
-
-  <tr>
-    <th><label for="${keys.stashPassword}">Password: <l:star/></label></th>
-    <td>
-      <props:passwordProperty name="${keys.stashPassword}" style="width:18em;"/>
-    </td>
-  </tr>
+  <l:settingsGroup title="Repository">
+    <span class="smallNote">Plugin will recognize Pull Request branches only when <strong><a href="https://confluence.jetbrains.com/display/TCD10/Working+with+Feature+Branches">Branch specification</a></strong> parameter in <strong>VCS Roots</strong> will be configured as below:</span>
+    <span class="smallNote"><strong><i>+:refs/pull-requests/(*/merge)</i></strong></span>
+    <tr>
+      <th><label for="${keys.stashProjectKey}">Project Key: <l:star/></label></th>
+      <td>
+        <props:textProperty name="${keys.stashProjectKey}" style="width:18em;"/>
+      </td>
+    </tr>
+    <tr>
+      <th><label for="${keys.stashRepoName}">Repository: <l:star/></label></th>
+      <td>
+        <props:textProperty name="${keys.stashRepoName}" style="width:18em;"/>
+      </td>
+    </tr>
+  </l:settingsGroup>
+  <l:settingsGroup title="Authentication">
+    <tr>
+      <th><label for="${keys.stashUsername}">Username: <l:star/></label></th>
+      <td>
+        <props:textProperty name="${keys.stashUsername}" style="width:18em;"/>
+      </td>
+    </tr>
+    <tr>
+      <th><label for="${keys.stashPassword}">Password: <l:star/></label></th>
+      <td>
+        <props:passwordProperty name="${keys.stashPassword}" style="width:18em;"/>
+      </td>
+    </tr>
+  </l:settingsGroup>
 </table>
 
