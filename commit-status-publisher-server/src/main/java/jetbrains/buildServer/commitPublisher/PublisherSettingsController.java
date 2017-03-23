@@ -181,8 +181,8 @@ public class PublisherSettingsController extends BaseController {
         try {
           VcsRoot vcsRoot = getVcsRootInstanceIfPossible(buildTypeOrTemplate, sVcsRoot);
           if (settings.isPublishingForVcsRoot(vcsRoot)) {
-            settings.testConnection(buildTypeOrTemplate, vcsRoot, resolvedProperties);
             isTested = true;
+            settings.testConnection(buildTypeOrTemplate, vcsRoot, resolvedProperties);
           }
         } catch (PublisherException ex) {
           reportTestConnectionFailure(ex, errors);

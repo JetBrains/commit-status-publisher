@@ -52,4 +52,56 @@ public class PublisherSettingsControllerTest extends CommitStatusPublisherTestBa
       .contains("VCS Root 3")
       .doesNotContain("VCS Root 4");
   }
+
+  public void must_not_report_no_relevant_vcs_if_failure() throws Exception {
+    HttpServletRequest request = new MockRequest(
+      Constants.PUBLISHER_ID_PARAM, MockPublisherSettings.PUBLISHER_ID,
+      Constants.TEST_CONNECTION_PARAM, Constants.TEST_CONNECTION_YES,
+      "projectId", myProject.getExternalId(),
+      "id", "buildType:" + myBuildType.getExternalId()
+    );
+    HttpServletResponse response = new MockResponse();
+
+    SVcsRoot vcs1 = myFixture.addVcsRoot("jetbrains.git", "one");
+    vcs1.setName("VCS Root 1");
+    SVcsRoot vcs2 = myFixture.addVcsRoot("jetbrains.git", "two");
+    vcs2.setName("VCS Root 2");
+    myBuildType.addVcsRoot(vcs1);
+    myBuildType.addVcsRoot(vcs2);
+
+    myPublisherSettings.setVcsRootsToFailTestConnection(Arrays.asList("VCS Root 1", "VCS Root 2"));
+
+    mySettingsController.handleRequestInternal(request, response);
+
+    then(((MockResponse)response).getReturnedContent())
+      .contains("VCS Root 1")
+      .contains("VCS Root 2")
+      .doesNotContain("No relevant VCS");
+  }
+
+  public void must_report_no_relevant_vcs() throws Exception {
+    HttpServletRequest request = new MockRequest(
+      Constants.PUBLISHER_ID_PARAM, MockPublisherSettings.PUBLISHER_ID,
+      Constants.TEST_CONNECTION_PARAM, Constants.TEST_CONNECTION_YES,
+      "projectId", myProject.getExternalId(),
+      "id", "buildType:" + myBuildType.getExternalId()
+    );
+    HttpServletResponse response = new MockResponse();
+
+    SVcsRoot vcs1 = myFixture.addVcsRoot("svn", "one");
+    vcs1.setName("VCS Root 1");
+    SVcsRoot vcs2 = myFixture.addVcsRoot("svn", "two");
+    vcs2.setName("VCS Root 2");
+    myBuildType.addVcsRoot(vcs1);
+    myBuildType.addVcsRoot(vcs2);
+
+    myPublisherSettings.setVcsRootsToFailTestConnection(Arrays.asList("VCS Root 1", "VCS Root 2"));
+
+    mySettingsController.handleRequestInternal(request, response);
+
+    then(((MockResponse)response).getReturnedContent())
+      .doesNotContain("VCS Root 1")
+      .doesNotContain("VCS Root 2")
+      .contains("No relevant VCS");
+  }
 }
