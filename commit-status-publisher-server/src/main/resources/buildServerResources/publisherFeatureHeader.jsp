@@ -48,7 +48,7 @@
           } else if ("" != info) {
             info += "\n";
           }
-          info += elem.textContent;
+          info += elem.textContent || elem.text;
           success = false;
         },
 
