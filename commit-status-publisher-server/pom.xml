@@ -170,6 +170,14 @@
     </dependency>
 
     <dependency>
+      <groupId>local-caffeine-lib</groupId>
+      <artifactId>org.jetbrains.teamcity.internal</artifactId>
+      <version>${teamcity-version}</version>
+      <scope>system</scope>
+      <systemPath>${teamcity.path.lib}/caffeine-2.4.0.jar</systemPath>
+    </dependency>
+
+    <dependency>
       <groupId>org.jetbrains.teamcity.internal</groupId>
       <artifactId>local-server-tools-jar</artifactId>
       <version>${teamcity-version}</version>
