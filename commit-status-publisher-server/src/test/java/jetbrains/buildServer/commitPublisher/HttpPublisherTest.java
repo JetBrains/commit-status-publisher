@@ -56,7 +56,7 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
                 myNumberOfCurrentRequests++;
                 myProcessingStarted.release(); // indicates that we are processing request
                 try {
-                  if (!myServerMutex.tryAcquire(TIMEOUT * 2, TimeUnit.MILLISECONDS)) {
+                  if (null != myServerMutex && !myServerMutex.tryAcquire(TIMEOUT * 2, TimeUnit.MILLISECONDS)) {
                     myNumberOfCurrentRequests--;
                     return;
                   }

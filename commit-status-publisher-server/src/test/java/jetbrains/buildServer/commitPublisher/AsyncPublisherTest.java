@@ -26,7 +26,7 @@ public abstract class AsyncPublisherTest extends CommitStatusPublisherTest {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
-    myServerMutex = new Semaphore(1);
+    myServerMutex = null;
     myProcessingFinished = new Semaphore(0);
     myProcessingStarted = new Semaphore(0);
   }
@@ -38,6 +38,7 @@ public abstract class AsyncPublisherTest extends CommitStatusPublisherTest {
   }
 
   public void test_publishing_is_async() throws Exception {
+    myServerMutex = new Semaphore(1);
     myServerMutex.acquire();
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
     myServerMutex.release();
@@ -46,6 +47,7 @@ public abstract class AsyncPublisherTest extends CommitStatusPublisherTest {
 
 
   public void should_report_publishing_failure() throws Exception {
+    myServerMutex = new Semaphore(1);
     myServerMutex.acquire();
     // The HTTP client is supposed to wait for server for twice as less as we are waiting for its results
     // and the test HTTP server is supposed to wait for twice as much
@@ -61,6 +63,7 @@ public abstract class AsyncPublisherTest extends CommitStatusPublisherTest {
 
   // temporarily disabled due to flaky behaviour
   public void should_publish_in_sequence() throws Exception {
+    myServerMutex = new Semaphore(1);
     myServerMutex.acquire();
     SFinishedBuild build = createBuildInCurrentBranch(myBuildType, Status.NORMAL);
     myPublisher.setConnectionTimeout(TIMEOUT);

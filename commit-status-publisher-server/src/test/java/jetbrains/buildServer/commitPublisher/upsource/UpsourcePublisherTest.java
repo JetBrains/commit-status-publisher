@@ -50,8 +50,6 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
 
   @Override
   protected void test_testConnection_failure(String repoURL, Map <String, String> params) throws InterruptedException {
-    // releases extra 1 permit, as Upsource testConnection can carry out up to two requests
-    myServerMutex.release(1);
     super.test_testConnection_failure(repoURL, params);
   }
 

@@ -197,6 +197,8 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
 
   public void test_buildMarkedAsSuccessful() throws Exception {
     if (!isToBeTested(EventToTest.MARKED_SUCCESSFUL)) return;
+    myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.FAILURE), myRevision);
+    waitForRequest();
     myPublisher.buildMarkedAsSuccessful(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision, false);
     then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.MARKED_SUCCESSFUL));
   }
