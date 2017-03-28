@@ -4,7 +4,7 @@
   <parent>
     <artifactId>commit-status-publisher</artifactId>
     <groupId>org.jetbrains.teamcity</groupId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
   </parent>
   <properties>
     <teamcity.path.testlib>${project.basedir}/../../../.idea_artifacts/dist_openapi_integration/tests</teamcity.path.testlib>

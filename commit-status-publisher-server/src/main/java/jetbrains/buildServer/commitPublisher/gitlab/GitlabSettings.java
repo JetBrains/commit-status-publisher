@@ -138,14 +138,14 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
   }
 
   /**
-   * GitLab REST API fails to interpret dots in user/group and project names
+   * GitLab REST API fails to interpret dots in (user/group or user/subgroup/) and project names
    * used within project ids in URLs for some calls.
    */
   public static String encodeDots(@NotNull String s) {
     if (!s.contains(".")
         || TeamCityProperties.getBoolean("teamcity.commitStatusPublisher.gitlab.disableUrlEncodingDots"))
       return s;
-    return s.replace(".", "%2E");
+    return s.replace(".", "%2E").replace("/","%2F");
   }
 
   @Override
