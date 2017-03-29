@@ -23,10 +23,7 @@ import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.*;
 import jetbrains.buildServer.util.FileUtil;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
+import org.apache.http.*;
 import org.apache.http.auth.AuthenticationException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -55,6 +52,7 @@ import java.util.regex.Pattern;
 public abstract class GitHubApiImpl implements GitHubApi {
   private static final Logger LOG = Logger.getInstance(GitHubApiImpl.class.getName());
   private static final Pattern PULL_REQUEST_BRANCH = Pattern.compile("/?refs/pull/(\\d+)/(.*)");
+  private static final String MSG_PROXY_OR_PERMISSIONS = "Please check if the error is not returned by a proxy or caused by the lack of permissions.";
 
   private final HttpClientWrapper myClient;
   private final GitHubApiPaths myUrls;
@@ -119,7 +117,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
       final HttpResponse execute = myClient.execute(post);
       if (execute.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
         logFailedResponse(post, null, execute);
-        throw new IOException("Failed to complete request to GitHub. Status: " + execute.getStatusLine());
+        throw new IOException(getErrorMessage(execute.getStatusLine(), null));
       }
       return "TBD";
     } finally {
@@ -150,7 +148,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
       final HttpResponse execute = myClient.execute(post);
       if (execute.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_CREATED) {
         logFailedResponse(post, requestEntity.getText(), execute);
-        throw new IOException("Failed to complete request to GitHub. Status: " + execute.getStatusLine());
+        throw new IOException(getErrorMessage(execute.getStatusLine(), MSG_PROXY_OR_PERMISSIONS));
       }
     } finally {
       post.abort();
@@ -215,13 +213,13 @@ public abstract class GitHubApiImpl implements GitHubApi {
       final HttpResponse execute = myClient.execute(request);
       if (execute.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
         logFailedResponse(request, null, execute, logErrorsDebugOnly);
-        throw new IOException("Failed to complete request to GitHub. Status: " + execute.getStatusLine());
+        throw new IOException(getErrorMessage(execute.getStatusLine(), MSG_PROXY_OR_PERMISSIONS));
       }
 
       final HttpEntity entity = execute.getEntity();
       if (entity == null) {
         logFailedResponse(request, null, execute, logErrorsDebugOnly);
-        throw new IOException("Failed to complete request to GitHub. Empty response. Status: " + execute.getStatusLine());
+        throw new IOException(getErrorMessage(execute.getStatusLine(), "Empty response."));
       }
 
       try {
@@ -240,6 +238,15 @@ public abstract class GitHubApiImpl implements GitHubApi {
     } finally {
       request.abort();
     }
+  }
+
+  @NotNull
+  private static String getErrorMessage(@NotNull StatusLine statusLine, @Nullable String additionalComment) {
+    String err = "";
+    if (null != additionalComment) {
+      err = additionalComment + " ";
+    }
+    return String.format("Failed to complete request to GitHub. %sStatus: %s", err, statusLine.toString());
   }
 
   private void includeAuthentication(@NotNull HttpRequest request) throws IOException {
@@ -336,7 +343,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
       final HttpResponse execute = myClient.execute(post);
       if (execute.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_CREATED) {
         logFailedResponse(post, requestEntity.getText(), execute);
-        throw new IOException("Failed to complete request to GitHub. Status: " + execute.getStatusLine());
+        throw new IOException(getErrorMessage(execute.getStatusLine(), null));
       }
     } finally {
       post.abort();
