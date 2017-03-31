@@ -68,6 +68,14 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     then(waitForRequest()).isNotNull().matches(String.format(".*/projects/own%%2Eer%%2Fpro%%2Eject/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
   }
 
+  public void should_work_with_slashes_in_id() throws PublisherException, InterruptedException {
+    myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/group/subgroup/anothergroup/project"));
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
+    BuildRevision revision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
+    myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), revision);
+    then(waitForRequest()).isNotNull().matches(String.format(".*/projects/group%%2Fsubgroup%%2Fanothergroup%%2Fproject/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
+  }
+
   public void test_testConnection_group_repo() throws Exception {
     if (!myPublisherSettings.isTestConnectionSupported()) return;
     Map<String, String> params = getPublisherParams();
@@ -90,7 +98,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   protected Map<String, String> getPublisherParams() {
     return new HashMap<String, String>() {{
       put(Constants.GITLAB_TOKEN, "TOKEN");
-      put(Constants.GITLAB_API_URL, getServerUrl());
+      put(Constants.GITLAB_API_URL, getServerUrl() + "/api/v3");
     }};
   }
 

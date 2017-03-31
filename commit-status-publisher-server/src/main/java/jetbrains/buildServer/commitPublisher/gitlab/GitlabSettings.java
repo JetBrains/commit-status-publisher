@@ -1,5 +1,7 @@
 package jetbrains.buildServer.commitPublisher.gitlab;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabAccessLevel;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
@@ -66,17 +68,17 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
 
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    Repository repository = GitlabPublisher.parseRepository(root);
-    if (null == repository)
-      throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
     String apiUrl = params.get(Constants.GITLAB_API_URL);
     if (null == apiUrl || apiUrl.length() == 0)
       throw new PublisherException("Missing GitLab API URL parameter");
+    String pathPrefix = getPathPrefix(apiUrl);
+    Repository repository = GitlabPublisher.parseRepository(root, pathPrefix);
+    if (null == repository)
+      throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
     String token = params.get(Constants.GITLAB_TOKEN);
     if (null == token || token.length() == 0)
       throw new PublisherException("Missing GitLab API access token");
-    String url = apiUrl + "/projects/" + encodeDots(repository.owner())
-                 + "%2F" + encodeDots(repository.repositoryName());
+    String url = getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName());
     try {
       HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
         @Override
@@ -112,6 +114,18 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     }
   }
 
+  @Nullable
+  public static String getPathPrefix(final String apiUrl) {
+    if (!apiUrl.endsWith("/api/v3")) return null;
+    try {
+      URI uri = new URI(apiUrl);
+      String path = uri.getPath();
+      return path.substring(0, path.length() - "/api/v3".length());
+    } catch (URISyntaxException e) {
+      return null;
+    }
+  }
+
   @NotNull
   @Override
   public String describeParameters(@NotNull Map<String, String> params) {
@@ -137,15 +151,9 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     };
   }
 
-  /**
-   * GitLab REST API fails to interpret dots in user/group and project names
-   * used within project ids in URLs for some calls.
-   */
-  public static String encodeDots(@NotNull String s) {
-    if (!s.contains(".")
-        || TeamCityProperties.getBoolean("teamcity.commitStatusPublisher.gitlab.disableUrlEncodingDots"))
-      return s;
-    return s.replace(".", "%2E");
+  @NotNull
+  public static String getProjectsUrl(@NotNull String apiUrl, @NotNull String owner, @NotNull String repo) {
+    return apiUrl + "/projects/" + owner.replace(".", "%2E").replace("/", "%2F") + "%2F" + repo.replace(".", "%2E");
   }
 
   @Override

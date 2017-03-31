@@ -13,15 +13,22 @@ public class GitRepositoryParser {
   private static final Logger LOG = Logger.getInstance(GitRepositoryParser.class.getName());
   //git@host:user/repo
   private static final Pattern SCP_PATTERN = Pattern.compile("git@[^:]+[:]([^/]+)/(.+)");
+  private static final Pattern SCP_PATTERN_SLASHES = Pattern.compile("git@[^:]+[:](.+)/([^/]+)");
   //ssh://git@host/user/repo
   private static final Pattern SSH_PATTERN = Pattern.compile("ssh://(?:git@)?[^:]+(?::[0-9]+)?[:/]([^/:]+)/(.+)");
+  private static final Pattern SSH_PATTERN_SLASHES = Pattern.compile("ssh://(?:git@)?[^:/]+(?::[0-9]+)?[:/]([^:]+)/([^/]+)");
 
   @Nullable
   public static Repository parseRepository(@NotNull String uri) {
+    return parseRepository(uri, null);
+  }
+
+  @Nullable
+  public static Repository parseRepository(@NotNull String uri, @Nullable String pathPrefix) {
     if (uri.startsWith("git@") || uri.startsWith("ssh://")) {
-      Matcher m = SCP_PATTERN.matcher(uri);
+      Matcher m = (null == pathPrefix ? SCP_PATTERN : SCP_PATTERN_SLASHES).matcher(uri);
       if (!m.matches()) {
-        m = SSH_PATTERN.matcher(uri);
+        m = (null == pathPrefix ? SSH_PATTERN : SSH_PATTERN_SLASHES).matcher(uri);
         if (!m.matches()) {
           LOG.warn("Cannot parse Git repository url " + uri);
           return null;
@@ -42,23 +49,25 @@ public class GitRepositoryParser {
       return null;
     }
 
-
     String path = url.getPath();
-    if (path == null) {
-      LOG.warn("Cannot parse Git repository url " + uri + ", path is empty");
-      return null;
+    if (path != null) {
+      String repo;
+      String owner;
+      int lastSlash = path.lastIndexOf("/");
+      if (lastSlash > 0) {
+        repo = path.substring(lastSlash + 1);
+        if (repo.endsWith(".git"))
+          repo = repo.substring(0, repo.length() - 4);
+        int ownerStart = pathPrefix == null ? path.lastIndexOf("/", lastSlash - 1) : pathPrefix.length();
+        if (ownerStart >= 0) {
+          owner = path.substring(ownerStart, lastSlash);
+          if (owner.startsWith("/"))
+            owner = owner.substring(1);
+          return new Repository(owner, repo);
+        }
+      }
     }
-
-    String [] pathComponents = path.split("/");
-    int l = pathComponents.length;
-    if (l < 2) {
-      LOG.warn("Cannot parse Git repository url " + uri);
-      return null;
-    }
-    String owner = pathComponents[l-2];
-    String repo = pathComponents[l-1];
-    if (repo.endsWith(".git"))
-      repo = repo.substring(0, repo.length() - 4);
-    return new Repository(owner, repo);
+    LOG.warn("Cannot parse Git repository url " + uri);
+    return null;
   }
 }

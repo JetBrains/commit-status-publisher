@@ -86,7 +86,11 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
                        @NotNull GitlabBuildStatus status,
                        @NotNull String description) throws PublisherException {
     VcsRootInstance root = revision.getRoot();
-    Repository repository = parseRepository(root);
+    String apiUrl = getApiUrl();
+    if (null == apiUrl || apiUrl.length() == 0)
+      throw new PublisherException("Missing GitLab API URL parameter");
+    String pathPrefix = GitlabSettings.getPathPrefix(apiUrl);
+    Repository repository = parseRepository(root, pathPrefix);
     if (repository == null)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
 
@@ -100,8 +104,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   private void publish(@NotNull String commit, @NotNull String data, @NotNull Repository repository, @NotNull String buildDescription) throws Exception {
-    String url = getApiUrl() + "/projects/" + GitlabSettings.encodeDots(repository.owner())
-                 + "%2F" + GitlabSettings.encodeDots(repository.repositoryName()) + "/statuses/" + commit;
+    String url = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/statuses/" + commit;
     LOG.debug("Request url: " + url + ", message: " + data);
     postAsync(url, null, null, data, ContentType.APPLICATION_JSON, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), buildDescription);
   }
@@ -137,10 +140,10 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Nullable
-  static Repository parseRepository(@NotNull VcsRoot root) {
+  static Repository parseRepository(@NotNull VcsRoot root, @Nullable String pathPrefix) {
     if ("jetbrains.git".equals(root.getVcsName())) {
       String url = root.getProperty("url");
-      return url == null ? null : GitRepositoryParser.parseRepository(url);
+      return url == null ? null : GitRepositoryParser.parseRepository(url, pathPrefix);
     } else {
       return null;
     }
