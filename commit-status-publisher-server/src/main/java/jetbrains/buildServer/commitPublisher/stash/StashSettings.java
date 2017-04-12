@@ -99,7 +99,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
     String apiUrl = params.get(Constants.STASH_BASE_URL);
     if (null == apiUrl || apiUrl.length() == 0)
-      throw new PublisherException("Missing BitBucket Server API URL parameter");
+      throw new PublisherException("Missing Bitbucket Server API URL parameter");
     String url = apiUrl + "/rest/api/1.0/projects/" + repository.owner() + "/repos/" + repository.repositoryName();
     try {
       HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
