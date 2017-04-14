@@ -39,6 +39,6 @@ mvn package -Dteamcity.path.testlib=TEAMCITY_DISTR/devPackage/tests -Dteamcity.p
 Where TEAMCITY_DISTR must be replaced with an absolute path to the TeamCity distribution directory.
 
 The target directory of the project root will contain the
-`commit-status-publisher.zip file`, which is ready [to be installed](https://confluence.jetbrains.com/display/TCDL/Installing+Additional+Plugins).
+`commit-status-publisher.zip` file, which is ready [to be installed](https://confluence.jetbrains.com/display/TCDL/Installing+Additional+Plugins).
 
 Once the plugin is installed, add the Commit Status Publisher  [build feature](https://confluence.jetbrains.com/display/TCDL/Adding+Build+Features) to your build configuration.
