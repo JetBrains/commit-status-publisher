@@ -1,17 +1,20 @@
-#Teamcity Commit Status Publisher
+# Teamcity Commit Status Publisher
 
 
 TeamCity [build feature](https://confluence.jetbrains.com/display/TCDL/Adding+Build+Features) publishing a commit status to an external
 system like JetBrains Upsource, GitHub, Gerrit Code Review tool, Bitbucket Cloud or
 Atlassian Stash.
 
-The plugin is compatible with TeamCity 7.1.x and later and **[is bundled] (https://confluence.jetbrains.com/display/TCD10/Commit+Status+Publisher) since TeamCity 10.x**
+The plugin is compatible with TeamCity 7.1.x and later and **[is bundled] (see [Commit Status Publisher](https://confluence.jetbrains.com/display/TCD10/Commit+Status+Publisher)) since TeamCity 10.x**.
 
 ## Download
-Get plugin from the latest build corresponding to your TeamCity version (download commit-status-publisher.zip from the latest successful build's artifacts):
-- [TeamCity 10.0.x ![](http://teamcity.jetbrains.com/app/rest/builds/buildType:TeamCityPluginsByJetBrains_CommitStatusPublisher_TeamCity100x/statusIcon)] (https://teamcity.jetbrains.com/viewType.html?buildTypeId=TeamCityPluginsByJetBrains_CommitStatusPublisher_TeamCity100x)
-- [TeamCity 9.1.x ![](http://teamcity.jetbrains.com/app/rest/builds/buildType:TeamCityPluginsByJetBrains_CommitStatusPublisher_91/statusIcon)](https://teamcity.jetbrains.com/viewType.html?buildTypeId=TeamCityPluginsByJetBrains_CommitStatusPublisher_91)
-- [TeamCity 7.1.x ![](http://teamcity.jetbrains.com/app/rest/builds/buildType:TeamCityPluginsByJetBrains_Unsorted_CommitStatusPublisher71/statusIcon)](http://teamcity.jetbrains.com/viewType.html?buildTypeId=TeamCityPluginsByJetBrains_CommitStatusPublisher_71) 
+Get plugin from the latest build corresponding to your TeamCity version:
+
+| TeamCity | Status | Download |
+|----------|--------|----------|
+| TeamCity 10.0.x | [![](http://teamcity.jetbrains.com/app/rest/builds/buildType:TeamCityPluginsByJetBrains_CommitStatusPublisher_TeamCity100x/statusIcon.svg)](https://teamcity.jetbrains.com/viewType.html?buildTypeId=TeamCityPluginsByJetBrains_CommitStatusPublisher_TeamCity100x) | [Download](https://teamcity.jetbrains.com/repository/download/TeamCityPluginsByJetBrains_CommitStatusPublisher_TeamCity100x/.lastSuccessful/commit-status-publisher.zip?guest=1) |
+| TeamCity 9.1.x | [![](http://teamcity.jetbrains.com/app/rest/builds/buildType:TeamCityPluginsByJetBrains_CommitStatusPublisher_91/statusIcon.svg)](https://teamcity.jetbrains.com/viewType.html?buildTypeId=TeamCityPluginsByJetBrains_CommitStatusPublisher_91) | [Download](https://teamcity.jetbrains.com/repository/download/TeamCityPluginsByJetBrains_CommitStatusPublisher_91/.lastSuccessful/commit-status-publisher.zip?guest=1) |
+| TeamCity 7.1.x | [![](http://teamcity.jetbrains.com/app/rest/builds/buildType:TeamCityPluginsByJetBrains_Unsorted_CommitStatusPublisher71/statusIcon.svg)](http://teamcity.jetbrains.com/viewType.html?buildTypeId=TeamCityPluginsByJetBrains_CommitStatusPublisher_71) | [Download](https://teamcity.jetbrains.com/repository/download/TeamCityPluginsByJetBrains_CommitStatusPublisher_71/.lastSuccessful/commit-status-publisher.zip?guest=1) |
 
 Found a bug? File [an issue](https://youtrack.jetbrains.com/newIssue?project=TW&clearDraft=true&c=Assignee+neverov&c=Subsystem+plugins%3A+other&c=tag+plugin_statusPublisher).
 
