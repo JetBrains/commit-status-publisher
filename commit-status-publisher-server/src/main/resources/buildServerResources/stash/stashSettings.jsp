@@ -28,7 +28,7 @@
       <c:if test="${testConnectionSupported}">
         <script>
           $j(document).ready(function() {
-            PublisherFeature.showTestConnection();
+            PublisherFeature.showTestConnection("This ensures that the repository is reachable under the provided credentials.\nIf status publishing still fails, it can be due to insufficient permissions of the corresponding BitBucket Server user.");
           });
         </script>
       </c:if>

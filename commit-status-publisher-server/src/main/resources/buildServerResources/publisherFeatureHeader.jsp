@@ -12,8 +12,15 @@
 <c:url value="${publisherSettingsUrl}" var="settingsUrl"/>
 
 <script type="text/javascript">
+  var testConnectionSuccessInfo = "";
+
   PublisherFeature = OO.extend(BS.BuildFeatureDialog, {
     showTestConnection: function() {
+      testConnectionSuccessInfo = "";
+      $j("#testConnectionButton").show()
+    },
+    showTestConnection: function(successInfo) {
+      testConnectionSuccessInfo = successInfo;
       $j("#testConnectionButton").show()
     },
     hideTestConnection: function() {
@@ -44,7 +51,7 @@
 
         onTestConnectionFailedError: function(elem) {
           if (success) {
-            info = ""
+            info = "";
           } else if ("" != info) {
             info += "\n";
           }
@@ -54,7 +61,7 @@
 
         onCompleteSave: function (form, responseXML, err) {
           BS.XMLResponse.processErrors(responseXML, that, null);
-          BS.TestConnectionDialog.show(success, info, null);
+          BS.TestConnectionDialog.show(success, success ? (testConnectionSuccessInfo  ? testConnectionSuccessInfo : "") : info, null);
           form.setSaving(false);
           form.enable();
         }
