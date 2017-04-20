@@ -27,6 +27,9 @@
   <!-- upsource -->
   <bean class="jetbrains.buildServer.commitPublisher.upsource.UpsourceSettings"/>
 
+  <!-- tfs -->
+  <bean class="jetbrains.buildServer.commitPublisher.tfs.TfsPublisherSettings"/>
+
   <bean class="jetbrains.buildServer.commitPublisher.ServerListener">
     <constructor-arg index="0" ref="configActionsDispatcher"/>
   </bean>
