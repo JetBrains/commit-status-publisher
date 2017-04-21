@@ -16,6 +16,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.entity.ContentType;
 import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -35,7 +36,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
   // Captures following groups: (server url + collection) (/_git/) (git project name)
   // Example: (http://localhost:81/tfs/collection) (/_git/) (git_project)
-  private static final Pattern TFS_GIT_PROJECT_PATTERN = Pattern.compile("(https?\\:\\/\\/.+)(\\/_git\\/)([^\\.\\/\\?]+)");
+  static final Pattern TFS_GIT_PROJECT_PATTERN = Pattern.compile("(https?\\:\\/\\/.+)(\\/_git\\/)([^\\.\\/\\?]+)");
   private final WebLinks myLinks;
 
   TfsStatusPublisher(@NotNull final CommitStatusPublisherSettings settings,
@@ -84,22 +85,24 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     return true;
   }
 
-  public static void testConnection(VcsRoot root, Map<String, String> params) throws PublisherException {
+  public static void testConnection(@NotNull VcsRoot root, @NotNull Map<String, String> params, @Nullable final String commitId) throws PublisherException {
     if (!TfsConstants.GIT_VCS_ROOT.equals(root.getVcsName())) {
       throw new PublisherException("Status publisher supports only Git VCS roots");
     }
 
     final Pair<String, String> settings = getServerAndProject(root);
-    final String url = String.format(COMMITS_URL_FORMAT, settings.first, settings.second);
     try {
       final HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
         @Override
         public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
           final int status = response.getStatusLine().getStatusCode();
-          if (status == 401) {
-            throw new HttpPublisherException("Invalid credentials: check access token");
-          } else if (status == 403) {
-            throw new HttpPublisherException("Invalid credentials: check access token scopes");
+          if (status == 401 || status == 403) {
+            throw new HttpPublisherException("Check access token value and verify that it has Code (status) scope");
+          }
+
+          // Ignore Bad Request for POST check
+          if (status == 400 && commitId != null){
+            return;
           }
 
           final HttpEntity entity = response.getEntity();
@@ -128,8 +131,15 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
         }
       };
 
-      HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
-        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processor);
+      if (commitId != null) {
+        final String url = String.format(STATUS_URL_FORMAT, settings.first, settings.second, commitId);
+        HttpHelper.post(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN), StringUtil.EMPTY, ContentType.DEFAULT_TEXT,
+          Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processor);
+      } else {
+        final String url = String.format(COMMITS_URL_FORMAT, settings.first, settings.second);
+        HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
+          Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processor);
+      }
     } catch (Exception e) {
       throw new PublisherException(String.format("TFS publisher has failed to connect to repository %s/_git/%s", settings.first, settings.second), e);
     }

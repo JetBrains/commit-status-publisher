@@ -7,6 +7,7 @@ import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
+import jetbrains.buildServer.vcs.VcsModificationHistory;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.context.annotation.Bean;
@@ -28,9 +29,10 @@ public class TfsPublisherConfig {
                                                    @NotNull CommitStatusPublisherProblems problems,
                                                    @NotNull OAuthConnectionsManager oauthConnectionsManager,
                                                    @NotNull OAuthTokensStorage oauthTokensStorage,
-                                                   @NotNull SecurityContext securityContext) {
+                                                   @NotNull SecurityContext securityContext,
+                                                   @NotNull VcsModificationHistory vcsHistory) {
     return new TfsPublisherSettings(executorServices, descriptor, links, problems,
-      oauthConnectionsManager, oauthTokensStorage, securityContext);
+      oauthConnectionsManager, oauthTokensStorage, securityContext, vcsHistory);
   }
 }
 

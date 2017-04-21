@@ -5,15 +5,12 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
-import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
-import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
-import jetbrains.buildServer.serverSide.oauth.OAuthToken;
-import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
+import jetbrains.buildServer.serverSide.oauth.*;
 import jetbrains.buildServer.serverSide.oauth.tfs.TfsAuthProvider;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,6 +25,7 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
   private final OAuthConnectionsManager myOauthConnectionsManager;
   private final OAuthTokensStorage myOAuthTokensStorage;
   private final SecurityContext mySecurityContext;
+  private final VcsModificationHistory myVcsHistory;
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     add(Event.STARTED);
     add(Event.FINISHED);
@@ -41,11 +39,13 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
                               @NotNull CommitStatusPublisherProblems problems,
                               @NotNull OAuthConnectionsManager oauthConnectionsManager,
                               @NotNull OAuthTokensStorage oauthTokensStorage,
-                              @NotNull SecurityContext securityContext) {
+                              @NotNull SecurityContext securityContext,
+                              @NotNull VcsModificationHistory vcsHistory) {
     super(executorServices, descriptor, links, problems);
     myOauthConnectionsManager = oauthConnectionsManager;
     myOAuthTokensStorage = oauthTokensStorage;
     mySecurityContext = securityContext;
+    myVcsHistory = vcsHistory;
   }
 
   @NotNull
@@ -81,7 +81,16 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
 
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-      TfsStatusPublisher.testConnection(root, params);
+    String commitId = null;
+    if (root instanceof VcsRootInstance) {
+      final VcsRootInstance rootInstance = (VcsRootInstance)root;
+      final SVcsModification modification = myVcsHistory.getLastModification(rootInstance);
+      if (modification != null){
+        commitId = modification.getVersion();
+      }
+    }
+
+    TfsStatusPublisher.testConnection(root, params, commitId);
   }
 
   @Nullable
@@ -149,8 +158,17 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
   }
 
   @Override
-  public boolean isPublishingForVcsRoot(final VcsRoot vcsRoot) {
-    return TfsConstants.GIT_VCS_ROOT.equals(vcsRoot.getVcsName());
+  public boolean isPublishingForVcsRoot(final VcsRoot root) {
+    if (!TfsConstants.GIT_VCS_ROOT.equals(root.getVcsName())) {
+      return false;
+    }
+
+    final String url = root.getProperty("url");
+    if (StringUtil.isEmptyOrSpaces(url)) {
+      return false;
+    }
+
+    return TfsStatusPublisher.TFS_GIT_PROJECT_PATTERN.matcher(url).find();
   }
 
   @Override

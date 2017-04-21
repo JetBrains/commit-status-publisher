@@ -32,8 +32,9 @@
     <props:hiddenProperty name="${keys.authProviderId}"/>
     <span class="error" id="error_${keys.accessTokenKey}"></span>
     <span class="smallNote">
-      Personal Access Token should have <strong><em>Code (status)</em></strong>
+      You need to grant <strong><em>Code (status)</em></strong>
       <a href="https://www.visualstudio.com/en-us/docs/integrate/get-started/auth/oauth#scopes" target="_blank">scope</a>
+      for token.
     </span>
   </td>
 </tr>
