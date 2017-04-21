@@ -20,6 +20,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
+/**
+ * Settings for TFS Git commit status publisher.
+ */
 public class TfsPublisherSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
   private final OAuthConnectionsManager myOauthConnectionsManager;
