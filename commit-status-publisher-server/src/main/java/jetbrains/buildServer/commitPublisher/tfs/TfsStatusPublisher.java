@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Updates TFS Git commit statuses via REST API.
+ */
 class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
   private static final Logger LOG = Logger.getInstance(TfsStatusPublisher.class.getName());
