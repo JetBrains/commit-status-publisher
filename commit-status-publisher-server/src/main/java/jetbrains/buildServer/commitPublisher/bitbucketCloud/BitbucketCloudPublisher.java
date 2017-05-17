@@ -85,7 +85,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    vote(build, revision, BitbucketCloudBuildStatus.FAILED, build.getStatusDescriptor().getText());
+    vote(build, revision, BitbucketCloudBuildStatus.STOPPED, build.getStatusDescriptor().getText());
     return true;
   }
 

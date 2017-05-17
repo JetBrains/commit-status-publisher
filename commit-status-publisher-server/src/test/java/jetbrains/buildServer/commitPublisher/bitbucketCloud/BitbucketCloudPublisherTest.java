@@ -39,7 +39,7 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
                           String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*INPROGRESS.*Running with a comment by %s:.*%s.*", REVISION, USER.toLowerCase(), COMMENT));
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED,
                           String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*FAILED.*%s.*with a comment by %s:.*%s.*", REVISION, PROBLEM_DESCR, USER.toLowerCase(), COMMENT));
-    myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*FAILED.*%s.*", REVISION, PROBLEM_DESCR));
+    myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*STOPPED.*%s.*", REVISION, PROBLEM_DESCR));
     myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*FAILED.*%s.*", REVISION, PROBLEM_DESCR));
     myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*SUCCESSFUL.*Build marked as successful.*", REVISION));
     myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*INPROGRESS.*Build marked as successful.*", REVISION));
