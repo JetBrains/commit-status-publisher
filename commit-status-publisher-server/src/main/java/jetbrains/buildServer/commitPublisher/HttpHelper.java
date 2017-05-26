@@ -148,7 +148,7 @@ public class HttpHelper {
       credentials.setCredentials(new AuthScope(uri.getHost(), uri.getPort()), new UsernamePasswordCredentials(username, password));
       builder.setDefaultCredentialsProvider(credentials);
     }
-    return builder.build();
+    return builder.useSystemProperties().build();
   }
 
   @NotNull
