@@ -19,7 +19,7 @@
                 Set to an empty string to publish status for all VCS roots attached to a build configuration.
             </description>
         </param>
-        <param name="publisherId" dslName="publisher" type="compound">
+        <param name="publisherId" dslName="publisher" type="compound" mandatory="true">
             <description>
                 Specifies to which system a status should be published
             </description>
@@ -27,12 +27,12 @@
                 <description>
                     Publish status to Bitbucket Cloud
                 </description>
-                <param name="bitbucketUsername" dslName="userName">
+                <param name="bitbucketUsername" dslName="userName" mandatory="true">
                     <description>
                         A username for Bitbucket Cloud connection
                     </description>
                 </param>
-                <param name="secure:bitbucketPassword" dslName="password">
+                <param name="secure:bitbucketPassword" dslName="password" mandatory="true">
                     <description>
                         A password for Bitbucket Cloud connection
                     </description>
@@ -42,17 +42,17 @@
                 <description>
                     Publish status to Bitbucket Server
                 </description>
-                <param name="stashBaseUrl" dslName="url">
+                <param name="stashBaseUrl" dslName="url" mandatory="true">
                     <description>
                         Bitbucket Server URL
                     </description>
                 </param>
-                <param name="stashUsername" dslName="userName">
+                <param name="stashUsername" dslName="userName" mandatory="true">
                     <description>
                         A username for Bitbucket Server connection
                     </description>
                 </param>
-                <param name="secure:stashPassword" dslName="password">
+                <param name="secure:stashPassword" dslName="password" mandatory="true">
                     <description>
                         A password for Bitbucket Server connection
                     </description>
@@ -62,27 +62,27 @@
                 <description>
                     Publish status to Gerrit Code Review
                 </description>
-                <param name="gerritServer" dslName="server">
+                <param name="gerritServer" dslName="server" mandatory="true">
                     <description>
                         Gerrit server in the format: {server}[:{port}]
                     </description>
                 </param>
-                <param name="gerritProject" dslName="gerritProject">
+                <param name="gerritProject" dslName="gerritProject" mandatory="true">
                     <description>
                         Gerrit project name
                     </description>
                 </param>
-                <param name="failureVote">
+                <param name="failureVote" mandatory="true">
                     <description>
                         A failed build vote, e.g. "-1"
                     </description>
                 </param>
-                <param name="successVote">
+                <param name="successVote" mandatory="true">
                     <description>
                         A successful build vote, e.g. "+1"
                     </description>
                 </param>
-                <param name="gerritUsername" dslName="userName">
+                <param name="gerritUsername" dslName="userName" mandatory="true">
                     <description>
                         A username for Gerrit connection
                     </description>
@@ -97,7 +97,7 @@
                 <description>
                     Publish status to GitHub
                 </description>
-                <param name="github_host" dslName="githubUrl">
+                <param name="github_host" dslName="githubUrl" mandatory="true">
                     <description>
                         GitHub server URL.
                         Use "https://api.github.com" for projects hosted at github.com. For GitHub enterprise use the URL in the
@@ -112,7 +112,7 @@
                         <description>
                             Authentication using personal token
                         </description>
-                        <param name="secure:github_access_token" dslName="token">
+                        <param name="secure:github_access_token" dslName="token" mandatory="true">
                             <description>
                                 Personal token to use
                             </description>
@@ -122,12 +122,12 @@
                         <description>
                             Password authentication
                         </description>
-                        <param name="github_username" dslName="userName">
+                        <param name="github_username" dslName="userName" mandatory="true">
                             <description>
                                 A username for GitHub connection
                             </description>
                         </param>
-                        <param name="secure:github_password" dslName="password">
+                        <param name="secure:github_password" dslName="password" mandatory="true">
                             <description>
                                 A password for GitHub connection
                             </description>
@@ -139,12 +139,12 @@
                 <description>
                     Publish status to GitLab
                 </description>
-                <param name="gitlabApiUrl">
+                <param name="gitlabApiUrl" mandatory="true">
                     <description>
                         GitLab URL in the format http{s}://{hostname}:{port}/api/v3
                     </description>
                 </param>
-                <param name="secure:gitlabAccessToken" dslName="accessToken">
+                <param name="secure:gitlabAccessToken" dslName="accessToken" mandatory="true">
                     <description>
                         Access token to use for GitLab connection. Can be found at /profile/account in GitLab.
                     </description>
@@ -154,22 +154,22 @@
                 <description>
                     Publish status to Upsource
                 </description>
-                <param name="upsourceServerUrl" dslName="serverUrl">
+                <param name="upsourceServerUrl" dslName="serverUrl" mandatory="true">
                     <description>
                         Upsource server URL
                     </description>
                 </param>
-                <param name="upsourceProjectId" dslName="projectId">
+                <param name="upsourceProjectId" dslName="projectId" mandatory="true">
                     <description>
                         Upsource project ID
                     </description>
                 </param>
-                <param name="upsourceUsername" dslName="userName">
+                <param name="upsourceUsername" dslName="userName" mandatory="true">
                     <description>
                         A username for Upsource connection
                     </description>
                 </param>
-                <param name="secure:upsourcePassword" dslName="password">
+                <param name="secure:upsourcePassword" dslName="password" mandatory="true">
                     <description>
                         A password for Upsource connection
                     </description>
