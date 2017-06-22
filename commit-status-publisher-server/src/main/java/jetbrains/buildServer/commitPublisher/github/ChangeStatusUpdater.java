@@ -207,9 +207,9 @@ public class ChangeStatusUpdater {
             comment.append(getViewResultsUrl(build));
             comment.append(") ");
 
-            comment.append("outcome was **").append(build.getStatusDescriptor().getStatus().getText()).append("**\n");
+            comment.append("outcome was **").append(status.getState().toUpperCase()).append("**\n");
 
-            final String text = build.getStatusDescriptor().getText();
+            final String text = status.getState();
             if (text != null) {
               comment.append("Summary: ");
               comment.append(text);
