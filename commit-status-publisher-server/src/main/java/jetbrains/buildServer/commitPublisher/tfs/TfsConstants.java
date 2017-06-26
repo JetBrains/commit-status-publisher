@@ -9,7 +9,6 @@ public class TfsConstants {
   public static final String AUTH_USER = "tfsAuthUser";
   public static final String AUTH_PROVIDER_ID = "tfsAuthProviderId";
   public static final String GIT_VCS_ROOT = "jetbrains.git";
-  public static final String TFS_PUBLISHER_ENABLE = "teamcity.tfs.publisher.enable";
 
   public String getAuthenticationTypeKey() {
     return AUTHENTICATION_TYPE;
