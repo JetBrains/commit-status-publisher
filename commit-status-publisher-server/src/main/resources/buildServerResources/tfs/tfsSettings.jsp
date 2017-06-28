@@ -32,6 +32,7 @@
     <props:hiddenProperty name="${keys.authProviderId}"/>
     <span class="error" id="error_${keys.accessTokenKey}"></span>
     <span class="smallNote">
+      This publisher supports build status update only for Git repositories.<br/>
       You need to grant <strong><em>Code (status)</em></strong> and <strong><em>Code (read)</em></strong>
       <a href="https://www.visualstudio.com/en-us/docs/integrate/get-started/auth/oauth#scopes" target="_blank">scopes</a>
       for token.
