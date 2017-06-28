@@ -97,7 +97,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
         public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
           final int status = response.getStatusLine().getStatusCode();
           if (status == 401 || status == 403) {
-            throw new HttpPublisherException("Check access token value and verify that it has Code (status) scope");
+            throw new HttpPublisherException("Check access token value and verify that it has Code (status) and Code (read) scopes");
           }
 
           // Ignore Bad Request for POST check
