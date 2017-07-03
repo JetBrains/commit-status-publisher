@@ -9,6 +9,7 @@ import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
+import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 
 import java.util.Collections;
@@ -27,18 +28,18 @@ public class TfsPublisherTest extends HttpPublisherTest {
   TfsPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.REMOVED, null);  // not to be tested
-    myExpectedRegExps.put(EventToTest.STARTED, String.format("POST /_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Pending.*is pending.*", REVISION));
-    myExpectedRegExps.put(EventToTest.FINISHED, String.format("POST /_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Succeeded.*has succeeded.*", REVISION));
-    myExpectedRegExps.put(EventToTest.FAILED, String.format("POST /_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Failed.*has failed.*", REVISION));
+    myExpectedRegExps.put(EventToTest.STARTED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Pending.*is pending.*", REVISION));
+    myExpectedRegExps.put(EventToTest.FINISHED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Succeeded.*has succeeded.*", REVISION));
+    myExpectedRegExps.put(EventToTest.FAILED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Failed.*has failed.*", REVISION));
     myExpectedRegExps.put(EventToTest.COMMENTED_SUCCESS, null); // not to be tested
     myExpectedRegExps.put(EventToTest.COMMENTED_FAILED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS, null); // not to be tested
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format("POST /_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Failed.*has failed.*", REVISION));
+    myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Failed.*has failed.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format("POST /_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Succeeded.*has succeeded.*", REVISION)); // not to be tested
-    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format("POST /_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Pending.*is pending.*", REVISION)); // not to be tested
-    myExpectedRegExps.put(EventToTest.TEST_CONNECTION, "GET /_apis/git/repositories/project/commits.*\\$top=1.*"); // not to be tested
+    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Succeeded.*has succeeded.*", REVISION));
+    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Pending.*is pending.*", REVISION));
+    myExpectedRegExps.put(EventToTest.TEST_CONNECTION, null); // not to be tested
   }
 
   @BeforeMethod
@@ -65,6 +66,15 @@ public class TfsPublisherTest extends HttpPublisherTest {
       fail("PublishError exception expected");
     } catch(PublisherException ex) {
       then(ex.getMessage()).matches("Invalid Git server URL.*" + myVcsRoot.getProperty("url") + ".*");
+    }
+  }
+
+  @Override
+  public void test_testConnection() throws Exception {
+    try {
+      super.test_testConnection();
+    } catch (PublisherException e) {
+      Assert.assertTrue(e.getMessage().startsWith("TFS publisher has failed to connect to repository"));
     }
   }
 
