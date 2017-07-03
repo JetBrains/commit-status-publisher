@@ -90,6 +90,10 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
       }
     }
 
+    if (commitId == null) {
+      commitId = TfsStatusPublisher.getLatestCommitId(root, params);
+    }
+
     TfsStatusPublisher.testConnection(root, params, commitId);
   }
 

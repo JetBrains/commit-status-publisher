@@ -16,10 +16,11 @@ import org.apache.http.HttpResponse;
 import org.apache.http.entity.ContentType;
 import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,10 +31,11 @@ import java.util.regex.Pattern;
 class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
   private static final Logger LOG = Logger.getInstance(TfsStatusPublisher.class.getName());
-  private static final String COMMITS_URL_FORMAT = "%s/_apis/git/repositories/%s/commits?api-version=1.0&$top=1";
-  private static final String STATUS_URL_FORMAT = "%s/_apis/git/repositories/%s/commits/%s/statuses?api-version=2.1";
-  private static final Gson myGson = new Gson();
+  private static final String COMMITS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{1}/commits?api-version=1.0&$top=1";
+  private static final String STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{1}/commits/{2}/statuses?api-version=2.1";
+  private static final String ERROR_AUTHORIZATION = "Check access token value and verify that it has Code (status) and Code (read) scopes";
 
+  private static final Gson myGson = new Gson();
   // Captures following groups: (server url + collection) (/_git/) (git project name)
   // Example: (http://localhost:81/tfs/collection) (/_git/) (git_project)
   static final Pattern TFS_GIT_PROJECT_PATTERN = Pattern.compile("(https?\\:\\/\\/.+)(\\/_git\\/)([^\\.\\/\\?]+)");
@@ -85,63 +87,103 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     return true;
   }
 
-  public static void testConnection(@NotNull VcsRoot root, @NotNull Map<String, String> params, @Nullable final String commitId) throws PublisherException {
+  public static void testConnection(@NotNull VcsRoot root, @NotNull Map<String, String> params, @NotNull final String commitId) throws PublisherException {
     if (!TfsConstants.GIT_VCS_ROOT.equals(root.getVcsName())) {
       throw new PublisherException("Status publisher supports only Git VCS roots");
     }
 
     final Pair<String, String> settings = getServerAndProject(root);
     try {
-      final HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
-        @Override
-        public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
-          final int status = response.getStatusLine().getStatusCode();
-          if (status == 401 || status == 403) {
-            throw new HttpPublisherException("Check access token value and verify that it has Code (status) and Code (read) scopes");
-          }
-
-          // Ignore Bad Request for POST check
-          if (status == 400 && commitId != null){
-            return;
-          }
-
-          final HttpEntity entity = response.getEntity();
-          if (null == entity) {
-            throw new HttpPublisherException("TFS publisher has received no response");
-          }
-
-          final String json = EntityUtils.toString(entity);
-          if (status != 200) {
-            Error error = null;
-            try {
-              error = myGson.fromJson(json, Error.class);
-            } catch (JsonSyntaxException e) {
-              // Invalid JSON response
+      final String url = MessageFormat.format(STATUS_URL_FORMAT, settings.first, settings.second, commitId);
+      HttpHelper.post(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN), StringUtil.EMPTY, ContentType.DEFAULT_TEXT,
+        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, new DefaultHttpResponseProcessor() {
+          @Override
+          public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+            final int status = response.getStatusLine().getStatusCode();
+            if (status == 401 || status == 403) {
+              throw new HttpPublisherException(ERROR_AUTHORIZATION);
             }
 
-            final String message;
-            if (error != null && error.message != null) {
-              message = error.message + ": HTTP response code " + status;
-            } else {
-              message = "Invalid HTTP response code " + status;
+            // Ignore Bad Request for POST check
+            if (status == 400) {
+              return;
             }
 
-            throw new HttpPublisherException(message);
-          }
-        }
-      };
+            final HttpEntity entity = response.getEntity();
+            if (null == entity) {
+              throw new HttpPublisherException("TFS publisher has received no response");
+            }
 
-      if (commitId != null) {
-        final String url = String.format(STATUS_URL_FORMAT, settings.first, settings.second, commitId);
-        HttpHelper.post(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN), StringUtil.EMPTY, ContentType.DEFAULT_TEXT,
-          Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processor);
-      } else {
-        final String url = String.format(COMMITS_URL_FORMAT, settings.first, settings.second);
-        HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
-          Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processor);
-      }
+            final String content = EntityUtils.toString(entity);
+            processErrorResponse(status, content);
+          }
+        });
     } catch (Exception e) {
       throw new PublisherException(String.format("TFS publisher has failed to connect to repository %s/_git/%s", settings.first, settings.second), e);
+    }
+  }
+
+  public static String getLatestCommitId(@NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
+    final Pair<String, String> settings = getServerAndProject(root);
+    final String url = MessageFormat.format(COMMITS_URL_FORMAT, settings.first, settings.second);
+    final String[] commitId = {null};
+
+    try {
+      HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
+        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, new DefaultHttpResponseProcessor() {
+          @Override
+          public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+            final int status = response.getStatusLine().getStatusCode();
+            if (status == 401 || status == 403) {
+              throw new HttpPublisherException(ERROR_AUTHORIZATION);
+            }
+
+            final HttpEntity entity = response.getEntity();
+            if (null == entity) {
+              throw new HttpPublisherException("TFS publisher has received no response");
+            }
+
+            final String content = EntityUtils.toString(entity);
+            processErrorResponse(status, content);
+
+            CommitsList commits;
+            try {
+              commits = myGson.fromJson(content, CommitsList.class);
+            } catch (JsonSyntaxException e) {
+              throw new HttpPublisherException("Invalid response while listing latest commits: " + e.getMessage(), e);
+            }
+
+            if (commits == null || commits.value == null || commits.value.size() == 0) {
+              throw new HttpPublisherException(String.format("No commits available in repository %s/_git/%s", settings.first, settings.second));
+            }
+
+            commitId[0] = commits.value.get(0).commitId;
+          }
+        });
+    } catch (Exception e) {
+      throw new PublisherException(String.format("TFS publisher has failed to connect to repository %s/_git/%s", settings.first, settings.second), e);
+    }
+
+    return commitId[0];
+  }
+
+  private static void processErrorResponse(int status, String content) throws IOException, HttpPublisherException {
+    if (status != 200) {
+      Error error = null;
+      try {
+        error = myGson.fromJson(content, Error.class);
+      } catch (JsonSyntaxException e) {
+        // Invalid JSON response
+      }
+
+      final String message;
+      if (error != null && error.message != null) {
+        message = error.message + ": HTTP response code " + status;
+      } else {
+        message = "Invalid HTTP response code " + status;
+      }
+
+      throw new HttpPublisherException(message);
     }
   }
 
@@ -153,7 +195,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     }
 
     final Pair<String, String> settings = getServerAndProject(root);
-    final String url = String.format(STATUS_URL_FORMAT, settings.first, settings.second, revision.getRevision());
+    final String url = MessageFormat.format(STATUS_URL_FORMAT, settings.first, settings.second, revision.getRevision());
     final CommitStatus status = getCommitStatus(build, isStarting);
     final String data = myGson.toJson(status);
 
@@ -204,10 +246,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     }
 
     final String projectName = matcher.group(3);
-    String serverName = matcher.group(1);
-    if (StringUtil.endsWithIgnoreCase(serverName, "DefaultCollection")) {
-      serverName += "/" + projectName;
-    }
+    final String serverName = matcher.group(1);
 
     return Pair.create(serverName, projectName);
   }
@@ -230,5 +269,13 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   private static class StatusContext {
     private String name;
     private String genre;
+  }
+
+  private static class CommitsList {
+    private List<Commit> value;
+  }
+
+  private static class Commit {
+    private String commitId;
   }
 }
