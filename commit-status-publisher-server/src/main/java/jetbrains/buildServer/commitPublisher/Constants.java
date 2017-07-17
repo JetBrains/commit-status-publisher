@@ -44,6 +44,7 @@ public class Constants {
   public static final String GITHUB_PASSWORD = "secure:github_password";
   public static final String GITHUB_PASSWORD_DEPRECATED = "github_password";
   public static final String GITHUB_TOKEN = "secure:github_access_token";
+  public static final String GITHUB_MASTER_BRANCH = "master";
 
   public static final String BITBUCKET_PUBLISHER_ID = "bitbucketCloudPublisher";
   public static final String BITBUCKET_CLOUD_USERNAME = "bitbucketUsername";

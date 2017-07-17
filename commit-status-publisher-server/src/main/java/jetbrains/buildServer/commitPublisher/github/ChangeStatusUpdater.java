@@ -243,15 +243,24 @@ public class ChangeStatusUpdater {
               }
             }
 
-            if (artifacts != null && !artifacts.isEmpty()) {
-              comment.append("\n");
-              if (build.getBuildStatus() != Status.NORMAL) {
-                comment.append("Build status is not normal, not calculating artifact size\n");
+            try {
+              String baseBranch = api.findBasePullRequestLabel(repositoryOwner,
+                                                               repositoryName, version.getVcsBranch());
+              if (baseBranch != null && baseBranch.equals(Constants.GITHUB_MASTER_BRANCH)) {
+                if (artifacts != null && !artifacts.isEmpty()) {
+                  comment.append("\n");
+                  if (build.getBuildStatus() != Status.NORMAL) {
+                    comment.append("Build status is not normal, not calculating artifact size\n");
+                  } else {
+                    comment.append(buildSize.getComment(build));
+                  }
+                }
               } else {
-                comment.append(buildSize.getComment(build));
+                comment.append("\nNot merging into master, not calculating artifact size\n");
               }
+            } catch (IOException e) {
+              comment.append("Failed to calculate artifact size: " + e.getMessage());
             }
-
             return comment.toString();
           }
 
