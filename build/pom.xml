@@ -4,7 +4,7 @@
   <parent>
     <artifactId>commit-status-publisher</artifactId>
     <groupId>org.jetbrains.teamcity</groupId>
-    <version>1.1</version>
+    <version>1.2</version>
   </parent>
   <artifactId>build</artifactId>
   <packaging>pom</packaging>
@@ -16,7 +16,7 @@
       <dependency>
            <groupId>org.jetbrains.teamcity</groupId>
            <artifactId>commit-status-publisher-server</artifactId>
-           <version>1.1</version>
+           <version>1.2</version>
       </dependency>
   </dependencies>
   <build>
