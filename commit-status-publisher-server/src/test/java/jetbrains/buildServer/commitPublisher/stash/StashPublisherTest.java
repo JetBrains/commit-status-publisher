@@ -1,10 +1,13 @@
 package jetbrains.buildServer.commitPublisher.stash;
 
 import com.google.gson.Gson;
+import java.util.Collections;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.stash.data.StashRepoInfo;
+import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
@@ -44,11 +47,35 @@ public class StashPublisherTest extends HttpPublisherTest {
     Map<String, String> params = getPublisherParams();
     myPublisherSettings = new StashSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
     myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
+    setExpectedApiPath("/rest");
+    setExpectedEndpointPrefix("/build-status/1.0/commits");
   }
 
   @Override
   public void test_testConnection_fails_on_readonly() throws InterruptedException {
     // NOTE: Stash Publisher cannot determine if it has just read only access during connection testing
+  }
+
+  public void test_buildFinishedSuccessfully_server_url_with_subdir() throws Exception {
+    Map<String, String> params = getPublisherParams();
+    setExpectedApiPath("/subdir/rest");
+    params.put(Constants.STASH_BASE_URL, getServerUrl() + "/subdir");
+    myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
+    myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
+    test_buildFinished_Successfully();
+  }
+
+  public void test_buildFinishedSuccessfully_server_url_with_slash() throws Exception {
+    Map<String, String> params = getPublisherParams();
+    setExpectedApiPath("/subdir/rest");
+    params.put(Constants.STASH_BASE_URL, getServerUrl() + "/subdir/");
+    myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
+    myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
+    test_buildFinished_Successfully();
   }
 
   @Override
@@ -61,15 +88,21 @@ public class StashPublisherTest extends HttpPublisherTest {
   }
 
   @Override
-  protected void populateResponse(HttpRequest httpRequest, String requestData, HttpResponse httpResponse) {
-    super.populateResponse(httpRequest, requestData, httpResponse);
-    if (httpRequest.getRequestLine().getMethod().equals("GET")) {
-      if (httpRequest.getRequestLine().getUri().endsWith(OWNER + "/repos/" + CORRECT_REPO)) {
-        respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
-      } else if (httpRequest.getRequestLine().getUri().endsWith(OWNER + "/repos/" + READ_ONLY_REPO)) {
-        respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false);
-      }
+  protected boolean respondToGet(String url, HttpResponse httpResponse) {
+    if (url.endsWith(OWNER + "/repos/" + CORRECT_REPO)) {
+      respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
+    } else if (url.endsWith(OWNER + "/repos/" + READ_ONLY_REPO)) {
+      respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false);
+    } else {
+      respondWithError(httpResponse, 404, String.format("Unexpected URL: %s", url));
+      return false;
     }
+    return true;
+  }
+
+  @Override
+  protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    return isUrlExpected(url, httpResponse);
   }
 
   private void respondWithRepoInfo(HttpResponse httpResponse, String repoName, boolean isPushPermitted) {

@@ -48,6 +48,28 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, ".*/projects/owner%2Fproject .*");
   }
 
+  public void test_buildFinishedSuccessfully_server_url_with_subdir() throws Exception {
+    Map<String, String> params = getPublisherParams();
+    setExpectedApiPath("/subdir/api/v3");
+    params.put(Constants.GITLAB_API_URL, getServerUrl() + "/subdir/api/v3");
+    myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
+    myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
+    test_buildFinished_Successfully();
+  }
+
+  public void test_buildFinishedSuccessfully_server_url_with_slash() throws Exception {
+    Map<String, String> params = getPublisherParams();
+    setExpectedApiPath("/subdir/api/v3");
+    params.put(Constants.GITLAB_API_URL, getServerUrl() + "/subdir/api/v3/");
+    myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
+    myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
+    test_buildFinished_Successfully();
+  }
+
   public void should_fail_with_error_on_wrong_vcs_url() throws InterruptedException {
     myVcsRoot.setProperties(Collections.singletonMap("url", "wrong://url.com"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
@@ -64,16 +86,20 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/own.er/pro.ject"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     BuildRevision revision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
+    setExpectedEndpointPrefix("/projects/own%2Eer%2Fpro%2Eject");
     myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), revision);
-    then(waitForRequest()).isNotNull().matches(String.format(".*/projects/own%%2Eer%%2Fpro%%2Eject/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
+    then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
+                          .matches(String.format(".*/projects/own%%2Eer%%2Fpro%%2Eject/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
   }
 
   public void should_work_with_slashes_in_id() throws PublisherException, InterruptedException {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/group/subgroup/anothergroup/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     BuildRevision revision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
+    setExpectedEndpointPrefix("/projects/group%2Fsubgroup%2Fanothergroup%2Fproject");
     myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), revision);
-    then(waitForRequest()).isNotNull().matches(String.format(".*/projects/group%%2Fsubgroup%%2Fanothergroup%%2Fproject/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
+    then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
+                          .matches(String.format(".*/projects/group%%2Fsubgroup%%2Fanothergroup%%2Fproject/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
   }
 
   public void test_testConnection_group_repo() throws Exception {
@@ -81,9 +107,10 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     Map<String, String> params = getPublisherParams();
     myVcsRoot.setProperties(Collections.singletonMap("url", getServerUrl()  + "/" + OWNER + "/" + GROUP_REPO));
     myPublisherSettings.testConnection(myBuildType, myVcsRoot, params);
-    then(waitForRequest()).isNotNull().matches(".*/projects/owner%2Fgroup_repo .*");
+    then(waitForRequest()).isNotNull()
+                          .doesNotMatch(".*error.*")
+                          .matches(".*/projects/owner%2Fgroup_repo .*");
   }
-
 
   @BeforeMethod
   @Override
@@ -92,29 +119,38 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     myPublisherSettings = new GitlabSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
     Map<String, String> params = getPublisherParams();
     myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
+    setExpectedApiPath("/api/v3");
+    setExpectedEndpointPrefix("/projects/" + OWNER + "%2F" + CORRECT_REPO);
   }
 
   @Override
   protected Map<String, String> getPublisherParams() {
     return new HashMap<String, String>() {{
       put(Constants.GITLAB_TOKEN, "TOKEN");
-      put(Constants.GITLAB_API_URL, getServerUrl() + "/api/v3");
+      put(Constants.GITLAB_API_URL, getServerUrl() + getExpectedApiPath());
     }};
   }
 
   @Override
-  protected void populateResponse(HttpRequest httpRequest, String requestData, HttpResponse httpResponse) {
-    super.populateResponse(httpRequest, requestData, httpResponse);
-    if (httpRequest.getRequestLine().getMethod().equals("GET")) {
-      if (httpRequest.getRequestLine().getUri().contains("/projects" +  "/" + OWNER + "%2F" + CORRECT_REPO)) {
-        respondWithRepoInfo(httpResponse, CORRECT_REPO, false, true);
-      } else if (httpRequest.getRequestLine().getUri().contains("/projects"  + "/" + OWNER + "%2F" +  GROUP_REPO)) {
-        respondWithRepoInfo(httpResponse, GROUP_REPO, true, true);
-      } else if (httpRequest.getRequestLine().getUri().contains("/projects"  + "/" + OWNER + "%2F" +  READ_ONLY_REPO)) {
-        respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false, false);
-      }
+  protected boolean respondToGet(String url, HttpResponse httpResponse) {
+    if (url.contains("/projects" +  "/" + OWNER + "%2F" + CORRECT_REPO)) {
+      respondWithRepoInfo(httpResponse, CORRECT_REPO, false, true);
+    } else if (url.contains("/projects"  + "/" + OWNER + "%2F" +  GROUP_REPO)) {
+      respondWithRepoInfo(httpResponse, GROUP_REPO, true, true);
+    } else if (url.contains("/projects"  + "/" + OWNER + "%2F" +  READ_ONLY_REPO)) {
+      respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false, false);
+    } else {
+      respondWithError(httpResponse, 404, String.format("Unexpected URL: %s", url));
+      return false;
     }
+    return true;
   }
+
+  @Override
+  protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    return isUrlExpected(url, httpResponse);
+  }
+
 
   private void respondWithRepoInfo(HttpResponse httpResponse, String repoName, boolean isGroupRepo, boolean isPushPermitted) {
     Gson gson = new Gson();

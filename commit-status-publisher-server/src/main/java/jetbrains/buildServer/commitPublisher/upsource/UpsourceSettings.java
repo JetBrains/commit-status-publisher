@@ -115,7 +115,7 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
 
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    String apiUrl = params.get(Constants.UPSOURCE_SERVER_URL);
+    String apiUrl = HttpHelper.stripTrailingSlash(params.get(Constants.UPSOURCE_SERVER_URL));
     if (null == apiUrl || apiUrl.length() == 0)
       throw new PublisherException("Missing Upsource Server URL parameter");
     String username = params.get(Constants.UPSOURCE_USERNAME);

@@ -204,7 +204,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   private String getBaseUrl() {
-    return myParams.get(Constants.STASH_BASE_URL);
+    return HttpHelper.stripTrailingSlash(myParams.get(Constants.STASH_BASE_URL));
   }
 
   private String getUsername() {

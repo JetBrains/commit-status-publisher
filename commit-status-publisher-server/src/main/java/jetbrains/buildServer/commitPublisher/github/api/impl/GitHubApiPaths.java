@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.commitPublisher.github.api.impl;
 
+import jetbrains.buildServer.commitPublisher.HttpHelper;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -26,8 +27,7 @@ public class GitHubApiPaths {
   private final String myUrl;
 
   public GitHubApiPaths(@NotNull String url) {
-    while (url.endsWith("/")) url = url.substring(0, url.length() - 1);
-    myUrl = url;
+    myUrl = HttpHelper.stripTrailingSlash(url);
   }
 
   @NotNull

@@ -74,16 +74,23 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
   }
 
   @Override
-  protected void populateResponse(HttpRequest httpRequest, String requestData, HttpResponse httpResponse) {
-    super.populateResponse(httpRequest, requestData, httpResponse);
-    if (httpRequest.getRequestLine().getMethod().equals("GET")) {
-      if (httpRequest.getRequestLine().getUri().endsWith("/repositories/" + OWNER + "/" + CORRECT_REPO)) {
-        respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
-      } else if (httpRequest.getRequestLine().getUri().endsWith("/repositories/" + OWNER + "/" + READ_ONLY_REPO)) {
-        respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false);
-      }
+  protected boolean respondToGet(String url, HttpResponse httpResponse) {
+    if (url.endsWith("/repositories/" + OWNER + "/" + CORRECT_REPO)) {
+      respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
+    } else if (url.endsWith("/repositories/" + OWNER + "/" + READ_ONLY_REPO)) {
+      respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false);
+    } else {
+      respondWithError(httpResponse, 404, String.format("Unexpected URL: %s", url));
+      return false;
     }
+    return true;
   }
+
+  @Override
+  protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    return isUrlExpected(url, httpResponse);
+  }
+
 
   private void respondWithRepoInfo(HttpResponse httpResponse, String repoName, boolean isPushPermitted) {
     Gson gson = new Gson();
@@ -106,6 +113,8 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     publisher.setBaseUrl(getServerUrl() + "/");
     ((BitbucketCloudSettings)myPublisherSettings).setDefaultApiUrl(getServerUrl() + "/");
     myPublisher = publisher;
+    setExpectedApiPath("/2.0");
+    setExpectedEndpointPrefix("/repositories/" + OWNER + "/" + CORRECT_REPO);
   }
 
   @Override

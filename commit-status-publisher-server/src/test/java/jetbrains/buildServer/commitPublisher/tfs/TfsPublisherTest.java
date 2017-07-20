@@ -76,13 +76,18 @@ public class TfsPublisherTest extends HttpPublisherTest {
   }
 
   @Override
-  protected void populateResponse(HttpRequest httpRequest, String requestData, HttpResponse httpResponse) {
-    super.populateResponse(httpRequest, requestData, httpResponse);
-    if (httpRequest.getRequestLine().getMethod().equals("GET")) {
-      if (httpRequest.getRequestLine().getUri().contains(READ_ONLY_REPO)) {
-        httpResponse.setStatusCode(403);
-        httpResponse.setEntity(new StringEntity("{'message': 'error'}", "UTF-8"));
-      }
+  protected boolean respondToGet(String url, HttpResponse httpResponse) {
+    if (url.contains(READ_ONLY_REPO)) {
+      httpResponse.setStatusCode(403);
+      httpResponse.setEntity(new StringEntity("{'message': 'error'}", "UTF-8"));
+      return false;
     }
+    return true;
   }
+
+  @Override
+  protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    return isUrlExpected(url, httpResponse);
+  }
+
 }
