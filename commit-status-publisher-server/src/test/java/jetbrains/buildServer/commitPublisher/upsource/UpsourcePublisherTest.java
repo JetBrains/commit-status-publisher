@@ -46,7 +46,26 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
     myPublisherSettings = new UpsourceSettings(myFixture.getVcsHistory(), myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
     Map<String, String> params = getPublisherParams();
     myPublisher = new UpsourcePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myFixture.getVcsHistory(), myExecServices, myWebLinks, params, myProblems);
+    setExpectedApiPath("/~buildStatus");
+    setExpectedEndpointPrefix("");
   }
+
+  public void test_buildFinishedSuccessfully_server_url_with_subdir() throws Exception {
+    Map<String, String> params = getPublisherParams();
+    setExpectedApiPath("/subdir/~buildStatus");
+    params.put(Constants.UPSOURCE_SERVER_URL, getServerUrl() + "/subdir");
+    myPublisher = new UpsourcePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myFixture.getVcsHistory(), myExecServices, myWebLinks, params, myProblems);
+    test_buildFinished_Successfully();
+  }
+
+  public void test_buildFinishedSuccessfully_server_url_with_slash() throws Exception {
+    Map<String, String> params = getPublisherParams();
+    setExpectedApiPath("/subdir/~buildStatus");
+    params.put(Constants.UPSOURCE_SERVER_URL, getServerUrl() + "/subdir/");
+    myPublisher = new UpsourcePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myFixture.getVcsHistory(), myExecServices, myWebLinks, params, myProblems);
+    test_buildFinished_Successfully();
+  }
+
 
   @Override
   protected void test_testConnection_failure(String repoURL, Map <String, String> params) throws InterruptedException {
@@ -101,12 +120,17 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
   }
 
   @Override
-  protected void populateResponse(HttpRequest httpRequest, String requestData, HttpResponse httpResponse) {
-    super.populateResponse(httpRequest, requestData, httpResponse);
-    if (httpRequest.getRequestLine().getUri().contains(UpsourceSettings.ENDPOINT_TEST_CONNECTION)) {
+  protected boolean respondToGet(String url, HttpResponse httpResponse) {
+    respondWithError(httpResponse, 405, String.format("Wrong method 'GET'"));
+    return false;
+  }
+
+  @Override
+  protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    if (url.contains(UpsourceSettings.ENDPOINT_TEST_CONNECTION)) {
       if (!isCorrectUser(httpRequest, "user")) {
         httpResponse.setStatusCode(401);
-        return;
+        return false;
       }
       if (null == requestData) {
         fail(String.format("No data submitted to %s endpoint", UpsourceSettings.ENDPOINT_TEST_CONNECTION));
@@ -115,11 +139,12 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
         httpResponse.setStatusCode(200);
       } else {
         httpResponse.setStatusCode(404);
+        return false;
       }
-    }  else if (httpRequest.getRequestLine().getUri().contains(UpsourceSettings.ENDPOINT_RPC + "/" + UpsourceSettings.QUERY_GET_CURRENT_USER)) {
+    }  else if (url.contains(UpsourceSettings.ENDPOINT_RPC + "/" + UpsourceSettings.QUERY_GET_CURRENT_USER)) {
       if (!isCorrectUser(httpRequest, "user")) {
         httpResponse.setStatusCode(401);
-        return;
+        return false;
       }
       Gson gson = new Gson();
       UpsourceGetCurrentUserResult result = new UpsourceGetCurrentUserResult();
@@ -130,6 +155,10 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
       result.result.reviewViewPermissionsInProjects = new String[] {"PRJ2_READONLY"};
       String jsonResponse = gson.toJson(result);
       httpResponse.setEntity(new StringEntity(jsonResponse, "UTF-8"));
+    } else {
+      return isUrlExpected(url, httpResponse);
     }
+    return true;
   }
+
 }

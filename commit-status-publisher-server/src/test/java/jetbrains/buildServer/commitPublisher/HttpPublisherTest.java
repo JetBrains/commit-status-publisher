@@ -27,6 +27,8 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
   private HttpServer myHttpServer;
   private int myNumberOfCurrentRequests = 0;
   private String myLastRequest;
+  private String myExpectedApiPath = "";
+  private String myExpectedEndpointPrefix = "";
 
   @Override
   protected String getRequestAsString() {
@@ -62,6 +64,7 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
                   }
                 } catch (InterruptedException ex) {
                   httpResponse.setStatusCode(500);
+                  myNumberOfCurrentRequests--;
                   return;
                 }
                 myLastRequest = httpRequest.getRequestLine().toString();
@@ -75,7 +78,9 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
                 } else {
                   httpResponse.setStatusCode(200);
                 }
-                populateResponse(httpRequest, requestData, httpResponse);
+                if(!populateResponse(httpRequest, requestData, httpResponse)) {
+                  myLastRequest = "HTTP error: " + httpResponse.getStatusLine();
+                }
                 myNumberOfCurrentRequests--;
                 myProcessingFinished.release();
               }
@@ -88,8 +93,36 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
     super.setUp();
   }
 
-  protected void populateResponse(HttpRequest httpRequest, String requestData, HttpResponse httpResponse) {
+  protected boolean populateResponse(HttpRequest httpRequest, String requestData, HttpResponse httpResponse) {
+    RequestLine requestLine = httpRequest.getRequestLine();
+    String method = requestLine.getMethod();
+    String url = requestLine.getUri();
+    if (method.equals("GET")) {
+      return respondToGet(url, httpResponse);
+    } else if (method.equals("POST")) {
+      return respondToPost(url, requestData, httpRequest, httpResponse);
+    }
 
+    respondWithError(httpResponse, 405, String.format("Wrong method '%s'", method));
+    return false;
+  }
+
+  protected abstract boolean respondToGet(String url, HttpResponse httpResponse);
+
+  protected abstract boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse);
+
+  protected boolean isUrlExpected(String url, HttpResponse httpResponse) {
+    String expected = getExpectedApiPath() + getExpectedEndpointPrefix();
+    if(!url.startsWith(expected)) {
+      respondWithError(httpResponse, 404, String.format("Unexpected URL: '%s' expected: '%s'", url, expected));
+      return false;
+    }
+    return true;
+  }
+
+  protected void respondWithError(HttpResponse httpResponse, int statusCode, String msg) {
+    httpResponse.setStatusCode(statusCode);
+    httpResponse.setReasonPhrase(msg);
   }
 
   @AfterMethod
@@ -97,5 +130,21 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
   protected void tearDown() throws Exception {
     super.tearDown();
     myHttpServer.stop();
+  }
+
+  protected void setExpectedApiPath(String path) {
+    myExpectedApiPath = path;
+  }
+
+  protected String getExpectedApiPath() {
+    return myExpectedApiPath;
+  }
+
+  protected void setExpectedEndpointPrefix(String prefix) {
+    myExpectedEndpointPrefix = prefix;
+  }
+
+  protected String getExpectedEndpointPrefix() {
+    return myExpectedEndpointPrefix;
   }
 }

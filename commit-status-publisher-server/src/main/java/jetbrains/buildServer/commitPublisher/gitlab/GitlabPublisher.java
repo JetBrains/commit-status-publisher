@@ -151,7 +151,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
 
   private String getApiUrl() {
-    return myParams.get(Constants.GITLAB_API_URL);
+    return HttpHelper.stripTrailingSlash(myParams.get(Constants.GITLAB_API_URL));
   }
 
   private String getPrivateToken() {

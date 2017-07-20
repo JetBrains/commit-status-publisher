@@ -109,6 +109,10 @@ public class HttpHelper {
     }
   }
 
+  public static String stripTrailingSlash(String url) {
+    return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+  }
+
   private static void addHeaders(HttpMessage request, @Nullable final Map<String, String> headers) {
     if (null != headers) {
       for (Map.Entry<String, String> hdr : headers.entrySet()) {

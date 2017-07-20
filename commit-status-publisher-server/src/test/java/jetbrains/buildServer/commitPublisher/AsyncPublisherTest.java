@@ -42,7 +42,8 @@ public abstract class AsyncPublisherTest extends CommitStatusPublisherTest {
     myServerMutex.acquire();
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
     myServerMutex.release();
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.FINISHED));
+    then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
+                          .matches(myExpectedRegExps.get(EventToTest.FINISHED));
   }
 
 
@@ -61,7 +62,6 @@ public abstract class AsyncPublisherTest extends CommitStatusPublisherTest {
     myServerMutex.release();
   }
 
-  // temporarily disabled due to flaky behaviour
   public void should_publish_in_sequence() throws Exception {
     myServerMutex = new Semaphore(1);
     myServerMutex.acquire();
