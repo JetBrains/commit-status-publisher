@@ -1,7 +1,9 @@
 package jetbrains.buildServer.commitPublisher;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.controllers.admin.projects.BuildTypeForm;
@@ -18,9 +20,6 @@ import jetbrains.buildServer.web.openapi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.web.servlet.mvc.Controller;
-
-import javax.servlet.http.HttpServletRequest;
-import java.util.Collections;
 
 /**
  * @author anton.zamolotskikh, 15/09/16.
@@ -135,6 +134,11 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
 
     @Override
     public boolean isBranchesConfigured() {
+      return false;
+    }
+
+    @Override
+    public boolean isCompositeBuild() {
       return false;
     }
   }
