@@ -57,10 +57,4 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
   public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
     myHttpResponseProcessor.processResponse(response);
   }
-
-  @NotNull
-  protected String escape(@NotNull String str) {
-    String result = WebUtil.escapeForJavaScript(str, false, false);
-    return result.replaceAll("\\\\'", "'");
-  }
 }

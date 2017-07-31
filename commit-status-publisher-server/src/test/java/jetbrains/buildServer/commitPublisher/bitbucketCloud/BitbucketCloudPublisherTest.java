@@ -44,6 +44,7 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*SUCCESSFUL.*Build marked as successful.*", REVISION));
     myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*INPROGRESS.*Build marked as successful.*", REVISION));
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, ".*2.0/repositories/owner/project.*");
+    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*FAILED.*%s.*Failure.*", REVISION, BT_NAME_ESCAPED_REGEXP));
   }
 
   @Override
@@ -106,6 +107,8 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
+    setExpectedApiPath("/2.0");
+    setExpectedEndpointPrefix("/repositories/" + OWNER + "/" + CORRECT_REPO);
     super.setUp();
     Map<String, String> params = getPublisherParams();
     myPublisherSettings = new BitbucketCloudSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
@@ -113,8 +116,6 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     publisher.setBaseUrl(getServerUrl() + "/");
     ((BitbucketCloudSettings)myPublisherSettings).setDefaultApiUrl(getServerUrl() + "/");
     myPublisher = publisher;
-    setExpectedApiPath("/2.0");
-    setExpectedEndpointPrefix("/repositories/" + OWNER + "/" + CORRECT_REPO);
   }
 
   @Override

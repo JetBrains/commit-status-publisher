@@ -36,18 +36,19 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, String.format(".*~buildStatus.*ENTITY:.*PRJ1.*%s.*failed.*%s.*", PROBLEM_DESCR, REVISION));
     myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*~buildStatus.*ENTITY:.*PRJ1.*Build marked as successful.*success.*%s.*", REVISION));
     myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*~buildStatus.*ENTITY:.*PRJ1.*Build marked as successful.*in_progress.*%s.*", REVISION));
+    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format(".*~buildStatus.*ENTITY:.*%s.*PRJ1.*Failure.*failed.*%s.*", BT_NAME_ESCAPED_REGEXP, REVISION));
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, String.format(".*~buildStatusTestConnection.*\"project\":\"PRJ1\".*"));
   }
 
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
+    setExpectedApiPath("/~buildStatus");
+    setExpectedEndpointPrefix("");
     super.setUp();
     myPublisherSettings = new UpsourceSettings(myFixture.getVcsHistory(), myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
     Map<String, String> params = getPublisherParams();
     myPublisher = new UpsourcePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myFixture.getVcsHistory(), myExecServices, myWebLinks, params, myProblems);
-    setExpectedApiPath("/~buildStatus");
-    setExpectedEndpointPrefix("");
   }
 
   public void test_buildFinishedSuccessfully_server_url_with_subdir() throws Exception {

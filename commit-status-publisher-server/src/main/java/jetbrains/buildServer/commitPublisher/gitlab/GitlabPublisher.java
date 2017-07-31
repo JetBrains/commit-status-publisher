@@ -1,6 +1,8 @@
 package jetbrains.buildServer.commitPublisher.gitlab;
 
+import com.google.gson.Gson;
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.LinkedHashMap;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
@@ -19,6 +21,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   private static final String REFS_HEADS = "refs/heads/";
   private static final String REFS_TAGS = "refs/tags/";
   private static final Logger LOG = Logger.getInstance(GitlabPublisher.class.getName());
+  private final Gson myGson = new Gson();
 
   private final WebLinks myLinks;
 
@@ -128,15 +131,14 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
       }
     }
 
-    StringBuilder result = new StringBuilder();
-    result.append("{").append("\"state\":").append("\"").append(status.getName()).append("\",")
-            .append("\"name\":").append("\"").append(build.getBuildTypeName()).append("\",")
-            .append("\"target_url\":").append("\"").append(url).append("\",")
-            .append("\"description\":").append("\"").append(description).append("\"");
+    final Map<String, String> data = new LinkedHashMap<String, String>();
+    data.put("state", status.getName());
+    data.put("name", build.getBuildTypeName());
+    data.put("target_url", url);
+    data.put("description", description);
     if (ref != null)
-      result.append(",\"ref\":").append("\"").append(escape(ref)).append("\"");
-    result.append("}");
-    return result.toString();
+      data.put("ref", ref);
+    return myGson.toJson(data);
   }
 
   @Nullable

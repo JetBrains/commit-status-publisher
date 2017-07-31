@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.jcraft.jsch.JSchException;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.commitPublisher.gerrit.data.GerritProjectInfo;
 import org.jetbrains.annotations.NotNull;
@@ -13,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
  */
 abstract class GerritClientBase implements GerritClient {
 
+  private static final Pattern ESCAPE_PATTERN = Pattern.compile("[\\\\\\\"]");
   private final Gson myGson = new Gson();
 
   @Override
@@ -21,7 +23,7 @@ abstract class GerritClientBase implements GerritClient {
     StringBuilder command = new StringBuilder();
     command.append("gerrit review --project ").append(connectionDetails.getGerritProject())
            .append(" --verified ").append(vote)
-           .append(" -m \"").append(message).append("\" ")
+           .append(" -m \"").append(escape(message)).append("\" ")
            .append(revision);
     runCommand(connectionDetails, command.toString());
   }
@@ -34,6 +36,11 @@ abstract class GerritClientBase implements GerritClient {
     if (null == myMap || !myMap.containsKey(gerritProject)) {
       throw new PublisherException(String.format("Inaccessible Gerrit project %s", gerritProject));
     }
+  }
+
+  @NotNull
+  private static String escape(@NotNull String s) {
+    return ESCAPE_PATTERN.matcher(s).replaceAll("\\\\$0");
   }
 
   private static class GerritProjectMap extends HashMap<String, GerritProjectInfo> {}

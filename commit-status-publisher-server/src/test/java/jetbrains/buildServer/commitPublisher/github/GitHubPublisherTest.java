@@ -49,6 +49,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*success.*build finished.*", REVISION)); // not to be tested
     myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*build started.*", REVISION)); // not to be tested
+    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*build failed.*%s.*", REVISION, BT_NAME_ESCAPED_REGEXP));
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, String.format(".*/repos/owner/project .*")); // not to be tested
   }
 
@@ -92,6 +93,8 @@ public class GitHubPublisherTest extends HttpPublisherTest {
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
+    setExpectedApiPath("");
+    setExpectedEndpointPrefix("/repos/" + OWNER + "/" + CORRECT_REPO);
     super.setUp();
     new TeamCityProperties() {{
       setModel(new BasePropertiesModel() {
@@ -112,8 +115,6 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     myPublisherSettings = new GitHubSettings(myChangeStatusUpdater, myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems,
                                              myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext());
     myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems);
-    setExpectedApiPath("");
-    setExpectedEndpointPrefix("/repos/" + OWNER + "/" + CORRECT_REPO);
   }
 
   @Override
