@@ -38,7 +38,7 @@ public class TfsPublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format("POST /_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Succeeded.*has succeeded.*", REVISION)); // not to be tested
     myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format("POST /_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Pending.*is pending.*", REVISION)); // not to be tested
-    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Failed.*%s.*has failed.*", REVISION, BT_NAME_ESCAPED_REGEXP));
+    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format("POST /_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Failed.*%s.*has failed.*", REVISION, BT_NAME_ESCAPED_REGEXP));
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, "GET /_apis/git/repositories/project/commits.*\\$top=1.*"); // not to be tested
   }
 
