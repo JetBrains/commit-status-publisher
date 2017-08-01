@@ -24,8 +24,8 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
     myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.REMOVED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.STARTED, null);
-    myExpectedRegExps.put(EventToTest.FINISHED, ".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\+1.*");
-    myExpectedRegExps.put(EventToTest.FAILED, ".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\-1.*");
+    myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\+1.*", REVISION));
+    myExpectedRegExps.put(EventToTest.FAILED, String.format(".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\-1.*%s", REVISION));
     myExpectedRegExps.put(EventToTest.COMMENTED_SUCCESS, null); // not to be tested
     myExpectedRegExps.put(EventToTest.COMMENTED_FAILED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS, null); // not to be tested
@@ -34,6 +34,7 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
     myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, null);
     myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, null);
     myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, null);
+    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format(".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\-1.*%s.*%s", BT_NAME_ESCAPED_REGEXP, REVISION));
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, ".*server: gerrit_server, user: gerrit_user, command: gerrit ls-projects --format JSON.*");
   }
 

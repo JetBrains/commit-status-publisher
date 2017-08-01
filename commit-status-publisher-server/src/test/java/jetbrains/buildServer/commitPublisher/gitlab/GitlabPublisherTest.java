@@ -46,6 +46,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*success.*marked as successful.*", REVISION));
     myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*running.*Build marked as successful.*", REVISION));
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, ".*/projects/owner%2Fproject .*");
+    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*failed.*%s.*Failure.*", REVISION, BT_NAME_ESCAPED_REGEXP));
   }
 
   public void test_buildFinishedSuccessfully_server_url_with_subdir() throws Exception {
@@ -115,12 +116,12 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
+    setExpectedApiPath("/api/v3");
+    setExpectedEndpointPrefix("/projects/" + OWNER + "%2F" + CORRECT_REPO);
     super.setUp();
     myPublisherSettings = new GitlabSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
     Map<String, String> params = getPublisherParams();
     myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
-    setExpectedApiPath("/api/v3");
-    setExpectedEndpointPrefix("/projects/" + OWNER + "%2F" + CORRECT_REPO);
   }
 
   @Override

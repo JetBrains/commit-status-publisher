@@ -35,6 +35,8 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   protected static final String COMMENT = "MyComment";
   protected static final String PROBLEM_DESCR = "Problem description";
   protected static final String FEATURE_ID = "MY_FEATURE_ID";
+  protected static final String BT_NAME_2BE_ESCAPED = "Name with \\ and \"";
+  protected static final String BT_NAME_ESCAPED_REGEXP = BT_NAME_2BE_ESCAPED.replace("\\", "\\\\\\\\").replace("\"", "\\\\\\\"");
 
   protected CommitStatusPublisher myPublisher;
   protected CommitStatusPublisherSettings myPublisherSettings;
@@ -58,7 +60,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     COMMENTED_INPROGRESS(Event.COMMENTED), COMMENTED_INPROGRESS_FAILED(Event.COMMENTED),
     INTERRUPTED(Event.INTERRUPTED), FAILURE_DETECTED(Event.FAILURE_DETECTED),
     MARKED_SUCCESSFUL(Event.MARKED_AS_SUCCESSFUL), MARKED_RUNNING_SUCCESSFUL(Event.MARKED_AS_SUCCESSFUL),
-    TEST_CONNECTION(null);
+    TEST_CONNECTION(null), PAYLOAD_ESCAPED(Event.FINISHED);
 
     private final Event myEvent;
 
@@ -220,6 +222,14 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     myPublisher.buildMarkedAsSuccessful(startBuildInCurrentBranch(myBuildType), myRevision, true);
     then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
                           .matches(myExpectedRegExps.get(EventToTest.MARKED_RUNNING_SUCCESSFUL));
+  }
+
+  public void ensure_payload_escaped() throws Exception {
+    if (!isToBeTested(EventToTest.PAYLOAD_ESCAPED)) return;
+    myBuildType.setName(BT_NAME_2BE_ESCAPED);
+    myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.FAILURE), myRevision);
+    then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
+                          .matches(myExpectedRegExps.get(EventToTest.PAYLOAD_ESCAPED));
   }
 
   private boolean isToBeTested(@NotNull EventToTest eventType) {
