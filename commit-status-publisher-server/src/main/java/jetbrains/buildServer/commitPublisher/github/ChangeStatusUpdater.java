@@ -209,9 +209,28 @@ public class ChangeStatusUpdater {
 
             comment.append("outcome was **").append(status.getState().toUpperCase()).append("**\n");
 
+            final String vcsBranch = version.getVcsBranch();
+            String title = "";
+            try {
+                title = api.getPullRequestTitle(repositoryOwner, repositoryName, vcsBranch);
+                if (title == null) {
+                  throw new IOException("Failed to find pull request title for commit from " + vcsBranch);
+                }
+            } catch (IOException e) {
+                LOG.warn("Failed to find pull request title for " + vcsBranch + " for repository " + repositoryName);
+            }
+            final List<String> list_jira_ticket = GetJiraTickets.getListJiraTickets(title);
+            for (int i = 0;i<list_jira_ticket.size();i++){
+              comment.append("\n[Jira link ");
+              comment.append(list_jira_ticket.get(i));
+              comment.append("](");
+              comment.append(list_jira_ticket.get(i));
+              comment.append(")");
+            }
+
             final String text = status.getState();
             if (text != null) {
-              comment.append("Summary: ");
+              comment.append("\nSummary: ");
               comment.append(text);
               comment.append(" Build time: ");
               comment.append(getFriendlyDuration(build.getDuration()));
