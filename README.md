@@ -1,5 +1,5 @@
 # Teamcity Commit Status Publisher
-
+[![official JetBrains project](http://jb.gg/badges/official-plastic.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
 
 TeamCity [build feature](https://confluence.jetbrains.com/display/TCDL/Adding+Build+Features) publishing a commit status to an external
 system like JetBrains Upsource, GitHub, Gerrit Code Review tool, Bitbucket Cloud or
