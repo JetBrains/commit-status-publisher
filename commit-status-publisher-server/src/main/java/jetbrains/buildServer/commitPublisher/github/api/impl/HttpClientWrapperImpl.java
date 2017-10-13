@@ -38,6 +38,7 @@ import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
+import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.http.impl.conn.ProxySelectorRoutePlanner;
 import org.apache.http.impl.conn.SchemeRegistryFactory;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
@@ -112,6 +113,7 @@ public class HttpClientWrapperImpl implements HttpClientWrapper {
     httpclient.addRequestInterceptor(new RequestAcceptEncoding());
     httpclient.addResponseInterceptor(new ResponseContentEncoding());
     httpclient.setHttpRequestRetryHandler(new DefaultHttpRequestRetryHandler(3, true));
+    httpclient.setRedirectStrategy(new LaxRedirectStrategy());
 
     myClient = httpclient;
   }

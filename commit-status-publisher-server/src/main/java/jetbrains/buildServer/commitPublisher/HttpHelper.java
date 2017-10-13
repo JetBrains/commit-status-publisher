@@ -147,6 +147,7 @@ public class HttpHelper {
 
   private static CloseableHttpClient buildClient(URI uri, String username, String password) {
     HttpClientBuilder builder = createHttpClientBuilder();
+    builder.setRedirectStrategy(new LaxRedirectStrategy());
     if (null != username && null != password) {
       BasicCredentialsProvider credentials = new BasicCredentialsProvider();
       credentials.setCredentials(new AuthScope(uri.getHost(), uri.getPort()), new UsernamePasswordCredentials(username, password));

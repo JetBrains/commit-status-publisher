@@ -1,6 +1,7 @@
 package jetbrains.buildServer.commitPublisher;
 
 import com.intellij.openapi.util.io.StreamUtil;
+import jetbrains.buildServer.messages.Status;
 import org.apache.http.*;
 import org.apache.http.config.SocketConfig;
 import org.apache.http.impl.bootstrap.HttpServer;
@@ -9,10 +10,13 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.*;
 import java.util.concurrent.TimeUnit;
+
+import static org.assertj.core.api.BDDAssertions.then;
 
 /**
  * @author anton.zamolotskikh, 05/10/16.
@@ -29,6 +33,7 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
   private String myLastRequest;
   private String myExpectedApiPath = "";
   private String myExpectedEndpointPrefix = "";
+  private int myRespondWithRedirectCode = 0;
 
   @Override
   protected String getRequestAsString() {
@@ -54,7 +59,12 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
     ServerBootstrap bootstrap = ServerBootstrap.bootstrap().setSocketConfig(socketConfig).setServerInfo("TEST/1.1")
             .registerHandler("/*", new HttpRequestHandler() {
               @Override
-              public void handle(HttpRequest httpRequest, HttpResponse httpResponse, HttpContext httpContext) throws HttpException, IOException {
+              public void handle(HttpRequest httpRequest, HttpResponse httpResponse, HttpContext httpContext) throws IOException {
+                if (myRespondWithRedirectCode > 0) {
+                  setRedirectionResponse(httpRequest, httpResponse);
+                  return;
+                }
+
                 myNumberOfCurrentRequests++;
                 myProcessingStarted.release(); // indicates that we are processing request
                 try {
@@ -69,6 +79,7 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
                 }
                 myLastRequest = httpRequest.getRequestLine().toString();
                 String requestData = null;
+
                 if (httpRequest instanceof HttpEntityEnclosingRequest) {
                   HttpEntity entity = ((HttpEntityEnclosingRequest) httpRequest).getEntity();
                   InputStream is = entity.getContent();
@@ -81,6 +92,7 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
                 if(!populateResponse(httpRequest, requestData, httpResponse)) {
                   myLastRequest = "HTTP error: " + httpResponse.getStatusLine();
                 }
+
                 myNumberOfCurrentRequests--;
                 myProcessingFinished.release();
               }
@@ -91,6 +103,25 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
     myVcsURL = getServerUrl() + "/" + OWNER + "/" + CORRECT_REPO;
     myReadOnlyVcsURL = getServerUrl()  + "/" + OWNER + "/" + READ_ONLY_REPO;
     super.setUp();
+  }
+
+  protected void setRedirectionResponse(final HttpRequest httpRequest, final HttpResponse httpResponse) {
+    httpResponse.setStatusCode(307);
+    httpResponse.setHeader("Location", httpRequest.getRequestLine().getUri());
+    myRespondWithRedirectCode = 0;
+  }
+
+  @Test(dataProvider = "provideRedirectCodes")
+  public void test_redirection(int httpCode) throws Exception {
+    myRespondWithRedirectCode = httpCode;
+    myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
+    then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
+                          .matches(myExpectedRegExps.get(EventToTest.FINISHED));
+  }
+
+  @DataProvider(name = "provideRedirectCodes")
+  public Object [][] provideRedirectCodes() {
+    return new Object [][] {{301}, {302}, {307}};
   }
 
   protected boolean populateResponse(HttpRequest httpRequest, String requestData, HttpResponse httpResponse) {

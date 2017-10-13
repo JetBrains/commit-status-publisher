@@ -33,7 +33,9 @@ public abstract class AsyncPublisherTest extends CommitStatusPublisherTest {
 
   @Override
   protected String waitForRequest() throws InterruptedException {
-    myProcessingFinished.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS);
+    if (!myProcessingFinished.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS)) {
+      return null;
+    }
     return super.waitForRequest();
   }
 
