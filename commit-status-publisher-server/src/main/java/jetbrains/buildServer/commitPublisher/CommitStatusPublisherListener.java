@@ -16,6 +16,7 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private final static Logger LOG = Logger.getInstance(CommitStatusPublisherListener.class.getName());
+  private final static String PUBLISHING_ENABLED_PROPERTY_NAME = "teamcity.commitStatusPublisher.enabled";
 
   private final PublisherManager myPublisherManager;
   private final BuildHistory myBuildHistory;
@@ -167,7 +168,16 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     });
   }
 
+  private boolean isPublishingDisabled(SBuildType buildType) {
+    String publishingEnabledParam = buildType.getParameterValue(PUBLISHING_ENABLED_PROPERTY_NAME);
+    return "false".equals(publishingEnabledParam)
+           || !(TeamCityProperties.getBooleanOrTrue(PUBLISHING_ENABLED_PROPERTY_NAME)
+                || "true".equals(publishingEnabledParam));
+  }
+
   private void runForEveryPublisher(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task) {
+    if (isPublishingDisabled(buildType))
+      return;
     if (build.isPersonal()) {
       for(SVcsModification change: build.getBuildPromotion().getPersonalChanges()) {
         if (change.isPersonal())
@@ -195,6 +205,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private void runForEveryPublisherQueued(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task) {
+    if (isPublishingDisabled(buildType))
+      return;
     if (build.isPersonal()) {
       for(SVcsModification change: build.getBuildPromotion().getPersonalChanges()) {
         if (change.isPersonal())

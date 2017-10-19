@@ -53,6 +53,44 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.isSuccessReceived()).isTrue();
   }
 
+  public void should_obey_publishing_disabled_property() {
+    prepareVcs();
+    setInternalProperty("teamcity.commitStatusPublisher.enabled", "false");
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myFixture.finishBuild(runningBuild, false);
+    myListener.buildFinished(runningBuild);
+    then(myPublisher.isFinishedReceived()).isFalse();
+  }
+
+  public void should_obey_publishing_disabled_parameter() {
+    prepareVcs();
+    myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.enabled", "false"));
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myFixture.finishBuild(runningBuild, false);
+    myListener.buildFinished(runningBuild);
+    then(myPublisher.isFinishedReceived()).isFalse();
+  }
+
+  public void should_give_a_priority_to_publishing_enabled_parameter() {
+    prepareVcs();
+    setInternalProperty("teamcity.commitStatusPublisher.enabled", "false");
+    myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.enabled", "true"));
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myFixture.finishBuild(runningBuild, false);
+    myListener.buildFinished(runningBuild);
+    then(myPublisher.isFinishedReceived()).isTrue();
+  }
+
+  public void should_give_a_priority_to_publishing_disabled_parameter() {
+    prepareVcs();
+    setInternalProperty("teamcity.commitStatusPublisher.enabled", "true");
+    myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.enabled", "false"));
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myFixture.finishBuild(runningBuild, false);
+    myListener.buildFinished(runningBuild);
+    then(myPublisher.isFinishedReceived()).isFalse();
+  }
+
   public void should_publish_for_multiple_roots() {
     prepareVcs("vcs1", "111", "rev1_2", false);
     prepareVcs("vcs2", "222", "rev2_2", false);
