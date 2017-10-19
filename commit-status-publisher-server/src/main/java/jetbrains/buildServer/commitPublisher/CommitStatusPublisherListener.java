@@ -175,9 +175,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
                 || "true".equals(publishingEnabledParam));
   }
 
+  private void logStatusNotPublished(@NotNull Event event, @NotNull String buildDescription, @NotNull CommitStatusPublisher publisher, @NotNull String message) {
+    LOG.info(String.format("Event: %s, build %s, publisher %s: %s", event.getName(), buildDescription, publisher.toString(), message));
+  }
+
   private void runForEveryPublisher(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task) {
-    if (isPublishingDisabled(buildType))
-      return;
     if (build.isPersonal()) {
       for(SVcsModification change: build.getBuildPromotion().getPersonalChanges()) {
         if (change.isPersonal())
@@ -190,10 +192,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       CommitStatusPublisher publisher = pubEntry.getValue();
       if (!publisher.isEventSupported(event))
         continue;
+      if (isPublishingDisabled(buildType)) {
+        logStatusNotPublished(event, LogUtil.describe(build), publisher, "commit status publishing is disabled");
+        continue;
+      }
       List<BuildRevision> revisions = getBuildRevisionForVote(publisher, build);
       if (revisions.isEmpty()) {
-        LOG.info("Event: " + event.getName() + ", build " + LogUtil.describe(build) + ", publisher " + publisher +
-                 ": no compatible revisions found");
+        logStatusNotPublished(event, LogUtil.describe(build), publisher, "no compatible revisions found");
         continue;
       }
       myProblems.clearProblem(publisher);
@@ -205,8 +210,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private void runForEveryPublisherQueued(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task) {
-    if (isPublishingDisabled(buildType))
-      return;
     if (build.isPersonal()) {
       for(SVcsModification change: build.getBuildPromotion().getPersonalChanges()) {
         if (change.isPersonal())
@@ -219,10 +222,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       CommitStatusPublisher publisher = pubEntry.getValue();
       if (!publisher.isEventSupported(event))
         continue;
+      if (isPublishingDisabled(buildType)) {
+        logStatusNotPublished(event, LogUtil.describe(build), publisher, "commit status publishing is disabled");
+        continue;
+      }
       List<BuildRevision> revisions = getQueuedBuildRevisionForVote(buildType, publisher, build);
       if (revisions.isEmpty()) {
-        LOG.info("Event: " + event.getName() + ", build " + LogUtil.describe(build) + ", publisher " + publisher +
-                 ": no compatible revisions found");
+        logStatusNotPublished(event, LogUtil.describe(build), publisher, "no compatible revisions found");
         continue;
       }
       myProblems.clearProblem(publisher);
