@@ -1,5 +1,6 @@
 package jetbrains.buildServer.commitPublisher.tfs;
 
+import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.serverSide.*;
@@ -22,10 +23,10 @@ import java.util.*;
  */
 public class TfsPublisherSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
+  private static final Logger LOG = Logger.getInstance(TfsPublisherSettings.class.getName());
   private final OAuthConnectionsManager myOauthConnectionsManager;
   private final OAuthTokensStorage myOAuthTokensStorage;
   private final SecurityContext mySecurityContext;
-  private final VcsModificationHistory myVcsHistory;
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     add(Event.STARTED);
     add(Event.FINISHED);
@@ -39,13 +40,11 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
                               @NotNull CommitStatusPublisherProblems problems,
                               @NotNull OAuthConnectionsManager oauthConnectionsManager,
                               @NotNull OAuthTokensStorage oauthTokensStorage,
-                              @NotNull SecurityContext securityContext,
-                              @NotNull VcsModificationHistory vcsHistory) {
+                              @NotNull SecurityContext securityContext) {
     super(executorServices, descriptor, links, problems);
     myOauthConnectionsManager = oauthConnectionsManager;
     myOAuthTokensStorage = oauthTokensStorage;
     mySecurityContext = securityContext;
-    myVcsHistory = vcsHistory;
   }
 
   @NotNull
@@ -84,9 +83,10 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
     String commitId = null;
     if (root instanceof VcsRootInstance) {
       final VcsRootInstance rootInstance = (VcsRootInstance)root;
-      final SVcsModification modification = myVcsHistory.getLastModification(rootInstance);
-      if (modification != null){
-        commitId = modification.getVersion();
+      try {
+        commitId = rootInstance.getCurrentRevision().getVersion();
+      } catch (VcsException e) {
+        LOG.infoAndDebugDetails("Failed to get current repository version", e);
       }
     }
 
