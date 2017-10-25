@@ -13,6 +13,7 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
 import org.apache.http.entity.ContentType;
 import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
@@ -32,14 +33,19 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
   private static final Logger LOG = Logger.getInstance(TfsStatusPublisher.class.getName());
   private static final String COMMITS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{1}/commits?api-version=1.0&$top=1";
-  private static final String STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{1}/commits/{2}/statuses?api-version=2.1";
+  private static final String COMMIT_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{1}/commits/{2}/statuses?api-version=2.1";
+  private static final String PULL_REQUEST_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{1}/pullRequests/{2}/statuses?api-version=4.0-preview";
   private static final String ERROR_AUTHORIZATION = "Check access token value and verify that it has Code (status) and Code (read) scopes";
-
   private static final Gson myGson = new Gson();
+  private final WebLinks myLinks;
+
   // Captures following groups: (server url + collection) (/_git/) (git project name)
   // Example: (http://localhost:81/tfs/collection) (/_git/) (git_project)
   static final Pattern TFS_GIT_PROJECT_PATTERN = Pattern.compile("(https?\\:\\/\\/.+)(\\/_git\\/)([^\\.\\/\\?]+)");
-  private final WebLinks myLinks;
+
+  // Captures pull request identifier. Example: refs/pull/1/merge
+  private static final Pattern TFS_GIT_PULL_REQUEST_PATTERN = Pattern.compile("^refs\\/pull\\/(\\d+)");
+
 
   TfsStatusPublisher(@NotNull final CommitStatusPublisherSettings settings,
                      @NotNull final SBuildType buildType,
@@ -87,6 +93,14 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     return true;
   }
 
+  @Override
+  public void processResponse(@NotNull final HttpResponse response) throws HttpPublisherException, IOException {
+    final StatusLine statusLine = response.getStatusLine();
+    if (statusLine.getStatusCode() >= 400) {
+      processErrorResponse(response);
+    }
+  }
+
   public static void testConnection(@NotNull VcsRoot root, @NotNull Map<String, String> params, @NotNull final String commitId) throws PublisherException {
     if (!TfsConstants.GIT_VCS_ROOT.equals(root.getVcsName())) {
       throw new PublisherException("Status publisher supports only Git VCS roots");
@@ -94,7 +108,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
     final Pair<String, String> settings = getServerAndProject(root);
     try {
-      final String url = MessageFormat.format(STATUS_URL_FORMAT, settings.first, settings.second, commitId);
+      final String url = MessageFormat.format(COMMIT_STATUS_URL_FORMAT, settings.first, settings.second, commitId);
       HttpHelper.post(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN), StringUtil.EMPTY, ContentType.DEFAULT_TEXT,
         Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, new DefaultHttpResponseProcessor() {
           @Override
@@ -109,13 +123,9 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
               return;
             }
 
-            final HttpEntity entity = response.getEntity();
-            if (null == entity) {
-              throw new HttpPublisherException("TFS publisher has received no response");
+            if (status != 200) {
+              processErrorResponse(response);
             }
-
-            final String content = EntityUtils.toString(entity);
-            processErrorResponse(status, content);
           }
         });
     } catch (Exception e) {
@@ -138,14 +148,16 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
               throw new HttpPublisherException(ERROR_AUTHORIZATION);
             }
 
+            if (status != 200) {
+              processErrorResponse(response);
+            }
+
             final HttpEntity entity = response.getEntity();
             if (null == entity) {
               throw new HttpPublisherException("TFS publisher has received no response");
             }
 
             final String content = EntityUtils.toString(entity);
-            processErrorResponse(status, content);
-
             CommitsList commits;
             try {
               commits = myGson.fromJson(content, CommitsList.class);
@@ -167,24 +179,30 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     return commitId[0];
   }
 
-  private static void processErrorResponse(int status, String content) throws IOException, HttpPublisherException {
-    if (status != 200) {
-      Error error = null;
-      try {
-        error = myGson.fromJson(content, Error.class);
-      } catch (JsonSyntaxException e) {
-        // Invalid JSON response
-      }
-
-      final String message;
-      if (error != null && error.message != null) {
-        message = error.message + ": HTTP response code " + status;
-      } else {
-        message = "Invalid HTTP response code " + status;
-      }
-
-      throw new HttpPublisherException(message);
+  private static void processErrorResponse(@NotNull final HttpResponse response) throws IOException, HttpPublisherException {
+    final StatusLine statusLine = response.getStatusLine();
+    final int status = statusLine.getStatusCode();
+    final HttpEntity entity = response.getEntity();
+    if (null == entity) {
+      throw new HttpPublisherException(status, statusLine.getReasonPhrase(), "Empty HTTP response");
     }
+
+    final String content = EntityUtils.toString(entity);
+    Error error = null;
+    try {
+      error = myGson.fromJson(content, Error.class);
+    } catch (JsonSyntaxException e) {
+      // Invalid JSON response
+    }
+
+    final String message;
+    if (error != null && error.message != null) {
+      message = error.message;
+    } else {
+      message = "HTTP response error";
+    }
+
+    throw new HttpPublisherException(status, statusLine.getReasonPhrase(), message);
   }
 
   private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) throws PublisherException {
@@ -195,11 +213,35 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     }
 
     final Pair<String, String> settings = getServerAndProject(root);
-    final String url = MessageFormat.format(STATUS_URL_FORMAT, settings.first, settings.second, revision.getRevision());
     final CommitStatus status = getCommitStatus(build, isStarting);
     final String data = myGson.toJson(status);
 
-    postAsync(url, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
+    final String commitStatusUrl = MessageFormat.format(COMMIT_STATUS_URL_FORMAT, settings.first, settings.second, revision.getRevision());
+    postAsync(commitStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
+      data, ContentType.APPLICATION_JSON,
+      Collections.singletonMap("Accept", "application/json"),
+      LogUtil.describe(build));
+
+    // Check whether pull requests status publishing enabled
+    final String publishPullRequest = StringUtil.emptyIfNull(myParams.get(TfsConstants.PUBLISH_PULL_REQUESTS)).trim();
+    if (!Boolean.valueOf(publishPullRequest)) {
+      return;
+    }
+
+    // Get branch and try to find pull request id
+    final String branch = revision.getRepositoryVersion().getVcsBranch();
+    if (StringUtil.isEmptyOrSpaces(branch)) {
+      return;
+    }
+
+    final Matcher matcher = TFS_GIT_PULL_REQUEST_PATTERN.matcher(branch);
+    if (!matcher.find()) {
+      return;
+    }
+
+    final String pullRequestId = matcher.group(1);
+    final String pullRequestStatusUrl = MessageFormat.format(PULL_REQUEST_STATUS_URL_FORMAT, settings.first, settings.second, pullRequestId);
+    postAsync(pullRequestStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
       data, ContentType.APPLICATION_JSON,
       Collections.singletonMap("Accept", "application/json"),
       LogUtil.describe(build));
@@ -217,7 +259,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     status.targetURL = myLinks.getViewResultsUrl(build);
 
     final StatusContext context = new StatusContext();
-    context.name = String.format("%s/%s", build.getBuildTypeExternalId(), build.getBuildId());
+    context.name = build.getBuildTypeExternalId();
     context.genre = "TeamCity";
     status.context = context;
 

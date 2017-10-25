@@ -8,6 +8,7 @@ public class TfsConstants {
   public static final String ACCESS_TOKEN = Constants.SECURE_PROPERTY_PREFIX + "accessToken";
   public static final String AUTH_USER = "tfsAuthUser";
   public static final String AUTH_PROVIDER_ID = "tfsAuthProviderId";
+  public static final String PUBLISH_PULL_REQUESTS = "publish.pull.requests";
   public static final String GIT_VCS_ROOT = "jetbrains.git";
 
   public String getAuthenticationTypeKey() {
@@ -24,5 +25,9 @@ public class TfsConstants {
 
   public String getAuthProviderId() {
     return AUTH_PROVIDER_ID;
+  }
+
+  public String getPublishPullRequests() {
+    return PUBLISH_PULL_REQUESTS;
   }
 }

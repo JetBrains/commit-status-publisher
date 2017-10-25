@@ -40,6 +40,19 @@
   </td>
 </tr>
 
+<tr class="advancedSetting">
+  <th>Options:</th>
+  <td>
+    <props:checkboxProperty name="${keys.publishPullRequests}"/>
+    <label for="${keys.publishPullRequests}">Publish pull request statuses</label>
+    <span class="smallNote">
+      You need to grant <strong><em>Code (status)</em></strong> and <strong><em>Code (write)</em></strong>
+      <a href="https://www.visualstudio.com/en-us/docs/integrate/get-started/auth/oauth#scopes" target="_blank">scopes</a>
+      for token.
+    </span>
+  </td>
+</tr>
+
 <c:if test="${testConnectionSupported}">
   <script>
     $j(document).ready(function () {
