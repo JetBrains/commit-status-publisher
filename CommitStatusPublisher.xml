@@ -175,6 +175,26 @@
                     </description>
                 </param>
             </option>
+            <option name="tfs" value="tfs">
+                <description>
+                    Publish build status to VSTS / TFS
+                </description>
+                <param name="tfsAuthType" dslName="authType" mandatory="true">
+                    <description>
+                        Authentication type
+                    </description>
+                </param>
+                <param name="secure:accessToken" dslName="accessToken" mandatory="true">
+                    <description>
+                        A Personal Access Token value
+                    </description>
+                </param>
+                <param name="publish.pull.requests" dslName="publishPullRequests" type="boolean" trueValue="true" falseValue="">
+                    <description>
+                        Enables publishing build status for pull requests
+                    </description>
+                </param>
+            </option>
         </param>
     </params>
     <types>
