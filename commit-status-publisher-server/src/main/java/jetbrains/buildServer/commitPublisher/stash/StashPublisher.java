@@ -19,11 +19,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
 
+import static com.google.common.base.Joiner.on;
 import static com.google.common.collect.ImmutableMap.of;
-import static java.lang.String.format;
 
 class StashPublisher extends HttpBasedCommitStatusPublisher {
-  private static final String PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
+  public static final String PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
 
   private static final Logger LOG = Logger.getInstance(StashPublisher.class.getName());
   private final Gson myGson = new Gson();
@@ -153,7 +153,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   private void vote(@NotNull String commit, @NotNull String data, @NotNull String buildDescription) {
     String url = getBaseUrl() + "/rest/build-status/1.0/commits/" + commit;
-    postAsync(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, of("Authorization", format("Bearer ", getToken())), buildDescription);
+    postAsync(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON,
+      of("Authorization", on(' ').join("Bearer", getToken())), buildDescription);
   }
 
   @Override
