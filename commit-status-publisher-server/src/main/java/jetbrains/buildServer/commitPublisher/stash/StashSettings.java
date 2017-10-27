@@ -3,6 +3,7 @@ package jetbrains.buildServer.commitPublisher.stash;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.stash.data.StashError;
 import jetbrains.buildServer.commitPublisher.stash.data.StashRepoInfo;
+import jetbrains.buildServer.commitPublisher.stash.ui.UpdateChangesConstants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.vcs.VcsRoot;
@@ -18,9 +19,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
 
+import static com.google.common.base.Joiner.on;
+import static com.google.common.collect.ImmutableMap.of;
+import static java.lang.String.format;
 import static jetbrains.buildServer.commitPublisher.stash.StashPublisher.PUBLISH_QUEUED_BUILD_STATUS;
 
 public class StashSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
+
+  private static final UpdateChangesConstants C = new UpdateChangesConstants();
 
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     if (TeamCityProperties.getBoolean(PUBLISH_QUEUED_BUILD_STATUS)) {
@@ -65,7 +71,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
 
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
-    String url = params.get(Constants.STASH_BASE_URL);
+    String url = params.get(C.getStashBaseUrl());
     return super.describeParameters(params) + (url != null ? ": " + WebUtil.escapeXml(url) : "");
   }
 
@@ -74,8 +80,8 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
-        if (params.get(Constants.STASH_BASE_URL) == null)
-          errors.add(new InvalidProperty(Constants.STASH_BASE_URL, "Server URL must be specified"));
+        if (params.get(C.getStashBaseUrl()) == null)
+          errors.add(new InvalidProperty(C.getStashBaseUrl(), "Server URL must be specified"));
         return errors;
       }
     };
@@ -97,7 +103,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     Repository repository = GitRepositoryParser.parseRepository(vcsRootUrl);
     if (null == repository)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
-    String apiUrl = params.get(Constants.STASH_BASE_URL);
+    String apiUrl = params.get(C.getStashBaseUrl());
     if (null == apiUrl || apiUrl.length() == 0)
       throw new PublisherException("Missing Bitbucket Server API URL parameter");
     String url = apiUrl + "/rest/api/1.0/projects/" + repository.owner() + "/repos/" + repository.repositoryName();
@@ -127,15 +133,27 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
             String pluralS = "";
             if (repoInfo.errors.size() > 1)
               pluralS = "s";
-            throw new HttpPublisherException(String.format("Bitbucket Server publisher error%s:%s", pluralS, sb.toString()));
+            throw new HttpPublisherException(format("Bitbucket Server publisher error%s:%s", pluralS, sb.toString()));
           }
         }
       };
 
-      HttpHelper.get(url, params.get(Constants.STASH_USERNAME), params.get(Constants.STASH_PASSWORD),
-        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processor);
+      switch (StashAuthenticationType.parse(params.get(C.getAuthenticationTypeKey()))) {
+        case PASSWORD_AUTH:
+          HttpHelper.get(url, params.get(C.getStashUsername()), params.get(C.getStashPassword()), of("Accept", "application/json"),
+            BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processor);
+          break;
+
+        case TOKEN_AUTH:
+          HttpHelper.get(url, "", "", of("Accept", "application/json", "Authorization", on(' ').join("Bearer", params.get(C.getStashToken()))),
+            BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processor);
+          break;
+
+        default:
+          throw new IllegalArgumentException("Failed to parse authentication type.");
+      }
     } catch (Exception ex) {
-      throw new PublisherException(String.format("Bitbucket Server publisher has failed to connect to %s/%s repository", repository.owner(), repository.repositoryName()), ex);
+      throw new PublisherException(format("Bitbucket Server publisher has failed to connect to %s/%s repository", repository.owner(), repository.repositoryName()), ex);
     }
   }
 

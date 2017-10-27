@@ -19,8 +19,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
 
+import static com.google.common.collect.ImmutableMap.of;
+import static java.lang.String.format;
+
 class StashPublisher extends HttpBasedCommitStatusPublisher {
-  public static final String PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
+  private static final String PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
 
   private static final Logger LOG = Logger.getInstance(StashPublisher.class.getName());
   private final Gson myGson = new Gson();
@@ -150,7 +153,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   private void vote(@NotNull String commit, @NotNull String data, @NotNull String buildDescription) {
     String url = getBaseUrl() + "/rest/build-status/1.0/commits/" + commit;
-    postAsync(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, null, buildDescription);
+    postAsync(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, of("Authorization", format("Bearer ", getToken())), buildDescription);
   }
 
   @Override
@@ -204,6 +207,10 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   private String getBaseUrl() {
     return HttpHelper.stripTrailingSlash(myParams.get(Constants.STASH_BASE_URL));
+  }
+
+  private String getToken() {
+    return myParams.get(Constants.STASH_TOKEN);
   }
 
   private String getUsername() {

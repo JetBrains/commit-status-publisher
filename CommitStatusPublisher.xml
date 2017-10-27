@@ -47,15 +47,35 @@
                         Bitbucket Server URL
                     </description>
                 </param>
-                <param name="stashUsername" dslName="userName">
+                <param name="stashAuthenticationType" dslName="authType" type="compound">
+                  <description>
+                    Type of authentication
+                  </description>
+                  <option name="personalToken" value="token">
                     <description>
+                      Authentication using personal token
+                    </description>
+                    <param name="stashToken" dslName="token">
+                      <description>
+                        Personal token to use
+                      </description>
+                    </param>
+                  </option>
+                  <option name="password" value="password">
+                    <description>
+                      Password authentication
+                    </description>
+                    <param name="stashUsername" dslName="userName">
+                      <description>
                         A username for Bitbucket Server connection
-                    </description>
-                </param>
-                <param name="secure:stashPassword" dslName="password">
-                    <description>
+                      </description>
+                    </param>
+                    <param name="secure:stashPassword" dslName="password">
+                      <description>
                         A password for Bitbucket Server connection
-                    </description>
+                      </description>
+                    </param>
+                  </option>
                 </param>
             </option>
             <option name="gerrit" value="gerritStatusPublisher">
