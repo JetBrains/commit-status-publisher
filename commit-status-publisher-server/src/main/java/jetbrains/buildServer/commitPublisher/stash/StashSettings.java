@@ -23,6 +23,7 @@ import static com.google.common.base.Joiner.on;
 import static com.google.common.collect.ImmutableMap.of;
 import static java.lang.String.format;
 import static jetbrains.buildServer.commitPublisher.stash.StashPublisher.PUBLISH_QUEUED_BUILD_STATUS;
+import static org.apache.http.entity.ContentType.APPLICATION_JSON;
 
 public class StashSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
@@ -140,12 +141,12 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
 
       switch (StashAuthenticationType.parse(params.get(C.getAuthenticationTypeKey()))) {
         case PASSWORD_AUTH:
-          HttpHelper.get(url, params.get(C.getStashUsername()), params.get(C.getStashPassword()), of("Accept", "application/json"),
+          HttpHelper.get(url, params.get(C.getStashUsername()), params.get(C.getStashPassword()), of("Accept", APPLICATION_JSON.getMimeType()),
             BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processor);
           break;
 
         case TOKEN_AUTH:
-          HttpHelper.get(url, "", "", of("Accept", "application/json", "Authorization", on(' ').join("Bearer", params.get(C.getStashToken()))),
+          HttpHelper.get(url, "", "", of("Accept", APPLICATION_JSON.getMimeType(), "Authorization", on(' ').join("Bearer", params.get(C.getStashToken()))),
             BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processor);
           break;
 
