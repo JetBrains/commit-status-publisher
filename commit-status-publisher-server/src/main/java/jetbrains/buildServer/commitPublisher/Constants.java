@@ -24,6 +24,8 @@ public class Constants {
 
   public static final String STASH_PUBLISHER_ID = "atlassianStashPublisher";
   public static final String STASH_BASE_URL = "stashBaseUrl";
+  public static final String STASH_AUTH_TYPE = "stashAuthType";
+  public static final String STASH_TOKEN = "stashToken";
   public static final String STASH_USERNAME = "stashUsername";
   public static final String STASH_PASSWORD = "secure:stashPassword";
 
@@ -88,21 +90,6 @@ public class Constants {
   @NotNull
   public String getSshKey() {
     return ServerSshKeyManager.TEAMCITY_SSH_KEY_PROP;
-  }
-
-  @NotNull
-  public String getStashBaseUrl() {
-    return STASH_BASE_URL;
-  }
-
-  @NotNull
-  public String getStashUsername() {
-    return STASH_USERNAME;
-  }
-
-  @NotNull
-  public String getStashPassword() {
-    return STASH_PASSWORD;
   }
 
   @NotNull
