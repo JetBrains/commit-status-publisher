@@ -313,11 +313,13 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     // Get branch and try to find pull request id
     final String branch = revision.getRepositoryVersion().getVcsBranch();
     if (StringUtil.isEmptyOrSpaces(branch)) {
+      LOG.debug(String.format("Branch was not specified for commit %s, pull request status would not be published", commitId));
       return;
     }
 
     final Matcher matcher = TFS_GIT_PULL_REQUEST_PATTERN.matcher(branch);
     if (!matcher.find()) {
+      LOG.debug(String.format("Branch %s for commit %s does not contain info about pull request, status would not be published", branch, commitId));
       return;
     }
 
@@ -329,7 +331,9 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     // Then we need to get pull request iteration where this commit present
     final String iterationId = getPullRequestIteration(settings.first, settings.second, pullRequestId, commits, myParams);
     if (StringUtil.isEmptyOrSpaces(iterationId)) {
-      throw new HttpPublisherException("Pull request iteration was not found for commit " + commitId);
+      final String message = String.format("Iteration was not found for commit %s in pull request %s", commitId, pullRequestId);
+      LOG.warn(message);
+      throw new HttpPublisherException(message);
     }
 
     // Publish status for pull request iteration
