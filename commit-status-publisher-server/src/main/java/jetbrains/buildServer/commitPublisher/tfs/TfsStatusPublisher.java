@@ -180,7 +180,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
           public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
             Commit commit = processGetResponse(response, Commit.class);
             if (commit == null) {
-              throw new HttpPublisherException(String.format("Commit %s available in repository %s/_git/%s",
+              throw new HttpPublisherException(String.format("Commit %s is not available in repository %s/_git/%s",
                 parentCommitId, server, project)
               );
             }
