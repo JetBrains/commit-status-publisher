@@ -45,6 +45,7 @@ public class GitRepositoryParserTest {
   public void parse_scp_like_urls_with_slashes() {
     List<String> urls = Arrays.asList(
       "git@gitlab.com:%s/repository.git",
+      "diffgituser@gitlab.com:%s/repository.git",
       "ssh://git@mydomain.com:%s/repository.git",
       "ssh://git@mydomain.org/%s/repository.git",
       "ssh://git@mydomain.org:443/%s/repository",
