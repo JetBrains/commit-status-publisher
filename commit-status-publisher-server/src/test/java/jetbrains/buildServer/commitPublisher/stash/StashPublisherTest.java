@@ -82,6 +82,7 @@ public class StashPublisherTest extends HttpPublisherTest {
   @Override
   protected Map<String, String> getPublisherParams() {
     return new HashMap<String, String>() {{
+      put(Constants.STASH_TOKEN, "token");
       put(Constants.STASH_USERNAME, "user");
       put(Constants.STASH_PASSWORD, "pwd");
       put(Constants.STASH_BASE_URL, getServerUrl());
