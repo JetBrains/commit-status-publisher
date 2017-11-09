@@ -21,7 +21,7 @@
       <tr>
         <th><label for="${keys.stashToken}">Token: <l:star/></label></th>
         <td>
-          <props:textProperty name="${keys.stashToken}" className="mediumField"/>
+          <props:passwordProperty name="${keys.stashToken}" className="mediumField"/>
         </td>
       </tr>
     </props:selectSectionPropertyContent>

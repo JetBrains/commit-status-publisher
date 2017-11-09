@@ -55,7 +55,7 @@
                     <description>
                       Authentication using personal token
                     </description>
-                    <param name="stashToken" dslName="token">
+                    <param name="secure:stashToken" dslName="token">
                       <description>
                         Personal token to use
                       </description>
