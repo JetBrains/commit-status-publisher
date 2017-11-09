@@ -25,7 +25,7 @@ public class Constants {
   public static final String STASH_PUBLISHER_ID = "atlassianStashPublisher";
   public static final String STASH_BASE_URL = "stashBaseUrl";
   public static final String STASH_AUTH_TYPE = "stashAuthType";
-  public static final String STASH_TOKEN = "stashToken";
+  public static final String STASH_TOKEN = "secure:stashToken";
   public static final String STASH_USERNAME = "stashUsername";
   public static final String STASH_PASSWORD = "secure:stashPassword";
 
