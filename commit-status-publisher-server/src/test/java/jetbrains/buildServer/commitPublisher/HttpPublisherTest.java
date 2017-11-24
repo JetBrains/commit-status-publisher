@@ -2,6 +2,7 @@ package jetbrains.buildServer.commitPublisher;
 
 import com.intellij.openapi.util.io.StreamUtil;
 import jetbrains.buildServer.messages.Status;
+import jetbrains.buildServer.version.ServerVersionHolder;
 import org.apache.http.*;
 import org.apache.http.config.SocketConfig;
 import org.apache.http.impl.bootstrap.HttpServer;
@@ -34,6 +35,7 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
   private String myExpectedApiPath = "";
   private String myExpectedEndpointPrefix = "";
   private int myRespondWithRedirectCode = 0;
+  private String myLastAgent;
 
   @Override
   protected String getRequestAsString() {
@@ -54,12 +56,14 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
   protected void setUp() throws Exception {
 
     myLastRequest = null;
+    myLastAgent = null;
 
     final SocketConfig socketConfig = SocketConfig.custom().setSoTimeout(TIMEOUT * 2).build();
     ServerBootstrap bootstrap = ServerBootstrap.bootstrap().setSocketConfig(socketConfig).setServerInfo("TEST/1.1")
             .registerHandler("/*", new HttpRequestHandler() {
               @Override
               public void handle(HttpRequest httpRequest, HttpResponse httpResponse, HttpContext httpContext) throws IOException {
+                myLastAgent = httpRequest.getLastHeader("User-Agent").getValue();
                 if (myRespondWithRedirectCode > 0) {
                   setRedirectionResponse(httpRequest, httpResponse);
                   return;
@@ -122,6 +126,13 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
   @DataProvider(name = "provideRedirectCodes")
   public Object [][] provideRedirectCodes() {
     return new Object [][] {{301}, {302}, {307}};
+  }
+
+  public void test_user_agent_is_teamcity() throws Exception {
+    myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
+    then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
+                          .matches(myExpectedRegExps.get(EventToTest.FINISHED));
+    then(myLastAgent).isEqualTo("TeamCity Server " + ServerVersionHolder.getVersion().getDisplayVersion());
   }
 
   protected boolean populateResponse(HttpRequest httpRequest, String requestData, HttpResponse httpResponse) {

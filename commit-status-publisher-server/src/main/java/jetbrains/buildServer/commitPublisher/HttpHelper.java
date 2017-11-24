@@ -1,6 +1,7 @@
 package jetbrains.buildServer.commitPublisher;
 
 import com.intellij.openapi.diagnostic.Logger;
+import jetbrains.buildServer.version.ServerVersionHolder;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpMessage;
@@ -113,6 +114,13 @@ public class HttpHelper {
     return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
   }
 
+
+  @NotNull
+  public static String buildUserAgentString() {
+    return "TeamCity Server " + ServerVersionHolder.getVersion().getDisplayVersion();
+  }
+
+
   private static void addHeaders(HttpMessage request, @Nullable final Map<String, String> headers) {
     if (null != headers) {
       for (Map.Entry<String, String> hdr : headers.entrySet()) {
@@ -153,6 +161,7 @@ public class HttpHelper {
       credentials.setCredentials(new AuthScope(uri.getHost(), uri.getPort()), new UsernamePasswordCredentials(username, password));
       builder.setDefaultCredentialsProvider(credentials);
     }
+    builder.setUserAgent(buildUserAgentString());
     return builder.useSystemProperties().build();
   }
 

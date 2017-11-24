@@ -17,6 +17,7 @@
 package jetbrains.buildServer.commitPublisher.github.api.impl;
 
 import com.intellij.openapi.diagnostic.Logger;
+import jetbrains.buildServer.commitPublisher.HttpHelper;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.version.ServerVersionHolder;
@@ -71,15 +72,13 @@ public class HttpClientWrapperImpl implements HttpClientWrapper {
   private final HttpClient myClient;
 
   public HttpClientWrapperImpl() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
-    final String serverVersion = ServerVersionHolder.getVersion().getDisplayVersion();
-
     final HttpParams ps = new BasicHttpParams();
 
     DefaultHttpClient.setDefaultHttpParams(ps);
     final int timeout = TeamCityProperties.getInteger("teamcity.github.http.timeout", 300 * 1000);
     HttpConnectionParams.setConnectionTimeout(ps, timeout);
     HttpConnectionParams.setSoTimeout(ps, timeout);
-    HttpProtocolParams.setUserAgent(ps, "JetBrains TeamCity " + serverVersion);
+    HttpProtocolParams.setUserAgent(ps, HttpHelper.buildUserAgentString());
 
     final SchemeRegistry schemaRegistry = SchemeRegistryFactory.createDefault();
     final SSLSocketFactory sslSocketFactory = new SSLSocketFactory(new TrustStrategy() {
