@@ -3,7 +3,6 @@ package jetbrains.buildServer.commitPublisher.tfs;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.util.Pair;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -33,18 +32,14 @@ import java.util.regex.Pattern;
 class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
   private static final Logger LOG = Logger.getInstance(TfsStatusPublisher.class.getName());
-  private static final String COMMITS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{1}/commits?api-version=1.0&$top=1";
-  private static final String COMMIT_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{1}/commits/{2}?api-version=1.0";
-  private static final String COMMIT_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{1}/commits/{2}/statuses?api-version=2.1";
-  private static final String PULL_REQUEST_ITERATIONS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{1}/pullRequests/{2}/iterations?api-version=3.0";
-  private static final String PULL_REQUEST_ITERATION_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{1}/pullRequests/{2}/iterations/{3}/statuses?api-version=4.0-preview";
+  private static final String COMMITS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits?api-version=1.0&$top=1";
+  private static final String COMMIT_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits/{3}?api-version=1.0";
+  private static final String COMMIT_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits/{3}/statuses?api-version=2.1";
+  private static final String PULL_REQUEST_ITERATIONS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/pullRequests/{3}/iterations?api-version=3.0";
+  private static final String PULL_REQUEST_ITERATION_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/pullRequests/{3}/iterations/{4}/statuses?api-version=4.0-preview";
   private static final String ERROR_AUTHORIZATION = "Check access token value and verify that it has Code (status) and Code (read) scopes";
   private static final Gson myGson = new Gson();
   private final WebLinks myLinks;
-
-  // Captures following groups: (server url + collection) (/_git/) (git project name)
-  // Example: (http://localhost:81/tfs/collection) (/_git/) (git_project)
-  static final Pattern TFS_GIT_PROJECT_PATTERN = Pattern.compile("(https?\\:\\/\\/.+)(\\/_git\\/)([^\\.\\/\\?]+)");
 
   // Captures pull request identifier. Example: refs/pull/1/merge
   private static final Pattern TFS_GIT_PULL_REQUEST_PATTERN = Pattern.compile("^refs\\/pull\\/(\\d+)");
@@ -111,9 +106,10 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
       throw new PublisherException("Status publisher supports only Git VCS roots");
     }
 
-    final Pair<String, String> settings = getServerAndProject(root);
+    final TfsRepositoryInfo info = getServerAndProject(root);
     try {
-      final String url = MessageFormat.format(COMMIT_STATUS_URL_FORMAT, settings.first, settings.second, commitId);
+      final String url = MessageFormat.format(COMMIT_STATUS_URL_FORMAT,
+        info.getServer(), info.getProject(), info.getRepository(), commitId);
       HttpHelper.post(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN), StringUtil.EMPTY, ContentType.DEFAULT_TEXT,
         Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, new DefaultHttpResponseProcessor() {
           @Override
@@ -134,15 +130,15 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
           }
         });
     } catch (Exception e) {
-      throw new PublisherException(String.format("TFS publisher has failed to connect to repository %s/_git/%s", settings.first, settings.second), e);
+      throw new PublisherException("TFS publisher has failed to test connection to repository " + info, e);
     }
   }
 
   @Nullable
   public static String getLatestCommitId(@NotNull final VcsRoot root,
                                          @NotNull final Map<String, String> params) throws PublisherException {
-    final Pair<String, String> settings = getServerAndProject(root);
-    final String url = MessageFormat.format(COMMITS_URL_FORMAT, settings.first, settings.second);
+    final TfsRepositoryInfo info = getServerAndProject(root);
+    final String url = MessageFormat.format(COMMITS_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository());
     final String[] commitId = {null};
 
     try {
@@ -152,25 +148,24 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
           public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
             CommitsList commits = processGetResponse(response, CommitsList.class);
             if (commits == null || commits.value == null || commits.value.size() == 0) {
-              throw new HttpPublisherException(String.format("No commits available in repository %s/_git/%s", settings.first, settings.second));
+              throw new HttpPublisherException("No commits are available in repository %s" + info);
             }
 
             commitId[0] = commits.value.get(0).commitId;
           }
         });
     } catch (Exception e) {
-      throw new PublisherException(String.format("TFS publisher has failed to connect to repository %s/_git/%s", settings.first, settings.second), e);
+      throw new PublisherException("TFS publisher has failed to get latest commit in repository " + info, e);
     }
 
     return commitId[0];
   }
 
   @NotNull
-  private static List<String> getParentCommits(@NotNull final String server,
-                                               @NotNull final String project,
+  private static List<String> getParentCommits(@NotNull final TfsRepositoryInfo info,
                                                @NotNull final String parentCommitId,
                                                @NotNull final Map<String, String> params) throws PublisherException {
-    final String url = MessageFormat.format(COMMIT_URL_FORMAT, server, project, parentCommitId);
+    final String url = MessageFormat.format(COMMIT_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository(), parentCommitId);
     final List<String> commits = new ArrayList<String>();
 
     try {
@@ -180,8 +175,8 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
           public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
             Commit commit = processGetResponse(response, Commit.class);
             if (commit == null) {
-              throw new HttpPublisherException(String.format("Commit %s is not available in repository %s/_git/%s",
-                parentCommitId, server, project)
+              throw new HttpPublisherException(String.format("Commit %s is not available in repository %s",
+                parentCommitId, info)
               );
             }
 
@@ -191,19 +186,19 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
           }
         });
     } catch (Exception e) {
-      throw new PublisherException(String.format("TFS publisher has failed to connect to repository %s/_git/%s", server, project), e);
+      throw new PublisherException("TFS publisher has failed to get parent commits in repository " + info, e);
     }
 
     return commits;
   }
 
   @Nullable
-  private static String getPullRequestIteration(@NotNull final String server,
-                                                @NotNull final String project,
+  private static String getPullRequestIteration(@NotNull final TfsRepositoryInfo info,
                                                 @NotNull final String pullRequestId,
                                                 @NotNull final List<String> commits,
                                                 @NotNull final Map<String, String> params) throws PublisherException {
-    final String url = MessageFormat.format(PULL_REQUEST_ITERATIONS_URL_FORMAT, server, project, pullRequestId);
+    final String url = MessageFormat.format(PULL_REQUEST_ITERATIONS_URL_FORMAT,
+      info.getServer(), info.getProject(), info.getRepository(), pullRequestId);
     final String[] iterationId = {null};
 
     try {
@@ -213,7 +208,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
           public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
             IterationsList iterations = processGetResponse(response, IterationsList.class);
             if (iterations == null || iterations.value == null || iterations.value.size() == 0) {
-              throw new HttpPublisherException(String.format("No iterations available in repository %s/_git/%s", server, project));
+              throw new HttpPublisherException("No iterations are available in repository " + info);
             }
 
             for (Iteration iteration : iterations.value) {
@@ -231,7 +226,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
           }
         });
     } catch (Exception e) {
-      throw new PublisherException(String.format("TFS publisher has failed to connect to repository %s/_git/%s", server, project), e);
+      throw new PublisherException("TFS publisher has failed to get pull request iterations in repository" + info, e);
     }
 
     return iterationId[0];
@@ -293,12 +288,13 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
       return;
     }
 
-    final Pair<String, String> settings = getServerAndProject(root);
+    final TfsRepositoryInfo info = getServerAndProject(root);
     final CommitStatus status = getCommitStatus(build, isStarting);
     final String data = myGson.toJson(status);
 
     final String commitId = revision.getRevision();
-    final String commitStatusUrl = MessageFormat.format(COMMIT_STATUS_URL_FORMAT, settings.first, settings.second, commitId);
+    final String commitStatusUrl = MessageFormat.format(COMMIT_STATUS_URL_FORMAT,
+      info.getServer(), info.getProject(), info.getRepository(), commitId);
     postAsync(commitStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
       data, ContentType.APPLICATION_JSON,
       Collections.singletonMap("Accept", "application/json"),
@@ -326,10 +322,10 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     final String pullRequestId = matcher.group(1);
 
     // Since it's a merge request we need to get parent commit for it
-    final List<String> commits = getParentCommits(settings.first, settings.second, commitId, myParams);
+    final List<String> commits = getParentCommits(info, commitId, myParams);
 
     // Then we need to get pull request iteration where this commit present
-    final String iterationId = getPullRequestIteration(settings.first, settings.second, pullRequestId, commits, myParams);
+    final String iterationId = getPullRequestIteration(info, pullRequestId, commits, myParams);
     if (StringUtil.isEmptyOrSpaces(iterationId)) {
       final String message = String.format("Iteration was not found for commit %s in pull request %s", commitId, pullRequestId);
       LOG.warn(message);
@@ -338,8 +334,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
     // Publish status for pull request iteration
     final String pullRequestStatusUrl = MessageFormat.format(PULL_REQUEST_ITERATION_STATUS_URL_FORMAT,
-      settings.first, settings.second, pullRequestId, iterationId
-    );
+      info.getServer(), info.getProject(), info.getRepository(), pullRequestId, iterationId);
     postAsync(pullRequestStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
       data, ContentType.APPLICATION_JSON,
       Collections.singletonMap("Accept", "application/json"),
@@ -376,21 +371,15 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     return StatusState.Pending;
   }
 
-  private static Pair<String, String> getServerAndProject(VcsRoot root) throws PublisherException {
+  @NotNull
+  private static TfsRepositoryInfo getServerAndProject(VcsRoot root) throws PublisherException {
     final String url = root.getProperty("url");
-    if (StringUtil.isEmptyOrSpaces(url)) {
-      throw new PublisherException(String.format("Invalid Git VCS root '%s' settings, missing Server URL property", root.getName()));
+    final TfsRepositoryInfo info = TfsRepositoryInfo.parse(url);
+    if (info == null) {
+      throw new PublisherException(String.format("Invalid URL for TFS Git project '%s'. Publisher supports only TFS servers", url));
     }
 
-    final Matcher matcher = TFS_GIT_PROJECT_PATTERN.matcher(url);
-    if (!matcher.find()) {
-      throw new PublisherException(String.format("Invalid Git server URL '%s'. Publisher supports only TFS servers", url));
-    }
-
-    final String projectName = matcher.group(3);
-    final String serverName = matcher.group(1);
-
-    return Pair.create(serverName, projectName);
+    return info;
   }
 
   private static class Error {

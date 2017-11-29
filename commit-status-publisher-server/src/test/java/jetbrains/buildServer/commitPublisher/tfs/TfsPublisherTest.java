@@ -75,7 +75,7 @@ public class TfsPublisherTest extends HttpPublisherTest {
     try {
       super.test_testConnection();
     } catch (PublisherException e) {
-      Assert.assertTrue(e.getMessage().startsWith("TFS publisher has failed to connect to repository"));
+      Assert.assertTrue(e.getMessage().startsWith("TFS publisher has failed to test connection to repository"));
     }
   }
 
