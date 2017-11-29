@@ -168,11 +168,7 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
     }
 
     final String url = root.getProperty("url");
-    if (StringUtil.isEmptyOrSpaces(url)) {
-      return false;
-    }
-
-    return TfsStatusPublisher.TFS_GIT_PROJECT_PATTERN.matcher(url).find();
+    return TfsRepositoryInfo.parse(url) != null;
   }
 
   @Override
