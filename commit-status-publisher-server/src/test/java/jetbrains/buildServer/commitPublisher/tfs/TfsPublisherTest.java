@@ -66,7 +66,7 @@ public class TfsPublisherTest extends HttpPublisherTest {
       myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), revision);
       fail("PublishError exception expected");
     } catch(PublisherException ex) {
-      then(ex.getMessage()).matches("Invalid Git server URL.*" + myVcsRoot.getProperty("url") + ".*");
+      then(ex.getMessage()).matches("Invalid URL for TFS Git project.*" + myVcsRoot.getProperty("url") + ".*");
     }
   }
 
