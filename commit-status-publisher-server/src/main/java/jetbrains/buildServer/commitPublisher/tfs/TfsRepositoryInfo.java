@@ -14,10 +14,6 @@ public class TfsRepositoryInfo {
   private static final Pattern TFS_GIT_PROJECT_PATTERN = Pattern.compile(
     "(https?\\:\\/\\/[^\\/\\:]+(?:\\:\\d+)?)(\\/.+)?\\/_git\\/([^\\/]+)");
 
-  // Cleanup pattern for TFS paths
-  private static final Pattern TFS_PATH_PATTERN = Pattern.compile(
-    "^(\\/DefaultCollection)?((\\/[^\\/]+)+?)?(\\/_.*)?$", Pattern.CASE_INSENSITIVE);
-
   private final String myServer;
   private final String myRepository;
   private final String myProject;
@@ -43,18 +39,18 @@ public class TfsRepositoryInfo {
     String path = StringUtil.notEmpty(matcher.group(2), StringUtil.EMPTY);
     String repository = matcher.group(3);
 
-    // Cleanup TFS url paths
-    if (StringUtil.isNotEmpty(path)) {
-      path = TFS_PATH_PATTERN.matcher(path).replaceFirst("$2");
-    }
-
     int lastSlash = path.lastIndexOf('/');
     final String project;
     if (lastSlash < 0) {
       project = null;
     } else {
-      project = path.substring(lastSlash + 1);
-      path = path.substring(0, lastSlash);
+      final String lastPathSegment = path.substring(lastSlash + 1);
+      if (!"defaultCollection".equalsIgnoreCase(lastPathSegment)) {
+        project = lastPathSegment;
+        path = path.substring(0, lastSlash);
+      } else {
+        project = null;
+      }
     }
 
     return new TfsRepositoryInfo(server + path, repository, project);
