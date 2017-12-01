@@ -22,19 +22,22 @@ public class TfsRepositoryInfoTest {
   public Object[][] repositoryData() {
     return new Object[][]{
       {"https://test.visualstudio.com/DefaultCollection/_git/Repository",
-        new TfsRepositoryInfo("https://test.visualstudio.com", "Repository", null)
+        new TfsRepositoryInfo("https://test.visualstudio.com/DefaultCollection", "Repository", null)
       },
       {"https://test.visualstudio.com/_git/Repository",
         new TfsRepositoryInfo("https://test.visualstudio.com", "Repository", null)
       },
       {" https://test.visualstudio.com/DefaultCollection/_git/Repository ",
-        new TfsRepositoryInfo("https://test.visualstudio.com", "Repository", null)
+        new TfsRepositoryInfo("https://test.visualstudio.com/DefaultCollection", "Repository", null)
       },
       {"https://test.visualstudio.com/DefaultCollection/Project/_git/Repository",
-        new TfsRepositoryInfo("https://test.visualstudio.com", "Repository", "Project")
+        new TfsRepositoryInfo("https://test.visualstudio.com/DefaultCollection", "Repository", "Project")
       },
       {"http://host:81/tfs/DefaultCollection/Project/_git/Repository",
         new TfsRepositoryInfo("http://host:81/tfs/DefaultCollection", "Repository", "Project")
+      },
+      {"http://host:81/DefaultCollection/Project/_git/Repository",
+        new TfsRepositoryInfo("http://host:81/DefaultCollection", "Repository", "Project")
       },
       {null, null},
       {"", null},
