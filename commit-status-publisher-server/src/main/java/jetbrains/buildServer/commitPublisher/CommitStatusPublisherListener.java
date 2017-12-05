@@ -9,6 +9,7 @@ import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.EventDispatcher;
 import jetbrains.buildServer.vcs.SVcsModification;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
@@ -288,28 +289,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       return revisions;
     }
 
-    try {
-      long parentRootId = Long.valueOf(vcsRootId);
-      return Arrays.asList(findRevisionByInternalId(build, parentRootId));
-    } catch (NumberFormatException e) {
-      // external id
-      for (BuildRevision revision : build.getRevisions()) {
-        if (vcsRootId.equals(revision.getRoot().getParent().getExternalId()))
-          return Arrays.asList(revision);
-      }
+    for (BuildRevision revision : build.getRevisions()) {
+      SVcsRoot root = revision.getRoot().getParent();
+      if (vcsRootId.equals(root.getExternalId()) || vcsRootId.equals(String.valueOf(root.getId())))
+        return Arrays.asList(revision);
     }
 
     return Collections.emptyList();
-  }
-
-  @Nullable
-  private BuildRevision findRevisionByInternalId(@NotNull SBuild build, long vcsRootId) {
-    for (BuildRevision revision : build.getRevisions()) {
-      if (vcsRootId == revision.getRoot().getParentId())
-        return revision;
-    }
-
-    return null;
   }
 
   @NotNull

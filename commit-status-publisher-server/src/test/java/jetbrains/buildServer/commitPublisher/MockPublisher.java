@@ -2,6 +2,7 @@ package jetbrains.buildServer.commitPublisher;
 
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,6 +21,9 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   private int myFailuresReceived = 0;
   private int myFinishedReceived = 0;
   private int mySuccessReceived = 0;
+  private int myStartedReceived = 0;
+  private int myCommentedReceived = 0;
+  private String myLastComment = null;
 
   private boolean myShouldThrowException = false;
   private boolean myShouldReportError = false;
@@ -28,6 +32,9 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   boolean isFailureReceived() { return myFailuresReceived > 0; }
   boolean isFinishedReceived() { return myFinishedReceived > 0; }
   boolean isSuccessReceived() { return mySuccessReceived > 0; }
+  boolean isStartedReceived() { return myStartedReceived > 0; }
+  boolean isCommentedReceived() { return myCommentedReceived > 0; }
+  String getLastComment() { return myLastComment; }
 
 
   MockPublisher(@NotNull CommitStatusPublisherSettings settings,
@@ -67,6 +74,12 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   void shouldReportError() {myShouldReportError = true; }
 
   @Override
+  public boolean buildStarted(@NotNull final SRunningBuild build, @NotNull final BuildRevision revision) throws PublisherException {
+    myStartedReceived++;
+    return true;
+  }
+
+  @Override
   public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
     myFinishedReceived++;
     Status s = build.getBuildStatus();
@@ -77,6 +90,18 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     } else if (myShouldReportError) {
       myProblems.reportProblem(this, "My build", null, null, myLogger);
     }
+    return true;
+  }
+
+  @Override
+  public boolean buildCommented(@NotNull final SBuild build,
+                                @NotNull final BuildRevision revision,
+                                @Nullable final User user,
+                                @Nullable final String comment,
+                                final boolean buildInProgress)
+    throws PublisherException {
+    myCommentedReceived++;
+    myLastComment = comment;
     return true;
   }
 
