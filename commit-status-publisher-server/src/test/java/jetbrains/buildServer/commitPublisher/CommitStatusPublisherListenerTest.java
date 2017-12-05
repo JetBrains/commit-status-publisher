@@ -5,6 +5,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.BuildPromotionImpl;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
+import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.EventDispatcher;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.*;
@@ -35,6 +36,39 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myPublisher = new MockPublisher(myPublisherSettings, MockPublisherSettings.PUBLISHER_ID, myBuildType, myFeatureDescriptor.getId(),
                                     Collections.<String, String>emptyMap(), myProblems, myLogger);
     myPublisherSettings.setPublisher(myPublisher);
+  }
+
+  public void should_publish_started() {
+    prepareVcs();
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myListener.changesLoaded(runningBuild);
+    then(myPublisher.isStartedReceived()).isTrue();
+  }
+
+  public void should_publish_commented() {
+    prepareVcs();
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myListener.buildCommented(runningBuild, myFixture.createUserAccount("newuser"), "My test comment");
+    then(myPublisher.isCommentedReceived()).isTrue();
+    then(myPublisher.getLastComment()).isEqualTo("My test comment");
+  }
+
+  @TestFor(issues = "TW-51802")
+  public void should_not_publish_commented_if_changes_not_collected() {
+    prepareVcs();
+    SRunningBuild runningBuild = myFixture.getBuildFactory().createRunningBuild(myBuildType.createBuildPromotion(), null, Dates.now(), null,
+                                                                                myBuildAgent.getId(), myBuildAgent.getAgentTypeId());
+    myListener.buildCommented(runningBuild, myFixture.createUserAccount("newuser"), "My test comment");
+    then(myPublisher.isCommentedReceived()).isFalse();
+  }
+
+  @TestFor(issues = "TW-51802")
+  public void should_not_publish_commented_if_changes_not_collected_with_internal_vcs_root_id() {
+    prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.INT_ID);
+    SRunningBuild runningBuild = myFixture.getBuildFactory().createRunningBuild(myBuildType.createBuildPromotion(), null, Dates.now(), null,
+                                                                                myBuildAgent.getId(), myBuildAgent.getAgentTypeId());
+    myListener.buildCommented(runningBuild, myFixture.createUserAccount("newuser"), "My test comment");
+    then(myPublisher.isCommentedReceived()).isFalse();
   }
 
   public void should_publish_failure() {
@@ -92,9 +126,9 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   }
 
   public void should_publish_for_multiple_roots() {
-    prepareVcs("vcs1", "111", "rev1_2", false);
-    prepareVcs("vcs2", "222", "rev2_2", false);
-    prepareVcs("vcs3", "333", "rev3_2", false);
+    prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.DONT);
+    prepareVcs("vcs2", "222", "rev2_2", SetVcsRootIdMode.DONT);
+    prepareVcs("vcs3", "333", "rev3_2", SetVcsRootIdMode.DONT);
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     myFixture.finishBuild(runningBuild, false);
     myListener.buildFinished(runningBuild);
@@ -103,9 +137,9 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   }
 
   public void should_publish_to_specified_root_with_multiple_roots_attached() {
-    prepareVcs("vcs1", "111", "rev1_2", false);
-    prepareVcs("vcs2", "222", "rev2_2", true);
-    prepareVcs("vcs3", "333", "rev3_2", false);
+    prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.DONT);
+    prepareVcs("vcs2", "222", "rev2_2", SetVcsRootIdMode.EXT_ID);
+    prepareVcs("vcs3", "333", "rev3_2", SetVcsRootIdMode.DONT);
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     myFixture.finishBuild(runningBuild, false);
     myListener.buildFinished(runningBuild);
@@ -140,9 +174,9 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   }
 
   public void should_retain_all_errors_for_multiple_roots() {
-    prepareVcs("vcs1", "111", "rev1_2", false);
-    prepareVcs("vcs2", "222", "rev2_2", false);
-    prepareVcs("vcs3", "333", "rev3_2", false);
+    prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.DONT);
+    prepareVcs("vcs2", "222", "rev2_2", SetVcsRootIdMode.DONT);
+    prepareVcs("vcs3", "333", "rev3_2", SetVcsRootIdMode.DONT);
     myProblems.reportProblem(myPublisher, "My build", null, null, myLogger); // This problem should be cleaned during buildFinished(...)
     then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
@@ -182,13 +216,17 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   }
 
   private void prepareVcs() {
-   prepareVcs("vcs1", "111", "rev1_2", true);
+   prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.EXT_ID);
   }
 
-  private void prepareVcs(String vcsRootName, String currentVersion, String revNo, boolean setVcsRootIdParam) {
+  private void prepareVcs(String vcsRootName, String currentVersion, String revNo, SetVcsRootIdMode setVcsRootIdMode) {
     final SVcsRoot vcsRoot = myFixture.addVcsRoot("jetbrains.git", vcsRootName);
-    if (setVcsRootIdParam) {
-      myPublisher.setVcsRootId(vcsRoot.getExternalId());
+    switch (setVcsRootIdMode) {
+      case EXT_ID:
+        myPublisher.setVcsRootId(vcsRoot.getExternalId());
+        break;
+      case INT_ID:
+        myPublisher.setVcsRootId(String.valueOf(vcsRoot.getId()));
     }
     myBuildType.addVcsRoot(vcsRoot);
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
@@ -197,4 +235,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
             Collections.singletonList(new VcsChange(VcsChangeInfo.Type.CHANGED, "changed", "file", "file","1", "2")),
             "descr2", "user", vcsRootInstance, revNo, revNo));
   }
+
+
+  private enum SetVcsRootIdMode { DONT, EXT_ID, INT_ID }
 }
