@@ -52,7 +52,7 @@ class GerritPublisher extends BaseCommitStatusPublisher {
 
       myGerritClient.review(
         new GerritConnectionDetails(bt.getProject(), getGerritProject(), getGerritServer(), getUsername(),
-                                    myParams.get(ServerSshKeyManager.TEAMCITY_SSH_KEY_PROP)),
+                                    myParams.get(ServerSshKeyManager.TEAMCITY_SSH_KEY_PROP), getGerritScoreField()),
         vote, msg, revision.getRevision()
       );
       return true;
@@ -69,6 +69,8 @@ class GerritPublisher extends BaseCommitStatusPublisher {
   private String getGerritProject() {
     return myParams.get(Constants.GERRIT_PROJECT);
   }
+
+  private String getGerritScoreField() {return myParams.get(Constants.GERRIT_SCORE_FIELD); }
 
   private String getUsername() {
     return myParams.get(Constants.GERRIT_USERNAME);

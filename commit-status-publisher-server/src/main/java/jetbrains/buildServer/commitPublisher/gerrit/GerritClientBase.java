@@ -21,8 +21,14 @@ abstract class GerritClientBase implements GerritClient {
   public void review(@NotNull final GerritConnectionDetails connectionDetails, @NotNull final String vote, @NotNull final String message, @NotNull final String revision)
     throws JSchException, IOException {
     StringBuilder command = new StringBuilder();
+
+    /**
+     * Added gerScoreField
+     * */
     command.append("gerrit review --project ").append(connectionDetails.getGerritProject())
-           .append(" --verified ").append(vote)
+           .append(connectionDetails.gerScoreField())
+           //.append(" --verified ")
+           .append(vote)
            .append(" -m \"").append(escape(message)).append("\" ")
            .append(revision);
     runCommand(connectionDetails, command.toString());

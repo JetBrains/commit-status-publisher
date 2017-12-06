@@ -64,6 +64,7 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
     Map<String, String> params = new HashMap<String, String>();
     params.put(Constants.GERRIT_SUCCESS_VOTE, "+1");
     params.put(Constants.GERRIT_FAILURE_VOTE, "-1");
+    params.put(Constants.GERRIT_SCORE_FIELD, "--build-result");
     return params;
   }
 
@@ -108,7 +109,7 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
       myGerritClient.testConnection(
         new GerritConnectionDetails(buildTypeOrTemplate.getProject(), params.get(Constants.GERRIT_PROJECT),
                                     params.get(Constants.GERRIT_SERVER), params.get(Constants.GERRIT_USERNAME),
-                                    params.get(ServerSshKeyManager.TEAMCITY_SSH_KEY_PROP))
+                                    params.get(ServerSshKeyManager.TEAMCITY_SSH_KEY_PROP), params.get(Constants.GERRIT_SCORE_FIELD))
       );
     } catch (Exception e) {
       throw new PublisherException("Gerrit publisher connection test has failed", e);

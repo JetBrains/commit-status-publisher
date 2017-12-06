@@ -13,14 +13,16 @@ class GerritConnectionDetails {
   private final String myServer;
   private final String myUserName;
   private final String myKeyId;
+  private final String myGerritScoreField;
 
   GerritConnectionDetails(@NotNull SProject project, @NotNull String gerritProject,
-                                 @NotNull String server, @NotNull String username, @Nullable String keyId) {
+                                 @NotNull String server, @NotNull String username, @Nullable String keyId, @NotNull String gerritScoreFiled) {
     myProject = project;
     myGerritProject = gerritProject;
     myServer = server;
     myUserName = username;
     myKeyId = keyId;
+    myGerritScoreField = gerritScoreFiled;
   }
 
   @NotNull
@@ -47,5 +49,8 @@ class GerritConnectionDetails {
   String getKeyId() {
     return myKeyId;
   }
+
+  @NotNull
+  String gerScoreField() {return myGerritScoreField; }
 
 }
