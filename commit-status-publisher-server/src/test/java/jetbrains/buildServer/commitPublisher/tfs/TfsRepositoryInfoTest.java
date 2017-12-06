@@ -14,7 +14,9 @@ public class TfsRepositoryInfoTest {
       Assert.assertNull(repositoryInfo);
     } else {
       Assert.assertNotNull(repositoryInfo);
-      Assert.assertEquals(repositoryInfo.toString(), info.toString());
+      Assert.assertEquals(repositoryInfo.getServer(), info.getServer());
+      Assert.assertEquals(repositoryInfo.getProject(), info.getProject());
+      Assert.assertEquals(repositoryInfo.getRepository(), info.getRepository());
     }
   }
 
@@ -38,6 +40,9 @@ public class TfsRepositoryInfoTest {
       },
       {"http://host:81/DefaultCollection/Project/_git/Repository",
         new TfsRepositoryInfo("http://host:81/DefaultCollection", "Repository", "Project")
+      },
+      {"http://host:81/CustomCollection/_git/Repository",
+        new TfsRepositoryInfo("http://host:81/CustomCollection", "Repository", null)
       },
       {null, null},
       {"", null},

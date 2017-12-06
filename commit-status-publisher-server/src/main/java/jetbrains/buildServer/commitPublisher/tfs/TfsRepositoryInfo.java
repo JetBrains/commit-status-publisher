@@ -1,5 +1,6 @@
 package jetbrains.buildServer.commitPublisher.tfs;
 
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -13,6 +14,9 @@ public class TfsRepositoryInfo {
   // Example: (http://localhost:81) (/tfs/collection) (/_git/) (git_project)
   private static final Pattern TFS_GIT_PROJECT_PATTERN = Pattern.compile(
     "(https?\\:\\/\\/[^\\/\\:]+(?:\\:\\d+)?)(\\/.+)?\\/_git\\/([^\\/]+)");
+  private static final String[] TFS_HOSTED_DOMAINS = new String[]{"visualstudio.com"};
+  private static final String TEAMCITY_TFS_HOSTED_DOMAINS = "teamcity.tfs.hosted.domains";
+  private static final Pattern TFS_HOSTS_SEPARATOR = Pattern.compile(",");
 
   private final String myServer;
   private final String myRepository;
@@ -40,16 +44,16 @@ public class TfsRepositoryInfo {
     String repository = matcher.group(3);
 
     int lastSlash = path.lastIndexOf('/');
-    final String project;
-    if (lastSlash < 0) {
-      project = null;
-    } else {
+    String project = null;
+
+    if (lastSlash >= 0) {
       final String lastPathSegment = path.substring(lastSlash + 1);
       if (!"defaultCollection".equalsIgnoreCase(lastPathSegment)) {
-        project = lastPathSegment;
-        path = path.substring(0, lastSlash);
-      } else {
-        project = null;
+        String collection = path.substring(0, lastSlash);
+        if (StringUtil.isNotEmpty(collection) || isHosted(server)) {
+          project = lastPathSegment;
+          path = collection;
+        }
       }
     }
 
@@ -69,6 +73,22 @@ public class TfsRepositoryInfo {
   @NotNull
   public String getProject() {
     return StringUtil.notEmpty(myProject, myRepository);
+  }
+  
+  private static boolean isHosted(final String host) {
+    for (String domain : getTfsHostedDomains()) {
+      if (host.endsWith(domain)) return true;
+    }
+    return false;
+  }
+
+  private static String[] getTfsHostedDomains() {
+    final String domainsList = TeamCityProperties.getPropertyOrNull(TEAMCITY_TFS_HOSTED_DOMAINS);
+    if (StringUtil.isEmpty(domainsList)) {
+      return TFS_HOSTED_DOMAINS;
+    }
+
+    return TFS_HOSTS_SEPARATOR.split(domainsList);
   }
 
   @Override
