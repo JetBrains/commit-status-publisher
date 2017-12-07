@@ -122,6 +122,11 @@ public class Constants {
   }
 
   @NotNull
+  public String getGerritScoreField() {
+    return GERRIT_SCORE_FIELD;
+  }
+
+  @NotNull
   public String getGerritSuccessVote() {
     return GERRIT_SUCCESS_VOTE;
   }

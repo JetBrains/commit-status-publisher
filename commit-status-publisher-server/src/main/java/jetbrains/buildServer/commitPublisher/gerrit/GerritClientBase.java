@@ -26,7 +26,8 @@ abstract class GerritClientBase implements GerritClient {
      * Added gerScoreField
      * */
     command.append("gerrit review --project ").append(connectionDetails.getGerritProject())
-           .append(connectionDetails.gerScoreField())
+           .append(" --")
+           .append(connectionDetails.gerScoreField()).append(" ")
            //.append(" --verified ")
            .append(vote)
            .append(" -m \"").append(escape(message)).append("\" ")

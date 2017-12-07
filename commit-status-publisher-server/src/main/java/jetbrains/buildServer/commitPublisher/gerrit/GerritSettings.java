@@ -64,7 +64,7 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
     Map<String, String> params = new HashMap<String, String>();
     params.put(Constants.GERRIT_SUCCESS_VOTE, "+1");
     params.put(Constants.GERRIT_FAILURE_VOTE, "-1");
-    params.put(Constants.GERRIT_SCORE_FIELD, "--build-result");
+    params.put(Constants.GERRIT_SCORE_FIELD, "build-result");
     return params;
   }
 

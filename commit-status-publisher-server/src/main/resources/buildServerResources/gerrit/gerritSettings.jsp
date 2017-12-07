@@ -41,6 +41,15 @@
   </tr>
 
   <tr>
+      <th><label for="${keys.gerritScoreField}">Score field: <l:star/></label></th>
+      <td>
+        <props:textProperty name="${keys.gerritScoreField}" className="mediumField"/>
+        <span class="smallNote">Like: <strong>reviewed | build-result | code-review | extension-check</strong></span>
+        <span class="error" id="error_${keys.gerritScoreField}"></span>
+      </td>
+   </tr>
+
+  <tr>
     <th><label for="${keys.gerritSuccessVote}">Successful Build Vote: <l:star/></label></th>
     <td>
       <props:textProperty name="${keys.gerritSuccessVote}" className="mediumField"/>
