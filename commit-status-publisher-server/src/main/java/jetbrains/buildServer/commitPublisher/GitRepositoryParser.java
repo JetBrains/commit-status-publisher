@@ -12,8 +12,8 @@ import java.util.regex.Pattern;
 public class GitRepositoryParser {
   private static final Logger LOG = Logger.getInstance(GitRepositoryParser.class.getName());
   //git@host:user/repo
-  private static final Pattern SCP_PATTERN = Pattern.compile("git@[^:]+[:]([^/]+)/(.+)");
-  private static final Pattern SCP_PATTERN_SLASHES = Pattern.compile("git@[^:]+[:](.+)/([^/]+)");
+  private static final Pattern SCP_PATTERN = Pattern.compile("git@[^:]+:/?([^/]+)/(.+)");
+  private static final Pattern SCP_PATTERN_SLASHES = Pattern.compile("git@[^:]+:/?(.+)/([^/]+)");
   //ssh://git@host/user/repo
   private static final Pattern SSH_PATTERN = Pattern.compile("ssh://(?:git@)?[^:]+(?::[0-9]+)?[:/]([^/:]+)/(.+)");
   private static final Pattern SSH_PATTERN_SLASHES = Pattern.compile("ssh://(?:git@)?[^:/]+(?::[0-9]+)?[:/]([^:]+)/([^/]+)");

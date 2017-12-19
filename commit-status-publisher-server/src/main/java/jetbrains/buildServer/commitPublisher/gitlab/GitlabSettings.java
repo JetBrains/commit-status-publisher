@@ -2,8 +2,8 @@ package jetbrains.buildServer.commitPublisher.gitlab;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
-import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabAccessLevel;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.*;
 
 public class GitlabSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
+
+  private static final Pattern URL_WITH_API_SUFFIX = Pattern.compile("(.*)/api/v.");
 
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     add(Event.STARTED);
@@ -116,7 +118,7 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
 
   @Nullable
   public static String getPathPrefix(final String apiUrl) {
-    if (!apiUrl.endsWith("/api/v3")) return null;
+    if (!URL_WITH_API_SUFFIX.matcher(apiUrl).matches()) return null;
     try {
       URI uri = new URI(apiUrl);
       String path = uri.getPath();
