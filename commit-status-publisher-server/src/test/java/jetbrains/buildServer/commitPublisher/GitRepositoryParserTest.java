@@ -15,20 +15,32 @@ import static org.assertj.core.api.BDDAssertions.then;
 public class GitRepositoryParserTest {
 
   @TestFor(issues = {"TW-43075", "TW-45758", "TW-46969"})
-  public void parse_scp_like_urls() {
-    parse_scp_like_urls_ex("owner");
+  public void parse_ssh_urls() {
+    parse_ssh_urls_ex("owner", null);
   }
 
   @TestFor(issues = {"TW-43075", "TW-45758", "TW-46969"})
-  public void parse_scp_like_urls_numerical_owner() {
-    parse_scp_like_urls_ex("777");
+  public void parse_ssh_urls_numerical_owner() {
+    parse_ssh_urls_ex("777", null);
   }
 
-  private void parse_scp_like_urls_ex(String owner) {
+  @TestFor(issues = "TW-49264")
+  public void parse_ssh_urls_with_slashes() {
+    parse_ssh_urls_ex("one/two/three", "");
+  }
+
+  @TestFor(issues = "TW-49264")
+  public void parse_ssh_urls_with_slashes_and_path() {
+    parse_ssh_urls_ex("one/two/three", "/somepath/morepath");
+  }
+
+  private void parse_ssh_urls_ex(String owner, String vcsRootPath) {
     List<String> urls = Arrays.asList(
-            "git@github.com:%s/repository.git",
+            "git@gitlab.com:%s/repository.git",
             "git@github.com:/%s/repository.git",
+            "non_standard_name@github.com:%s/repository.git",
             "ssh://git@github.com:%s/repository.git",
+            "ssh://non_standard_name@github.com:%s/repository.git",
             "ssh://git@bitbucket.org/%s/repository.git",
             "ssh://git@bitbucket.org/%s/repository",
             "ssh://git@altssh.bitbucket.org:443/%s/repository.git",
@@ -36,28 +48,10 @@ public class GitRepositoryParserTest {
 
     for(String url : urls) {
       String urlWithOwner = String.format(url, owner);
-      Repository repo = GitRepositoryParser.parseRepository(urlWithOwner);
+      Repository repo = null == vcsRootPath ? GitRepositoryParser.parseRepository(urlWithOwner)
+                                            : GitRepositoryParser.parseRepository(urlWithOwner, vcsRootPath);
       then(repo).overridingErrorMessage("Failed to parse url " + urlWithOwner).isNotNull();
-      then(repo.owner()).isEqualTo(owner);
-      then(repo.repositoryName()).isEqualTo("repository");
-    }
-  }
-
-  public void parse_scp_like_urls_with_slashes() {
-    List<String> urls = Arrays.asList(
-      "git@gitlab.com:%s/repository.git",
-      "git@github.com:/%s/repository.git",
-      "ssh://git@mydomain.com:%s/repository.git",
-      "ssh://git@mydomain.org/%s/repository.git",
-      "ssh://git@mydomain.org:443/%s/repository",
-      "ssh://git@gitlab.mydomain.org:443/%s/repository.git");
-
-    for(String url : urls) {
-      String urlWithOwner = String.format(url, "one/two/three");
-      Repository repo = GitRepositoryParser.parseRepository(urlWithOwner, "/somepath/morepath");
-      // relative path must be ignored in the SSH URL case as it only applies to HTTP(S) URLs
-      then(repo).overridingErrorMessage("Failed to parse url " + urlWithOwner).isNotNull();
-      then(repo.owner()).as("Must parse owner from URL " + urlWithOwner).isEqualTo("one/two/three");
+      then(repo.owner()).as("Must parse owner from URL " + urlWithOwner).isEqualTo(owner);
       then(repo.repositoryName()).isEqualTo("repository");
     }
   }
