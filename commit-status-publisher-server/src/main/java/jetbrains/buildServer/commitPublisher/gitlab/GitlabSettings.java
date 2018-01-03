@@ -5,6 +5,7 @@ import java.net.URISyntaxException;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabUserInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.vcs.VcsRoot;
@@ -80,37 +81,17 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     String token = params.get(Constants.GITLAB_TOKEN);
     if (null == token || token.length() == 0)
       throw new PublisherException("Missing GitLab API access token");
-    String url = getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName());
     try {
-      HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
-        @Override
-        public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
-
-          super.processResponse(response);
-
-          final HttpEntity entity = response.getEntity();
-          if (null == entity) {
-            throw new HttpPublisherException("GitLab publisher has received no response");
-          }
-          ByteArrayOutputStream bos = new ByteArrayOutputStream();
-          entity.writeTo(bos);
-          final String json = bos.toString("utf-8");
-          GitLabRepoInfo repoInfo = myGson.fromJson(json, GitLabRepoInfo.class);
-          int accessLevel = 0;
-          if (null == repoInfo || null == repoInfo.id || null == repoInfo.permissions) {
-            throw new HttpPublisherException("GitLab publisher has received a malformed response");
-          }
-          if (null != repoInfo.permissions.project_access)
-            accessLevel = repoInfo.permissions.project_access.access_level;
-          if (null != repoInfo.permissions.group_access && accessLevel < repoInfo.permissions.group_access.access_level)
-            accessLevel = repoInfo.permissions.group_access.access_level;
-          if (accessLevel < 30) {
-            throw new HttpPublisherException("GitLab does not grant enough permissions to publish a commit status");
-          }
+      ProjectInfoResponseProcessor processorPrj = new ProjectInfoResponseProcessor();
+      HttpHelper.get(getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName()),
+                     null, null, Collections.singletonMap("PRIVATE-TOKEN", token), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processorPrj);
+      if (processorPrj.getAccessLevel() < 30) {
+        UserInfoResponseProcessor processorUser = new UserInfoResponseProcessor();
+        HttpHelper.get(getUserUrl(apiUrl), null, null, Collections.singletonMap("PRIVATE-TOKEN", token), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processorUser);
+        if (!processorUser.isAdmin()) {
+          throw new HttpPublisherException("GitLab does not grant enough permissions to publish a commit status");
         }
-      };
-
-      HttpHelper.get(url, null, null, Collections.singletonMap("PRIVATE-TOKEN", token), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processor);
+      }
     } catch (Exception ex) {
       throw new PublisherException(String.format("GitLab publisher has failed to connect to %s/%s repository", repository.owner(), repository.repositoryName()), ex);
     }
@@ -158,6 +139,11 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     return apiUrl + "/projects/" + owner.replace(".", "%2E").replace("/", "%2F") + "%2F" + repo.replace(".", "%2E");
   }
 
+  @NotNull
+  public static String getUserUrl(@NotNull String apiUrl) {
+    return apiUrl + "/user";
+  }
+
   @Override
   public boolean isPublishingForVcsRoot(final VcsRoot vcsRoot) {
     return "jetbrains.git".equals(vcsRoot.getVcsName());
@@ -167,4 +153,85 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
   protected Set<Event> getSupportedEvents() {
     return mySupportedEvents;
   }
+
+  private abstract class JsonResponseProcessor<T> extends DefaultHttpResponseProcessor {
+
+    private final Class<T> myInfoClass;
+    private T myInfo;
+
+    JsonResponseProcessor(Class<T> infoClass) {
+      myInfoClass = infoClass;
+    }
+
+    T getInfo() {
+      return myInfo;
+    }
+
+    @Override
+    public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+
+      super.processResponse(response);
+
+      final HttpEntity entity = response.getEntity();
+      if (null == entity) {
+        throw new HttpPublisherException("GitLab publisher has received no response");
+      }
+      ByteArrayOutputStream bos = new ByteArrayOutputStream();
+      entity.writeTo(bos);
+      final String json = bos.toString("utf-8");
+      myInfo = myGson.fromJson(json, myInfoClass);
+    }
+  }
+
+  private class ProjectInfoResponseProcessor extends JsonResponseProcessor<GitLabRepoInfo> {
+
+    private int myAccessLevel;
+
+    ProjectInfoResponseProcessor() {
+      super(GitLabRepoInfo.class);
+    }
+
+    int getAccessLevel() {
+      return myAccessLevel;
+    }
+
+    @Override
+    public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+      myAccessLevel = 0;
+      super.processResponse(response);
+      GitLabRepoInfo repoInfo = getInfo();
+      if (null == repoInfo || null == repoInfo.id || null == repoInfo.permissions) {
+        throw new HttpPublisherException("GitLab publisher has received a malformed response");
+      }
+      if (null != repoInfo.permissions.project_access)
+        myAccessLevel = repoInfo.permissions.project_access.access_level;
+      if (null != repoInfo.permissions.group_access && myAccessLevel < repoInfo.permissions.group_access.access_level)
+        myAccessLevel = repoInfo.permissions.group_access.access_level;
+    }
+  }
+
+  private class UserInfoResponseProcessor extends JsonResponseProcessor<GitLabUserInfo> {
+
+    private boolean myIsAdmin;
+
+    UserInfoResponseProcessor() {
+      super(GitLabUserInfo.class);
+    }
+
+    boolean isAdmin() {
+      return myIsAdmin;
+    }
+
+    @Override
+    public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+      myIsAdmin = false;
+      super.processResponse(response);
+      GitLabUserInfo userInfo = getInfo();
+      if (null == userInfo || null == userInfo.id) {
+        throw new HttpPublisherException("GitLab publisher has received a malformed response");
+      }
+      myIsAdmin = userInfo.is_admin;
+    }
+  }
+
 }
