@@ -38,13 +38,16 @@ public class GitRepositoryParserTest {
     List<String> urls = Arrays.asList(
             "git@gitlab.com:%s/repository.git",
             "git@github.com:/%s/repository.git",
+            "git@github.com:/%s/repository.git/",
             "non_standard_name@github.com:%s/repository.git",
             "ssh://git@github.com:%s/repository.git",
+            "ssh://git@github.com:%s/repository.git/",
             "ssh://non_standard_name@github.com:%s/repository.git",
             "ssh://git@bitbucket.org/%s/repository.git",
             "ssh://git@bitbucket.org/%s/repository",
             "ssh://git@altssh.bitbucket.org:443/%s/repository.git",
-            "ssh://bitbucket.org/%s/repository");
+            "ssh://bitbucket.org/%s/repository",
+            "ssh://bitbucket.org/%s/repository/");
 
     for(String url : urls) {
       String urlWithOwner = String.format(url, owner);
@@ -103,6 +106,8 @@ public class GitRepositoryParserTest {
     List<String> urls = Arrays.asList(
             "https://owner@github.com/%s/repository.git",
             "https://github.com/%s/repository.git",
+            "https://github.com/%s/repository",
+            "https://github.com/%s/repository/",
             "https://owner@bitbucket.org/%s/repository.git",
             "https://bitbucket.org/%s/repository.git");
     for(String url : urls) {
