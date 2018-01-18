@@ -12,11 +12,11 @@ import java.util.regex.Pattern;
 public class GitRepositoryParser {
   private static final Logger LOG = Logger.getInstance(GitRepositoryParser.class.getName());
   //git@host:user/repo
-  private static final Pattern SCP_PATTERN = Pattern.compile("[^:@/]+@[^:]+:/?([^/]+)/(.+)");
-  private static final Pattern SCP_PATTERN_SLASHES = Pattern.compile("[^:@/]+@[^:]+:/?(.+)/([^/]+)");
+  private static final Pattern SCP_PATTERN = Pattern.compile("[^:@/]+@[^:]+:/?([^/]+)/(.+[^/])/?");
+  private static final Pattern SCP_PATTERN_SLASHES = Pattern.compile("[^:@/]+@[^:]+:/?(.+)/([^/]+)/?");
   //ssh://git@host/user/repo
-  private static final Pattern SSH_PATTERN = Pattern.compile("ssh://(?:[^:@/]+@)?[^:]+(?::[0-9]+)?[:/]([^/:]+)/(.+)");
-  private static final Pattern SSH_PATTERN_SLASHES = Pattern.compile("ssh://(?:[^:@/]+@)?[^:/]+(?::[0-9]+)?[:/]([^:]+)/([^/]+)");
+  private static final Pattern SSH_PATTERN = Pattern.compile("ssh://(?:[^:@/]+@)?[^:]+(?::[0-9]+)?[:/]([^/:]+)/(.+[^/])/?");
+  private static final Pattern SSH_PATTERN_SLASHES = Pattern.compile("ssh://(?:[^:@/]+@)?[^:/]+(?::[0-9]+)?[:/]([^:]+)/([^/]+)/?");
 
   @Nullable
   public static Repository parseRepository(@NotNull String uri) {
@@ -47,6 +47,8 @@ public class GitRepositoryParser {
 
     String path = url.getPath();
     if (path != null) {
+      if (path.endsWith("/"))
+        path = path.substring(0, path.length() - 1);
       String repo;
       String owner;
       int lastSlash = path.lastIndexOf("/");
