@@ -172,7 +172,6 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
                 if (token.getOauthLogin().equals(oauthUsername)) {
                   p.put(c.getAccessTokenKey(), token.getAccessToken());
                   p.remove(c.getOAuthProviderIdKey());
-                  p.remove(c.getOAuthUserKey());
                 }
               }
             }

@@ -51,13 +51,14 @@
       <tr>
         <th><label for="${keys.accessTokenKey}">Access Token: <l:star/></label></th>
         <td>
-          <props:passwordProperty name="${keys.accessTokenKey}" className="mediumField"/>
+          <props:passwordProperty name="${keys.accessTokenKey}" className="mediumField" onchange="PublisherFeature.resetAccessTokenNote();"/>
             ${oauth_connection_fragment}
           <props:hiddenProperty name="${keys.OAuthUserKey}" />
           <props:hiddenProperty name="${keys.OAuthProviderIdKey}" />
           <span class="error" id="error_${keys.accessTokenKey}"></span>
           <span class="smallNote">
-            GitHub <a href="https://github.com/settings/applications" target="_blank">Personal Access Token</a>
+            <span id="note_oauth_token">OAuth access token issued for GitHub user <strong id="note_oauth_user"></strong></span>
+            <span id="note_personal_token">GitHub <a href="https://github.com/settings/applications" target="_blank">Personal Access Token</a></span>
             <br />
             It is required to have the following permissions:
             <strong><em>repo:status</em></strong> and
@@ -91,6 +92,24 @@
 
           <script type="text/javascript">
 
+            PublisherFeature.updateAccessTokenNote = function() {
+              if ($('${keys.OAuthUserKey}').value == '') {
+                $j('#note_oauth_token').hide();
+                $j('#note_personal_token').show();
+              } else {
+                $j('#note_personal_token').hide();
+                $j('#note_oauth_user').text($('${keys.OAuthUserKey}').value);
+                $j('#note_oauth_token').show();
+              }
+            };
+
+            PublisherFeature.resetAccessTokenNote = function() {
+              $('${keys.OAuthUserKey}').value = '';
+              PublisherFeature.updateAccessTokenNote();
+            }
+
+            $j(document).ready(PublisherFeature.updateAccessTokenNote());
+
             BS.GitHubAccessTokenPopup = new BS.Popup('gitHubGetToken', {
               url: "${getTokenPage}",
               method: "get",
@@ -114,7 +133,8 @@
               if (cre != null) {
                 $('${keys.OAuthUserKey}').value = cre.oauthLogin;
                 $('${keys.OAuthProviderIdKey}').value = cre.oauthProviderId;
-                $('${keys.accessTokenKey}').value = '******************************'
+                $('${keys.accessTokenKey}').value = '******************************';
+                PublisherFeature.updateAccessTokenNote();
               }
               BS.GitHubAccessTokenPopup.hidePopup(0, true);
             };
