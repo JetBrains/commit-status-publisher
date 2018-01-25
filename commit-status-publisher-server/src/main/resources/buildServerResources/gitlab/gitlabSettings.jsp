@@ -7,7 +7,7 @@
         <td>
             <props:textProperty name="${keys.gitlabServer}" className="longField"/>
             <span class="smallNote">
-                Format: <strong>http[s]://&lt;hostname&gt;[:&lt;port&gt;]/api/v3</strong>
+                Format: <strong>http[s]://&lt;hostname&gt;[:&lt;port&gt;]/api/v4</strong>
             </span>
             <span class="error" id="error_${keys.gitlabServer}"></span>
         </td>
