@@ -51,8 +51,8 @@ public class GitlabPublisherTest extends HttpPublisherTest {
 
   public void test_buildFinishedSuccessfully_server_url_with_subdir() throws Exception {
     Map<String, String> params = getPublisherParams();
-    setExpectedApiPath("/subdir/api/v3");
-    params.put(Constants.GITLAB_API_URL, getServerUrl() + "/subdir/api/v3");
+    setExpectedApiPath("/subdir/api/v4");
+    params.put(Constants.GITLAB_API_URL, getServerUrl() + "/subdir/api/v4");
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
@@ -62,8 +62,8 @@ public class GitlabPublisherTest extends HttpPublisherTest {
 
   public void test_buildFinishedSuccessfully_server_url_with_slash() throws Exception {
     Map<String, String> params = getPublisherParams();
-    setExpectedApiPath("/subdir/api/v3");
-    params.put(Constants.GITLAB_API_URL, getServerUrl() + "/subdir/api/v3/");
+    setExpectedApiPath("/subdir/api/v4");
+    params.put(Constants.GITLAB_API_URL, getServerUrl() + "/subdir/api/v4/");
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
@@ -116,7 +116,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
-    setExpectedApiPath("/api/v3");
+    setExpectedApiPath("/api/v4");
     setExpectedEndpointPrefix("/projects/" + OWNER + "%2F" + CORRECT_REPO);
     super.setUp();
     myPublisherSettings = new GitlabSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);

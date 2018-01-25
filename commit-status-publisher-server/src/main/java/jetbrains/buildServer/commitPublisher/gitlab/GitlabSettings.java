@@ -103,7 +103,7 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     try {
       URI uri = new URI(apiUrl);
       String path = uri.getPath();
-      return path.substring(0, path.length() - "/api/v3".length());
+      return path.substring(0, path.length() - "/api/v4".length());
     } catch (URISyntaxException e) {
       return null;
     }
