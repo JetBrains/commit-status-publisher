@@ -51,7 +51,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publish((SBuild) build, revision, GitlabBuildStatus.PENDING, "Build queued");
+    publish(build, revision, GitlabBuildStatus.PENDING, "Build queued");
     return true;
   }
 
@@ -91,6 +91,29 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   }
 
 
+  private void publish(@NotNull SQueuedBuild build,
+                       @NotNull BuildRevision revision,
+                       @NotNull GitlabBuildStatus status,
+                       @NotNull String description) throws PublisherException {
+    VcsRootInstance root = revision.getRoot();
+    String apiUrl = getApiUrl();
+    if (null == apiUrl || apiUrl.length() == 0)
+      throw new PublisherException("Missing GitLab API URL parameter");
+    String pathPrefix = GitlabSettings.getPathPrefix(apiUrl);
+    Repository repository = parseRepository(root, pathPrefix);
+    if (repository == null)
+      throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
+
+    String message = createMessage(status, build, revision, description);
+    try {
+      publish(revision.getRevision(), message, repository, LogUtil.describe(build));
+    } catch (Exception e) {
+      throw new PublisherException("Cannot publish status to GitLab for VCS root " +
+        revision.getRoot().getName() + ": " + e.toString(), e);
+    }
+  }
+
+
   private void publish(@NotNull SBuild build,
                        @NotNull BuildRevision revision,
                        @NotNull GitlabBuildStatus status,
@@ -118,6 +141,35 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     LOG.debug("Request url: " + url + ", message: " + data);
     postAsync(url, null, null, data, ContentType.APPLICATION_JSON, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), buildDescription);
   }
+
+
+  @NotNull
+  private String createMessage(@NotNull GitlabBuildStatus status,
+                               @NotNull SQueuedBuild build,
+                               @NotNull BuildRevision revision,
+                               @NotNull String description) {
+
+    RepositoryVersion repositoryVersion = revision.getRepositoryVersion();
+    String ref = repositoryVersion.getVcsBranch();
+    if (ref != null) {
+      if (ref.startsWith(REFS_HEADS)) {
+        ref = ref.substring(REFS_HEADS.length());
+      } else if (ref.startsWith(REFS_TAGS)) {
+        ref = ref.substring(REFS_TAGS.length());
+      } else {
+        ref = null;
+      }
+    }
+
+    final Map<String, String> data = new LinkedHashMap<String, String>();
+    data.put("state", status.getName());
+    data.put("name", build.getBuildType().getName());
+    data.put("description", description);
+    if (ref != null)
+      data.put("ref", ref);
+    return myGson.toJson(data);
+  }
+
 
   @NotNull
   private String createMessage(@NotNull GitlabBuildStatus status,
