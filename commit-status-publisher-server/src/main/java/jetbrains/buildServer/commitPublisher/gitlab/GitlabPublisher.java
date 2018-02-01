@@ -2,7 +2,6 @@ package jetbrains.buildServer.commitPublisher.gitlab;
 
 import com.google.gson.Gson;
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.LinkedHashMap;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
@@ -14,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 class GitlabPublisher extends HttpBasedCommitStatusPublisher {
@@ -46,6 +46,13 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   @Override
   public String toString() {
     return "GitLab";
+  }
+
+
+  @Override
+  public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException {
+    publish((SBuild) build, revision, GitlabBuildStatus.PENDING, "Build queued");
+    return true;
   }
 
 
