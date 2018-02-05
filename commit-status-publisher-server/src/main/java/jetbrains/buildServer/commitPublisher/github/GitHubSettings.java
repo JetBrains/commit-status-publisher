@@ -6,6 +6,7 @@ import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.impl.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthToken;
@@ -45,8 +46,9 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
                         @NotNull CommitStatusPublisherProblems problems,
                         @NotNull OAuthConnectionsManager oauthConnectionsManager,
                         @NotNull OAuthTokensStorage oauthTokensStorage,
-                        @NotNull SecurityContext securityContext) {
-    super(executorServices, descriptor, links, problems);
+                        @NotNull SecurityContext securityContext,
+                        @NotNull SSLTrustStoreProvider trustStoreProvider) {
+    super(executorServices, descriptor, links, problems, trustStoreProvider);
     myUpdater = updater;
     myOauthConnectionsManager = oauthConnectionsManager;
     myOAuthTokensStorage = oauthTokensStorage;

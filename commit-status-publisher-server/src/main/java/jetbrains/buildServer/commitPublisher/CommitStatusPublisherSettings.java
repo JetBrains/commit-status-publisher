@@ -1,5 +1,6 @@
 package jetbrains.buildServer.commitPublisher;
 
+import java.security.KeyStore;
 import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -56,4 +57,7 @@ public interface CommitStatusPublisherSettings {
   boolean isTestConnectionSupported();
 
   void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException;
+
+  @Nullable
+  KeyStore trustStore();
 }

@@ -3,6 +3,7 @@ package jetbrains.buildServer.commitPublisher.tfs;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.intellij.openapi.diagnostic.Logger;
+import java.security.KeyStore;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -12,11 +13,7 @@ import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.VcsRoot;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
 import org.apache.http.entity.ContentType;
-import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -93,16 +90,16 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public void processResponse(@NotNull final HttpResponse response) throws HttpPublisherException, IOException {
-    final StatusLine statusLine = response.getStatusLine();
-    if (statusLine.getStatusCode() >= 400) {
+  public void processResponse(@NotNull final HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+    if (response.getStatusCode() >= 400) {
       processErrorResponse(response);
     }
   }
 
   public static void testConnection(@NotNull final VcsRoot root,
                                     @NotNull final Map<String, String> params,
-                                    @NotNull final String commitId) throws PublisherException {
+                                    @NotNull final String commitId,
+                                    @Nullable final KeyStore trustStore) throws PublisherException {
     if (!TfsConstants.GIT_VCS_ROOT.equals(root.getVcsName())) {
       throw new PublisherException("Status publisher supports only Git VCS roots");
     }
@@ -112,10 +109,11 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
       final String url = MessageFormat.format(COMMIT_STATUS_URL_FORMAT,
         info.getServer(), info.getProject(), info.getRepository(), commitId);
       HttpHelper.post(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN), StringUtil.EMPTY, ContentType.DEFAULT_TEXT,
-        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, new DefaultHttpResponseProcessor() {
+        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
+                      trustStore, new DefaultHttpResponseProcessor() {
           @Override
-          public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
-            final int status = response.getStatusLine().getStatusCode();
+          public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+            final int status = response.getStatusCode();
             if (status == 401 || status == 403) {
               throw new HttpPublisherException(ERROR_AUTHORIZATION);
             }
@@ -137,16 +135,18 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
   @Nullable
   public static String getLatestCommitId(@NotNull final VcsRoot root,
-                                         @NotNull final Map<String, String> params) throws PublisherException {
+                                         @NotNull final Map<String, String> params,
+                                         @Nullable final KeyStore trustStore) throws PublisherException {
     final TfsRepositoryInfo info = getServerAndProject(root);
     final String url = MessageFormat.format(COMMITS_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository());
     final String[] commitId = {null};
 
     try {
       HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
-        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, new DefaultHttpResponseProcessor() {
+        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
+                     trustStore, new DefaultHttpResponseProcessor() {
           @Override
-          public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+          public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
             CommitsList commits = processGetResponse(response, CommitsList.class);
             if (commits == null || commits.value == null || commits.value.size() == 0) {
               throw new HttpPublisherException("No commits are available in repository %s" + info);
@@ -165,15 +165,17 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   @NotNull
   private static List<String> getParentCommits(@NotNull final TfsRepositoryInfo info,
                                                @NotNull final String parentCommitId,
-                                               @NotNull final Map<String, String> params) throws PublisherException {
+                                               @NotNull final Map<String, String> params,
+                                               @Nullable final KeyStore trustStore) throws PublisherException {
     final String url = MessageFormat.format(COMMIT_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository(), parentCommitId);
     final List<String> commits = new ArrayList<String>();
 
     try {
       HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
-        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, new DefaultHttpResponseProcessor() {
+        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
+                     trustStore, new DefaultHttpResponseProcessor() {
           @Override
-          public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+          public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
             Commit commit = processGetResponse(response, Commit.class);
             if (commit == null) {
               throw new HttpPublisherException(String.format("Commit %s is not available in repository %s",
@@ -197,16 +199,18 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   private static String getPullRequestIteration(@NotNull final TfsRepositoryInfo info,
                                                 @NotNull final String pullRequestId,
                                                 @NotNull final List<String> commits,
-                                                @NotNull final Map<String, String> params) throws PublisherException {
+                                                @NotNull final Map<String, String> params,
+                                                @Nullable final KeyStore trustStore) throws PublisherException {
     final String url = MessageFormat.format(PULL_REQUEST_ITERATIONS_URL_FORMAT,
       info.getServer(), info.getProject(), info.getRepository(), pullRequestId);
     final String[] iterationId = {null};
 
     try {
       HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
-        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, new DefaultHttpResponseProcessor() {
+        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
+                     trustStore, new DefaultHttpResponseProcessor() {
           @Override
-          public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+          public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
             IterationsList iterations = processGetResponse(response, IterationsList.class);
             if (iterations == null || iterations.value == null || iterations.value.size() == 0) {
               throw new HttpPublisherException("No iterations are available in repository " + info);
@@ -233,8 +237,8 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     return iterationId[0];
   }
 
-  private static <T> T processGetResponse(@NotNull final HttpResponse response, @NotNull final Class<T> type) throws HttpPublisherException, IOException {
-    final int status = response.getStatusLine().getStatusCode();
+  private static <T> T processGetResponse(@NotNull final HttpHelper.HttpResponse response, @NotNull final Class<T> type) throws HttpPublisherException, IOException {
+    final int status = response.getStatusCode();
     if (status == 401 || status == 403) {
       throw new HttpPublisherException(ERROR_AUTHORIZATION);
     }
@@ -243,12 +247,10 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
       processErrorResponse(response);
     }
 
-    final HttpEntity entity = response.getEntity();
-    if (null == entity) {
+    final String content = response.getContent();
+    if (null == content) {
       throw new HttpPublisherException("TFS publisher has received no response");
     }
-
-    final String content = EntityUtils.toString(entity);
     try {
       return myGson.fromJson(content, type);
     } catch (JsonSyntaxException e) {
@@ -256,15 +258,13 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     }
   }
 
-  private static void processErrorResponse(@NotNull final HttpResponse response) throws IOException, HttpPublisherException {
-    final StatusLine statusLine = response.getStatusLine();
-    final int status = statusLine.getStatusCode();
-    final HttpEntity entity = response.getEntity();
-    if (null == entity) {
-      throw new HttpPublisherException(status, statusLine.getReasonPhrase(), "Empty HTTP response");
+  private static void processErrorResponse(@NotNull final HttpHelper.HttpResponse response) throws IOException, HttpPublisherException {
+    final int status = response.getStatusCode();
+    final String content = response.getContent();
+    if (null == content) {
+      throw new HttpPublisherException(status, response.getStatusText(), "Empty HTTP response");
     }
 
-    final String content = EntityUtils.toString(entity);
     Error error = null;
     try {
       error = myGson.fromJson(content, Error.class);
@@ -279,7 +279,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
       message = "HTTP response error";
     }
 
-    throw new HttpPublisherException(status, statusLine.getReasonPhrase(), message);
+    throw new HttpPublisherException(status, response.getStatusText(), message);
   }
 
   private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) throws PublisherException {
@@ -322,11 +322,13 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
     final String pullRequestId = matcher.group(1);
 
+    final KeyStore trustStore = getSettings().trustStore();
+
     // Since it's a merge request we need to get parent commit for it
-    final List<String> commits = getParentCommits(info, commitId, myParams);
+    final List<String> commits = getParentCommits(info, commitId, myParams, trustStore);
 
     // Then we need to get pull request iteration where this commit present
-    final String iterationId = getPullRequestIteration(info, pullRequestId, commits, myParams);
+    final String iterationId = getPullRequestIteration(info, pullRequestId, commits, myParams, trustStore);
     if (StringUtil.isEmptyOrSpaces(iterationId)) {
       final String message = String.format("Iteration was not found for commit %s in pull request %s", commitId, pullRequestId);
       LOG.warn(message);

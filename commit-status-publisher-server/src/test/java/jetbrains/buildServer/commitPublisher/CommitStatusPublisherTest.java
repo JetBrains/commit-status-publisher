@@ -1,5 +1,6 @@
 package jetbrains.buildServer.commitPublisher;
 
+import java.security.KeyStore;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BuildRevision;
@@ -9,6 +10,7 @@ import jetbrains.buildServer.serverSide.SRunningBuild;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.executors.SimpleExecutorServices;
+import jetbrains.buildServer.serverSide.impl.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
@@ -16,6 +18,7 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.Test;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
@@ -52,6 +55,8 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   protected SUser myUser;
   protected OAuthConnectionsManager myOAuthConnectionsManager;
   protected OAuthTokensStorage myOAuthTokenStorage;
+  protected SSLTrustStoreProvider myTrustStoreProvider;
+
 
   protected enum EventToTest {
     QUEUED(Event.QUEUED), REMOVED(Event.REMOVED_FROM_QUEUE), STARTED(Event.STARTED),
@@ -88,6 +93,13 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     myBranch = null;
     myOAuthConnectionsManager = new OAuthConnectionsManager(myServer);
     myOAuthTokenStorage =  new OAuthTokensStorage(myFixture.getServerPaths(), myFixture.getSingletonService(ExecutorServices.class));
+    myTrustStoreProvider = new SSLTrustStoreProvider() {
+      @Nullable
+      @Override
+      public KeyStore getTrustStore() {
+        return null;
+      }
+    };
   }
 
   public void test_testConnection() throws Exception {

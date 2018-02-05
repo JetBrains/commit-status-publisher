@@ -48,7 +48,7 @@ public class TfsPublisherTest extends HttpPublisherTest {
   protected void setUp() throws Exception {
     super.setUp();
     myPublisherSettings = new TfsPublisherSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems,
-      myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext());
+      myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext(), myTrustStoreProvider);
     Map<String, String> params = getPublisherParams();
     myPublisher = new TfsStatusPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
     myVcsURL = getServerUrl() + "/_git/" + CORRECT_REPO;

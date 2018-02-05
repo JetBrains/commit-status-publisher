@@ -113,7 +113,8 @@ public class GitHubPublisherTest extends HttpPublisherTest {
                                                     new GitHubApiFactoryImpl(new HttpClientWrapperImpl()), myWebLinks);
 
     myPublisherSettings = new GitHubSettings(myChangeStatusUpdater, myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems,
-                                             myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext());
+                                             myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext(),
+                                             myTrustStoreProvider);
     myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems);
   }
 

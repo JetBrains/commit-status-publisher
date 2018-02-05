@@ -47,7 +47,7 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
     myPublisherSettings = new GerritSettings(myExecServices, new MockPluginDescriptor(),
                                              myFixture.getSingletonService(ExtensionHolder.class),
                                              myGerritClient,
-                                             myWebLinks, myProblems);
+                                             myWebLinks, myProblems, myTrustStoreProvider);
     Map<String, String> params = getPublisherParams();
     myPublisher = new GerritPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myGerritClient, myWebLinks, params, myProblems);
     myBranch = "custom_branch";

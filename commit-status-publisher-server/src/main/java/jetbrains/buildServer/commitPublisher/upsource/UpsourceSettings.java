@@ -1,6 +1,5 @@
 package jetbrains.buildServer.commitPublisher.upsource;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
@@ -8,13 +7,12 @@ import jetbrains.buildServer.commitPublisher.upsource.data.UpsourceCurrentUser;
 import jetbrains.buildServer.commitPublisher.upsource.data.UpsourceGetCurrentUserResult;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.impl.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -50,8 +48,9 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
                           @NotNull final ExecutorServices executorServices,
                           @NotNull PluginDescriptor descriptor,
                           @NotNull WebLinks links,
-                          @NotNull CommitStatusPublisherProblems problems) {
-    super(executorServices, descriptor, links, problems);
+                          @NotNull CommitStatusPublisherProblems problems,
+                          @NotNull SSLTrustStoreProvider trustStoreProvider) {
+    super(executorServices, descriptor, links, problems, trustStoreProvider);
     myVcsHistory = vcsHistory;
   }
 
@@ -130,13 +129,13 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
       data.put(UpsourceSettings.PROJECT_FIELD, projectId);
       // Newer versions of Upsource support special test connection call, that works correctly for their CI-specific authentication
       HttpHelper.post(urlPost, username, password, myGson.toJson(data), ContentType.APPLICATION_JSON, null,
-                      BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
+                      BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(),
                       new DefaultHttpResponseProcessor());
     } catch (Exception ex) {
       try {
         // If the newer method fails, we assume it may be an older version of Upsource, and test connection in a regular way
         HttpHelper.get(urlGet, username, password, null,
-                       BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
+                       BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(),
                        new TestConnectionResponseProcessor(projectId));
       } catch (Exception ex2) {
         throw new PublisherException(String.format("Upsource publisher has failed to connect to project '%s'", projectId), ex2);
@@ -158,16 +157,13 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
     }
 
     @Override
-    public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+    public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
       super.processResponse(response);
 
-      final HttpEntity entity = response.getEntity();
-      if (null == entity) {
+      final String json = response.getContent();
+      if (null == json) {
         throw new HttpPublisherException("Upsource publisher has received no response");
       }
-      ByteArrayOutputStream bos = new ByteArrayOutputStream();
-      entity.writeTo(bos);
-      final String json = bos.toString("utf-8");
       UpsourceGetCurrentUserResult result = myGson.fromJson(json, UpsourceGetCurrentUserResult.class);
       if (null == result || null == result.result || null == result.result.userId) {
         throw new HttpPublisherException("Upsource publisher has received a malformed response");

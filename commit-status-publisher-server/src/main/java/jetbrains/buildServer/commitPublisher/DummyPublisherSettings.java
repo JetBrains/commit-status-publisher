@@ -1,5 +1,6 @@
 package jetbrains.buildServer.commitPublisher;
 
+import java.security.KeyStore;
 import java.util.Collections;
 import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
@@ -85,5 +86,11 @@ class DummyPublisherSettings implements CommitStatusPublisherSettings {
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
     // does nothing
+  }
+
+  @Nullable
+  @Override
+  public KeyStore trustStore() {
+    return null;
   }
 }

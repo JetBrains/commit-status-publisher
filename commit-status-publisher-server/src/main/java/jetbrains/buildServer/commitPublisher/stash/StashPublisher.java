@@ -8,15 +8,10 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Map;
 
 class StashPublisher extends HttpBasedCommitStatusPublisher {
@@ -154,21 +149,19 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public void processResponse(HttpResponse response) throws HttpPublisherException {
-    StatusLine statusLine = response.getStatusLine();
-    if (statusLine.getStatusCode() >= 400)
-      throw new HttpPublisherException(statusLine.getStatusCode(), statusLine.getReasonPhrase(), parseErrorMessage(response));
+  public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException {
+    final int statusCode = response.getStatusCode();
+    if (statusCode >= 400)
+      throw new HttpPublisherException(statusCode, response.getStatusText(), parseErrorMessage(response));
   }
 
   @Nullable
-  private String parseErrorMessage(@NotNull HttpResponse response) {
-    HttpEntity entity = response.getEntity();
-    if (entity == null)
-      return null;
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
+  private String parseErrorMessage(@NotNull HttpHelper.HttpResponse response) {
     try {
-      entity.writeTo(out);
-      String str = out.toString("UTF-8");
+      String str = response.getContent();
+      if (str == null) {
+        return null;
+      }
       LOG.debug("Stash response: " + str);
       JsonElement json = new JsonParser().parse(str);
       if (!json.isJsonObject())
@@ -185,8 +178,6 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
         return null;
       JsonElement msg = error.getAsJsonObject().get("message");
       return msg != null ? msg.getAsString() : null;
-    } catch (IOException e) {
-      return null;
     } catch (JsonSyntaxException e) {
       return null;
     }

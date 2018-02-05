@@ -1,40 +1,20 @@
 package jetbrains.buildServer.commitPublisher;
 
 import com.intellij.openapi.diagnostic.Logger;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.KeyStore;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import jetbrains.buildServer.http.SimpleCredentials;
+import jetbrains.buildServer.util.HTTPRequestBuilder;
+import jetbrains.buildServer.util.http.HttpMethod;
+import jetbrains.buildServer.util.http.RedirectStrategy;
 import jetbrains.buildServer.version.ServerVersionHolder;
-import org.apache.commons.beanutils.PropertyUtils;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpMessage;
-import org.apache.http.HttpResponse;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.AuthCache;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.utils.HttpClientUtils;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.*;
-import org.apache.http.protocol.BasicHttpContext;
-import org.apache.http.protocol.HttpContext;
-import org.apache.http.ssl.SSLContexts;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Map;
-
-import static org.apache.http.client.protocol.HttpClientContext.AUTH_CACHE;
 
 /**
  * @author anton.zamolotskikh, 23/11/16.
@@ -42,72 +22,100 @@ import static org.apache.http.client.protocol.HttpClientContext.AUTH_CACHE;
 public class HttpHelper {
   private static final Logger LOG = Logger.getInstance(HttpBasedCommitStatusPublisher.class.getName());
 
-  public static void post(@NotNull String url, @Nullable String username, @Nullable String password,
-                          @Nullable String data, @Nullable ContentType contentType,
-                          @Nullable final Map<String, String> headers, int timeout,
-                          @Nullable HttpResponseProcessor processor) throws IOException, HttpPublisherException {
+  private static final HTTPRequestBuilder.RequestHandler REQUEST_HANDLER =
+    new HTTPRequestBuilder.ApacheClient43RequestHandler();
 
-    URI uri = getURI(url);
-    CloseableHttpClient client = buildClient(uri, username, password);
+  private static void call(@NotNull HttpMethod method,
+                           @NotNull String url,
+                           @Nullable String username,
+                           @Nullable String password,
+                           @Nullable final Map<String, String> headers,
+                           int timeout,
+                           @Nullable final KeyStore trustStore,
+                           @Nullable HttpResponseProcessor processor,
+                           @Nullable Consumer<HTTPRequestBuilder> modifier
+  ) throws IOException, HttpPublisherException {
+    final AtomicReference<Exception> ex = new AtomicReference<Exception>();
+    final AtomicReference<String> content = new AtomicReference<String>();
+    final AtomicReference<Integer> code = new AtomicReference<Integer>(0);
+    final AtomicReference<String> text = new AtomicReference<String>();
 
-    HttpPost post = null;
-    HttpResponse response = null;
+    final HTTPRequestBuilder builder;
     try {
-      post = new HttpPost(url);
-      post.setConfig(makeRequestConfig(timeout));
+      builder = new HTTPRequestBuilder(url);
+      builder
+        .withMethod(method)
+        .withTimeout(timeout)
+        .withCredentials(getCredentials(username, password))
+        .withRedirectStrategy(RedirectStrategy.LAX)
+        .withTrustStore(trustStore)
+        .allowNonSecureConnection(true)
+        .withPreemptiveAuthentication(true)
+        .withHeader(headers)
+        .onException(new Consumer<Exception>() {
+          @Override
+          public void accept(final Exception e) {
+            ex.set(e);
+          }
+        })
+        .onErrorResponse(new HTTPRequestBuilder.ResponseConsumer() {
+          @Override
+          public void consume(@NotNull final HTTPRequestBuilder.Response response) throws IOException {
+            content.set(response.getBodyAsString());
+            code.set(response.getStatusCode());
+            text.set(response.getStatusText());
+          }
+        })
+        .onSuccess(new HTTPRequestBuilder.ResponseConsumer() {
+          @Override
+          public void consume(@NotNull final HTTPRequestBuilder.Response response) throws IOException {
+            content.set(response.getBodyAsString());
+            code.set(response.getStatusCode());
+            text.set(response.getStatusText());
+          }
+        });
+    } catch (URISyntaxException e) {
+      throw new IllegalArgumentException(String.format("Malformed URL '%s'", url), e);
+    }
+    if (modifier != null) {
+      modifier.accept(builder);
+    }
 
-      addHeaders(post, headers);
+    REQUEST_HANDLER.doRequest(builder.build());
+    Exception exception = ex.get();
+    if (exception != null) {
+      if (exception instanceof IOException) {
+        throw (IOException)exception;
+      } else {
+        throw new RuntimeException(exception);
+      }
+    }
 
-      if (null != data && null != contentType) {
-        post.setEntity(new StringEntity(data, contentType));
-      }
-      response = client.execute(post, makeHttpContext(uri));
-      if (null != processor) {
-        processor.processResponse(response);
-      }
-    } finally {
-      HttpClientUtils.closeQuietly(response);
-      if (post != null) {
-        try {
-          post.releaseConnection();
-        } catch (Exception e) {
-          LOG.warn("Error releasing connection", e);
-        }
-      }
-      HttpClientUtils.closeQuietly(client);
+    if (processor != null) {
+      processor.processResponse(new HttpResponse(code.get(), text.get(), content.get()));
     }
   }
 
-  public static void get(@NotNull String url, @Nullable String username, @Nullable String password,
-                         @Nullable final Map<String, String> headers, int timeout,
-                         @Nullable HttpResponseProcessor processor) throws IOException, HttpPublisherException {
+  public static void post(@NotNull String url, @Nullable String username, @Nullable String password,
+                          @Nullable final String data, @Nullable final ContentType contentType,
+                          @Nullable final Map<String, String> headers, int timeout, @Nullable final KeyStore trustStore,
+                          @Nullable HttpResponseProcessor processor) throws IOException, HttpPublisherException {
 
-    URI uri = getURI(url);
-    CloseableHttpClient client = buildClient(uri, username, password);
-
-    HttpGet get = null;
-    HttpResponse response = null;
-    try {
-      get = new HttpGet(url);
-      get.setConfig(makeRequestConfig(timeout));
-
-      addHeaders(get, headers);
-
-      response = client.execute(get, makeHttpContext(uri));
-      if (null != processor) {
-        processor.processResponse(response);
-      }
-    } finally {
-      HttpClientUtils.closeQuietly(response);
-      if (get != null) {
-        try {
-          get.releaseConnection();
-        } catch (Exception e) {
-          LOG.warn("Error releasing connection", e);
+    call(HttpMethod.POST, url, username, password, headers, timeout, trustStore, processor, new Consumer<HTTPRequestBuilder>() {
+      @Override
+      public void accept(final HTTPRequestBuilder builder) {
+        if (data != null && contentType != null) {
+          builder.withPostStringEntity(data, contentType.getMimeType(), contentType.getCharset());
         }
       }
-      HttpClientUtils.closeQuietly(client);
-    }
+    });
+  }
+
+  public static void get(@NotNull String url, @Nullable String username, @Nullable String password,
+                         @Nullable final Map<String, String> headers, int timeout, @Nullable final KeyStore trustStore,
+                         @Nullable HttpResponseProcessor processor) throws IOException, HttpPublisherException {
+
+    call(HttpMethod.GET, url, username, password, headers, timeout, trustStore, processor, null);
   }
 
   public static String stripTrailingSlash(String url) {
@@ -120,76 +128,33 @@ public class HttpHelper {
     return "TeamCity Server " + ServerVersionHolder.getVersion().getDisplayVersion();
   }
 
+  @Nullable
+  private static SimpleCredentials getCredentials(@Nullable final String username, @Nullable final String password) {
+    return username == null || password == null ? null : new SimpleCredentials(username, password);
+  }
 
-  private static void addHeaders(HttpMessage request, @Nullable final Map<String, String> headers) {
-    if (null != headers) {
-      for (Map.Entry<String, String> hdr : headers.entrySet()) {
-        request.addHeader(hdr.getKey(), hdr.getValue());
-      }
+  public static class HttpResponse {
+
+    private final int myStatusCode;
+    private final String myStatusText;
+    private final String myContent;
+
+    public HttpResponse(final int statusCode, final String statusText, final String content) {
+      myStatusCode = statusCode;
+      myStatusText = statusText;
+      myContent = content;
+    }
+
+    public int getStatusCode() {
+      return myStatusCode;
+    }
+
+    public String getStatusText() {
+      return myStatusText;
+    }
+
+    public String getContent() {
+      return myContent;
     }
   }
-
-  private static URI getURI (String url) {
-    try {
-      return new URI(url);
-    } catch (URISyntaxException ex) {
-      throw new IllegalArgumentException(String.format("Malformed URL '%s'", url), ex);
-    }
-  }
-
-  private static RequestConfig makeRequestConfig(int timeout) {
-    return  RequestConfig.custom()
-            .setConnectionRequestTimeout(timeout)
-            .setConnectTimeout(timeout)
-            .setSocketTimeout(timeout)
-            .build();
-  }
-
-  private static BasicHttpContext makeHttpContext(URI uri) {
-    AuthCache authCache = new BasicAuthCache();
-    authCache.put(new HttpHost(uri.getHost(), uri.getPort(), uri.getScheme()), new BasicScheme());
-    BasicHttpContext ctx = new BasicHttpContext();
-    ctx.setAttribute(AUTH_CACHE, authCache);
-    return ctx;
-  }
-
-  private static CloseableHttpClient buildClient(URI uri, String username, String password) {
-    HttpClientBuilder builder = createHttpClientBuilder();
-    builder.setRedirectStrategy(new LaxRedirectStrategy());
-    if (null != username && null != password) {
-      BasicCredentialsProvider credentials = new BasicCredentialsProvider();
-      credentials.setCredentials(new AuthScope(uri.getHost(), uri.getPort()), new UsernamePasswordCredentials(username, password));
-      builder.setDefaultCredentialsProvider(credentials);
-    }
-    builder.setUserAgent(buildUserAgentString());
-    return builder.useSystemProperties().build();
-  }
-
-  @NotNull
-  private static HttpClientBuilder createHttpClientBuilder() {
-    SSLContext sslcontext = SSLContexts.createSystemDefault();
-    SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslcontext) {
-      @Override
-      public Socket connectSocket(
-              int connectTimeout,
-              Socket socket,
-              HttpHost host,
-              InetSocketAddress remoteAddress,
-              InetSocketAddress localAddress,
-              HttpContext context) throws IOException {
-        if (socket instanceof SSLSocket) {
-          try {
-            PropertyUtils.setProperty(socket, "host", host.getHostName());
-          } catch (NoSuchMethodException ex) {       // ignore all that stuff
-          } catch (IllegalAccessException ex) {     //
-          } catch (InvocationTargetException ex) { //
-          }
-        }
-        return super.connectSocket(connectTimeout, socket, host, remoteAddress, localAddress, context);
-      }
-    };
-
-    return HttpClients.custom().setSSLSocketFactory(sslsf);
-  }
-
 }

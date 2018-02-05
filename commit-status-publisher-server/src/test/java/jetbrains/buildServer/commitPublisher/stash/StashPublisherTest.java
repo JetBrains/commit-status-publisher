@@ -48,7 +48,7 @@ public class StashPublisherTest extends HttpPublisherTest {
     setExpectedEndpointPrefix("/build-status/1.0/commits");
     super.setUp();
     Map<String, String> params = getPublisherParams();
-    myPublisherSettings = new StashSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
+    myPublisherSettings = new StashSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
     myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
   }
 

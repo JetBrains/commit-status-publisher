@@ -46,7 +46,7 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
     setExpectedApiPath("/~buildStatus");
     setExpectedEndpointPrefix("");
     super.setUp();
-    myPublisherSettings = new UpsourceSettings(myFixture.getVcsHistory(), myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
+    myPublisherSettings = new UpsourceSettings(myFixture.getVcsHistory(), myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
     Map<String, String> params = getPublisherParams();
     myPublisher = new UpsourcePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myFixture.getVcsHistory(), myExecServices, myWebLinks, params, myProblems);
   }

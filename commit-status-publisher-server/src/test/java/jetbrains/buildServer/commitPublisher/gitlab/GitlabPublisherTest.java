@@ -119,7 +119,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     setExpectedApiPath("/api/v4");
     setExpectedEndpointPrefix("/projects/" + OWNER + "%2F" + CORRECT_REPO);
     super.setUp();
-    myPublisherSettings = new GitlabSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
+    myPublisherSettings = new GitlabSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
     Map<String, String> params = getPublisherParams();
     myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
   }

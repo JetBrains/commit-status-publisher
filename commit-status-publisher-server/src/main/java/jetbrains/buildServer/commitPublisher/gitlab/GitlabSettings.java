@@ -8,16 +8,14 @@ import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabUserInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.impl.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
 
@@ -36,8 +34,9 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
   public GitlabSettings(@NotNull ExecutorServices executorServices,
                         @NotNull PluginDescriptor descriptor,
                         @NotNull WebLinks links,
-                        @NotNull CommitStatusPublisherProblems problems) {
-    super(executorServices, descriptor, links, problems);
+                        @NotNull CommitStatusPublisherProblems problems,
+                        @NotNull SSLTrustStoreProvider trustStoreProvider) {
+    super(executorServices, descriptor, links, problems, trustStoreProvider);
   }
 
   @NotNull
@@ -84,10 +83,12 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     try {
       ProjectInfoResponseProcessor processorPrj = new ProjectInfoResponseProcessor();
       HttpHelper.get(getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName()),
-                     null, null, Collections.singletonMap("PRIVATE-TOKEN", token), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processorPrj);
+                     null, null, Collections.singletonMap("PRIVATE-TOKEN", token),
+                     BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorPrj);
       if (processorPrj.getAccessLevel() < 30) {
         UserInfoResponseProcessor processorUser = new UserInfoResponseProcessor();
-        HttpHelper.get(getUserUrl(apiUrl), null, null, Collections.singletonMap("PRIVATE-TOKEN", token), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processorUser);
+        HttpHelper.get(getUserUrl(apiUrl), null, null, Collections.singletonMap("PRIVATE-TOKEN", token),
+                       BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorUser);
         if (!processorUser.isAdmin()) {
           throw new HttpPublisherException("GitLab does not grant enough permissions to publish a commit status");
         }
@@ -168,17 +169,14 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     }
 
     @Override
-    public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+    public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
 
       super.processResponse(response);
 
-      final HttpEntity entity = response.getEntity();
-      if (null == entity) {
+      final String json = response.getContent();
+      if (null == json) {
         throw new HttpPublisherException("GitLab publisher has received no response");
       }
-      ByteArrayOutputStream bos = new ByteArrayOutputStream();
-      entity.writeTo(bos);
-      final String json = bos.toString("utf-8");
       myInfo = myGson.fromJson(json, myInfoClass);
     }
   }
@@ -196,7 +194,7 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     }
 
     @Override
-    public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+    public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
       myAccessLevel = 0;
       super.processResponse(response);
       GitLabRepoInfo repoInfo = getInfo();
@@ -223,7 +221,7 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     }
 
     @Override
-    public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+    public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
       myIsAdmin = false;
       super.processResponse(response);
       GitLabUserInfo userInfo = getInfo();

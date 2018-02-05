@@ -6,6 +6,7 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.impl.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.serverSide.oauth.*;
 import jetbrains.buildServer.serverSide.oauth.tfs.TfsAuthProvider;
 import jetbrains.buildServer.users.SUser;
@@ -40,8 +41,9 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
                               @NotNull CommitStatusPublisherProblems problems,
                               @NotNull OAuthConnectionsManager oauthConnectionsManager,
                               @NotNull OAuthTokensStorage oauthTokensStorage,
-                              @NotNull SecurityContext securityContext) {
-    super(executorServices, descriptor, links, problems);
+                              @NotNull SecurityContext securityContext,
+                              @NotNull SSLTrustStoreProvider trustStoreProvider) {
+    super(executorServices, descriptor, links, problems, trustStoreProvider);
     myOauthConnectionsManager = oauthConnectionsManager;
     myOAuthTokensStorage = oauthTokensStorage;
     mySecurityContext = securityContext;
@@ -91,10 +93,10 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
     }
 
     if (commitId == null) {
-      commitId = TfsStatusPublisher.getLatestCommitId(root, params);
+      commitId = TfsStatusPublisher.getLatestCommitId(root, params, trustStore());
     }
 
-    TfsStatusPublisher.testConnection(root, params, commitId);
+    TfsStatusPublisher.testConnection(root, params, commitId, trustStore());
   }
 
   @Nullable
