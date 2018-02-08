@@ -8,7 +8,7 @@
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
 
   <tr>
-    <th><label for="${keys.gerritServer}">Gerrit Server: <l:star/></label></th>
+    <th><label for="${keys.gerritServer}">Gerrit Server:<l:star/></label></th>
     <td>
       <props:textProperty name="${keys.gerritServer}" className="longField"/>
       <span class="smallNote">Format: <strong>&lt;host&gt;[:&lt;port&gt;]</strong></span>
@@ -17,7 +17,7 @@
   </tr>
 
   <tr>
-    <th><label for="${keys.gerritUsername}">Gerrit Username: <l:star/></label></th>
+    <th><label for="${keys.gerritUsername}">Gerrit Username:<l:star/></label></th>
     <td>
       <props:textProperty name="${keys.gerritUsername}" className="mediumField"/>
       <span class="error" id="error_${keys.gerritUsername}"></span>
@@ -25,7 +25,7 @@
   </tr>
 
   <tr>
-    <th><label for="${keys.sshKey}">SSH Key: <l:star/></label></th>
+    <th><label for="${keys.sshKey}">SSH Key:<l:star/></label></th>
     <td>
       <admin:sshKeys projectId="${projectId}"/>
       <span class="error" id="error_${keys.sshKey}"></span>
@@ -33,7 +33,7 @@
   </tr>
 
   <tr>
-    <th><label for="${keys.gerritProject}">Gerrit Project Name: <l:star/></label></th>
+    <th><label for="${keys.gerritProject}">Gerrit Project Name:<l:star/></label></th>
     <td>
       <props:textProperty name="${keys.gerritProject}" className="mediumField"/>
       <span class="error" id="error_${keys.gerritProject}"></span>
@@ -41,7 +41,7 @@
   </tr>
 
   <tr>
-    <th><label for="${keys.gerritSuccessVote}">Successful Build Vote: <l:star/></label></th>
+    <th><label for="${keys.gerritSuccessVote}">Successful Build Vote:<l:star/></label></th>
     <td>
       <props:textProperty name="${keys.gerritSuccessVote}" className="mediumField"/>
       <span class="error" id="error_${keys.gerritSuccessVote}"></span>
@@ -49,7 +49,7 @@
   </tr>
 
   <tr>
-    <th><label for="${keys.gerritFailureVote}">Failed Build Vote: <l:star/></label></th>
+    <th><label for="${keys.gerritFailureVote}">Failed Build Vote:<l:star/></label></th>
     <td>
       <props:textProperty name="${keys.gerritFailureVote}" className="mediumField"/>
       <span class="error" id="error_${keys.gerritFailureVote}"></span>

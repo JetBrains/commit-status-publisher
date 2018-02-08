@@ -6,7 +6,7 @@
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
   <tr>
-    <th><label for="${keys.stashBaseUrl}">Bitbucket Server Base URL: <l:star/></label></th>
+    <th><label for="${keys.stashBaseUrl}">Bitbucket Server Base URL:<l:star/></label></th>
     <td>
       <props:textProperty name="${keys.stashBaseUrl}" className="longField"/>
       <span class="smallNote">Base URL field in Bitbucket Server settings</span>
@@ -15,14 +15,14 @@
   </tr>
 
   <tr>
-    <th><label for="${keys.stashUsername}">Username: <l:star/></label></th>
+    <th><label for="${keys.stashUsername}">Username:<l:star/></label></th>
     <td>
       <props:textProperty name="${keys.stashUsername}" className="mediumField"/>
     </td>
   </tr>
 
   <tr>
-    <th><label for="${keys.stashPassword}">Password: <l:star/></label></th>
+    <th><label for="${keys.stashPassword}">Password:<l:star/></label></th>
     <td>
       <props:passwordProperty name="${keys.stashPassword}" className="mediumField"/>
       <c:if test="${testConnectionSupported}">

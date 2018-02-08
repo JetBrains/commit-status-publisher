@@ -83,7 +83,7 @@
   });
 </script>
   <tr>
-    <th><label for="${constants.vcsRootIdParam}">VCS Root:&nbsp;<l:star/></label></th>
+    <th><label for="${constants.vcsRootIdParam}">VCS Root:<l:star/></label></th>
     <td>
       <props:selectProperty name="${constants.vcsRootIdParam}" className="longField" enableFilter="true" style="width: 95%;">
         <props:option value="">&lt;All attached VCS Roots&gt;</props:option>
@@ -109,7 +109,7 @@
   </tr>
   <tr>
     <th>
-      <label for="${constants.publisherIdParam}">Publisher:&nbsp;<l:star/></label>
+      <label for="${constants.publisherIdParam}">Publisher:<l:star/></label>
     </th>
     <td>
       <props:selectProperty name="${constants.publisherIdParam}" onchange="PublisherFeature.showPublisherSettings()" enableFilter="true" className="mediumField">

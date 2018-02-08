@@ -23,7 +23,7 @@
 </c:set>
 
 <tr>
-  <th><label for="${keys.accessTokenKey}">Access Token: <l:star/></label></th>
+  <th><label for="${keys.accessTokenKey}">Access Token:<l:star/></label></th>
   <td>
     <props:passwordProperty name="${keys.accessTokenKey}" className="mediumField"/>
     ${oauth_connection_fragment}

@@ -3,7 +3,7 @@
 <%@ taglib prefix="l" tagdir="/WEB-INF/tags/layout" %>
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
     <tr>
-        <th><label for="${keys.gitlabServer}">GitLab URL: <l:star/></label></th>
+        <th><label for="${keys.gitlabServer}">GitLab URL:<l:star/></label></th>
         <td>
             <props:textProperty name="${keys.gitlabServer}" className="longField"/>
             <span class="smallNote">
@@ -14,7 +14,7 @@
     </tr>
 
     <tr>
-        <th><label for="${keys.gitlabToken}">Private Token: <l:star/></label></th>
+        <th><label for="${keys.gitlabToken}">Private Token:<l:star/></label></th>
         <td>
             <props:passwordProperty name="${keys.gitlabToken}" className="mediumField"/>
             <span class="smallNote">

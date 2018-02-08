@@ -6,7 +6,7 @@
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
   <tr>
-    <th><label for="${keys.bitbucketCloudUsername}">Bitbucket Username: <l:star/></label></th>
+    <th><label for="${keys.bitbucketCloudUsername}">Bitbucket Username:<l:star/></label></th>
     <td>
       <props:textProperty name="${keys.bitbucketCloudUsername}" className="mediumField"/>
       <span class="error" id="error_${keys.bitbucketCloudUsername}"></span>
@@ -14,7 +14,7 @@
   </tr>
 
   <tr>
-    <th><label for="${keys.bitbucketCloudPassword}">Bitbucket Password: <l:star/></label></th>
+    <th><label for="${keys.bitbucketCloudPassword}">Bitbucket Password:<l:star/></label></th>
     <td>
       <props:passwordProperty name="${keys.bitbucketCloudPassword}" className="mediumField"/>
       <span class="error" id="error_${keys.bitbucketCloudPassword}"></span>

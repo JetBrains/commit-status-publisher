@@ -7,7 +7,7 @@
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
 <jsp:useBean id="currentUser" type="jetbrains.buildServer.users.SUser" scope="request"/>
     <tr>
-        <th><label for="${keys.upsourceServerUrl}">Upsource URL: <l:star/></label></th>
+        <th><label for="${keys.upsourceServerUrl}">Upsource URL:<l:star/></label></th>
         <td>
             <props:textProperty name="${keys.upsourceServerUrl}" className="longField"/> <span id="hubAppsControl"></span>
             <span class="error" id="error_${keys.upsourceServerUrl}"></span>
@@ -15,21 +15,21 @@
     </tr>
 
     <tr>
-        <th><label for="${keys.upsourceUsername}">Username: <l:star/></label></th>
+        <th><label for="${keys.upsourceUsername}">Username:<l:star/></label></th>
         <td>
             <props:textProperty name="${keys.upsourceUsername}" className="mediumField"/>
         </td>
     </tr>
 
     <tr>
-        <th><label for="${keys.upsourcePassword}">Password: <l:star/></label></th>
+        <th><label for="${keys.upsourcePassword}">Password:<l:star/></label></th>
         <td>
             <props:passwordProperty name="${keys.upsourcePassword}" className="mediumField"/>
         </td>
     </tr>
 
     <tr>
-        <th><label for="${keys.upsourceProjectId}">Upsource Project ID: <l:star/></label></th>
+        <th><label for="${keys.upsourceProjectId}">Upsource Project ID:<l:star/></label></th>
         <td>
             <props:textProperty name="${keys.upsourceProjectId}" className="mediumField"/> <span id="hubProjectsControl"></span>
             <span class="error" id="error_${keys.upsourceProjectId}"></span>
