@@ -104,7 +104,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     if (repository == null)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
 
-    String message = createMessage(status, build, revision, description);
+    String message = createMessage(status, build, revision, "/viewQueued.html?itemId=" + build.getItemId(),  description);
     try {
       publish(revision.getRevision(), message, repository, LogUtil.describe(build));
     } catch (Exception e) {
@@ -147,6 +147,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   private String createMessage(@NotNull GitlabBuildStatus status,
                                @NotNull SQueuedBuild build,
                                @NotNull BuildRevision revision,
+                               @NotNull String url,
                                @NotNull String description) {
 
     RepositoryVersion repositoryVersion = revision.getRepositoryVersion();
@@ -164,6 +165,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     final Map<String, String> data = new LinkedHashMap<String, String>();
     data.put("state", status.getName());
     data.put("name", build.getBuildType().getName());
+    data.put("target_url", url);
     data.put("description", description);
     if (ref != null)
       data.put("ref", ref);
