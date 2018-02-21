@@ -81,6 +81,7 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
       put(Constants.GERRIT_USERNAME, "gerrit_user");
       put(Constants.GERRIT_SUCCESS_VOTE, "+1");
       put(Constants.GERRIT_FAILURE_VOTE, "-1");
+      put(Constants.GERRIT_SCORE_FIELD, "verified");
     }};
   }
 

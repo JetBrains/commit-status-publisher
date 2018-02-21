@@ -30,6 +30,7 @@ public class Constants {
   public static final String GERRIT_PUBLISHER_ID = "gerritStatusPublisher";
   public static final String GERRIT_SERVER = "gerritServer";
   public static final String GERRIT_PROJECT = "gerritProject";
+  public static final String GERRIT_SCORE_FIELD = "gerritScoreField";
   public static final String GERRIT_USERNAME = "gerritUsername";
   public static final String GERRIT_SUCCESS_VOTE = "successVote";
   public static final String GERRIT_FAILURE_VOTE = "failureVote";
@@ -118,6 +119,11 @@ public class Constants {
   @NotNull
   public String getGerritUsername() {
     return GERRIT_USERNAME;
+  }
+
+  @NotNull
+  public String getGerritScoreField() {
+    return GERRIT_SCORE_FIELD;
   }
 
   @NotNull

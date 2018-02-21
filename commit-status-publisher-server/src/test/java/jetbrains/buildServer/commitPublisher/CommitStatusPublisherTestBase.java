@@ -132,12 +132,12 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
       return null;
     }
 
-    @Override
+    //@Override
     public boolean isBranchesConfigured() {
       return false;
     }
 
-    @Override
+    //@Override
     public boolean isCompositeBuild() {
       return false;
     }
@@ -161,7 +161,7 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
       return null;
     }
 
-    @Override
+    //@Override
     public boolean isDefaultExcluded() { return false; }
   }
 
