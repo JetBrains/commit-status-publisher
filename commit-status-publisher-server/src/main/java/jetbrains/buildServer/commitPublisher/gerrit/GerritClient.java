@@ -4,6 +4,7 @@ import com.jcraft.jsch.JSchException;
 import java.io.IOException;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This interface does not declare full gerrit functionality, but only the methods required
@@ -11,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
  */
 interface GerritClient {
 
-  void review(@NotNull GerritConnectionDetails connectionDetails, @NotNull String vote, @NotNull String message, @NotNull String revision) throws JSchException, IOException;
+  void review(@NotNull GerritConnectionDetails connectionDetails, @Nullable final String label, @NotNull String vote, @NotNull String message, @NotNull String revision) throws JSchException, IOException;
 
   void testConnection(@NotNull GerritConnectionDetails connectionDetails) throws JSchException, IOException, PublisherException;
 

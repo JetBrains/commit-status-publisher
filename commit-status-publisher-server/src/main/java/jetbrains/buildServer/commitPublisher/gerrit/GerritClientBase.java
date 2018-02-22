@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.commitPublisher.gerrit.data.GerritProjectInfo;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Converts review and testConnection calls into Gerrit SSH command line commands.
@@ -15,14 +16,22 @@ import org.jetbrains.annotations.NotNull;
 abstract class GerritClientBase implements GerritClient {
 
   private static final Pattern ESCAPE_PATTERN = Pattern.compile("[\\\\\\\"]");
+  private static final String USE_VERIFIED_OPTION= "$verified-option";
   private final Gson myGson = new Gson();
 
   @Override
-  public void review(@NotNull final GerritConnectionDetails connectionDetails, @NotNull final String vote, @NotNull final String message, @NotNull final String revision)
+  public void review(@NotNull final GerritConnectionDetails connectionDetails,
+                     @Nullable final String label,
+                     @NotNull final String vote,
+                     @NotNull final String message,
+                     @NotNull final String revision)
     throws JSchException, IOException {
+    String voteClause = null == label || label.isEmpty() ? " --label Verified=" :
+                        label.equals(USE_VERIFIED_OPTION) ? " --verified "
+                                                          : String.format(" --label %s=", label);
     StringBuilder command = new StringBuilder();
     command.append("gerrit review --project ").append(connectionDetails.getGerritProject())
-           .append(" --verified ").append(vote)
+           .append(voteClause).append(vote)
            .append(" -m \"").append(escape(message)).append("\" ")
            .append(revision);
     runCommand(connectionDetails, command.toString());

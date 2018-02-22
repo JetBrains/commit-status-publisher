@@ -41,6 +41,14 @@
   </tr>
 
   <tr>
+    <th><label for="${keys.gerritLabel}">Gerrit Label: <l:star/></label></th>
+    <td>
+      <props:textProperty name="${keys.gerritLabel}" className="mediumField" />
+      <span class="error" id="error_${keys.gerritLabel}"></span>
+    </td>
+  </tr>
+
+  <tr>
     <th><label for="${keys.gerritSuccessVote}">Successful Build Vote: <l:star/></label></th>
     <td>
       <props:textProperty name="${keys.gerritSuccessVote}" className="mediumField"/>
