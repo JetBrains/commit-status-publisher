@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.commitPublisher.gerrit.data.GerritProjectInfo;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -20,9 +21,14 @@ abstract class GerritClientBase implements GerritClient {
   @Override
   public void review(@NotNull final GerritConnectionDetails connectionDetails, @NotNull final String vote, @NotNull final String message, @NotNull final String revision)
     throws JSchException, IOException {
+
+    String voteClause = TeamCityProperties.getBoolean("teamcity.commitStatusPublisher.gerrit.verified.option")
+                        ? " --verified "
+                        : " --label Verified=";
+
     StringBuilder command = new StringBuilder();
     command.append("gerrit review --project ").append(connectionDetails.getGerritProject())
-           .append(" --verified ").append(vote)
+           .append(voteClause).append(vote)
            .append(" -m \"").append(escape(message)).append("\" ")
            .append(revision);
     runCommand(connectionDetails, command.toString());

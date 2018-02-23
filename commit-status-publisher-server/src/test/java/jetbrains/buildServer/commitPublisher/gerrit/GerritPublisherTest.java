@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.messages.Status;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -23,18 +25,18 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
   public GerritPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.REMOVED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.STARTED, null);
-    myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\+1.*", REVISION));
-    myExpectedRegExps.put(EventToTest.FAILED, String.format(".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\-1.*%s", REVISION));
+    myExpectedRegExps.put(EventToTest.STARTED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --label Verified=\\+1.*", REVISION));
+    myExpectedRegExps.put(EventToTest.FAILED, String.format(".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --label Verified=\\-1.*%s", REVISION));
     myExpectedRegExps.put(EventToTest.COMMENTED_SUCCESS, null); // not to be tested
     myExpectedRegExps.put(EventToTest.COMMENTED_FAILED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS, null); // not to be tested
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.INTERRUPTED, null);
-    myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, null);
-    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, null);
-    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, null);
-    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format(".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\-1.*%s.*%s", BT_NAME_ESCAPED_REGEXP, REVISION));
+    myExpectedRegExps.put(EventToTest.INTERRUPTED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format(".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --label Verified=\\-1.*%s.*%s", BT_NAME_ESCAPED_REGEXP, REVISION));
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, ".*server: gerrit_server, user: gerrit_user, command: gerrit ls-projects --format JSON.*");
   }
 
@@ -66,6 +68,15 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
   @Override
   public void test_testConnection_fails_on_missing_target() throws InterruptedException {
     test_testConnection_failure("http://localhost/nouser/norepo", getPublisherParams("PRJ_MISSING"));
+  }
+
+  public void test_buildFinished_withOldVerifiedOption() throws Exception {
+    Map<String, String> params = getPublisherParams();
+    setInternalProperty("teamcity.commitStatusPublisher.gerrit.verified.option", "true");
+    myPublisher = new GerritPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myGerritClient, myWebLinks, params, myProblems);
+    myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
+    then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
+                          .matches(String.format(".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\+1.*", REVISION));
   }
 
   @Override
