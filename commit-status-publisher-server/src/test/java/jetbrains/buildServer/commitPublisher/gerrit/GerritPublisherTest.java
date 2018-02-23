@@ -69,7 +69,7 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
     test_testConnection_failure("http://localhost/nouser/norepo", getPublisherParams("PRJ_MISSING"));
   }
 
-  public void test_buildFinished_withNoLabel() throws Exception {
+  public void test_buildFinished_with_no_label() throws Exception {
     Map<String, String> params = getPublisherParams();
     params.remove(Constants.GERRIT_LABEL);
     myPublisher = new GerritPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myGerritClient, myWebLinks, params, myProblems);
@@ -78,7 +78,16 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
                           .matches(String.format(".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --label Verified=\\+1.*", REVISION));
   }
 
-  public void test_buildFinished_withOldVerifiedOption() throws Exception {
+  public void test_buildFinished_with_verified_option_in_internal_property() throws Exception {
+    Map<String, String> params = getPublisherParams();
+    setInternalProperty("teamcity.commitStatusPublisher.gerrit.verified.option", "true");
+    myPublisher = new GerritPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myGerritClient, myWebLinks, params, myProblems);
+    myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
+    then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
+                          .matches(String.format(".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\+1.*", REVISION));
+  }
+
+  public void test_buildFinished_with_verified_option_in_settings() throws Exception {
     Map<String, String> params = getPublisherParams();
     params.put(Constants.GERRIT_LABEL, "$verified-option");
     myPublisher = new GerritPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myGerritClient, myWebLinks, params, myProblems);

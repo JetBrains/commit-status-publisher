@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.commitPublisher.gerrit.data.GerritProjectInfo;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,12 +27,10 @@ abstract class GerritClientBase implements GerritClient {
                      @NotNull final String message,
                      @NotNull final String revision)
     throws JSchException, IOException {
-    String voteClause = null == label || label.isEmpty() ? " --label Verified=" :
-                        label.equals(USE_VERIFIED_OPTION) ? " --verified "
-                                                          : String.format(" --label %s=", label);
+
     StringBuilder command = new StringBuilder();
     command.append("gerrit review --project ").append(connectionDetails.getGerritProject())
-           .append(voteClause).append(vote)
+           .append(buildVoteClause(label)).append(vote)
            .append(" -m \"").append(escape(message)).append("\" ")
            .append(revision);
     runCommand(connectionDetails, command.toString());
@@ -45,6 +44,17 @@ abstract class GerritClientBase implements GerritClient {
     if (null == myMap || !myMap.containsKey(gerritProject)) {
       throw new PublisherException(String.format("Inaccessible Gerrit project %s", gerritProject));
     }
+  }
+
+  @NotNull
+  private static String buildVoteClause(@Nullable String label) {
+    if (USE_VERIFIED_OPTION.equals(label) || TeamCityProperties.getBoolean("teamcity.commitStatusPublisher.gerrit.verified.option"))
+      return " --verified ";
+
+    if (null == label || label.isEmpty())
+      return " --label Verified=";
+
+    return String.format(" --label %s=", label);
   }
 
   @NotNull
