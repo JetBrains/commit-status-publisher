@@ -23,6 +23,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   private int mySuccessReceived = 0;
   private int myStartedReceived = 0;
   private int myCommentedReceived = 0;
+  private int myQueuedReceived = 0;
   private String myLastComment = null;
 
   private boolean myShouldThrowException = false;
@@ -70,8 +71,16 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
 
   int successReceived() { return mySuccessReceived; }
 
+  int queuedReceived() { return myQueuedReceived; }
+
   void shouldThrowException() {myShouldThrowException = true; }
   void shouldReportError() {myShouldReportError = true; }
+
+  @Override
+  public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException {
+    myQueuedReceived++;
+    return true;
+  }
 
   @Override
   public boolean buildStarted(@NotNull final SRunningBuild build, @NotNull final BuildRevision revision) throws PublisherException {

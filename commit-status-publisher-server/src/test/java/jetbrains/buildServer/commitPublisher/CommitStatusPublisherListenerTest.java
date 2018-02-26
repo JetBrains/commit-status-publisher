@@ -1,8 +1,11 @@
 package jetbrains.buildServer.commitPublisher;
 
+import jetbrains.buildServer.RunningBuild;
+import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.BuildPromotionImpl;
+import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.util.Dates;
@@ -219,23 +222,9 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
    prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.EXT_ID);
   }
 
-  private void prepareVcs(String vcsRootName, String currentVersion, String revNo, SetVcsRootIdMode setVcsRootIdMode) {
+  private void prepareVcs(String vcsRootName, String currentVersion, String revNo, SetVcsRootIdMode setVcsRootIdMode)
+  {
     final SVcsRoot vcsRoot = myFixture.addVcsRoot("jetbrains.git", vcsRootName);
-    switch (setVcsRootIdMode) {
-      case EXT_ID:
-        myPublisher.setVcsRootId(vcsRoot.getExternalId());
-        break;
-      case INT_ID:
-        myPublisher.setVcsRootId(String.valueOf(vcsRoot.getId()));
-    }
-    myBuildType.addVcsRoot(vcsRoot);
-    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
-    myCurrentVersions.put(vcsRoot.getName(), currentVersion);
-    myFixture.addModification(new ModificationData(new Date(),
-            Collections.singletonList(new VcsChange(VcsChangeInfo.Type.CHANGED, "changed", "file", "file","1", "2")),
-            "descr2", "user", vcsRootInstance, revNo, revNo));
+    prepareVcs(vcsRoot, currentVersion, revNo, setVcsRootIdMode, myBuildType, myPublisher);
   }
-
-
-  private enum SetVcsRootIdMode { DONT, EXT_ID, INT_ID }
 }

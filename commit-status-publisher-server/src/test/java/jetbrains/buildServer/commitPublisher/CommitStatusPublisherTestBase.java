@@ -1,6 +1,7 @@
 package jetbrains.buildServer.commitPublisher;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
@@ -76,8 +77,23 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     extensionHolder.registerExtension(BuildFeature.class, CommitStatusPublisherFeature.TYPE, myFeature);
   }
 
+  protected enum SetVcsRootIdMode { DONT, EXT_ID, INT_ID }
 
-
+  protected void prepareVcs(SVcsRoot vcsRoot, String currentVersion, String revNo, SetVcsRootIdMode setVcsRootIdMode, BuildTypeEx buildType, MockPublisher publisher) {
+    switch (setVcsRootIdMode) {
+      case EXT_ID:
+        publisher.setVcsRootId(vcsRoot.getExternalId());
+        break;
+      case INT_ID:
+        publisher.setVcsRootId(String.valueOf(vcsRoot.getId()));
+    }
+    buildType.addVcsRoot(vcsRoot);
+    VcsRootInstance vcsRootInstance = buildType.getVcsRootInstances().iterator().next();
+    myCurrentVersions.put(vcsRoot.getName(), currentVersion);
+    myFixture.addModification(new ModificationData(new Date(),
+      Collections.singletonList(new VcsChange(VcsChangeInfo.Type.CHANGED, "changed", "file", "file","1", "2")),
+      "descr2", "user", vcsRootInstance, revNo, revNo));
+  }
 
   private class MockWebControllerManager implements WebControllerManager {
 
