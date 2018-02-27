@@ -4,7 +4,7 @@ import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
-import jetbrains.buildServer.serverSide.impl.ssl.SSLTrustStoreProvider;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;

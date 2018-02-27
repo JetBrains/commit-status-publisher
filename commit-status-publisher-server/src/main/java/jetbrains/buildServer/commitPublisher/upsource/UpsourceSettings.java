@@ -7,7 +7,7 @@ import jetbrains.buildServer.commitPublisher.upsource.data.UpsourceCurrentUser;
 import jetbrains.buildServer.commitPublisher.upsource.data.UpsourceGetCurrentUserResult;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
-import jetbrains.buildServer.serverSide.impl.ssl.SSLTrustStoreProvider;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
 import jetbrains.buildServer.vcs.VcsRoot;
