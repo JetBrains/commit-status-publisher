@@ -200,7 +200,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     }
 
     for (BuildPromotion bp : build.getBuildPromotion().getAllDependencies()) {
-      runForEveryPublisher(event, bp.getBuildType(), bp.getAssociatedBuild(), task, description, publishedRevisions);
+      final SBuild associatedBuild = bp.getAssociatedBuild();
+      if (associatedBuild != null) {
+        runForEveryPublisher(event, bp.getBuildType(), associatedBuild, task, description, publishedRevisions);
+      }
     }
 
   }
@@ -249,7 +252,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     }
 
     for (BuildPromotion bp : build.getBuildPromotion().getAllDependencies()) {
-      runForEveryPublisherQueued(event, bp.getBuildType(), bp.getQueuedBuild(), task, description, publishedRevisions);
+      final SQueuedBuild queuedBuild = bp.getQueuedBuild();
+      final SBuild associatedBuild = bp.getAssociatedBuild();
+      if (associatedBuild != null) {
+        runForEveryPublisher(event, bp.getBuildType(), associatedBuild, task, description, publishedRevisions);
+      } else if (queuedBuild != null) {
+        runForEveryPublisherQueued(event, bp.getBuildType(), queuedBuild, task, description, publishedRevisions);
+      }
     }
   }
 
