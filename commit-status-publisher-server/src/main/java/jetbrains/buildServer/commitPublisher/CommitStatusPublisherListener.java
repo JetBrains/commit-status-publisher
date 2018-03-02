@@ -7,7 +7,6 @@ import java.util.*;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.dependency.Dependency;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.EventDispatcher;
@@ -192,8 +191,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private void runForEveryPublisher(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task) {
     final String description = LogUtil.describe(build);
-    Set<BuildRevision> publishedRevisions = new HashSet<BuildRevision>();
-    runForEveryPublisher(event, buildType, build, task, description, publishedRevisions);
+    DoubleKeyHashSet<String, BuildRevision> publishedRevisionsByPublisher = new DoubleKeyHashSet<String, BuildRevision>();
+    runForEveryPublisher(event, buildType, build, task, description, publishedRevisionsByPublisher);
 
     if (!isPublishingToDependenciesEnabled(buildType)) {
       return;
@@ -202,13 +201,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     for (BuildPromotion bp : build.getBuildPromotion().getAllDependencies()) {
       final SBuild associatedBuild = bp.getAssociatedBuild();
       if (associatedBuild != null) {
-        runForEveryPublisher(event, bp.getBuildType(), associatedBuild, task, description, publishedRevisions);
+        runForEveryPublisher(event, bp.getBuildType(), associatedBuild, task, description, publishedRevisionsByPublisher);
       }
     }
 
   }
 
-  private void runForEveryPublisher(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task, @NotNull String description, @NotNull Set<BuildRevision> publishedRevisions) {
+  private void runForEveryPublisher(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task, @NotNull String description, @NotNull DoubleKeyHashSet<String, BuildRevision> publishedRevisionsByPublisher) {
     if (build.isPersonal()) {
       for (SVcsModification change : build.getBuildPromotion().getPersonalChanges()) {
         if (change.isPersonal())
@@ -232,9 +231,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       }
       myProblems.clearProblem(publisher);
       for (BuildRevision revision : revisions) {
-        if (!publishedRevisions.contains(revision)) {
+        if (!publishedRevisionsByPublisher.contains(pubEntry.getKey(), revision)) {
           runTask(event, build.getBuildPromotion(), description, task, publisher, revision);
-          publishedRevisions.add(revision);
+          publishedRevisionsByPublisher.add(pubEntry.getKey(), revision);
         }
 
       }
@@ -244,8 +243,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private void runForEveryPublisherQueued(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task) {
     final String description = LogUtil.describe(build);
-    Set<BuildRevision> publishedRevisions = new HashSet<BuildRevision>();
-    runForEveryPublisherQueued(event, buildType, build, task, description, publishedRevisions);
+    DoubleKeyHashSet<String, BuildRevision> publishedRevisionsByPublisher = new DoubleKeyHashSet<String, BuildRevision>();
+    runForEveryPublisherQueued(event, buildType, build, task, description, publishedRevisionsByPublisher);
 
     if (!isPublishingToDependenciesEnabled(buildType)) {
       return;
@@ -255,14 +254,14 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       final SQueuedBuild queuedBuild = bp.getQueuedBuild();
       final SBuild associatedBuild = bp.getAssociatedBuild();
       if (associatedBuild != null) {
-        runForEveryPublisher(event, bp.getBuildType(), associatedBuild, task, description, publishedRevisions);
+        runForEveryPublisher(event, bp.getBuildType(), associatedBuild, task, description, publishedRevisionsByPublisher);
       } else if (queuedBuild != null) {
-        runForEveryPublisherQueued(event, bp.getBuildType(), queuedBuild, task, description, publishedRevisions);
+        runForEveryPublisherQueued(event, bp.getBuildType(), queuedBuild, task, description, publishedRevisionsByPublisher);
       }
     }
   }
 
-  private void runForEveryPublisherQueued(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task, @NotNull String description, @NotNull Set<BuildRevision> publishedRevisions) {
+  private void runForEveryPublisherQueued(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task, @NotNull String description, @NotNull DoubleKeyHashSet<String, BuildRevision> publishedRevisionsByPublisher) {
     if (build.isPersonal()) {
       for (SVcsModification change : build.getBuildPromotion().getPersonalChanges()) {
         if (change.isPersonal())
@@ -286,9 +285,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       }
       myProblems.clearProblem(publisher);
       for (BuildRevision revision : revisions) {
-        if (!publishedRevisions.contains(revision)) {
+        if (!publishedRevisionsByPublisher.contains(pubEntry.getKey(), revision)) {
           runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision);
-          publishedRevisions.add(revision);
+          publishedRevisionsByPublisher.add(pubEntry.getKey(), revision);
         }
       }
     }
@@ -407,5 +406,23 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private boolean shouldFailBuild(@NotNull SBuildType buildType) {
     return Boolean.valueOf(buildType.getParameters().get("teamcity.commitStatusPublisher.failBuildOnPublishError"));
+  }
+
+  private class DoubleKeyHashSet<Key1, Key2> {
+    private final Map<Key1, Set<Key2>> myMap = new HashMap<Key1, Set<Key2>>();
+
+    public boolean contains(Key1 key1, Key2 key2) {
+      Set<Key2> key2Set = myMap.get(key1);
+      return (key2Set != null ? key2Set : Collections.<Key2>emptySet()).contains(key2);
+    }
+
+    public void add(Key1 key1, Key2 key2) {
+      Set<Key2> key2Set = myMap.get(key1);
+      if (key2Set == null) {
+        key2Set = new HashSet<Key2>();
+        myMap.put(key1, key2Set);
+      }
+      key2Set.add(key2);
+    }
   }
 }

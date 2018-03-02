@@ -21,6 +21,7 @@ public class CommitStatusPublisherListenerDependencyTest extends CommitStatusPub
   private BuildTypeAndPublisher myBuildTypeAndPublisher1;
   private PublisherLogger myLogger;
   private PublisherManagerFacade myPublisherManagerFacade;
+  private MockPublisher mySecondPublisher;
 
   @BeforeMethod
   public void setUp() throws Exception {
@@ -30,6 +31,7 @@ public class CommitStatusPublisherListenerDependencyTest extends CommitStatusPub
 
     myBuildTypeAndPublisher0 = getBuildConfiguration("0");
     myBuildTypeAndPublisher1 = getBuildConfiguration("1");
+    mySecondPublisher = createPublisher(myBuildTypeAndPublisher1.getBuildType(), "2");
 
     final PublisherManager myPublisherManager = myPublisherManagerFacade.getPublisherManager();
 
@@ -54,6 +56,9 @@ public class CommitStatusPublisherListenerDependencyTest extends CommitStatusPub
 
     then(publisher1.queuedReceived()).isEqualTo(publisher1messages);
     then(publisher1.finishedReceived()).isEqualTo(publisher1messages);
+
+    then(mySecondPublisher.queuedReceived()).isEqualTo(publisher1messages);
+    then(mySecondPublisher.finishedReceived()).isEqualTo(publisher1messages);
   }
 
   @DataProvider(name = "configuration")
@@ -70,6 +75,14 @@ public class CommitStatusPublisherListenerDependencyTest extends CommitStatusPub
 
     final SVcsRoot vcsRoot = myFixture.addVcsRoot("jetbrains.git", "vcs" + index, buildType);
 
+    MockPublisher publisher = createPublisher(buildType, index);
+
+    prepareVcs(vcsRoot, index, "rev1_2", SetVcsRootIdMode.EXT_ID, buildType, publisher);
+
+    return new BuildTypeAndPublisher(buildType, publisher);
+  }
+
+  private MockPublisher createPublisher(SBuildType buildType, String index) {
     final SBuildFeatureDescriptor feature = buildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, Collections.singletonMap(Constants.PUBLISHER_ID_PARAM, MockPublisherSettings.PUBLISHER_ID + index));
 
     final MockPublisherSettings publisherSettings = new MockPublisherSettingsEx(MockPublisherSettings.PUBLISHER_ID + index);
@@ -80,9 +93,7 @@ public class CommitStatusPublisherListenerDependencyTest extends CommitStatusPub
 
     publisherSettings.setPublisher(publisher);
 
-    prepareVcs(vcsRoot, index, "rev1_2", SetVcsRootIdMode.EXT_ID, buildType, publisher);
-
-    return new BuildTypeAndPublisher(buildType, publisher);
+    return publisher;
   }
 
   private void startAndFinishBuild() {
