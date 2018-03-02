@@ -4,6 +4,7 @@ import com.intellij.openapi.diagnostic.Logger;
 
 import java.util.*;
 
+import com.intellij.openapi.util.Pair;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -191,7 +192,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private void runForEveryPublisher(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task) {
     final String description = LogUtil.describe(build);
-    DoubleKeyHashSet<String, BuildRevision> publishedRevisionsByPublisher = new DoubleKeyHashSet<String, BuildRevision>();
+    Set<Pair<String, BuildRevision>> publishedRevisionsByPublisher = new HashSet<Pair<String, BuildRevision>>();
     runForEveryPublisher(event, buildType, build, task, description, publishedRevisionsByPublisher);
 
     if (!isPublishingToDependenciesEnabled(buildType)) {
@@ -207,7 +208,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   }
 
-  private void runForEveryPublisher(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task, @NotNull String description, @NotNull DoubleKeyHashSet<String, BuildRevision> publishedRevisionsByPublisher) {
+  private void runForEveryPublisher(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task, @NotNull String description, @NotNull Set<Pair<String, BuildRevision>> publishedRevisionsByPublisher) {
     if (build.isPersonal()) {
       for (SVcsModification change : build.getBuildPromotion().getPersonalChanges()) {
         if (change.isPersonal())
@@ -231,9 +232,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       }
       myProblems.clearProblem(publisher);
       for (BuildRevision revision : revisions) {
-        if (!publishedRevisionsByPublisher.contains(pubEntry.getKey(), revision)) {
+        if (!publishedRevisionsByPublisher.contains(Pair.create(publisher.getId(), revision))) {
           runTask(event, build.getBuildPromotion(), description, task, publisher, revision);
-          publishedRevisionsByPublisher.add(pubEntry.getKey(), revision);
+          publishedRevisionsByPublisher.add(Pair.create(publisher.getId(), revision));
         }
 
       }
@@ -243,7 +244,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private void runForEveryPublisherQueued(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task) {
     final String description = LogUtil.describe(build);
-    DoubleKeyHashSet<String, BuildRevision> publishedRevisionsByPublisher = new DoubleKeyHashSet<String, BuildRevision>();
+    Set<Pair<String, BuildRevision>> publishedRevisionsByPublisher = new HashSet<Pair<String, BuildRevision>>();
     runForEveryPublisherQueued(event, buildType, build, task, description, publishedRevisionsByPublisher);
 
     if (!isPublishingToDependenciesEnabled(buildType)) {
@@ -261,7 +262,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     }
   }
 
-  private void runForEveryPublisherQueued(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task, @NotNull String description, @NotNull DoubleKeyHashSet<String, BuildRevision> publishedRevisionsByPublisher) {
+  private void runForEveryPublisherQueued(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task, @NotNull String description, @NotNull Set<Pair<String, BuildRevision>> publishedRevisionsByPublisher) {
     if (build.isPersonal()) {
       for (SVcsModification change : build.getBuildPromotion().getPersonalChanges()) {
         if (change.isPersonal())
@@ -285,9 +286,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       }
       myProblems.clearProblem(publisher);
       for (BuildRevision revision : revisions) {
-        if (!publishedRevisionsByPublisher.contains(pubEntry.getKey(), revision)) {
+        if (!publishedRevisionsByPublisher.contains(Pair.create(publisher.getId(), revision))) {
           runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision);
-          publishedRevisionsByPublisher.add(pubEntry.getKey(), revision);
+          publishedRevisionsByPublisher.add(Pair.create(publisher.getId(), revision));
         }
       }
     }
@@ -406,23 +407,5 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private boolean shouldFailBuild(@NotNull SBuildType buildType) {
     return Boolean.valueOf(buildType.getParameters().get("teamcity.commitStatusPublisher.failBuildOnPublishError"));
-  }
-
-  private class DoubleKeyHashSet<Key1, Key2> {
-    private final Map<Key1, Set<Key2>> myMap = new HashMap<Key1, Set<Key2>>();
-
-    public boolean contains(Key1 key1, Key2 key2) {
-      Set<Key2> key2Set = myMap.get(key1);
-      return (key2Set != null ? key2Set : Collections.<Key2>emptySet()).contains(key2);
-    }
-
-    public void add(Key1 key1, Key2 key2) {
-      Set<Key2> key2Set = myMap.get(key1);
-      if (key2Set == null) {
-        key2Set = new HashSet<Key2>();
-        myMap.put(key1, key2Set);
-      }
-      key2Set.add(key2);
-    }
   }
 }
