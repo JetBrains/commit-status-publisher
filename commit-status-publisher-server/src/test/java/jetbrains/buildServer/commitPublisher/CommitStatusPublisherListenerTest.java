@@ -32,7 +32,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myLogger = new PublisherLogger();
     final PublisherManager myPublisherManager = new PublisherManager(Collections.<CommitStatusPublisherSettings>singletonList(myPublisherSettings));
     final BuildHistory history = myFixture.getHistory();
-    myListener = new CommitStatusPublisherListener(EventDispatcher.create(BuildServerListener.class), myPublisherManager, history, myRBManager, myProblems);
+    myListener = new CommitStatusPublisherListener(EventDispatcher.create(BuildServerListener.class), myPublisherManager, history, myRBManager, myProblems,
+                                                   myFixture.getServerResponsibility());
     myPublisher = new MockPublisher(myPublisherSettings, MockPublisherSettings.PUBLISHER_ID, myBuildType, myFeatureDescriptor.getId(),
                                     Collections.<String, String>emptyMap(), myProblems, myLogger);
     myPublisherSettings.setPublisher(myPublisher);
