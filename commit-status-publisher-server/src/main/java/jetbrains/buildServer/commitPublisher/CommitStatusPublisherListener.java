@@ -218,7 +218,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private void runForEveryPublisherQueued(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task) {
-    if  (!myServerResponsibility.isMainServer()) {
+    if  (!myServerResponsibility.canManageBuilds()) {
       LOG.debug("Current node is not responsible for build " + LogUtil.describe(build) + ", skip processing event " + event);
       return;
     }
