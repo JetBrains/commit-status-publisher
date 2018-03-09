@@ -23,16 +23,19 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   private final BuildHistory myBuildHistory;
   private final RunningBuildsManager myRunningBuilds;
   private final CommitStatusPublisherProblems myProblems;
+  private final ServerResponsibility myServerResponsibility;
 
   public CommitStatusPublisherListener(@NotNull EventDispatcher<BuildServerListener> events,
                                        @NotNull PublisherManager voterManager,
                                        @NotNull BuildHistory buildHistory,
                                        @NotNull RunningBuildsManager runningBuilds,
-                                       @NotNull CommitStatusPublisherProblems problems) {
+                                       @NotNull CommitStatusPublisherProblems problems,
+                                       @NotNull ServerResponsibility serverResponsibility) {
     myPublisherManager = voterManager;
     myBuildHistory = buildHistory;
     myRunningBuilds = runningBuilds;
     myProblems = problems;
+    myServerResponsibility = serverResponsibility;
     events.addListener(this);
   }
 
@@ -181,6 +184,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private void runForEveryPublisher(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task) {
+    if  (!myServerResponsibility.isResponsibleForBuild(build)) {
+      LOG.debug("Current node is not responsible for build " + LogUtil.describe(build) + ", skip processing event " + event);
+      return;
+    }
     if (build.isPersonal()) {
       for(SVcsModification change: build.getBuildPromotion().getPersonalChanges()) {
         if (change.isPersonal())
@@ -211,6 +218,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private void runForEveryPublisherQueued(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task) {
+    if  (!myServerResponsibility.canManageBuilds()) {
+      LOG.debug("Current node is not responsible for build " + LogUtil.describe(build) + ", skip processing event " + event);
+      return;
+    }
     if (build.isPersonal()) {
       for(SVcsModification change: build.getBuildPromotion().getPersonalChanges()) {
         if (change.isPersonal())
