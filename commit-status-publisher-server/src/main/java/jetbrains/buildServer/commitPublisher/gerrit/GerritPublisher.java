@@ -53,7 +53,7 @@ class GerritPublisher extends BaseCommitStatusPublisher {
       myGerritClient.review(
         new GerritConnectionDetails(bt.getProject(), getGerritProject(), getGerritServer(), getUsername(),
                                     myParams.get(ServerSshKeyManager.TEAMCITY_SSH_KEY_PROP)),
-        vote, msg, revision.getRevision()
+        getGerritLabel(), vote, msg, revision.getRevision()
       );
       return true;
     } catch (Exception e) {
@@ -68,6 +68,10 @@ class GerritPublisher extends BaseCommitStatusPublisher {
 
   private String getGerritProject() {
     return myParams.get(Constants.GERRIT_PROJECT);
+  }
+
+  private String getGerritLabel() {
+    return myParams.get(Constants.GERRIT_LABEL);
   }
 
   private String getUsername() {

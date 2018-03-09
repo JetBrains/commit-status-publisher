@@ -4,7 +4,7 @@ import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
-import jetbrains.buildServer.serverSide.impl.ssl.SSLTrustStoreProvider;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
@@ -24,6 +24,7 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
           put(Constants.GERRIT_SERVER, "Server URL");
           put(Constants.GERRIT_PROJECT, "Gerrit project");
           put(Constants.GERRIT_USERNAME, "Username");
+          put(Constants.GERRIT_LABEL, "Gerrit Label");
           put(Constants.GERRIT_SUCCESS_VOTE, "Success vote");
           put(Constants.GERRIT_FAILURE_VOTE, "Failure vote");
           put(TEAMCITY_SSH_KEY_PROP, "SSH key");
@@ -64,6 +65,7 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
   @Nullable
   public Map<String, String> getDefaultParameters() {
     Map<String, String> params = new HashMap<String, String>();
+    params.put(Constants.GERRIT_LABEL, "Verified");
     params.put(Constants.GERRIT_SUCCESS_VOTE, "+1");
     params.put(Constants.GERRIT_FAILURE_VOTE, "-1");
     return params;

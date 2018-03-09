@@ -33,6 +33,7 @@ public class Constants {
   public static final String GERRIT_USERNAME = "gerritUsername";
   public static final String GERRIT_SUCCESS_VOTE = "successVote";
   public static final String GERRIT_FAILURE_VOTE = "failureVote";
+  public static final String GERRIT_LABEL = "label";
 
   public static final String GITHUB_PUBLISHER_ID = "githubStatusPublisher";
   public static final String GITHUB_SERVER = "github_host";
@@ -113,6 +114,11 @@ public class Constants {
   @NotNull
   public String getGerritProject() {
     return GERRIT_PROJECT;
+  }
+
+  @NotNull
+  public String getGerritLabel() {
+    return GERRIT_LABEL;
   }
 
   @NotNull
