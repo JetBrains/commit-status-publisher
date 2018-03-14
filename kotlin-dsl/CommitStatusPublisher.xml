@@ -72,6 +72,11 @@
                         Gerrit project name
                     </description>
                 </param>
+                <param name="label">
+                    <description>
+                      Gerrit label to be used, "Verified" is used if the parameter is left blank
+                    </description>
+                </param>
                 <param name="failureVote" mandatory="true">
                     <description>
                         A failed build vote, e.g. "-1"
