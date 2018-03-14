@@ -11,7 +11,7 @@
          <outputDirectory>/</outputDirectory>
      </file>
       <file>
-          <source>../CommitStatusPublisher.xml</source>
+          <source>../kotlin-dsl/CommitStatusPublisher.xml</source>
           <outputDirectory>/kotlin-dsl/</outputDirectory>
       </file>
   </files>
