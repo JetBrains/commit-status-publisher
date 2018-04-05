@@ -40,6 +40,7 @@ public class GitRepositoryParserTest {
             "git@github.com:/%s/repository.git",
             "git@github.com:/%s/repository.git/",
             "non_standard_name@github.com:%s/repository.git",
+            "git.mygithubserver.com:%s/repository.git/",
             "ssh://git@github.com:%s/repository.git",
             "ssh://git@github.com:%s/repository.git/",
             "ssh://non_standard_name@github.com:%s/repository.git",
@@ -61,7 +62,10 @@ public class GitRepositoryParserTest {
 
   public void fails_to_parse_malformed_urls() {
     List<String> urls = Arrays.asList(
+            "https://url.com",
+            "https://url.com/owner",
             "git@github.com/repository.git",
+            "nothing/repository",
             "ssh://git@bitbucket.org:owner:777/repository.git",
             "ssh://git@bitbucket.org::owner/repository.git");
 
@@ -87,10 +91,16 @@ public class GitRepositoryParserTest {
 
   public void parse_http_urls_with_slashes() {
     Map<String, String> urls = new HashMap<String, String>() {{
+      put("HTTP://mygitlab.mydomain.com:8080/%s/repository.git", "");
+      put("http://mygitlab.mydomain.com:8080/%s/repository.git", "");
+      put("http://user@mygitlab.mydomain.com:8080/%s/repository.git", "");
       put("https://gitlab.com/%s/repository.git", "");
       put("https://mygitlab.mydomain.com:8080/%s/repository.git", "");
       put("https://mygitlab.mydomain.com/somepath/morepath/%s/repository.git", "/somepath/morepath");
       put("https://mygitlab.mydomain.com:8080/somepath/morepath/%s/repository.git", "/somepath/morepath");
+      put("https://mygitlab.mydomain.com/somepath/morepath/%s/repository.git", "somepath/morepath");
+      put("https://mygitlab.mydomain.com/somepath/morepath/%s/repository.git", "somepath/morepath/");
+      put("https://mygitlab.mydomain.com/somepath/morepath/%s/repository.git", "/somepath/morepath/");
     }};
     for(Map.Entry<String, String> urlEntry : urls.entrySet()) {
       String url = urlEntry.getKey();
@@ -104,10 +114,14 @@ public class GitRepositoryParserTest {
   
   public void parse_http_urls() {
     List<String> urls = Arrays.asList(
+            "HTTPS://owner@github.com/%s/repository.git",
             "https://owner@github.com/%s/repository.git",
+            "https://owner@github.com/subdir/%s/repository.git",
             "https://github.com/%s/repository.git",
+            "http://server.mygithub.com/%s/repository.git",
             "https://github.com/%s/repository",
             "https://github.com/%s/repository/",
+            "https://git.myserver.com:8080/%s/repository",
             "https://owner@bitbucket.org/%s/repository.git",
             "https://bitbucket.org/%s/repository.git");
     for(String url : urls) {
