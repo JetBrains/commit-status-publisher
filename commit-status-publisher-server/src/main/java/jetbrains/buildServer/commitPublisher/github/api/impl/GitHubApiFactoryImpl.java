@@ -18,10 +18,7 @@ package jetbrains.buildServer.commitPublisher.github.api.impl;
 
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
-import org.apache.http.HttpRequest;
-import org.apache.http.auth.AuthenticationException;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.impl.auth.BasicScheme;
+import jetbrains.buildServer.http.SimpleCredentials;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -42,8 +39,8 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
                                      @NotNull final String password) {
     return new GitHubApiImpl(myWrapper, new GitHubApiPaths(url)){
       @Override
-      protected void setAuthentication(@NotNull HttpRequest request) throws AuthenticationException {
-        request.addHeader(new BasicScheme().authenticate(new UsernamePasswordCredentials(username, password), request));
+      protected SimpleCredentials authenticationCredentials() {
+        return new SimpleCredentials(username, password);
       }
     };
   }
@@ -53,9 +50,8 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
                                       @NotNull final String token) {
     return new GitHubApiImpl(myWrapper, new GitHubApiPaths(url)){
       @Override
-      protected void setAuthentication(@NotNull HttpRequest request) throws AuthenticationException {
-        //NOTE: This auth could also be done via HTTP header
-        request.addHeader(new BasicScheme().authenticate(new UsernamePasswordCredentials(token, "x-oauth-basic"), request));
+      protected SimpleCredentials authenticationCredentials() {
+        return new SimpleCredentials(token, "x-oauth-basic");
       }
     };
   }

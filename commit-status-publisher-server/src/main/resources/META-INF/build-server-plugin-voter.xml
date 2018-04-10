@@ -17,7 +17,7 @@
   <!-- github -->
   <bean class="jetbrains.buildServer.commitPublisher.github.ChangeStatusUpdater"/>
   <bean class="jetbrains.buildServer.commitPublisher.github.api.impl.GitHubApiFactoryImpl"/>
-  <bean class="jetbrains.buildServer.commitPublisher.github.api.impl.HttpClientWrapperImpl" destroy-method="dispose"/>
+  <bean class="jetbrains.buildServer.commitPublisher.github.api.impl.HttpClientWrapperImpl"/>
   <bean class="jetbrains.buildServer.commitPublisher.github.GitHubSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.github.reports.SecurityParametersReport"/>
   <bean class="jetbrains.buildServer.commitPublisher.github.reports.SecurityParametersReportPageExtension"/>

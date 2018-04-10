@@ -13,6 +13,7 @@ import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BasePropertiesModel;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -110,7 +111,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     Map<String, String> params = getPublisherParams();
 
     myChangeStatusUpdater = new ChangeStatusUpdater(myExecServices,
-                                                    new GitHubApiFactoryImpl(new HttpClientWrapperImpl()), myWebLinks);
+                                                    new GitHubApiFactoryImpl(new HttpClientWrapperImpl(new HTTPRequestBuilder.ApacheClient43RequestHandler(), () -> null)), myWebLinks);
 
     myPublisherSettings = new GitHubSettings(myChangeStatusUpdater, myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems,
                                              myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext(),
