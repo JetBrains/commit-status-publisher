@@ -17,7 +17,7 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public abstract class AsyncPublisherTest extends CommitStatusPublisherTest {
 
-  protected static final int TIMEOUT = 2000;
+  protected static final int TIMEOUT = 300;
   protected Semaphore
     myServerMutex, // released if the test wants the server to finish processing a request
     myProcessingFinished, // released by the server to indicate to the test client that it can check the request data
@@ -50,11 +50,11 @@ public abstract class AsyncPublisherTest extends CommitStatusPublisherTest {
 
 
   public void should_report_publishing_failure() throws Exception {
+    setPublisherTimeout(TIMEOUT / 2);
     myServerMutex = new Semaphore(1);
     myServerMutex.acquire();
     // The HTTP client is supposed to wait for server for twice as less as we are waiting for its results
     // and the test HTTP server is supposed to wait for twice as much
-    myPublisher.setConnectionTimeout(TIMEOUT / 2);
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
     // The server mutex is never released, so the server does not respond until it times out
     then(waitForRequest()).isNull();
@@ -62,6 +62,10 @@ public abstract class AsyncPublisherTest extends CommitStatusPublisherTest {
     then(problems.size()).isEqualTo(1);
     then(problems.iterator().next().getProblem().getDescription()).matches(String.format("Commit Status Publisher.*%s.*timed out.*", myPublisher.getId()));
     myServerMutex.release();
+  }
+
+  protected void setPublisherTimeout(int timeout) {
+    myPublisher.setConnectionTimeout(timeout);
   }
 
   public void should_publish_in_sequence() throws Exception {
