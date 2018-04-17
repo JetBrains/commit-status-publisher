@@ -17,7 +17,9 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public abstract class AsyncPublisherTest extends CommitStatusPublisherTest {
 
-  protected static final int TIMEOUT = 300;
+  protected static final int TIMEOUT = 2000;
+  protected static final int SHORT_TIMEOUT_TO_FAIL = 100;
+
   protected Semaphore
     myServerMutex, // released if the test wants the server to finish processing a request
     myProcessingFinished, // released by the server to indicate to the test client that it can check the request data
@@ -33,7 +35,11 @@ public abstract class AsyncPublisherTest extends CommitStatusPublisherTest {
 
   @Override
   protected String waitForRequest() throws InterruptedException {
-    if (!myProcessingFinished.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS)) {
+    return waitForRequest(TIMEOUT);
+  }
+
+  protected String waitForRequest(long timeout) throws InterruptedException {
+    if (!myProcessingFinished.tryAcquire(timeout, TimeUnit.MILLISECONDS)) {
       return null;
     }
     return super.waitForRequest();
@@ -50,14 +56,15 @@ public abstract class AsyncPublisherTest extends CommitStatusPublisherTest {
 
 
   public void should_report_publishing_failure() throws Exception {
-    setPublisherTimeout(TIMEOUT / 2);
+    setPublisherTimeout(SHORT_TIMEOUT_TO_FAIL);
     myServerMutex = new Semaphore(1);
     myServerMutex.acquire();
     // The HTTP client is supposed to wait for server for twice as less as we are waiting for its results
     // and the test HTTP server is supposed to wait for twice as much
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
-    // The server mutex is never released, so the server does not respond until it times out
-    then(waitForRequest()).isNull();
+    then(myProcessingStarted.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue(); // At least one request must arrive
+    // The server mutex is never released, so the server does not respond until the connection times out
+    then(waitForRequest(SHORT_TIMEOUT_TO_FAIL * 2)).isNull();
     Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
     then(problems.size()).isEqualTo(1);
     then(problems.iterator().next().getProblem().getDescription()).matches(String.format("Commit Status Publisher.*%s.*timed out.*", myPublisher.getId()));
@@ -72,11 +79,11 @@ public abstract class AsyncPublisherTest extends CommitStatusPublisherTest {
     myServerMutex = new Semaphore(1);
     myServerMutex.acquire();
     SFinishedBuild build = createBuildInCurrentBranch(myBuildType, Status.NORMAL);
-    myPublisher.setConnectionTimeout(TIMEOUT);
+    setPublisherTimeout(TIMEOUT);
     myPublisher.buildFinished(build, myRevision);
     myPublisher.buildFinished(build, myRevision);
     then(myProcessingStarted.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue(); // At least one request must arrive
-    then(myServerMutex.tryAcquire(TIMEOUT / 2, TimeUnit.MILLISECONDS)).isFalse(); // just wait till it all fails
+    then(myServerMutex.tryAcquire(SHORT_TIMEOUT_TO_FAIL, TimeUnit.MILLISECONDS)).isFalse(); // just wait till it all fails
     then(getNumberOfCurrentRequests()).as("the second request should not be sent until the first one is processed").isEqualTo(1);
     myServerMutex.release();
   }

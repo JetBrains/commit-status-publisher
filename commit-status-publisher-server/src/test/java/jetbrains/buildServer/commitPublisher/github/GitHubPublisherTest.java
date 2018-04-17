@@ -117,7 +117,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
         @NotNull
         @Override
         public Map<String, String> getUserDefinedProperties() {
-          return Collections.singletonMap("teamcity.github.http.timeout", String.valueOf(TIMEOUT / 2));
+          return Collections.singletonMap("teamcity.github.http.timeout", String.valueOf(timeout));
         }
       });
     }};

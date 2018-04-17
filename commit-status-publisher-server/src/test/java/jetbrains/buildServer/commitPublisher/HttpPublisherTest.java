@@ -28,6 +28,7 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
   protected final static String OWNER = "owner";
   protected final static String CORRECT_REPO = "project";
   protected final static String READ_ONLY_REPO = "readonly";
+  private final static long GRACEFUL_SHUTDOWN_TIMEOUT = 5000;
 
   private HttpServer myHttpServer;
   private volatile int myNumberOfCurrentRequests = 0;
@@ -171,7 +172,7 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
   @Override
   protected void tearDown() throws Exception {
     super.tearDown();
-    myHttpServer.stop();
+    myHttpServer.shutdown(GRACEFUL_SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
   }
 
   protected void setExpectedApiPath(String path) {
