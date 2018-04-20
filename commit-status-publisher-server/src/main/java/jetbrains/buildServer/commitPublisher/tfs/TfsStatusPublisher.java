@@ -129,7 +129,9 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
           }
         });
     } catch (Exception e) {
-      throw new PublisherException(FAILED_TO_TEST_CONNECTION_TO_REPOSITORY + info, e);
+      final String message = FAILED_TO_TEST_CONNECTION_TO_REPOSITORY + info;
+      LOG.debug(message, e);
+      throw new PublisherException(message, e);
     }
   }
 
@@ -158,7 +160,9 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
           }
         });
     } catch (Exception e) {
-      throw new PublisherException(FAILED_TO_TEST_CONNECTION_TO_REPOSITORY + info, e);
+      final String message = FAILED_TO_TEST_CONNECTION_TO_REPOSITORY + info;
+      LOG.debug(message, e);
+      throw new PublisherException(message, e);
     }
 
     return commitId[0];
@@ -193,7 +197,9 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
           }
         });
     } catch (Exception e) {
-      throw new PublisherException("TFS publisher has failed to get parent commits in repository " + info, e);
+      final String message = "TFS publisher has failed to get parent commits in repository " + info;
+      LOG.debug(message, e);
+      throw new PublisherException(message, e);
     }
 
     return commits;
@@ -238,7 +244,9 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
           }
         });
     } catch (Exception e) {
-      throw new PublisherException(String.format("Unable to get pull request %s iterations in repository %s", pullRequestId, info), e);
+      final String message = String.format("Unable to get pull request %s iterations in repository %s", pullRequestId, info);
+      LOG.debug(message, e);
+      throw new PublisherException(message, e);
     }
 
     return iterationId[0];
