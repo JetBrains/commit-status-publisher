@@ -32,7 +32,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   private static final String COMMITS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits?api-version=1.0&$top=1";
   private static final String COMMIT_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits/{3}?api-version=1.0";
   private static final String COMMIT_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits/{3}/statuses?api-version=2.1";
-  private static final String PULL_REQUEST_ITERATIONS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/pullRequests/{3}/iterations?api-version=3.0";
+  private static final String PULL_REQUEST_ITERATIONS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/pullRequests/{3}/iterations?api-version=4.0-preview";
   private static final String PULL_REQUEST_ITERATION_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/pullRequests/{3}/iterations/{4}/statuses?api-version=4.0-preview";
   private static final String PULL_REQUEST_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/pullRequests/{3}/statuses?api-version=4.0-preview";
   private static final String ERROR_AUTHORIZATION = "Check access token value and verify that it has Code (status) and Code (read) scopes";
@@ -42,7 +42,6 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
   // Captures pull request identifier. Example: refs/pull/1/merge
   private static final Pattern TFS_GIT_PULL_REQUEST_PATTERN = Pattern.compile("^refs\\/pull\\/(\\d+)");
-
 
   TfsStatusPublisher(@NotNull final CommitStatusPublisherSettings settings,
                      @NotNull final SBuildType buildType,
@@ -148,6 +147,8 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                      trustStore, new DefaultHttpResponseProcessor() {
           @Override
           public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+            super.processResponse(response);
+
             CommitsList commits = processGetResponse(response, CommitsList.class);
             if (commits == null || commits.value == null || commits.value.size() == 0) {
               throw new HttpPublisherException("No commits are available in repository %s" + info);
@@ -177,6 +178,8 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                      trustStore, new DefaultHttpResponseProcessor() {
           @Override
           public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+            super.processResponse(response);
+
             Commit commit = processGetResponse(response, Commit.class);
             if (commit == null) {
               throw new HttpPublisherException(String.format("Commit %s is not available in repository %s",
@@ -212,6 +215,8 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                      trustStore, new DefaultHttpResponseProcessor() {
           @Override
           public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+            super.processResponse(response);
+
             IterationsList iterations = processGetResponse(response, IterationsList.class);
             if (iterations == null || iterations.value == null || iterations.value.size() == 0) {
               LOG.debug("No iterations are available in repository " + info);
@@ -233,7 +238,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
           }
         });
     } catch (Exception e) {
-      throw new PublisherException("TFS publisher has failed to get pull request iterations in repository" + info, e);
+      throw new PublisherException(String.format("Unable to get pull request %s iterations in repository %s", pullRequestId, info), e);
     }
 
     return iterationId[0];
