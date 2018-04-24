@@ -1,5 +1,6 @@
 package jetbrains.buildServer.commitPublisher.tfs;
 
+import java.util.List;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -13,7 +14,8 @@ public class TfsRepositoryInfo {
   // Captures following groups: (server url) (project path) /_git/ (repository name)
   // Example: (http://localhost:81) (/tfs/collection) (/_git/) (git_project)
   private static final Pattern TFS_GIT_PROJECT_PATTERN = Pattern.compile(
-    "(https?\\:\\/\\/[^\\/\\:]+(?:\\:\\d+)?)(\\/.+)?\\/_git\\/([^\\/]+)");
+    "(https?|ssh)\\:\\/\\/([^\\/\\:]+(?:\\:\\d+)?)(\\/.+)?\\/_(git|ssh)\\/([^\\/]+)");
+
   private static final String[] TFS_HOSTED_DOMAINS = new String[]{"visualstudio.com"};
   private static final String TEAMCITY_TFS_HOSTED_DOMAINS = "teamcity.tfs.hosted.domains";
   private static final Pattern TFS_HOSTS_SEPARATOR = Pattern.compile(",");
@@ -39,9 +41,23 @@ public class TfsRepositoryInfo {
       return null;
     }
 
-    final String server = matcher.group(1);
-    String path = StringUtil.notEmpty(matcher.group(2), StringUtil.EMPTY);
-    String repository = matcher.group(3);
+    String server;
+    if ("ssh".equalsIgnoreCase(matcher.group(1))) {
+      final String host = matcher.group(2).toLowerCase();
+      if (!host.endsWith(".visualstudio.com:22")) {
+        return null;
+      }
+      final List<String> parts = StringUtil.split(host, "@");
+      if (parts.size() != 2) {
+        return null;
+      }
+      server = String.format("https://%s.visualstudio.com", parts.get(0));
+    } else {
+      server = matcher.group(1) + "://" + matcher.group(2);
+    }
+
+    String path = StringUtil.notEmpty(matcher.group(3), StringUtil.EMPTY);
+    String repository = matcher.group(5);
 
     int lastSlash = path.lastIndexOf('/');
     String project = null;

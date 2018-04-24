@@ -46,7 +46,14 @@ public class TfsRepositoryInfoTest {
       },
       {null, null},
       {"", null},
-      {" ", null}
+      {" ", null},
+      {"ssh://test@vs-ssh.visualstudio.com:22/DefaultCollection/Project/_ssh/Repository",
+        new TfsRepositoryInfo("https://test.visualstudio.com/DefaultCollection", "Repository", "Project")
+      },
+      {"ssh://test@test.visualstudio.com:22/DefaultCollection/Project/_git/Repository",
+        new TfsRepositoryInfo("https://test.visualstudio.com/DefaultCollection", "Repository", "Project")
+      },
+      {"ssh://host:22/DefaultCollection/_git/Repository", null}
     };
   }
 }
