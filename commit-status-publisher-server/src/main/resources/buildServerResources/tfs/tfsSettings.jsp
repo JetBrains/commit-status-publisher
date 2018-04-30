@@ -48,7 +48,7 @@
     <span class="smallNote">
       You need to grant <strong><em>Code (status)</em></strong> and <strong><em>Code (write)</em></strong>
       <a href="https://www.visualstudio.com/en-us/docs/integrate/get-started/auth/oauth#scopes" target="_blank">scopes</a>
-      for token.
+      for token and add the "+:refs/(pull/*)/merge" rule in VCS root branch specification.
     </span>
   </td>
 </tr>

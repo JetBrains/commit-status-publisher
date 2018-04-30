@@ -25,17 +25,18 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public abstract class HttpPublisherTest extends AsyncPublisherTest {
 
-  protected String OWNER = "owner";
-  protected String CORRECT_REPO = "project";
-  protected String READ_ONLY_REPO = "readonly";
+  protected final static String OWNER = "owner";
+  protected final static String CORRECT_REPO = "project";
+  protected final static String READ_ONLY_REPO = "readonly";
+  private final static long GRACEFUL_SHUTDOWN_TIMEOUT = 5000;
 
   private HttpServer myHttpServer;
-  private int myNumberOfCurrentRequests = 0;
-  private String myLastRequest;
-  private String myExpectedApiPath = "";
-  private String myExpectedEndpointPrefix = "";
-  private int myRespondWithRedirectCode = 0;
-  private String myLastAgent;
+  private volatile int myNumberOfCurrentRequests = 0;
+  private volatile String myLastRequest;
+  private volatile String myExpectedApiPath = "";
+  private volatile String myExpectedEndpointPrefix = "";
+  private volatile int myRespondWithRedirectCode = 0;
+  private volatile String myLastAgent;
 
   @Override
   protected String getRequestAsString() {
@@ -171,7 +172,7 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
   @Override
   protected void tearDown() throws Exception {
     super.tearDown();
-    myHttpServer.stop();
+    myHttpServer.shutdown(GRACEFUL_SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
   }
 
   protected void setExpectedApiPath(String path) {

@@ -97,16 +97,6 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     setExpectedApiPath("");
     setExpectedEndpointPrefix("/repos/" + OWNER + "/" + CORRECT_REPO);
     super.setUp();
-    new TeamCityProperties() {{
-      setModel(new BasePropertiesModel() {
-        @NotNull
-        @Override
-        public Map<String, String> getUserDefinedProperties() {
-          return Collections.singletonMap("teamcity.github.http.timeout", String.valueOf(TIMEOUT / 2));
-        }
-      });
-    }};
-
 
     Map<String, String> params = getPublisherParams();
 
@@ -117,6 +107,20 @@ public class GitHubPublisherTest extends HttpPublisherTest {
                                              myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext(),
                                              myTrustStoreProvider);
     myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems);
+  }
+
+  @Override
+  protected void setPublisherTimeout(int timeout) {
+    super.setPublisherTimeout(timeout);
+    new TeamCityProperties() {{
+      setModel(new BasePropertiesModel() {
+        @NotNull
+        @Override
+        public Map<String, String> getUserDefinedProperties() {
+          return Collections.singletonMap("teamcity.github.http.timeout", String.valueOf(timeout));
+        }
+      });
+    }};
   }
 
   @Override
