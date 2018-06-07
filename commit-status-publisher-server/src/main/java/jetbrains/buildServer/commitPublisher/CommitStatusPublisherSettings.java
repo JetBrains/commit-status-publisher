@@ -56,6 +56,8 @@ public interface CommitStatusPublisherSettings {
 
   boolean isTestConnectionSupported();
 
+  default boolean isFQDNTeamCityUrlRequired() { return false; };
+
   void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException;
 
   @Nullable
