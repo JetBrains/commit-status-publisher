@@ -23,6 +23,8 @@
   <bean class="jetbrains.buildServer.commitPublisher.github.reports.SecurityParametersReportPageExtension"/>
   <bean class="jetbrains.buildServer.commitPublisher.reports.MissingVcsRootsReport"/>
   <bean class="jetbrains.buildServer.commitPublisher.reports.MissingVcsRootsReportPageExtension"/>
+  <bean class="jetbrains.buildServer.commitPublisher.reports.NoFQDNServerUrlReport"/>
+  <bean class="jetbrains.buildServer.commitPublisher.reports.NoFQDNServerUrlReportPageExtension"/>
 
   <!-- upsource -->
   <bean class="jetbrains.buildServer.commitPublisher.upsource.UpsourceSettings"/>
