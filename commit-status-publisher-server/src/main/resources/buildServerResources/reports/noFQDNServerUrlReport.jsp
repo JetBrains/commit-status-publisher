@@ -12,7 +12,7 @@
 <c:set var="rootUrl" value="${healthStatusItem.additionalData['rootUrl']}"/>
 <c:set var="publisherType" value="${healthStatusItem.additionalData['publisherType']}"/>
 <div>
-    Commit Status Publisher in <admin:editBuildTypeLinkFull buildType="${buildType}" cameFromUrl="${cameFromUrl}"/>
-    may not work correctly with <c:out value="${publisherType}" /> due to TeamCity Server URL (<strong><c:out value="${rootUrl}" /></strong>)
-  referring to a not fully qualified domain name. Please contact your system administrator.
+  For Commit Status Publisher in <admin:editBuildTypeLinkFull buildType="${buildType}" cameFromUrl="${cameFromUrl}"/> Build to work correctly
+  with <c:out value="${publisherType}" />, change the TeamCity Server URL <strong><c:out value="${rootUrl}" /></strong> to a fully qualified name.
+  Contact your system administrator.
 </div>
