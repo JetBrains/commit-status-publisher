@@ -13,6 +13,16 @@ import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabMRInfo;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.io.IOException;
+import java.util.*;
+
 import java.util.Collections;
 import java.util.Map;
 
@@ -83,7 +93,6 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     return true;
   }
 
-
   private void publish(@NotNull SBuild build,
                        @NotNull BuildRevision revision,
                        @NotNull GitlabBuildStatus status,
@@ -98,6 +107,28 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
 
     String message = createMessage(status, build, revision, myLinks.getViewResultsUrl(build), description);
+
+    Pattern r = Pattern.compile("/merge-requests/([0-9]+)/");
+    Matcher m = r.matcher(revision.getRepositoryVersion().getVcsBranch());
+    if (m.find( )) {
+      String mr_number = m.group(1);
+
+      String url = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/merge_requests/" + mr_number;
+
+      MRInfoResponseProcessor processorMR = new MRInfoResponseProcessor(); 
+
+      try {
+        HttpHelper.get(url, null, null, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processorMR);
+      } catch (Exception ex) {
+        throw new PublisherException(String.format("GitLab publisher has failed to connect to %s/%s repository", repository.owner(), repository.repositoryName()), ex);
+      }
+      
+      String urlCommit = getApiUrl() + "/projects/" + processorMR.source_project_id() + "/statuses/" + revision.getRevision();
+      postAsync(urlCommit, null, null, message, ContentType.APPLICATION_JSON, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), LogUtil.describe(build));
+  
+      return;
+    }
+
     try {
       publish(revision.getRevision(), message, repository, LogUtil.describe(build));
     } catch (Exception e) {
@@ -159,5 +190,73 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   private String getPrivateToken() {
     return myParams.get(Constants.GITLAB_TOKEN);
   }
+
+private abstract class JsonResponseProcessor<T> extends DefaultHttpResponseProcessor {
+
+  private final Class<T> myInfoClass;
+  private T myInfo;
+
+  JsonResponseProcessor(Class<T> infoClass) {
+    myInfoClass = infoClass;
+  }
+
+  T getInfo() {
+    return myInfo;
+  }
+
+  @Override
+  public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+
+    super.processResponse(response);
+
+    final HttpEntity entity = response.getEntity();
+    if (null == entity) {
+      throw new HttpPublisherException("GitLab publisher has received no response");
+    }
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    entity.writeTo(bos);
+    final String json = bos.toString("utf-8");
+    myInfo = myGson.fromJson(json, myInfoClass);
+  }
+}
+
+private class MRInfoResponseProcessor extends JsonResponseProcessor<GitLabMRInfo> {
+
+  private String _id;
+  private String _iid;
+  private String _source_project_id;
+  private String _target_project_id;
+
+
+  MRInfoResponseProcessor() {
+    super(GitLabMRInfo.class);
+  }
+
+  String id() {
+    return _id;
+  }
+  String iid() {
+    return _iid;
+  }
+  String source_project_id() {
+    return _source_project_id;
+  }
+  String target_project_id() {
+    return _target_project_id;
+  }
+
+  @Override
+  public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+    super.processResponse(response);
+    GitLabMRInfo userInfo = getInfo();
+    if (null == userInfo || null == userInfo.id) {
+      throw new HttpPublisherException("GitLab publisher has received a malformed response");
+    }
+    _id = userInfo.id;
+    _iid = userInfo.iid;
+    _source_project_id = userInfo.source_project_id;
+    _target_project_id = userInfo.target_project_id;
+  }
+}
 
 }
