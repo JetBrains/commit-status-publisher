@@ -1,5 +1,6 @@
 package jetbrains.buildServer.commitPublisher;
 
+import com.google.common.base.Objects;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import jetbrains.buildServer.BuildProblemData;
@@ -10,6 +11,7 @@ import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.EventDispatcher;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.SelectPrevBuildPolicy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
@@ -65,10 +67,14 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       return;
     }
 
+    buildFinished(finishedBuild, buildType);
+  }
+
+  public void buildFinished(@NotNull final SFinishedBuild build, SBuildType buildType) {
     runForEveryPublisher(Event.FINISHED, buildType, build, new PublishTask() {
       @Override
       public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
-        return publisher.buildFinished(finishedBuild, revision);
+        return publisher.buildFinished(build, revision);
       }
     });
   }
@@ -161,12 +167,34 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     if (buildType == null)
       return;
 
-    if (user == null)
+    if (comment.equals("Build started"))
       return;
 
     runForEveryPublisherQueued(Event.REMOVED_FROM_QUEUE, buildType, build, new PublishTask() {
       @Override
       public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
+        for (SQueuedBuild queuedBuild : build.getBuildType().getQueuedBuilds(null)) {
+          if (Objects.equal(queuedBuild.getBuildPromotion().getBranch(), build.getBuildPromotion().getBranch())) {
+            buildTypeAddedToQueue(queuedBuild);
+            return true;
+          }
+        }
+
+        for (SRunningBuild runningBuild : build.getBuildType().getRunningBuilds()) {
+          if (runningBuild.getBuildPromotion().getRevisions().contains(revision)) {
+            changesLoaded(runningBuild);
+            return true;
+          }
+        }
+
+        if (comment.contains("optimized") || comment.contains("substituted")) {
+          BuildPromotion promotion = build.getBuildPromotion().getPreviousBuildPromotion(SelectPrevBuildPolicy.SINCE_LAST_COMPLETE_BUILD);
+          if (promotion != null && promotion.getAssociatedBuild() != null) {
+            buildFinished((SFinishedBuild) promotion.getAssociatedBuild(), build.getBuildType());
+            return true;
+          }
+        }
+
         return publisher.buildRemovedFromQueue(build, revision, user, comment);
       }
     });

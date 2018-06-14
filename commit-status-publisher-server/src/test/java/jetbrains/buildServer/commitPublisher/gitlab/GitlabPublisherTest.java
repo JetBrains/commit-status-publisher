@@ -32,8 +32,8 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   private static final String GROUP_REPO = "group_repo";
 
   public GitlabPublisherTest() {
-    myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.REMOVED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*pending.*Build queued.*", REVISION));
+    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*canceled.*Build canceled.*", REVISION));
     myExpectedRegExps.put(EventToTest.STARTED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*running.*Build started.*", REVISION));
     myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*failed.*Failure.*", REVISION));

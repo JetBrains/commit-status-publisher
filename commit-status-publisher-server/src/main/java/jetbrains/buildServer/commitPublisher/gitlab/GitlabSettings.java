@@ -24,6 +24,8 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
   private static final Pattern URL_WITH_API_SUFFIX = Pattern.compile("(.*)/api/v.");
 
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
+    add(Event.QUEUED);
+    add(Event.REMOVED_FROM_QUEUE);
     add(Event.STARTED);
     add(Event.FINISHED);
     add(Event.MARKED_AS_SUCCESSFUL);

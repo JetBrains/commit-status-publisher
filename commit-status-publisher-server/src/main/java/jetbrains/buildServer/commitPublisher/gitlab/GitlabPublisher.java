@@ -2,19 +2,20 @@ package jetbrains.buildServer.commitPublisher.gitlab;
 
 import com.google.gson.Gson;
 import com.intellij.openapi.diagnostic.Logger;
+
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.Map;
+
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
-import jetbrains.buildServer.vcs.VcsRoot;
-import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.vcs.*;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Collections;
-import java.util.Map;
 
 class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
@@ -48,6 +49,17 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     return "GitLab";
   }
 
+  @Override
+  public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException {
+    publish(build, revision, GitlabBuildStatus.PENDING, "Build queued");
+    return true;
+  }
+
+  @Override
+  public boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) throws PublisherException {
+    publish(build, revision, GitlabBuildStatus.CANCELED, "Build canceled");
+    return true;
+  }
 
   @Override
   public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) throws PublisherException {
@@ -88,6 +100,21 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
                        @NotNull BuildRevision revision,
                        @NotNull GitlabBuildStatus status,
                        @NotNull String description) throws PublisherException {
+    String message = createMessage(status, build.getBuildTypeName(), revision, myLinks.getViewResultsUrl(build), description);
+    publish(message, revision, LogUtil.describe(build));
+  }
+
+  private void publish(@NotNull SQueuedBuild build,
+                       @NotNull BuildRevision revision,
+                       @NotNull GitlabBuildStatus status,
+                       @NotNull String description) throws PublisherException {
+    String message = createMessage(status, build.getBuildType().getName(), revision, myLinks.getQueuedBuildUrl(build), description);
+    publish(message, revision, LogUtil.describe(build));
+  }
+
+  private void publish(@NotNull String message,
+                       @NotNull BuildRevision revision,
+                       @NotNull String buildDescription) throws PublisherException {
     VcsRootInstance root = revision.getRoot();
     String apiUrl = getApiUrl();
     if (null == apiUrl || apiUrl.length() == 0)
@@ -97,9 +124,8 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     if (repository == null)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
 
-    String message = createMessage(status, build, revision, myLinks.getViewResultsUrl(build), description);
     try {
-      publish(revision.getRevision(), message, repository, LogUtil.describe(build));
+      publish(revision.getRevision(), message, repository, buildDescription);
     } catch (Exception e) {
       throw new PublisherException("Cannot publish status to GitLab for VCS root " +
                                    revision.getRoot().getName() + ": " + e.toString(), e);
@@ -112,9 +138,25 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     postAsync(url, null, null, data, ContentType.APPLICATION_JSON, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), buildDescription);
   }
 
+  @Override
+  public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException {
+    final int statusCode = response.getStatusCode();
+    if (statusCode >= 400) {
+      String responseString = response.getContent();
+      if (!responseString.contains("Cannot transition status via :enqueue from :pending") &&
+          !responseString.contains("Cannot transition status via :enqueue from :running") &&
+          !responseString.contains("Cannot transition status via :run from :running")) {
+        HttpPublisherException exception = new HttpPublisherException(statusCode,
+          response.getStatusText(), "HTTP response error");
+        LOG.warn(responseString, exception);
+        throw exception;
+      }
+    }
+  }
+
   @NotNull
   private String createMessage(@NotNull GitlabBuildStatus status,
-                               @NotNull SBuild build,
+                               @NotNull String name,
                                @NotNull BuildRevision revision,
                                @NotNull String url,
                                @NotNull String description) {
@@ -133,7 +175,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
     final Map<String, String> data = new LinkedHashMap<String, String>();
     data.put("state", status.getName());
-    data.put("name", build.getBuildTypeName());
+    data.put("name", name);
     data.put("target_url", url);
     data.put("description", description);
     if (ref != null)
