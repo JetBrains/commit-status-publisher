@@ -1,6 +1,5 @@
 package jetbrains.buildServer.commitPublisher.upsource;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
@@ -8,13 +7,13 @@ import jetbrains.buildServer.commitPublisher.upsource.data.UpsourceCurrentUser;
 import jetbrains.buildServer.commitPublisher.upsource.data.UpsourceGetCurrentUserResult;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
+import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
@@ -24,6 +23,7 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
   static final String ENDPOINT_BUILD_STATUS = "~buildStatus";
   static final String ENDPOINT_RPC = "~rpc";
   static final String QUERY_GET_CURRENT_USER = "getCurrentUser";
+  static final String ENDPOINT_TEST_CONNECTION = "~buildStatusTestConnection";
   static final String PROJECT_FIELD = "project";
   static final String KEY_FIELD = "key";
   static final String STATE_FIELD = "state";
@@ -48,8 +48,9 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
                           @NotNull final ExecutorServices executorServices,
                           @NotNull PluginDescriptor descriptor,
                           @NotNull WebLinks links,
-                          @NotNull CommitStatusPublisherProblems problems) {
-    super(executorServices, descriptor, links, problems);
+                          @NotNull CommitStatusPublisherProblems problems,
+                          @NotNull SSLTrustStoreProvider trustStoreProvider) {
+    super(executorServices, descriptor, links, problems, trustStoreProvider);
     myVcsHistory = vcsHistory;
   }
 
@@ -88,18 +89,18 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
-        checkContains(params, Constants.UPSOURCE_SERVER_URL, errors);
-        checkContains(params, Constants.UPSOURCE_PROJECT_ID, errors);
-        checkContains(params, Constants.UPSOURCE_USERNAME, errors);
-        checkContains(params, Constants.UPSOURCE_PASSWORD, errors);
+        checkContains(params, Constants.UPSOURCE_SERVER_URL, "Server URL", errors);
+        checkContains(params, Constants.UPSOURCE_PROJECT_ID, "Project id", errors);
+        checkContains(params, Constants.UPSOURCE_USERNAME, "Username", errors);
+        checkContains(params, Constants.UPSOURCE_PASSWORD, "Password", errors);
         return errors;
       }
     };
   }
 
-  private void checkContains(@NotNull Map<String, String> params, @NotNull String key, @NotNull List<InvalidProperty> errors) {
+  private void checkContains(@NotNull Map<String, String> params, @NotNull String key, @NotNull String fieldName, @NotNull List<InvalidProperty> errors) {
     if (StringUtil.isEmpty(params.get(key)))
-      errors.add(new InvalidProperty(key, "must be specified"));
+      errors.add(new InvalidProperty(key, String.format("%s must be specified", fieldName)));
   }
 
   public boolean isEnabled() {
@@ -108,12 +109,12 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
 
   @Override
   public boolean isTestConnectionSupported() {
-    return false;
+    return true;
   }
 
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    String apiUrl = params.get(Constants.UPSOURCE_SERVER_URL);
+    String apiUrl = HttpHelper.stripTrailingSlash(params.get(Constants.UPSOURCE_SERVER_URL));
     if (null == apiUrl || apiUrl.length() == 0)
       throw new PublisherException("Missing Upsource Server URL parameter");
     String username = params.get(Constants.UPSOURCE_USERNAME);
@@ -121,42 +122,24 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
     if (null == username || null == password)
       throw new PublisherException("Missing Upsource credentials");
     final String projectId = params.get(Constants.UPSOURCE_PROJECT_ID);
-    String url = apiUrl + "/" + ENDPOINT_RPC + "/" + QUERY_GET_CURRENT_USER;
+    String urlPost = apiUrl + "/" + ENDPOINT_TEST_CONNECTION;
+    String urlGet = apiUrl + "/" + ENDPOINT_RPC + "/" + QUERY_GET_CURRENT_USER;
     try {
-      HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
-        @Override
-        public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
-          super.processResponse(response);
-
-          final HttpEntity entity = response.getEntity();
-          if (null == entity) {
-            throw new HttpPublisherException("Upsource publisher has received no response");
-          }
-          ByteArrayOutputStream bos = new ByteArrayOutputStream();
-          entity.writeTo(bos);
-          final String json = bos.toString("utf-8");
-          UpsourceGetCurrentUserResult result = myGson.fromJson(json, UpsourceGetCurrentUserResult.class);
-          if (null == result || null == result.result || null == result.result.userId) {
-            throw new HttpPublisherException("Upsource publisher has received a malformed response");
-          }
-          UpsourceCurrentUser user = result.result;
-          if (null != user.adminPermissionsInProjects) {
-            for (String prjId : user.adminPermissionsInProjects) {
-              if (prjId.equals(projectId)) {
-                return;
-              }
-            }
-          }
-          throw new HttpPublisherException("Upsource does not grant enough permissions to publish a commit status");
-        }
-      };
-
-      HttpHelper.get(url, username, password, null,
-                      BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
-                      processor);
-
+      Map<String, String> data = new HashMap<String, String>();
+      data.put(UpsourceSettings.PROJECT_FIELD, projectId);
+      // Newer versions of Upsource support special test connection call, that works correctly for their CI-specific authentication
+      HttpHelper.post(urlPost, username, password, myGson.toJson(data), ContentType.APPLICATION_JSON, null,
+                      BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(),
+                      new DefaultHttpResponseProcessor());
     } catch (Exception ex) {
-      throw new PublisherException(String.format("Upsource publisher has failed to connect to project '%s'", projectId), ex);
+      try {
+        // If the newer method fails, we assume it may be an older version of Upsource, and test connection in a regular way
+        HttpHelper.get(urlGet, username, password, null,
+                       BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(),
+                       new TestConnectionResponseProcessor(projectId));
+      } catch (Exception ex2) {
+        throw new PublisherException(String.format("Upsource publisher has failed to connect to project '%s'", projectId), ex2);
+      }
     }
   }
 
@@ -164,4 +147,36 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
   protected Set<Event> getSupportedEvents() {
     return mySupportedEvents;
   }
+
+  private class TestConnectionResponseProcessor  extends DefaultHttpResponseProcessor {
+    private String myProjectId;
+
+    public TestConnectionResponseProcessor(String projectId) {
+      super();
+      myProjectId = projectId;
+    }
+
+    @Override
+    public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+      super.processResponse(response);
+
+      final String json = response.getContent();
+      if (null == json) {
+        throw new HttpPublisherException("Upsource publisher has received no response");
+      }
+      UpsourceGetCurrentUserResult result = myGson.fromJson(json, UpsourceGetCurrentUserResult.class);
+      if (null == result || null == result.result || null == result.result.userId) {
+        throw new HttpPublisherException("Upsource publisher has received a malformed response");
+      }
+      UpsourceCurrentUser user = result.result;
+      if (null != user.adminPermissionsInProjects) {
+        for (String prjId : user.adminPermissionsInProjects) {
+          if (prjId.equals(myProjectId)) {
+            return;
+          }
+        }
+      }
+      throw new HttpPublisherException("Upsource does not grant enough permissions to publish a commit status");
+    }
+  };
 }

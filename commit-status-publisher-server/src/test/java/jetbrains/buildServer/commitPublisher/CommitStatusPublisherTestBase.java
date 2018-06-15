@@ -1,7 +1,9 @@
 package jetbrains.buildServer.commitPublisher;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.controllers.admin.projects.BuildTypeForm;
@@ -11,8 +13,6 @@ import jetbrains.buildServer.parameters.ValueResolver;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
-import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
-import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotification;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
 import jetbrains.buildServer.util.browser.Browser;
 import jetbrains.buildServer.vcs.*;
@@ -21,25 +21,21 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.web.servlet.mvc.Controller;
 
-import javax.servlet.http.HttpServletRequest;
-import java.util.Collections;
-
 /**
  * @author anton.zamolotskikh, 15/09/16.
  */
 public class CommitStatusPublisherTestBase extends BaseServerTestCase {
 
-  static final String PUBLISHER_ID = "MockPublisherId";
-
-
-  CommitStatusPublisherFeatureController myController;
-  VcsManagerEx myVcsManager;
-  ProjectManager myProjectManager;
-  SBuildFeatureDescriptor myFeatureDescriptor;
-  RunningBuildsManager myRBManager;
-  CommitStatusPublisherProblems myProblems;
-  CommitStatusPublisherFeature myFeature;
-  Map<String, String> myCurrentVersions;
+  protected PublisherSettingsController mySettingsController;
+  protected CommitStatusPublisherFeatureController myFeatureController;
+  protected VcsManagerEx myVcsManager;
+  protected ProjectManager myProjectManager;
+  protected SBuildFeatureDescriptor myFeatureDescriptor;
+  protected RunningBuildsManager myRBManager;
+  protected MockPublisherSettings myPublisherSettings;
+  protected CommitStatusPublisherProblems myProblems;
+  protected CommitStatusPublisherFeature myFeature;
+  protected Map<String, String> myCurrentVersions;
   protected SystemProblemNotificationEngine myProblemNotificationEngine;
 
   protected void setUp() throws Exception {
@@ -47,14 +43,16 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     WebControllerManager wcm = new MockWebControllerManager();
     PluginDescriptor pluginDescr = new MockPluginDescriptor();
     myProjectManager = myFixture.getProjectManager();
-    final PublisherManager publisherManager = new PublisherManager(Collections.<CommitStatusPublisherSettings>emptyList());
-    myCurrentVersions = new HashMap<String, String>();
+    myPublisherSettings = new MockPublisherSettings(myProblems);
+    final PublisherManager publisherManager = new PublisherManager(Collections.singletonList((CommitStatusPublisherSettings) myPublisherSettings));
 
-    myController = new CommitStatusPublisherFeatureController(myProjectManager, wcm, pluginDescr, publisherManager,
-            new PublisherSettingsController(wcm, pluginDescr, publisherManager, myProjectManager));
+    myCurrentVersions = new HashMap<String, String>();
+    mySettingsController = new PublisherSettingsController(wcm, pluginDescr, publisherManager, myProjectManager);
+
+    myFeatureController = new CommitStatusPublisherFeatureController(myProjectManager, wcm, pluginDescr, publisherManager, mySettingsController);
     myVcsManager = myFixture.getVcsManager();
 
-    ServerVcsSupport vcsSupport = new MockVcsSupport("svn") {
+    ServerVcsSupport vcsSupport = new MockVcsSupport("jetbrains.git") {
 
       private final Map<String, String> myVersions = myCurrentVersions;
 
@@ -69,8 +67,8 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     };
     myVcsManager.registerVcsSupport(vcsSupport);
 
-    myFeatureDescriptor = myBuildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, Collections.singletonMap(Constants.PUBLISHER_ID_PARAM, PUBLISHER_ID));
-    myFeature = new CommitStatusPublisherFeature(myController, publisherManager);
+    myFeatureDescriptor = myBuildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, Collections.singletonMap(Constants.PUBLISHER_ID_PARAM, MockPublisherSettings.PUBLISHER_ID));
+    myFeature = new CommitStatusPublisherFeature(myFeatureController, publisherManager);
     myRBManager = myFixture.getSingletonService(RunningBuildsManager.class);
     myProblemNotificationEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
     myProblems = new CommitStatusPublisherProblems(myProblemNotificationEngine);
@@ -136,6 +134,11 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
 
     @Override
     public boolean isBranchesConfigured() {
+      return false;
+    }
+
+    @Override
+    public boolean isCompositeBuild() {
       return false;
     }
   }

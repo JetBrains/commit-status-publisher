@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dsl-extension kind="buildFeature" type="commit-status-publisher" generateDslJar="true">
+    <class name="CommitStatusPublisher">
+        <description>
+            A [build feature](https://confluence.jetbrains.com/display/TCDL/Commit+Status+Publisher) publishing
+            status to external system
+        </description>
+    </class>
+    <function name="commitStatusPublisher">
+        <description>
+            Enables [status publishing](https://confluence.jetbrains.com/display/TCDL/Commit+Status+Publisher) to external system
+            @see CommitStatusPublisher
+        </description>
+    </function>
+    <params>
+        <param name="vcsRootId" dslName="vcsRootExtId" ref="VCS_ROOT">
+            <description>
+                Id of the VCS root for which commits a status should be published.
+                Set to an empty string to publish status for all VCS roots attached to a build configuration.
+            </description>
+        </param>
+        <param name="publisherId" dslName="publisher" type="compound" mandatory="true">
+            <description>
+                Specifies to which system a status should be published
+            </description>
+            <option name="bitbucketCloud" value="bitbucketCloudPublisher">
+                <description>
+                    Publish status to Bitbucket Cloud
+                </description>
+                <param name="bitbucketUsername" dslName="userName" mandatory="true">
+                    <description>
+                        A username for Bitbucket Cloud connection
+                    </description>
+                </param>
+                <param name="secure:bitbucketPassword" dslName="password" mandatory="true">
+                    <description>
+                        A password for Bitbucket Cloud connection
+                    </description>
+                </param>
+            </option>
+            <option name="bitbucketServer" value="atlassianStashPublisher">
+                <description>
+                    Publish status to Bitbucket Server
+                </description>
+                <param name="stashBaseUrl" dslName="url" mandatory="true">
+                    <description>
+                        Bitbucket Server URL
+                    </description>
+                </param>
+                <param name="stashUsername" dslName="userName" mandatory="true">
+                    <description>
+                        A username for Bitbucket Server connection
+                    </description>
+                </param>
+                <param name="secure:stashPassword" dslName="password" mandatory="true">
+                    <description>
+                        A password for Bitbucket Server connection
+                    </description>
+                </param>
+            </option>
+            <option name="gerrit" value="gerritStatusPublisher">
+                <description>
+                    Publish status to Gerrit Code Review
+                </description>
+                <param name="gerritServer" dslName="server" mandatory="true">
+                    <description>
+                        Gerrit server in the format: {server}[:{port}]
+                    </description>
+                </param>
+                <param name="gerritProject" dslName="gerritProject" mandatory="true">
+                    <description>
+                        Gerrit project name
+                    </description>
+                </param>
+                <param name="label">
+                    <description>
+                      Gerrit label to be used, "Verified" is used if the parameter is left blank
+                    </description>
+                </param>
+                <param name="failureVote" mandatory="true">
+                    <description>
+                        A failed build vote, e.g. "-1"
+                    </description>
+                </param>
+                <param name="successVote" mandatory="true">
+                    <description>
+                        A successful build vote, e.g. "+1"
+                    </description>
+                </param>
+                <param name="gerritUsername" dslName="userName" mandatory="true">
+                    <description>
+                        A username for Gerrit connection
+                    </description>
+                </param>
+                <param name="teamcitySshKey" dslName="uploadedKey">
+                    <description>
+                        Name of the [uploaded key](https://confluence.jetbrains.com/display/TCDL/SSH+Keys+Management) to use for Gerrit connection
+                    </description>
+                </param>
+            </option>
+            <option name="github" value="githubStatusPublisher">
+                <description>
+                    Publish status to GitHub
+                </description>
+                <param name="github_host" dslName="githubUrl" mandatory="true">
+                    <description>
+                        GitHub server URL.
+                        Use "https://api.github.com" for projects hosted at github.com. For GitHub enterprise use the URL in the
+                        following format: http{s}://{host}:{port}/api/v3
+                    </description>
+                </param>
+                <param name="github_authentication_type" dslName="authType" type="compound">
+                    <description>
+                        Type of authentication
+                    </description>
+                    <option name="personalToken" value="token">
+                        <description>
+                            Authentication using personal token
+                        </description>
+                        <param name="secure:github_access_token" dslName="token" mandatory="true">
+                            <description>
+                                Personal token to use
+                            </description>
+                        </param>
+                    </option>
+                    <option name="password" value="password">
+                        <description>
+                            Password authentication
+                        </description>
+                        <param name="github_username" dslName="userName" mandatory="true">
+                            <description>
+                                A username for GitHub connection
+                            </description>
+                        </param>
+                        <param name="secure:github_password" dslName="password" mandatory="true">
+                            <description>
+                                A password for GitHub connection
+                            </description>
+                        </param>
+                    </option>
+                </param>
+            </option>
+            <option name="gitlab" value="gitlabStatusPublisher">
+                <description>
+                    Publish status to GitLab
+                </description>
+                <param name="gitlabApiUrl" mandatory="true">
+                    <description>
+                        GitLab URL in the format http{s}://{hostname}:{port}/api/v3
+                    </description>
+                </param>
+                <param name="secure:gitlabAccessToken" dslName="accessToken" mandatory="true">
+                    <description>
+                        Access token to use for GitLab connection. Can be found at /profile/account in GitLab.
+                    </description>
+                </param>
+            </option>
+            <option name="upsource" value="upsourcePublisher">
+                <description>
+                    Publish status to Upsource
+                </description>
+                <param name="upsourceServerUrl" dslName="serverUrl" mandatory="true">
+                    <description>
+                        Upsource server URL
+                    </description>
+                </param>
+                <param name="upsourceProjectId" dslName="projectId" mandatory="true">
+                    <description>
+                        Upsource project ID
+                    </description>
+                </param>
+                <param name="upsourceUsername" dslName="userName" mandatory="true">
+                    <description>
+                        A username for Upsource connection
+                    </description>
+                </param>
+                <param name="secure:upsourcePassword" dslName="password" mandatory="true">
+                    <description>
+                        A password for Upsource connection
+                    </description>
+                </param>
+            </option>
+            <option name="tfs" value="tfs">
+                <description>
+                    Publish build status to VSTS / TFS
+                </description>
+                <param name="tfsAuthType" dslName="authType" mandatory="true">
+                    <description>
+                        Authentication type
+                    </description>
+                </param>
+                <param name="secure:accessToken" dslName="accessToken" mandatory="true">
+                    <description>
+                        A Personal Access Token value
+                    </description>
+                </param>
+                <param name="publish.pull.requests" dslName="publishPullRequests" type="boolean" trueValue="true" falseValue="">
+                    <description>
+                        Enables publishing build status for pull requests
+                    </description>
+                </param>
+            </option>
+        </param>
+    </params>
+    <types>
+        <enum name="FileEncoding">
+            <option name="AUTODETECT" value="autodetect"/>
+            <option name="ASCII" value="US-ASCII"/>
+            <option name="UTF_8" value="UTF-8"/>
+            <option name="UTF_16BE" value="UTF-16BE"/>
+            <option name="UTF_16LE" value="UTF-16LE"/>
+            <option name="CUSTOM" value="custom"/>
+        </enum>
+    </types>
+</dsl-extension>

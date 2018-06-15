@@ -4,6 +4,7 @@ import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
@@ -19,9 +20,15 @@ import static jetbrains.buildServer.ssh.ServerSshKeyManager.TEAMCITY_SSH_KEY_PRO
 public class GerritSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
   private final ExtensionHolder myExtensionHolder;
-  private final String[] myMandatoryProperties = new String[] {
-          Constants.GERRIT_SERVER, Constants.GERRIT_PROJECT, Constants.GERRIT_USERNAME,
-          Constants.GERRIT_SUCCESS_VOTE, Constants.GERRIT_FAILURE_VOTE, TEAMCITY_SSH_KEY_PROP};
+  private final Map<String, String> myMandatoryProperties = new HashMap<String, String>() {{
+          put(Constants.GERRIT_SERVER, "Server URL");
+          put(Constants.GERRIT_PROJECT, "Gerrit project");
+          put(Constants.GERRIT_USERNAME, "Username");
+          put(Constants.GERRIT_LABEL, "Gerrit Label");
+          put(Constants.GERRIT_SUCCESS_VOTE, "Success vote");
+          put(Constants.GERRIT_FAILURE_VOTE, "Failure vote");
+          put(TEAMCITY_SSH_KEY_PROP, "SSH key");
+  }};
   private GerritClient myGerritClient;
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     add(Event.FINISHED);
@@ -33,8 +40,9 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
                         @NotNull ExtensionHolder extensionHolder,
                         @NotNull GerritClient gerritClient,
                         @NotNull WebLinks links,
-                        @NotNull CommitStatusPublisherProblems problems) {
-    super(executorServices, descriptor, links, problems);
+                        @NotNull CommitStatusPublisherProblems problems,
+                        @NotNull SSLTrustStoreProvider trustStoreProvider) {
+    super(executorServices, descriptor, links, problems, trustStoreProvider);
     myExtensionHolder = extensionHolder;
     myGerritClient = gerritClient;
   }
@@ -57,6 +65,7 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
   @Nullable
   public Map<String, String> getDefaultParameters() {
     Map<String, String> params = new HashMap<String, String>();
+    params.put(Constants.GERRIT_LABEL, "Verified");
     params.put(Constants.GERRIT_SUCCESS_VOTE, "+1");
     params.put(Constants.GERRIT_FAILURE_VOTE, "-1");
     return params;
@@ -83,9 +92,9 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
-        for (String mandatoryParam : myMandatoryProperties) {
-          if (params.get(mandatoryParam) == null)
-            errors.add(new InvalidProperty(mandatoryParam, "must be specified"));
+        for (Map.Entry<String, String> mandatoryParam : myMandatoryProperties.entrySet()) {
+          if (params.get(mandatoryParam.getKey()) == null)
+            errors.add(new InvalidProperty(mandatoryParam.getKey(), String.format("%s must be specified", mandatoryParam.getValue())));
         }
         return errors;
       }

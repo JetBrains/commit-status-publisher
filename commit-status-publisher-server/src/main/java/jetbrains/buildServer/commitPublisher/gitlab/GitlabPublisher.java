@@ -1,6 +1,8 @@
 package jetbrains.buildServer.commitPublisher.gitlab;
 
+import com.google.gson.Gson;
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.LinkedHashMap;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
@@ -19,6 +21,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   private static final String REFS_HEADS = "refs/heads/";
   private static final String REFS_TAGS = "refs/tags/";
   private static final Logger LOG = Logger.getInstance(GitlabPublisher.class.getName());
+  private final Gson myGson = new Gson();
 
   private final WebLinks myLinks;
 
@@ -86,7 +89,11 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
                        @NotNull GitlabBuildStatus status,
                        @NotNull String description) throws PublisherException {
     VcsRootInstance root = revision.getRoot();
-    Repository repository = parseRepository(root);
+    String apiUrl = getApiUrl();
+    if (null == apiUrl || apiUrl.length() == 0)
+      throw new PublisherException("Missing GitLab API URL parameter");
+    String pathPrefix = GitlabSettings.getPathPrefix(apiUrl);
+    Repository repository = parseRepository(root, pathPrefix);
     if (repository == null)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
 
@@ -100,8 +107,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   private void publish(@NotNull String commit, @NotNull String data, @NotNull Repository repository, @NotNull String buildDescription) throws Exception {
-    String url = getApiUrl() + "/projects/" + GitlabSettings.encodeDots(repository.owner())
-                 + "%2F" + GitlabSettings.encodeDots(repository.repositoryName()) + "/statuses/" + commit;
+    String url = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/statuses/" + commit;
     LOG.debug("Request url: " + url + ", message: " + data);
     postAsync(url, null, null, data, ContentType.APPLICATION_JSON, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), buildDescription);
   }
@@ -125,22 +131,21 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
       }
     }
 
-    StringBuilder result = new StringBuilder();
-    result.append("{").append("\"state\":").append("\"").append(status.getName()).append("\",")
-            .append("\"name\":").append("\"").append(build.getBuildTypeName()).append("\",")
-            .append("\"target_url\":").append("\"").append(url).append("\",")
-            .append("\"description\":").append("\"").append(description).append("\"");
+    final Map<String, String> data = new LinkedHashMap<String, String>();
+    data.put("state", status.getName());
+    data.put("name", build.getBuildTypeName());
+    data.put("target_url", url);
+    data.put("description", description);
     if (ref != null)
-      result.append(",\"ref\":").append("\"").append(escape(ref)).append("\"");
-    result.append("}");
-    return result.toString();
+      data.put("ref", ref);
+    return myGson.toJson(data);
   }
 
   @Nullable
-  static Repository parseRepository(@NotNull VcsRoot root) {
+  static Repository parseRepository(@NotNull VcsRoot root, @Nullable String pathPrefix) {
     if ("jetbrains.git".equals(root.getVcsName())) {
       String url = root.getProperty("url");
-      return url == null ? null : GitRepositoryParser.parseRepository(url);
+      return url == null ? null : GitRepositoryParser.parseRepository(url, pathPrefix);
     } else {
       return null;
     }
@@ -148,7 +153,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
 
   private String getApiUrl() {
-    return myParams.get(Constants.GITLAB_API_URL);
+    return HttpHelper.stripTrailingSlash(myParams.get(Constants.GITLAB_API_URL));
   }
 
   private String getPrivateToken() {

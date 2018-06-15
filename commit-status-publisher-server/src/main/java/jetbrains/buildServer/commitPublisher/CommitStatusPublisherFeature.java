@@ -81,4 +81,9 @@ public class CommitStatusPublisherFeature extends BuildFeature {
       }
     };
   }
+
+  @Override
+  public boolean isRequiresAgent() {
+    return false;
+  }
 }

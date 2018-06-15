@@ -18,34 +18,29 @@ package jetbrains.buildServer.commitPublisher.github.api.impl;
 
 import com.google.gson.Gson;
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.*;
-import jetbrains.buildServer.util.FileUtil;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
-import org.apache.http.auth.AuthenticationException;
-import org.apache.http.client.methods.HttpGet;
+import jetbrains.buildServer.http.SimpleCredentials;
+import jetbrains.buildServer.util.HTTPRequestBuilder;
+import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.http.HttpMethod;
+import org.apache.commons.codec.Charsets;
+import org.apache.http.*;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.util.EntityUtils;
+import org.apache.http.message.BasicStatusLine;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.apache.http.HttpVersion.HTTP_1_1;
 
 /**
  * @author Eugene Petrenko (eugene.petrenko@gmail.com)
@@ -55,6 +50,7 @@ import java.util.regex.Pattern;
 public abstract class GitHubApiImpl implements GitHubApi {
   private static final Logger LOG = Logger.getInstance(GitHubApiImpl.class.getName());
   private static final Pattern PULL_REQUEST_BRANCH = Pattern.compile("/?refs/[^/]*pull/(\\d+)/(.*)");
+  private static final String MSG_PROXY_OR_PERMISSIONS = "Please check if the error is not returned by a proxy or caused by the lack of permissions.";
 
   private final HttpClientWrapper myClient;
   private final GitHubApiPaths myUrls;
@@ -86,18 +82,14 @@ public abstract class GitHubApiImpl implements GitHubApi {
 
   public void testConnection(@NotNull final String repoOwner,
                              @NotNull final String repoName) throws PublisherException {
-    final HttpGet get = new HttpGet(myUrls.getRepoInfo(repoOwner, repoName));
+    final String uri = myUrls.getRepoInfo(repoOwner, repoName);
     RepoInfo repoInfo;
     try {
-      includeAuthentication(get);
-      setDefaultHeaders(get);
-      logRequest(get, null);
-      repoInfo = processResponse(get, RepoInfo.class);
+      repoInfo = processResponse(uri, RepoInfo.class, true);
     } catch (Throwable ex) {
       throw new PublisherException(String.format("Error while retrieving %s/%s repository information", repoOwner, repoName), ex);
-    } finally {
-      get.abort();
     }
+
     if (null == repoInfo.name || null == repoInfo.permissions) {
       throw new PublisherException(String.format("Repository %s/%s is inaccessible", repoOwner, repoName));
     }
@@ -109,27 +101,38 @@ public abstract class GitHubApiImpl implements GitHubApi {
   public String readChangeStatus(@NotNull final String repoOwner,
                                  @NotNull final String repoName,
                                  @NotNull final String hash) throws IOException {
-    final HttpGet post = new HttpGet(myUrls.getStatusUrl(repoOwner, repoName, hash));
-    includeAuthentication(post);
-    setDefaultHeaders(post);
+    final String statusUrl = myUrls.getStatusUrl(repoOwner, repoName, hash);
 
-    try {
-      logRequest(post, null);
+    final HttpMethod method = HttpMethod.GET;
+    logRequest(method, statusUrl, null);
 
-      final HttpResponse execute = myClient.execute(post);
-      if (execute.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
-        logFailedResponse(post, null, execute);
-        throw new IOException("Failed to complete request to GitHub. Status: " + execute.getStatusLine());
+    final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
+    myClient.get(statusUrl, authenticationCredentials(), defaultHeaders(),
+                 response -> {},
+                 response -> {
+                   logFailedResponse(method, statusUrl, null, response);
+                   exceptionRef.set(new IOException(getErrorMessage(response, null)));
+                 },
+                 e -> exceptionRef.set(e));
+
+    final Exception ex;
+    if ((ex = exceptionRef.get()) != null) {
+      if (ex instanceof IOException) {
+        throw (IOException) ex;
+      } else {
+        throw new IOException(ex);
       }
-      return "TBD";
-    } finally {
-      post.abort();
     }
+
+    return "TBD";
   }
 
-  private void setDefaultHeaders(@NotNull HttpUriRequest request) {
-    request.setHeader(new BasicHeader(HttpHeaders.ACCEPT_ENCODING, "UTF-8"));
-    request.setHeader(new BasicHeader(HttpHeaders.ACCEPT, "application/json"));
+  private Map<String, String> defaultHeaders() {
+    final Map<String, String> result = new LinkedHashMap<String, String>();
+    result.put(HttpHeaders.ACCEPT_ENCODING, "UTF-8");
+    result.put(HttpHeaders.ACCEPT, "application/json");
+
+    return result;
   }
 
   public void setChangeStatus(@NotNull final String repoOwner,
@@ -139,21 +142,31 @@ public abstract class GitHubApiImpl implements GitHubApi {
                               @NotNull final String targetUrl,
                               @NotNull final String description,
                               @Nullable final String context) throws IOException {
-    final GSonEntity requestEntity = new GSonEntity(myGson, new CommitStatus(status.getState(), targetUrl, description, context));
-    final HttpPost post = new HttpPost(myUrls.getStatusUrl(repoOwner, repoName, hash));
-    try {
-      post.setEntity(requestEntity);
-      includeAuthentication(post);
-      setDefaultHeaders(post);
 
-      logRequest(post, requestEntity.getText());
-      final HttpResponse execute = myClient.execute(post);
-      if (execute.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_CREATED) {
-        logFailedResponse(post, requestEntity.getText(), execute);
-        throw new IOException("Failed to complete request to GitHub. Status: " + execute.getStatusLine());
+    final String url = myUrls.getStatusUrl(repoOwner, repoName, hash);
+    final String entity = myGson.toJson(new CommitStatus(status.getState(), targetUrl, description, context));
+
+    final HttpMethod method = HttpMethod.POST;
+    logRequest(method, url, entity);
+
+    final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
+    myClient.post(
+      url, authenticationCredentials(), defaultHeaders(),
+      entity, "application/json", Charsets.UTF_8,
+      response -> {},
+      response -> {
+        logFailedResponse(method, url, entity, response);
+        exceptionRef.set(new IOException(getErrorMessage(response, MSG_PROXY_OR_PERMISSIONS)));
+      },
+      e -> exceptionRef.set(e));
+
+    final Exception ex;
+    if ((ex = exceptionRef.get()) != null) {
+      if (ex instanceof IOException) {
+        throw (IOException) ex;
+      } else {
+        throw new IOException(ex);
       }
-    } finally {
-      post.abort();
     }
   }
 
@@ -173,11 +186,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     //  /repos/:owner/:repo/pulls/:number
 
     final String requestUrl = myUrls.getPullRequestInfo(repoOwner, repoName, pullRequestId);
-    final HttpGet get = new HttpGet(requestUrl);
-    includeAuthentication(get);
-    setDefaultHeaders(get);
-
-    final PullRequestInfo pullRequestInfo = processResponse(get, PullRequestInfo.class);
+    final PullRequestInfo pullRequestInfo = processResponse(requestUrl, PullRequestInfo.class, false);
 
     final RepoRefInfo head = pullRequestInfo.head;
     if (head != null) {
@@ -190,9 +199,8 @@ public abstract class GitHubApiImpl implements GitHubApi {
   public Collection<String> getCommitParents(@NotNull String repoOwner, @NotNull String repoName, @NotNull String hash) throws IOException, PublisherException {
 
     final String requestUrl = myUrls.getCommitInfo(repoOwner, repoName, hash);
-    final HttpGet get = new HttpGet(requestUrl);
 
-    final CommitInfo infos = processResponse(get, CommitInfo.class);
+    final CommitInfo infos = processResponse(requestUrl, CommitInfo.class, false);
     if (infos.parents != null) {
       final Set<String> parents = new HashSet<String>();
       for (CommitInfo p : infos.parents) {
@@ -207,56 +215,78 @@ public abstract class GitHubApiImpl implements GitHubApi {
   }
 
   @NotNull
-  private <T> T processResponse(@NotNull HttpUriRequest request, @NotNull final Class<T> clazz) throws IOException, PublisherException {
-    setDefaultHeaders(request);
-    try {
-      logRequest(request, null);
+  private <T> T processResponse(@NotNull String uri, @NotNull final Class<T> clazz, boolean logErrorsDebugOnly) throws IOException, PublisherException {
+    logRequest(HttpMethod.GET, uri, null);
 
-      final HttpResponse execute = myClient.execute(request);
-      if (execute.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_OK) {
-        logFailedResponse(request, null, execute);
-        throw new IOException("Failed to complete request to GitHub. Status: " + execute.getStatusLine());
-      }
+    final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
+    final AtomicReference<T> resultRef = new AtomicReference<>();
+    myClient.get(uri, authenticationCredentials(), defaultHeaders(),
+                 success -> {
+                   final String json = success.getBodyAsString();
+                   if (StringUtil.isEmptyOrSpaces(json)) {
+                     logFailedResponse(HttpMethod.GET, uri, null, success, logErrorsDebugOnly);
+                     exceptionRef.set(new IOException(getErrorMessage(success, "Empty response.")));
+                   } else {
+                     LOG.debug("Parsing json for " + uri + ": " + json);
+                     T result = myGson.fromJson(json, clazz);
+                     if (null == result) {
+                       exceptionRef.set(new PublisherException("GitHub publisher fails to parse a response"));
+                     } else {
+                       resultRef.set(result);
+                     }
+                   }
+                 },
+                 error -> {
+                   logFailedResponse(HttpMethod.GET, uri, null, error, logErrorsDebugOnly);
+                   exceptionRef.set(new IOException(getErrorMessage(error, MSG_PROXY_OR_PERMISSIONS)));
+                 },
+                 e -> {
+                   exceptionRef.set(e);
+                 }
+    );
 
-      final HttpEntity entity = execute.getEntity();
-      if (entity == null) {
-        logFailedResponse(request, null, execute);
-        throw new IOException("Failed to complete request to GitHub. Empty response. Status: " + execute.getStatusLine());
+    final Exception ex;
+    if ((ex = exceptionRef.get()) != null) {
+      if (ex instanceof IOException) {
+        throw (IOException)ex;
+      } else if (ex instanceof PublisherException) {
+        throw (PublisherException)ex;
+      } else {
+        throw new IOException(ex);
       }
-
-      try {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        entity.writeTo(bos);
-        final String json = bos.toString("utf-8");
-        LOG.debug("Parsing json for " + request.getURI().toString() + ": " + json);
-        T result = myGson.fromJson(json, clazz);
-        if (null == result) {
-          throw new PublisherException("GitHub publisher fails to parse a response");
-        }
-        return result;
-      } finally {
-        EntityUtils.consume(entity);
-      }
-    } finally {
-      request.abort();
     }
+
+    return resultRef.get();
   }
 
-  private void includeAuthentication(@NotNull HttpRequest request) throws IOException {
-    try {
-      setAuthentication(request);
-    } catch (AuthenticationException e) {
-      throw new IOException("Failed to set authentication for request. " + e.getMessage(), e);
+  @NotNull
+  private static String getErrorMessage(@NotNull HTTPRequestBuilder.Response response,
+                                        @Nullable String additionalComment) {
+    final BasicStatusLine statusLine =
+      new BasicStatusLine(HTTP_1_1, response.getStatusCode(), response.getStatusText());
+    String err = "";
+    if (null != additionalComment) {
+      err = additionalComment + " ";
     }
+    return String.format("Failed to complete request to GitHub. %sStatus: %s", err, statusLine.toString());
   }
 
-  protected abstract void setAuthentication(@NotNull final HttpRequest request) throws AuthenticationException;
+  protected abstract SimpleCredentials authenticationCredentials();
 
-
-  private void logFailedResponse(@NotNull HttpUriRequest request,
+  private void logFailedResponse(@NotNull HttpMethod method,
+                                 @NotNull String uri,
                                  @Nullable String requestEntity,
-                                 @NotNull HttpResponse execute) throws IOException {
-    String responseText = extractResponseEntity(execute);
+                                 @NotNull HTTPRequestBuilder.Response response) throws IOException {
+    logFailedResponse(method, uri, requestEntity, response, false);
+  }
+
+
+  private void logFailedResponse(@NotNull HttpMethod method,
+                                 @NotNull String uri,
+                                 @Nullable String requestEntity,
+                                 @NotNull HTTPRequestBuilder.Response response,
+                                 boolean debugOnly) throws IOException {
+    String responseText = response.getBodyAsStringLimit(256 * 1024); //limit buffer with 256K
     if (responseText == null) {
       responseText = "<none>";
     }
@@ -264,16 +294,21 @@ public abstract class GitHubApiImpl implements GitHubApi {
       requestEntity = "<none>";
     }
 
-    LOG.warn("Failed to complete query to GitHub with:\n" +
-            "  requestURL: " + request.getURI().toString() + "\n" +
-            "  requestMethod: " + request.getMethod() + "\n" +
+    final String logEntry = "Failed to complete query to GitHub with:\n" +
+            "  requestURL: " + uri + "\n" +
+            "  requestMethod: " + method + "\n" +
             "  requestEntity: " + requestEntity + "\n" +
-            "  response: " + execute.getStatusLine() + "\n" +
-            "  responseEntity: " + responseText
-    );
+            "  response: " + response.getStatusText() + "\n" +
+            "  responseEntity: " + responseText;
+    if (debugOnly) {
+      LOG.debug(logEntry);
+    } else {
+      LOG.warn(logEntry);
+    }
   }
 
-  private void logRequest(@NotNull HttpUriRequest request,
+  private void logRequest(@NotNull HttpMethod method,
+                          @NotNull String uri,
                           @Nullable String requestEntity) {
     if (!LOG.isDebugEnabled()) return;
 
@@ -282,28 +317,10 @@ public abstract class GitHubApiImpl implements GitHubApi {
     }
 
     LOG.debug("Calling GitHub with:\n" +
-            "  requestURL: " + request.getURI().toString() + "\n" +
-            "  requestMethod: " + request.getMethod() + "\n" +
+            "  requestURL: " + uri + "\n" +
+            "  requestMethod: " + method + "\n" +
             "  requestEntity: " + requestEntity
     );
-  }
-
-  @Nullable
-  private String extractResponseEntity(@NotNull final HttpResponse execute) throws IOException {
-    final HttpEntity responseEntity = execute.getEntity();
-    if (responseEntity == null) return null;
-    try {
-      final byte[] dataSlice = new byte[256 * 1024]; //limit buffer with 256K
-      final InputStream content = responseEntity.getContent();
-      try {
-        int sz = content.read(dataSlice, 0, dataSlice.length);
-        return new String(dataSlice, 0, sz, "utf-8");
-      } finally {
-        FileUtil.close(content);
-      }
-    } finally {
-      EntityUtils.consume(responseEntity);
-    }
   }
 
   public void postComment(@NotNull final String ownerName,
@@ -311,23 +328,30 @@ public abstract class GitHubApiImpl implements GitHubApi {
                           @NotNull final String hash,
                           @NotNull final String comment) throws IOException {
 
-    final String requestUrl = myUrls.getAddCommentUrl(ownerName, repoName, hash);
-    final GSonEntity requestEntity = new GSonEntity(myGson, new IssueComment(comment));
-    final HttpPost post = new HttpPost(requestUrl);
-    try {
-      post.setEntity(requestEntity);
-      includeAuthentication(post);
-      setDefaultHeaders(post);
+    final String url = myUrls.getAddCommentUrl(ownerName, repoName, hash);
+    final String entity = myGson.toJson(new IssueComment(comment));
 
-      logRequest(post, requestEntity.getText());
+    final HttpMethod method = HttpMethod.POST;
+    logRequest(method, url, entity);
 
-      final HttpResponse execute = myClient.execute(post);
-      if (execute.getStatusLine().getStatusCode() != HttpURLConnection.HTTP_CREATED) {
-        logFailedResponse(post, requestEntity.getText(), execute);
-        throw new IOException("Failed to complete request to GitHub. Status: " + execute.getStatusLine());
+    final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
+    myClient.post(
+      url, authenticationCredentials(), defaultHeaders(),
+      entity, "application/json", Charsets.UTF_8,
+      response -> {},
+      response -> {
+        logFailedResponse(method, url, entity, response);
+        exceptionRef.set(new IOException(getErrorMessage(response, null)));
+      },
+      e -> exceptionRef.set(e));
+
+    final Exception ex;
+    if ((ex = exceptionRef.get()) != null) {
+      if (ex instanceof IOException) {
+        throw (IOException) ex;
+      } else {
+        throw new IOException(ex);
       }
-    } finally {
-      post.abort();
     }
   }
 }

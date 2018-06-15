@@ -21,58 +21,10 @@
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants"/>
 <jsp:useBean id="oauthConnections" scope="request" type="java.util.Map"/>
 
-<c:if test="${testConnectionSupported}">
-  <script>
-    $j(document).ready(function() {
-      PublisherFeature.showTestConnection();
-    });
-  </script>
-</c:if>
-<style type="text/css">
-  .tc-icon_github,
-  .tc-icon_github-enterprise {
-    cursor: pointer;
-  }
-
-  a > .tc-icon_github_disabled {
-    text-decoration: none;
-  }
-</style>
-
 <c:url value="/oauth/github/token.html" var="getTokenPage"/>
 <c:set var="cameFromUrl" value="${empty param['cameFromUrl'] ? pageUrl : param['cameFromUrl']}"/>
 <c:set var="getTokenPage" value="${getTokenPage}?cameFromUrl=${util:urlEscape(cameFromUrl)}"/>
 
-<script type="text/javascript">
-
-  BS.GitHubAccessTokenPopup = new BS.Popup('gitHubGetToken', {
-    url: "${getTokenPage}",
-    method: "get",
-    hideDelay: 0,
-    hideOnMouseOut: false,
-    hideOnMouseClickOutside: true
-  });
-
-  BS.GitHubAccessTokenPopup.showPopup = function(nearestElement, connectionId) {
-    this.options.parameters = "projectId=${project.externalId}&connectionId=" + connectionId + "&showMode=popup";
-    var that = this;
-
-    window.GitHubTokenContentUpdater = function() {
-      that.hidePopup(0);
-      that.showPopupNearElement(nearestElement);
-    };
-    this.showPopupNearElement(nearestElement);
-  };
-
-  window.getOAuthTokenCallback = function(cre) {
-    if (cre != null) {
-      $('${keys.OAuthUserKey}').value = cre.oauthLogin;
-      $('${keys.OAuthProviderIdKey}').value = cre.oauthProviderId;
-      $('${keys.accessTokenKey}').value = '******************************'
-    }
-    BS.GitHubAccessTokenPopup.hidePopup(0, true);
-  };
-</script>
 
 <c:set var="oauth_connection_fragment">
   <c:forEach items="${oauthConnections.keySet()}" var="connection">
@@ -81,20 +33,32 @@
   </c:forEach>
 </c:set>
 
-<table style="width: 100%">
-  <props:selectSectionProperty name="${keys.authenticationTypeKey}" title="Authentication Type">
+  <tr>
+    <th><label for="${keys.serverKey}">GitHub URL:<l:star/></label></th>
+    <td>
+      <props:textProperty name="${keys.serverKey}" className="longField"/>
+      <span class="error" id="error_${keys.serverKey}"></span>
+      <span class="smallNote">
+        Format: <strong>http[s]://&lt;host&gt;[:&lt;port&gt;]/api/v3</strong>
+        for <a href="https://support.enterprise.github.com/entries/21391237-Using-the-API" target="_blank">GitHub Enterprise</a>
+      </span>
+    </td>
+  </tr>
+
+ <props:selectSectionProperty name="${keys.authenticationTypeKey}" title="Authentication Type">
 
     <props:selectSectionPropertyContent value="${keys.authenticationTypeTokenValue}" caption="Access Token">
       <tr>
-        <th><label for="${keys.accessTokenKey}">Access Token: <l:star/></label></th>
+        <th><label for="${keys.accessTokenKey}">Access Token:<l:star/></label></th>
         <td>
-          <props:passwordProperty name="${keys.accessTokenKey}" className="longField"/>
+          <props:passwordProperty name="${keys.accessTokenKey}" className="mediumField" onchange="PublisherFeature.resetAccessTokenNote();"/>
             ${oauth_connection_fragment}
           <props:hiddenProperty name="${keys.OAuthUserKey}" />
           <props:hiddenProperty name="${keys.OAuthProviderIdKey}" />
           <span class="error" id="error_${keys.accessTokenKey}"></span>
           <span class="smallNote">
-            GitHub <a href="https://github.com/settings/applications" target="_blank">Personal Access Token</a>
+            <span id="note_oauth_token">OAuth access token issued for GitHub user <strong id="note_oauth_user"></strong></span>
+            <span id="note_personal_token">GitHub <a href="https://github.com/settings/applications" target="_blank">Personal Access Token</a></span>
             <br />
             It is required to have the following permissions:
             <strong><em>repo:status</em></strong> and
@@ -106,32 +70,90 @@
 
     <props:selectSectionPropertyContent value="${keys.authenticationTypePasswordValue}" caption="Password">
       <tr>
-        <th><label for="${keys.userNameKey}">GitHub Username: <l:star/></label></th>
+        <th><label for="${keys.userNameKey}">GitHub Username:<l:star/></label></th>
         <td>
-          <props:textProperty name="${keys.userNameKey}" className="longField"/>
+          <props:textProperty name="${keys.userNameKey}" className="mediumField"/>
           <span class="error" id="error_${keys.userNameKey}"></span>
         </td>
       </tr>
       <tr>
-        <th><label for="${keys.passwordKey}">GitHub Password: <l:star/></label></th>
+        <th><label for="${keys.passwordKey}">GitHub Password:<l:star/></label></th>
         <td>
-          <props:passwordProperty name="${keys.passwordKey}" className="longField"/>
+          <props:passwordProperty name="${keys.passwordKey}" className="mediumField"/>
           <span class="error" id="error_${keys.passwordKey}"></span>
+
+          <c:if test="${testConnectionSupported}">
+            <script>
+              $j(document).ready(function() {
+                PublisherFeature.showTestConnection();
+              });
+            </script>
+          </c:if>
+
+          <script type="text/javascript">
+
+            PublisherFeature.updateAccessTokenNote = function() {
+              if ($('${keys.OAuthUserKey}').value == '') {
+                $j('#note_oauth_token').hide();
+                $j('#note_personal_token').show();
+              } else {
+                $j('#note_personal_token').hide();
+                $j('#note_oauth_user').text($('${keys.OAuthUserKey}').value);
+                $j('#note_oauth_token').show();
+              }
+            };
+
+            PublisherFeature.resetAccessTokenNote = function() {
+              $('${keys.OAuthUserKey}').value = '';
+              PublisherFeature.updateAccessTokenNote();
+            }
+
+            $j(document).ready(PublisherFeature.updateAccessTokenNote());
+
+            BS.GitHubAccessTokenPopup = new BS.Popup('gitHubGetToken', {
+              url: "${getTokenPage}",
+              method: "get",
+              hideDelay: 0,
+              hideOnMouseOut: false,
+              hideOnMouseClickOutside: true
+            });
+
+            BS.GitHubAccessTokenPopup.showPopup = function(nearestElement, connectionId) {
+              this.options.parameters = "projectId=${project.externalId}&connectionId=" + connectionId + "&showMode=popup";
+              var that = this;
+
+              window.GitHubTokenContentUpdater = function() {
+                that.hidePopup(0);
+                that.showPopupNearElement(nearestElement);
+              };
+              this.showPopupNearElement(nearestElement);
+            };
+
+            window.getOAuthTokenCallback = function(cre) {
+              if (cre != null) {
+                $('${keys.OAuthUserKey}').value = cre.oauthLogin;
+                $('${keys.OAuthProviderIdKey}').value = cre.oauthProviderId;
+                $('${keys.accessTokenKey}').value = '******************************';
+                PublisherFeature.updateAccessTokenNote();
+              }
+              BS.GitHubAccessTokenPopup.hidePopup(0, true);
+            };
+          </script>
+
+          <style type="text/css">
+            .tc-icon_github,
+            .tc-icon_github-enterprise {
+              cursor: pointer;
+            }
+
+            a > .tc-icon_github_disabled {
+              text-decoration: none;
+            }
+          </style>
+
         </td>
       </tr>
     </props:selectSectionPropertyContent>
 
   </props:selectSectionProperty>
 
-  <tr>
-    <th><label for="${keys.serverKey}">GitHub URL: <l:star/></label></th>
-    <td>
-      <props:textProperty name="${keys.serverKey}" className="longField"/>
-      <span class="error" id="error_${keys.serverKey}"></span>
-    <span class="smallNote">
-      Format <strong>http(s)://[hostname]/api/v3</strong>
-      for <a href="https://support.enterprise.github.com/entries/21391237-Using-the-API" target="_blank">GitHub Enterprise</a>
-    </span>
-    </td>
-  </tr>
-</table>

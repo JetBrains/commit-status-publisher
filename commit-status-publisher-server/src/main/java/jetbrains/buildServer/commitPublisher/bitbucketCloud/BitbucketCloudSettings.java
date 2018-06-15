@@ -1,23 +1,21 @@
 package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudRepoInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 public class BitbucketCloudSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
-
   final static String DEFAULT_API_URL = "https://api.bitbucket.org/";
 
   private String myDefaultApiUrl = DEFAULT_API_URL;
@@ -33,8 +31,9 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
   public BitbucketCloudSettings(@NotNull final ExecutorServices executorServices,
                                 @NotNull PluginDescriptor descriptor,
                                 @NotNull WebLinks links,
-                                @NotNull CommitStatusPublisherProblems problems) {
-    super(executorServices, descriptor, links, problems);
+                                @NotNull CommitStatusPublisherProblems problems,
+                                @NotNull SSLTrustStoreProvider trustStoreProvider) {
+    super(executorServices, descriptor, links, problems, trustStoreProvider);
   }
 
   void setDefaultApiUrl(@NotNull String url) {
@@ -69,10 +68,10 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
 
         if (StringUtil.isEmptyOrSpaces(params.get(Constants.BITBUCKET_CLOUD_USERNAME)))
-          errors.add(new InvalidProperty(Constants.BITBUCKET_CLOUD_USERNAME, "must be specified"));
+          errors.add(new InvalidProperty(Constants.BITBUCKET_CLOUD_USERNAME, "Username must be specified"));
 
         if (StringUtil.isEmptyOrSpaces(params.get(Constants.BITBUCKET_CLOUD_PASSWORD)))
-          errors.add(new InvalidProperty(Constants.BITBUCKET_CLOUD_PASSWORD, "must be specified"));
+          errors.add(new InvalidProperty(Constants.BITBUCKET_CLOUD_PASSWORD, "Password must be specified"));
 
         return errors;
       }
@@ -86,6 +85,11 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
   }
 
   @Override
+  public boolean isFQDNTeamCityUrlRequired() {
+    return true;
+  }
+
+  @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
     Repository repository = BitbucketCloudRepositoryParser.parseRepository(root);
     if (null == repository)
@@ -95,17 +99,14 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
     try {
       HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
         @Override
-        public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+        public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
 
           super.processResponse(response);
 
-          final HttpEntity entity = response.getEntity();
-          if (null == entity) {
+          final String json = response.getContent();
+          if (null == json) {
             throw new HttpPublisherException("Stash publisher has received no response");
           }
-          ByteArrayOutputStream bos = new ByteArrayOutputStream();
-          entity.writeTo(bos);
-          final String json = bos.toString("utf-8");
           BitbucketCloudRepoInfo repoInfo = myGson.fromJson(json, BitbucketCloudRepoInfo.class);
           if (null == repoInfo)
             throw new HttpPublisherException("Bitbucket Cloud publisher has received a malformed response");
@@ -116,7 +117,8 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
       };
 
       HttpHelper.get(url, params.get(Constants.BITBUCKET_CLOUD_USERNAME), params.get(Constants.BITBUCKET_CLOUD_PASSWORD),
-                     Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processor);
+                     Collections.singletonMap("Accept", "application/json"),
+                     BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processor);
     } catch (Exception ex) {
       throw new PublisherException(String.format("Bitbucket Cloud publisher has failed to connect to %s/%s repository", repository.owner(), repository.repositoryName()), ex);
     }

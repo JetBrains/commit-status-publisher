@@ -52,6 +52,12 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     return true;
   }
 
+  @Override
+  public boolean buildMarkedAsSuccessful(@NotNull final SBuild build, @NotNull final BuildRevision revision, final boolean buildInProgress) throws PublisherException {
+    updateBuildStatus(build, revision, buildInProgress);
+    return true;
+  }
+
   public String getServerUrl() {
     return myParams.get(Constants.GITHUB_SERVER);
   }

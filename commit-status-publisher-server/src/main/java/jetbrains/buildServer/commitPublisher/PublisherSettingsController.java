@@ -106,27 +106,42 @@ public class PublisherSettingsController extends BaseController {
     new AjaxRequestProcessor().processRequest(request, response, new AjaxRequestProcessor.RequestHandler() {
       public void handleRequest(@NotNull HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull Element xmlResponse) {
         XmlResponseUtil.writeTestResult(xmlResponse, "");
+        ActionErrors errors = new ActionErrors();
         try {
           BasePropertiesBean propBean = new BasePropertiesBean(params);
           PluginPropertiesUtil.bindPropertiesFromRequest(request, propBean);
           Map<String, String> props = propBean.getProperties();
           PropertiesProcessor processor = settings.getParametersProcessor();
           if (null != processor) {
-            processor.process(props);
+            Collection<InvalidProperty> invalidProps = processor.process(props);
+            if (invalidProps != null) {
+              for (InvalidProperty prop : invalidProps) {
+                errors.addError("testConnectionFailed", prop.getInvalidReason());
+              }
+            }
           }
-          testConnection(settings, props, request);
+          if (!errors.hasErrors()) {
+            testConnection(settings, props, request, errors);
+          }
         } catch (PublisherException ex) {
-          StringBuffer msgBuf = new StringBuffer(ex.getMessage());
-          Throwable cause = ex.getCause();
-          if (null != cause) {
-            msgBuf.append(String.format(": %s", cause.getMessage()));
-          }
-          final String msg = msgBuf.toString();
-          LOG.debug("Test connection failure", ex);
-          XmlResponseUtil.writeErrors(xmlResponse, new ActionErrors() {{ addError("testConnectionFailed", msg); }});
+          reportTestConnectionFailure(ex, errors);
+        }
+        if (errors.hasErrors()) {
+          XmlResponseUtil.writeErrors(xmlResponse, errors);
         }
       }
     });
+  }
+
+  private void reportTestConnectionFailure(@NotNull PublisherException ex, @NotNull ActionErrors errors) {
+    StringBuffer msgBuf = new StringBuffer(ex.getMessage());
+    Throwable cause = ex.getCause();
+    if (null != cause) {
+      msgBuf.append(String.format(": %s", cause.getMessage()));
+    }
+    final String msg = msgBuf.toString();
+    LOG.debug("Test connection failure", ex);
+    errors.addError("testConnectionFailed", msg);
   }
 
   private static Map<String, String> resolveProperties(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull Map<String, String> params) {
@@ -145,7 +160,8 @@ public class PublisherSettingsController extends BaseController {
     }
   }
 
-  private void testConnection(CommitStatusPublisherSettings settings, Map<String, String> params, @NotNull final HttpServletRequest request) throws PublisherException {
+  private void testConnection(CommitStatusPublisherSettings settings, Map<String, String> params, @NotNull final HttpServletRequest request,
+                              @NotNull ActionErrors errors) throws PublisherException {
     BuildTypeIdentity buildTypeOrTemplate = getBuildTypeOrTemplate(request.getParameter("id"));
     Map<String, String> resolvedProperties = resolveProperties(buildTypeOrTemplate, params);
 
@@ -160,9 +176,20 @@ public class PublisherSettingsController extends BaseController {
         throw new PublisherException("No VCS roots attached");
       }
 
+      boolean isTested = false;
       for (SVcsRoot sVcsRoot: roots) {
-        VcsRoot vcsRoot = getVcsRootInstanceIfPossible(buildTypeOrTemplate, sVcsRoot);
-        settings.testConnection(buildTypeOrTemplate, vcsRoot, resolvedProperties);
+        try {
+          VcsRoot vcsRoot = getVcsRootInstanceIfPossible(buildTypeOrTemplate, sVcsRoot);
+          if (settings.isPublishingForVcsRoot(vcsRoot)) {
+            isTested = true;
+            settings.testConnection(buildTypeOrTemplate, vcsRoot, resolvedProperties);
+          }
+        } catch (PublisherException ex) {
+          reportTestConnectionFailure(ex, errors);
+        }
+      }
+      if (!isTested) {
+        throw new PublisherException("No relevant VCS roots attached");
       }
     } else {
       SVcsRoot sVcsRoot = myProjectManager.findVcsRootByExternalId(vcsRootId);

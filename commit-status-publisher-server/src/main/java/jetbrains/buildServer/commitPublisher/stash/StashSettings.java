@@ -5,16 +5,14 @@ import jetbrains.buildServer.commitPublisher.stash.data.StashError;
 import jetbrains.buildServer.commitPublisher.stash.data.StashRepoInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
 
@@ -39,8 +37,9 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
   public StashSettings(@NotNull final ExecutorServices executorServices,
                        @NotNull PluginDescriptor descriptor,
                        @NotNull WebLinks links,
-                       @NotNull CommitStatusPublisherProblems problems) {
-    super(executorServices, descriptor, links, problems);
+                       @NotNull CommitStatusPublisherProblems problems,
+                       @NotNull SSLTrustStoreProvider trustStoreProvider) {
+    super(executorServices, descriptor, links, problems, trustStoreProvider);
   }
 
   @NotNull
@@ -75,7 +74,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
         if (params.get(Constants.STASH_BASE_URL) == null)
-          errors.add(new InvalidProperty(Constants.STASH_BASE_URL, "must be specified"));
+          errors.add(new InvalidProperty(Constants.STASH_BASE_URL, "Server URL must be specified"));
         return errors;
       }
     };
@@ -94,27 +93,24 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     if (null == vcsRootUrl) {
       throw new PublisherException("Missing VCS root URL");
     }
-    Repository repository = GitRepositoryParser.parseRepository(vcsRootUrl);
+    final Repository repository = GitRepositoryParser.parseRepository(vcsRootUrl);
     if (null == repository)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
     String apiUrl = params.get(Constants.STASH_BASE_URL);
     if (null == apiUrl || apiUrl.length() == 0)
-      throw new PublisherException("Missing BitBucket Server API URL parameter");
+      throw new PublisherException("Missing Bitbucket Server API URL parameter");
     String url = apiUrl + "/rest/api/1.0/projects/" + repository.owner() + "/repos/" + repository.repositoryName();
     try {
       HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
         @Override
-        public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+        public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
 
           super.processResponse(response);
 
-          final HttpEntity entity = response.getEntity();
-          if (null == entity) {
+          final String json = response.getContent();
+          if (null == json) {
             throw new HttpPublisherException("Stash publisher has received no response");
           }
-          ByteArrayOutputStream bos = new ByteArrayOutputStream();
-          entity.writeTo(bos);
-          final String json = bos.toString("utf-8");
           StashRepoInfo repoInfo = myGson.fromJson(json, StashRepoInfo.class);
           if (null == repoInfo)
             throw new HttpPublisherException("Bitbucket Server publisher has received a malformed response");
@@ -133,7 +129,8 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
       };
 
       HttpHelper.get(url, params.get(Constants.STASH_USERNAME), params.get(Constants.STASH_PASSWORD),
-        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processor);
+                     Collections.singletonMap("Accept", "application/json"),
+                     BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processor);
     } catch (Exception ex) {
       throw new PublisherException(String.format("Bitbucket Server publisher has failed to connect to %s/%s repository", repository.owner(), repository.repositoryName()), ex);
     }

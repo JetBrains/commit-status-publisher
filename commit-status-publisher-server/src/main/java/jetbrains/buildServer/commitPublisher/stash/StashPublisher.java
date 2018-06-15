@@ -2,27 +2,23 @@ package jetbrains.buildServer.commitPublisher.stash;
 
 import com.google.gson.*;
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.LinkedHashMap;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Map;
 
 class StashPublisher extends HttpBasedCommitStatusPublisher {
   public static final String PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
 
   private static final Logger LOG = Logger.getInstance(StashPublisher.class.getName());
-
+  private final Gson myGson = new Gson();
   private final WebLinks myLinks;
 
   StashPublisher(@NotNull CommitStatusPublisherSettings settings,
@@ -138,15 +134,13 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
                                @NotNull String name,
                                @NotNull String url,
                                @NotNull String description) {
-    StringBuilder data = new StringBuilder();
-    data.append("{")
-            .append("\"state\":").append("\"").append(status).append("\",")
-            .append("\"key\":").append("\"").append(id).append("\",")
-            .append("\"name\":").append("\"").append(name).append("\",")
-            .append("\"url\":").append("\"").append(url).append("\",")
-            .append("\"description\":").append("\"").append(escape(description)).append("\"")
-            .append("}");
-    return data.toString();
+    Map<String, String> data = new LinkedHashMap<String, String>();
+    data.put("state", status.toString());
+    data.put("key", id);
+    data.put("name", name);
+    data.put("url", url);
+    data.put("description", description);
+    return myGson.toJson(data);
   }
 
   private void vote(@NotNull String commit, @NotNull String data, @NotNull String buildDescription) {
@@ -155,21 +149,19 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public void processResponse(HttpResponse response) throws HttpPublisherException {
-    StatusLine statusLine = response.getStatusLine();
-    if (statusLine.getStatusCode() >= 400)
-      throw new HttpPublisherException(statusLine.getStatusCode(), statusLine.getReasonPhrase(), parseErrorMessage(response));
+  public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException {
+    final int statusCode = response.getStatusCode();
+    if (statusCode >= 400)
+      throw new HttpPublisherException(statusCode, response.getStatusText(), parseErrorMessage(response));
   }
 
   @Nullable
-  private String parseErrorMessage(@NotNull HttpResponse response) {
-    HttpEntity entity = response.getEntity();
-    if (entity == null)
-      return null;
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
+  private String parseErrorMessage(@NotNull HttpHelper.HttpResponse response) {
     try {
-      entity.writeTo(out);
-      String str = out.toString("UTF-8");
+      String str = response.getContent();
+      if (str == null) {
+        return null;
+      }
       LOG.debug("Stash response: " + str);
       JsonElement json = new JsonParser().parse(str);
       if (!json.isJsonObject())
@@ -186,8 +178,6 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
         return null;
       JsonElement msg = error.getAsJsonObject().get("message");
       return msg != null ? msg.getAsString() : null;
-    } catch (IOException e) {
-      return null;
     } catch (JsonSyntaxException e) {
       return null;
     }
@@ -204,7 +194,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   private String getBaseUrl() {
-    return myParams.get(Constants.STASH_BASE_URL);
+    return HttpHelper.stripTrailingSlash(myParams.get(Constants.STASH_BASE_URL));
   }
 
   private String getUsername() {

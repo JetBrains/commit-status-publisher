@@ -1,30 +1,24 @@
 package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
+import com.google.gson.*;
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.LinkedHashMap;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.vcs.VcsRootInstance;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Map;
 
 class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   private static final Logger LOG = Logger.getInstance(BitbucketCloudPublisher.class.getName());
   private String myBaseUrl = BitbucketCloudSettings.DEFAULT_API_URL;
   private final WebLinks myLinks;
+  private final Gson myGson = new Gson();
 
   BitbucketCloudPublisher(@NotNull CommitStatusPublisherSettings settings,
                           @NotNull SBuildType buildType, @NotNull String buildFeatureId,
@@ -85,7 +79,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    vote(build, revision, BitbucketCloudBuildStatus.FAILED, build.getStatusDescriptor().getText());
+    vote(build, revision, BitbucketCloudBuildStatus.STOPPED, build.getStatusDescriptor().getText());
     return true;
   }
 
@@ -114,15 +108,13 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
                                @NotNull String name,
                                @NotNull String url,
                                @NotNull String description) {
-    final StringBuilder data = new StringBuilder();
-    data.append("{")
-            .append("\"state\":").append("\"").append(status).append("\",")
-            .append("\"key\":").append("\"").append(id).append("\",")
-            .append("\"name\":").append("\"").append(name).append("\",")
-            .append("\"url\":").append("\"").append(url).append("\",")
-            .append("\"description\":").append("\"").append(escape(description)).append("\"")
-            .append("}");
-    return data.toString();
+    final Map<String, String> data = new LinkedHashMap<String, String>();
+    data.put("state",status.toString());
+    data.put("key", id);
+    data.put("name", name);
+    data.put("url", url);
+    data.put("description", description);
+    return myGson.toJson(data);
   }
 
   private void vote(@NotNull String commit, @NotNull String data, @NotNull Repository repository, @NotNull String buildDescription) {
@@ -133,21 +125,19 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
 
 
   @Override
-  public void processResponse(HttpResponse response) throws HttpPublisherException {
-    StatusLine statusLine = response.getStatusLine();
-    if (statusLine.getStatusCode() >= 400)
-      throw new HttpPublisherException(statusLine.getStatusCode(), statusLine.getReasonPhrase(), parseErrorMessage(response));
+  public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException {
+    final int statusCode = response.getStatusCode();
+    if (statusCode >= 400)
+      throw new HttpPublisherException(statusCode, response.getStatusText(), parseErrorMessage(response));
   }
 
   @Nullable
-  private String parseErrorMessage(@NotNull HttpResponse response) {
-    HttpEntity entity = response.getEntity();
-    if (entity == null)
-      return null;
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
+  private String parseErrorMessage(@NotNull HttpHelper.HttpResponse response) {
     try {
-      entity.writeTo(out);
-      String str = out.toString("UTF-8");
+      String str = response.getContent();
+      if (str == null) {
+        return null;
+      }
       LOG.debug("Bitbucket Cloud response: " + str);
       JsonElement json = new JsonParser().parse(str);
       if (!json.isJsonObject())
@@ -171,8 +161,6 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
         }
       }
       return result.toString();
-    } catch (IOException e) {
-      return null;
     } catch (JsonSyntaxException e) {
       return null;
     }

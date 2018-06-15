@@ -1,12 +1,15 @@
 package jetbrains.buildServer.commitPublisher.upsource;
 
 import com.google.gson.Gson;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -18,6 +21,8 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
   private final VcsModificationHistory myVcsHistory;
   private final WebLinks myLinks;
   private final Gson myGson = new Gson();
+  private static final Pattern TEAMCITY_SVN_REVISION_PATTERN = Pattern.compile("([^\\|]+\\|)?([0-9]+)(_.+)?");
+
 
   UpsourcePublisher(@NotNull CommitStatusPublisherSettings settings,
                     @NotNull SBuildType buildType, @NotNull String buildFeatureId,
@@ -98,7 +103,7 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
             buildName,
             url,
             description,
-            revision.getRevision(),
+            getRevision(revision),
             commitMessage,
             commitDate);
     try {
@@ -111,7 +116,7 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
 
 
   private void publish(@NotNull String payload, @NotNull String buildDescription) {
-    String url = myParams.get(Constants.UPSOURCE_SERVER_URL) + "/" + UpsourceSettings.ENDPOINT_BUILD_STATUS;
+    String url = HttpHelper.stripTrailingSlash(myParams.get(Constants.UPSOURCE_SERVER_URL)) + "/" + UpsourceSettings.ENDPOINT_BUILD_STATUS;
     postAsync(url, myParams.get(Constants.UPSOURCE_USERNAME),
             myParams.get(Constants.UPSOURCE_PASSWORD), payload, ContentType.APPLICATION_JSON, null, buildDescription);
   }
@@ -139,5 +144,18 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
     if (commitDate != null)
       data.put(UpsourceSettings.REVISION_DATE_FIELD, commitDate.toString());
     return myGson.toJson(data);
+  }
+
+  private static String getRevision(BuildRevision revision) {
+    VcsRootInstance vcs = revision.getRoot();
+    String revisionNo = revision.getRevision();
+    if (vcs.getVcsName().equals("svn")) {
+      // TeamCity may add a branch name and/or date/time information to a revision number for SVN roots
+      Matcher matcher = TEAMCITY_SVN_REVISION_PATTERN.matcher(revisionNo);
+      if (matcher.matches()) {
+        return matcher.group(2);
+      }
+    }
+    return revisionNo;
   }
 }

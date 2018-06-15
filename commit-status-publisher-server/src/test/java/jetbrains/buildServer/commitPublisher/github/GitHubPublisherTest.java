@@ -13,6 +13,7 @@ import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BasePropertiesModel;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -33,6 +34,8 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public class GitHubPublisherTest extends HttpPublisherTest {
 
+  private ChangeStatusUpdater myChangeStatusUpdater;
+
   public GitHubPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.REMOVED, null);  // not to be tested
@@ -45,9 +48,33 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*success.*build finished.*", REVISION)); // not to be tested
+    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*build started.*", REVISION)); // not to be tested
+    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*build failed.*%s.*", REVISION, BT_NAME_ESCAPED_REGEXP));
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, String.format(".*/repos/owner/project .*")); // not to be tested
+  }
+
+
+  public void test_buildFinishedSuccessfully_server_url_with_subdir() throws Exception {
+    Map<String, String> params = getPublisherParams();
+    setExpectedApiPath("/subdir/api/v3");
+    params.put(Constants.GITHUB_SERVER, getServerUrl() + "/subdir/api/v3");
+    myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
+    myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
+    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems);
+    test_buildFinished_Successfully();
+  }
+
+  public void test_buildFinishedSuccessfully_server_url_with_slash() throws Exception {
+    Map<String, String> params = getPublisherParams();
+    setExpectedApiPath("/subdir/api/v3");
+    params.put(Constants.GITHUB_SERVER, getServerUrl() + "/subdir/api/v3/");
+    myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
+    myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
+    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems);
+    test_buildFinished_Successfully();
   }
 
 
@@ -58,7 +85,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     try {
       myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), revision);
       fail("PublishError exception expected");
-    } catch(PublisherException ex) {
+    } catch (PublisherException ex) {
       then(ex.getMessage()).matches("Cannot parse.*" + myVcsRoot.getName() + ".*");
     }
   }
@@ -67,38 +94,51 @@ public class GitHubPublisherTest extends HttpPublisherTest {
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
+    setExpectedApiPath("");
+    setExpectedEndpointPrefix("/repos/" + OWNER + "/" + CORRECT_REPO);
     super.setUp();
+
+    Map<String, String> params = getPublisherParams();
+
+    myChangeStatusUpdater = new ChangeStatusUpdater(myExecServices,
+                                                    new GitHubApiFactoryImpl(new HttpClientWrapperImpl(new HTTPRequestBuilder.ApacheClient43RequestHandler(), () -> null)), myWebLinks);
+
+    myPublisherSettings = new GitHubSettings(myChangeStatusUpdater, myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems,
+                                             myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext(),
+                                             myTrustStoreProvider);
+    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems);
+  }
+
+  @Override
+  protected void setPublisherTimeout(int timeout) {
+    super.setPublisherTimeout(timeout);
     new TeamCityProperties() {{
       setModel(new BasePropertiesModel() {
         @NotNull
         @Override
         public Map<String, String> getUserDefinedProperties() {
-          return Collections.singletonMap("teamcity.github.http.timeout", String.valueOf(TIMEOUT / 2));
+          return Collections.singletonMap("teamcity.github.http.timeout", String.valueOf(timeout));
         }
       });
     }};
-
-
-    Map<String, String> params = getPublisherParams();
-
-    ChangeStatusUpdater changeStatusUpdater = new ChangeStatusUpdater(myExecServices,
-            new GitHubApiFactoryImpl(new HttpClientWrapperImpl()), myWebLinks);
-
-    myPublisherSettings = new GitHubSettings(changeStatusUpdater, myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems,
-                                             myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext());
-    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, changeStatusUpdater, params, myProblems);
   }
 
   @Override
-  protected void populateResponse(HttpRequest httpRequest, HttpResponse httpResponse) {
-    super.populateResponse(httpRequest, httpResponse);
-    if (httpRequest.getRequestLine().getMethod().equals("GET")) {
-      if (httpRequest.getRequestLine().getUri().contains("/repos" +  "/" + OWNER + "/" + CORRECT_REPO)) {
-        respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
-      } else if (httpRequest.getRequestLine().getUri().contains("/repos"  + "/" + OWNER + "/" +  READ_ONLY_REPO)) {
-        respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false);
-      }
+  protected boolean respondToGet(String url, HttpResponse httpResponse) {
+    if (url.contains("/repos" +  "/" + OWNER + "/" + CORRECT_REPO)) {
+      respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
+    } else if (url.contains("/repos"  + "/" + OWNER + "/" +  READ_ONLY_REPO)) {
+      respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false);
+    } else {
+      respondWithError(httpResponse, 404, String.format("Unexpected URL: %s", url));
+      return false;
     }
+    return true;
+  }
+
+  @Override
+  protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    return isUrlExpected(url, httpResponse);
   }
 
   private void respondWithRepoInfo(HttpResponse httpResponse, String repoName, boolean isPushPermitted) {

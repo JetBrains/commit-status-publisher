@@ -37,11 +37,11 @@ public class CommitStatusPublisherFeatureControllerTest extends CommitStatusPubl
 
   public void must_find_attached_vcs_root() throws Exception {
     final String vcsRootId = "VcsId1";
-    final SVcsRoot vcs = myFixture.addVcsRoot("svn", "vcs1");
+    final SVcsRoot vcs = myFixture.addVcsRoot("jetbrains.git", "vcs1");
     vcs.setExternalId(vcsRootId);
 
     final Map<String, String> params = new HashMap<String, String>() {{
-      put(Constants.PUBLISHER_ID_PARAM, PUBLISHER_ID);
+      put(Constants.PUBLISHER_ID_PARAM, MockPublisherSettings.PUBLISHER_ID);
       put(Constants.VCS_ROOT_ID_PARAM, vcsRootId);
     }};
 
@@ -49,7 +49,7 @@ public class CommitStatusPublisherFeatureControllerTest extends CommitStatusPubl
 
     myBean.addVcsRoot(vcs);
 
-    ModelAndView mv = myController.handleRequestInternal(myRequest, myResponse);
+    ModelAndView mv = myFeatureController.handleRequestInternal(myRequest, myResponse);
 
     then(mv.getModel().get("hasMissingVcsRoot")).isNull();
     List<VcsRoot> vcsRoots = (List<VcsRoot>) mv.getModel().get("vcsRoots");
@@ -63,7 +63,7 @@ public class CommitStatusPublisherFeatureControllerTest extends CommitStatusPubl
     final long vcsRootInternalId = vcs.getId();
 
     final Map<String, String> params = new HashMap<String, String>() {{
-      put(Constants.PUBLISHER_ID_PARAM, PUBLISHER_ID);
+      put(Constants.PUBLISHER_ID_PARAM, MockPublisherSettings.PUBLISHER_ID);
       put(Constants.VCS_ROOT_ID_PARAM, String.valueOf(vcsRootInternalId));
     }};
 
@@ -71,7 +71,7 @@ public class CommitStatusPublisherFeatureControllerTest extends CommitStatusPubl
 
     myRequest.setAttribute("propertiesBean", new BasePropertiesBean(params));
 
-    ModelAndView mv = myController.handleRequestInternal(myRequest, myResponse);
+    ModelAndView mv = myFeatureController.handleRequestInternal(myRequest, myResponse);
 
     then(mv.getModel().get("hasMissingVcsRoot")).isNull();
   }
@@ -80,13 +80,13 @@ public class CommitStatusPublisherFeatureControllerTest extends CommitStatusPubl
   public void must_be_report_missing_vcs_root() throws Exception {
     final String missingVcsRootId = "ExtId";
     final Map<String, String> params = new HashMap<String, String>() {{
-      put(Constants.PUBLISHER_ID_PARAM, PUBLISHER_ID);
+      put(Constants.PUBLISHER_ID_PARAM, MockPublisherSettings.PUBLISHER_ID);
       put(Constants.VCS_ROOT_ID_PARAM, missingVcsRootId);
     }};
 
     myRequest.setAttribute("propertiesBean", new BasePropertiesBean(params));
 
-    ModelAndView mv = myController.handleRequestInternal(myRequest, myResponse);
+    ModelAndView mv = myFeatureController.handleRequestInternal(myRequest, myResponse);
 
     then(mv.getModel().get("hasMissingVcsRoot")).isEqualTo(true);
   }

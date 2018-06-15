@@ -9,6 +9,7 @@ import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.EventDispatcher;
 import jetbrains.buildServer.vcs.SVcsModification;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
@@ -16,21 +17,25 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private final static Logger LOG = Logger.getInstance(CommitStatusPublisherListener.class.getName());
+  private final static String PUBLISHING_ENABLED_PROPERTY_NAME = "teamcity.commitStatusPublisher.enabled";
 
   private final PublisherManager myPublisherManager;
   private final BuildHistory myBuildHistory;
   private final RunningBuildsManager myRunningBuilds;
   private final CommitStatusPublisherProblems myProblems;
+  private final ServerResponsibility myServerResponsibility;
 
   public CommitStatusPublisherListener(@NotNull EventDispatcher<BuildServerListener> events,
                                        @NotNull PublisherManager voterManager,
                                        @NotNull BuildHistory buildHistory,
                                        @NotNull RunningBuildsManager runningBuilds,
-                                       @NotNull CommitStatusPublisherProblems problems) {
+                                       @NotNull CommitStatusPublisherProblems problems,
+                                       @NotNull ServerResponsibility serverResponsibility) {
     myPublisherManager = voterManager;
     myBuildHistory = buildHistory;
     myRunningBuilds = runningBuilds;
     myProblems = problems;
+    myServerResponsibility = serverResponsibility;
     events.addListener(this);
   }
 
@@ -167,7 +172,22 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     });
   }
 
+  private boolean isPublishingDisabled(SBuildType buildType) {
+    String publishingEnabledParam = buildType.getParameterValue(PUBLISHING_ENABLED_PROPERTY_NAME);
+    return "false".equals(publishingEnabledParam)
+           || !(TeamCityProperties.getBooleanOrTrue(PUBLISHING_ENABLED_PROPERTY_NAME)
+                || "true".equals(publishingEnabledParam));
+  }
+
+  private void logStatusNotPublished(@NotNull Event event, @NotNull String buildDescription, @NotNull CommitStatusPublisher publisher, @NotNull String message) {
+    LOG.info(String.format("Event: %s, build %s, publisher %s: %s", event.getName(), buildDescription, publisher.toString(), message));
+  }
+
   private void runForEveryPublisher(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SBuild build, @NotNull PublishTask task) {
+    if  (!myServerResponsibility.isResponsibleForBuild(build)) {
+      LOG.debug("Current node is not responsible for build " + LogUtil.describe(build) + ", skip processing event " + event);
+      return;
+    }
     if (build.isPersonal()) {
       for(SVcsModification change: build.getBuildPromotion().getPersonalChanges()) {
         if (change.isPersonal())
@@ -180,10 +200,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       CommitStatusPublisher publisher = pubEntry.getValue();
       if (!publisher.isEventSupported(event))
         continue;
+      if (isPublishingDisabled(buildType)) {
+        logStatusNotPublished(event, LogUtil.describe(build), publisher, "commit status publishing is disabled");
+        continue;
+      }
       List<BuildRevision> revisions = getBuildRevisionForVote(publisher, build);
       if (revisions.isEmpty()) {
-        LOG.info("Event: " + event.getName() + ", build " + LogUtil.describe(build) + ", publisher " + publisher +
-                 ": no compatible revisions found");
+        logStatusNotPublished(event, LogUtil.describe(build), publisher, "no compatible revisions found");
         continue;
       }
       myProblems.clearProblem(publisher);
@@ -195,6 +218,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private void runForEveryPublisherQueued(@NotNull Event event, @NotNull SBuildType buildType, @NotNull SQueuedBuild build, @NotNull PublishTask task) {
+    if  (!myServerResponsibility.canManageBuilds()) {
+      LOG.debug("Current node is not responsible for build " + LogUtil.describe(build) + ", skip processing event " + event);
+      return;
+    }
     if (build.isPersonal()) {
       for(SVcsModification change: build.getBuildPromotion().getPersonalChanges()) {
         if (change.isPersonal())
@@ -207,10 +234,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       CommitStatusPublisher publisher = pubEntry.getValue();
       if (!publisher.isEventSupported(event))
         continue;
+      if (isPublishingDisabled(buildType)) {
+        logStatusNotPublished(event, LogUtil.describe(build), publisher, "commit status publishing is disabled");
+        continue;
+      }
       List<BuildRevision> revisions = getQueuedBuildRevisionForVote(buildType, publisher, build);
       if (revisions.isEmpty()) {
-        LOG.info("Event: " + event.getName() + ", build " + LogUtil.describe(build) + ", publisher " + publisher +
-                 ": no compatible revisions found");
+        logStatusNotPublished(event, LogUtil.describe(build), publisher, "no compatible revisions found");
         continue;
       }
       myProblems.clearProblem(publisher);
@@ -270,28 +300,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       return revisions;
     }
 
-    try {
-      long parentRootId = Long.valueOf(vcsRootId);
-      return Arrays.asList(findRevisionByInternalId(build, parentRootId));
-    } catch (NumberFormatException e) {
-      // external id
-      for (BuildRevision revision : build.getRevisions()) {
-        if (vcsRootId.equals(revision.getRoot().getParent().getExternalId()))
-          return Arrays.asList(revision);
-      }
+    for (BuildRevision revision : build.getRevisions()) {
+      SVcsRoot root = revision.getRoot().getParent();
+      if (vcsRootId.equals(root.getExternalId()) || vcsRootId.equals(String.valueOf(root.getId())))
+        return Arrays.asList(revision);
     }
 
     return Collections.emptyList();
-  }
-
-  @Nullable
-  private BuildRevision findRevisionByInternalId(@NotNull SBuild build, long vcsRootId) {
-    for (BuildRevision revision : build.getRevisions()) {
-      if (vcsRootId == revision.getRoot().getParentId())
-        return revision;
-    }
-
-    return null;
   }
 
   @NotNull

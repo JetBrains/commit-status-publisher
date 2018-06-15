@@ -4,8 +4,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.ExceptionUtil;
-import jetbrains.buildServer.web.util.WebUtil;
-import org.apache.http.HttpResponse;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 
@@ -42,7 +40,8 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
         Lock lock = getLocks().get(myBuildType.getExternalId());
         try {
           lock.lock();
-          HttpHelper.post(url, username, password, data, contentType, headers, getConnectionTimeout(), that);
+          HttpHelper.post(url, username, password, data, contentType, headers, getConnectionTimeout(),
+                          getSettings().trustStore(), that);
         } catch (Exception ex) {
           myProblems.reportProblem("Commit Status Publisher HTTP request has failed",
                                    HttpBasedCommitStatusPublisher.this, buildDescription,
@@ -54,13 +53,7 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
     }));
   }
 
-  public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
+  public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
     myHttpResponseProcessor.processResponse(response);
-  }
-
-  @NotNull
-  protected String escape(@NotNull String str) {
-    String result = WebUtil.escapeForJavaScript(str, false, false);
-    return result.replaceAll("\\\\'", "'");
   }
 }

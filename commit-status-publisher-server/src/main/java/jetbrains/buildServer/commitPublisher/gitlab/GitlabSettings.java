@@ -1,23 +1,27 @@
 package jetbrains.buildServer.commitPublisher.gitlab;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabUserInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
 
 public class GitlabSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
+
+  private static final Pattern URL_WITH_API_SUFFIX = Pattern.compile("(.*)/api/v.");
 
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     add(Event.STARTED);
@@ -30,8 +34,9 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
   public GitlabSettings(@NotNull ExecutorServices executorServices,
                         @NotNull PluginDescriptor descriptor,
                         @NotNull WebLinks links,
-                        @NotNull CommitStatusPublisherProblems problems) {
-    super(executorServices, descriptor, links, problems);
+                        @NotNull CommitStatusPublisherProblems problems,
+                        @NotNull SSLTrustStoreProvider trustStoreProvider) {
+    super(executorServices, descriptor, links, problems, trustStoreProvider);
   }
 
   @NotNull
@@ -65,44 +70,43 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
 
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    Repository repository = GitlabPublisher.parseRepository(root);
-    if (null == repository)
-      throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
     String apiUrl = params.get(Constants.GITLAB_API_URL);
     if (null == apiUrl || apiUrl.length() == 0)
       throw new PublisherException("Missing GitLab API URL parameter");
+    String pathPrefix = getPathPrefix(apiUrl);
+    Repository repository = GitlabPublisher.parseRepository(root, pathPrefix);
+    if (null == repository)
+      throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
     String token = params.get(Constants.GITLAB_TOKEN);
     if (null == token || token.length() == 0)
       throw new PublisherException("Missing GitLab API access token");
-    String url = apiUrl + "/projects/" + encodeDots(repository.owner())
-                 + "%2F" + encodeDots(repository.repositoryName());
     try {
-      HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
-        @Override
-        public void processResponse(HttpResponse response) throws HttpPublisherException, IOException {
-
-          super.processResponse(response);
-
-          final HttpEntity entity = response.getEntity();
-          if (null == entity) {
-            throw new HttpPublisherException("GitLab publisher has received no response");
-          }
-          ByteArrayOutputStream bos = new ByteArrayOutputStream();
-          entity.writeTo(bos);
-          final String json = bos.toString("utf-8");
-          GitLabRepoInfo repoInfo = myGson.fromJson(json, GitLabRepoInfo.class);
-          if (null == repoInfo || null == repoInfo.id || null == repoInfo.permissions || null == repoInfo.permissions.project_access) {
-            throw new HttpPublisherException("GitLab publisher has received a malformed response");
-          }
-          if (repoInfo.permissions.project_access.access_level < 30) {
-            throw new HttpPublisherException("GitLab does not grant enough permissions to publish a commit status");
-          }
+      ProjectInfoResponseProcessor processorPrj = new ProjectInfoResponseProcessor();
+      HttpHelper.get(getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName()),
+                     null, null, Collections.singletonMap("PRIVATE-TOKEN", token),
+                     BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorPrj);
+      if (processorPrj.getAccessLevel() < 30) {
+        UserInfoResponseProcessor processorUser = new UserInfoResponseProcessor();
+        HttpHelper.get(getUserUrl(apiUrl), null, null, Collections.singletonMap("PRIVATE-TOKEN", token),
+                       BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorUser);
+        if (!processorUser.isAdmin()) {
+          throw new HttpPublisherException("GitLab does not grant enough permissions to publish a commit status");
         }
-      };
-
-      HttpHelper.get(url, null, null, Collections.singletonMap("PRIVATE-TOKEN", token), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, processor);
+      }
     } catch (Exception ex) {
       throw new PublisherException(String.format("GitLab publisher has failed to connect to %s/%s repository", repository.owner(), repository.repositoryName()), ex);
+    }
+  }
+
+  @Nullable
+  public static String getPathPrefix(final String apiUrl) {
+    if (!URL_WITH_API_SUFFIX.matcher(apiUrl).matches()) return null;
+    try {
+      URI uri = new URI(apiUrl);
+      String path = uri.getPath();
+      return path.substring(0, path.length() - "/api/v4".length());
+    } catch (URISyntaxException e) {
+      return null;
     }
   }
 
@@ -123,23 +127,22 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
         if (params.get(Constants.GITLAB_API_URL) == null)
-          errors.add(new InvalidProperty(Constants.GITLAB_API_URL, "must be specified"));
+          errors.add(new InvalidProperty(Constants.GITLAB_API_URL, "GitLab API URL must be specified"));
         if (params.get(Constants.GITLAB_TOKEN) == null)
-          errors.add(new InvalidProperty(Constants.GITLAB_TOKEN, "must be specified"));
+          errors.add(new InvalidProperty(Constants.GITLAB_TOKEN, "Access token must be specified"));
         return errors;
       }
     };
   }
 
-  /**
-   * GitLab REST API fails to interpret dots in user/group and project names
-   * used within project ids in URLs for some calls.
-   */
-  public static String encodeDots(@NotNull String s) {
-    if (!s.contains(".")
-        || TeamCityProperties.getBoolean("teamcity.commitStatusPublisher.gitlab.disableUrlEncodingDots"))
-      return s;
-    return s.replace(".", "%2E");
+  @NotNull
+  public static String getProjectsUrl(@NotNull String apiUrl, @NotNull String owner, @NotNull String repo) {
+    return apiUrl + "/projects/" + owner.replace(".", "%2E").replace("/", "%2F") + "%2F" + repo.replace(".", "%2E");
+  }
+
+  @NotNull
+  public static String getUserUrl(@NotNull String apiUrl) {
+    return apiUrl + "/user";
   }
 
   @Override
@@ -151,4 +154,82 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
   protected Set<Event> getSupportedEvents() {
     return mySupportedEvents;
   }
+
+  private abstract class JsonResponseProcessor<T> extends DefaultHttpResponseProcessor {
+
+    private final Class<T> myInfoClass;
+    private T myInfo;
+
+    JsonResponseProcessor(Class<T> infoClass) {
+      myInfoClass = infoClass;
+    }
+
+    T getInfo() {
+      return myInfo;
+    }
+
+    @Override
+    public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+
+      super.processResponse(response);
+
+      final String json = response.getContent();
+      if (null == json) {
+        throw new HttpPublisherException("GitLab publisher has received no response");
+      }
+      myInfo = myGson.fromJson(json, myInfoClass);
+    }
+  }
+
+  private class ProjectInfoResponseProcessor extends JsonResponseProcessor<GitLabRepoInfo> {
+
+    private int myAccessLevel;
+
+    ProjectInfoResponseProcessor() {
+      super(GitLabRepoInfo.class);
+    }
+
+    int getAccessLevel() {
+      return myAccessLevel;
+    }
+
+    @Override
+    public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+      myAccessLevel = 0;
+      super.processResponse(response);
+      GitLabRepoInfo repoInfo = getInfo();
+      if (null == repoInfo || null == repoInfo.id || null == repoInfo.permissions) {
+        throw new HttpPublisherException("GitLab publisher has received a malformed response");
+      }
+      if (null != repoInfo.permissions.project_access)
+        myAccessLevel = repoInfo.permissions.project_access.access_level;
+      if (null != repoInfo.permissions.group_access && myAccessLevel < repoInfo.permissions.group_access.access_level)
+        myAccessLevel = repoInfo.permissions.group_access.access_level;
+    }
+  }
+
+  private class UserInfoResponseProcessor extends JsonResponseProcessor<GitLabUserInfo> {
+
+    private boolean myIsAdmin;
+
+    UserInfoResponseProcessor() {
+      super(GitLabUserInfo.class);
+    }
+
+    boolean isAdmin() {
+      return myIsAdmin;
+    }
+
+    @Override
+    public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+      myIsAdmin = false;
+      super.processResponse(response);
+      GitLabUserInfo userInfo = getInfo();
+      if (null == userInfo || null == userInfo.id) {
+        throw new HttpPublisherException("GitLab publisher has received a malformed response");
+      }
+      myIsAdmin = userInfo.is_admin;
+    }
+  }
+
 }

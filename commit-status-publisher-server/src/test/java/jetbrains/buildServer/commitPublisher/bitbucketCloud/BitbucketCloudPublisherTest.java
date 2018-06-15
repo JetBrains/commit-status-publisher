@@ -39,11 +39,12 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
                           String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*INPROGRESS.*Running with a comment by %s:.*%s.*", REVISION, USER.toLowerCase(), COMMENT));
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED,
                           String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*FAILED.*%s.*with a comment by %s:.*%s.*", REVISION, PROBLEM_DESCR, USER.toLowerCase(), COMMENT));
-    myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*FAILED.*%s.*", REVISION, PROBLEM_DESCR));
+    myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*STOPPED.*%s.*", REVISION, PROBLEM_DESCR));
     myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*FAILED.*%s.*", REVISION, PROBLEM_DESCR));
     myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*SUCCESSFUL.*Build marked as successful.*", REVISION));
     myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*INPROGRESS.*Build marked as successful.*", REVISION));
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, ".*2.0/repositories/owner/project.*");
+    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*FAILED.*%s.*Failure.*", REVISION, BT_NAME_ESCAPED_REGEXP));
   }
 
   @Override
@@ -74,16 +75,23 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
   }
 
   @Override
-  protected void populateResponse(HttpRequest httpRequest, HttpResponse httpResponse) {
-    super.populateResponse(httpRequest, httpResponse);
-    if (httpRequest.getRequestLine().getMethod().equals("GET")) {
-      if (httpRequest.getRequestLine().getUri().endsWith("/repositories/" + OWNER + "/" + CORRECT_REPO)) {
-        respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
-      } else if (httpRequest.getRequestLine().getUri().endsWith("/repositories/" + OWNER + "/" + READ_ONLY_REPO)) {
-        respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false);
-      }
+  protected boolean respondToGet(String url, HttpResponse httpResponse) {
+    if (url.endsWith("/repositories/" + OWNER + "/" + CORRECT_REPO)) {
+      respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
+    } else if (url.endsWith("/repositories/" + OWNER + "/" + READ_ONLY_REPO)) {
+      respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false);
+    } else {
+      respondWithError(httpResponse, 404, String.format("Unexpected URL: %s", url));
+      return false;
     }
+    return true;
   }
+
+  @Override
+  protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    return isUrlExpected(url, httpResponse);
+  }
+
 
   private void respondWithRepoInfo(HttpResponse httpResponse, String repoName, boolean isPushPermitted) {
     Gson gson = new Gson();
@@ -99,9 +107,11 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
+    setExpectedApiPath("/2.0");
+    setExpectedEndpointPrefix("/repositories/" + OWNER + "/" + CORRECT_REPO);
     super.setUp();
     Map<String, String> params = getPublisherParams();
-    myPublisherSettings = new BitbucketCloudSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems);
+    myPublisherSettings = new BitbucketCloudSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
     BitbucketCloudPublisher publisher = new BitbucketCloudPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
     publisher.setBaseUrl(getServerUrl() + "/");
     ((BitbucketCloudSettings)myPublisherSettings).setDefaultApiUrl(getServerUrl() + "/");

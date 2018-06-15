@@ -12,8 +12,15 @@
 <c:url value="${publisherSettingsUrl}" var="settingsUrl"/>
 
 <script type="text/javascript">
+  var testConnectionSuccessInfo = "";
+
   PublisherFeature = OO.extend(BS.BuildFeatureDialog, {
     showTestConnection: function() {
+      testConnectionSuccessInfo = "";
+      $j("#testConnectionButton").show()
+    },
+    showTestConnection: function(successInfo) {
+      testConnectionSuccessInfo = successInfo;
       $j("#testConnectionButton").show()
     },
     hideTestConnection: function() {
@@ -43,13 +50,18 @@
         },
 
         onTestConnectionFailedError: function(elem) {
-          info = elem.textContent;
+          if (success) {
+            info = "";
+          } else if ("" != info) {
+            info += "\n";
+          }
+          info += elem.textContent || elem.text;
           success = false;
         },
 
         onCompleteSave: function (form, responseXML, err) {
           BS.XMLResponse.processErrors(responseXML, that, null);
-          BS.TestConnectionDialog.show(success, info, null);
+          BS.TestConnectionDialog.show(success, success ? (testConnectionSuccessInfo  ? testConnectionSuccessInfo : "") : info, null);
           form.setSaving(false);
           form.enable();
         }
@@ -71,10 +83,10 @@
   });
 </script>
   <tr>
-    <th><label for="${constants.vcsRootIdParam}">VCS Root:&nbsp;<l:star/></label></th>
+    <th><label for="${constants.vcsRootIdParam}">VCS Root:<l:star/></label></th>
     <td>
-      <props:selectProperty name="${constants.vcsRootIdParam}" enableFilter="true">
-        <props:option value="">All attached VCS Roots</props:option>
+      <props:selectProperty name="${constants.vcsRootIdParam}" className="longField" enableFilter="true" style="width: 95%;">
+        <props:option value="">&lt;All attached VCS Roots&gt;</props:option>
         <c:forEach var="vcsRoot" items="${vcsRoots}">
           <props:option value="${vcsRoot.externalId}"><c:out value="${vcsRoot.name}"/></props:option>
         </c:forEach>
@@ -91,16 +103,16 @@
         </span>
       </c:if>
       <span class="error" id="error_${constants.vcsRootIdParam}"></span>
-      <span class="smallNote">Choose a repository to use for publishing a build status. Choose <strong>All attached VCS Roots</strong> option if you want Commit Status Publisher to attempt
+      <span class="smallNote">Choose a repository to use for publishing a build status. Choose <strong>&lt;All attached VCS roots&gt;</strong> option if you want Commit Status Publisher to attempt
         publishing statuses for commits in all attached VCS roots.</span>
     </td>
   </tr>
   <tr>
     <th>
-      <label for="${constants.publisherIdParam}">Publisher:&nbsp;<l:star/></label>
+      <label for="${constants.publisherIdParam}">Publisher:<l:star/></label>
     </th>
     <td>
-      <props:selectProperty name="${constants.publisherIdParam}" onchange="PublisherFeature.showPublisherSettings()" enableFilter="true">
+      <props:selectProperty name="${constants.publisherIdParam}" onchange="PublisherFeature.showPublisherSettings()" enableFilter="true" className="mediumField">
         <c:forEach var="publisher" items="${publishers}">
           <props:option value="${publisher.id}"><c:out value="${publisher.name}"/></props:option>
         </c:forEach>

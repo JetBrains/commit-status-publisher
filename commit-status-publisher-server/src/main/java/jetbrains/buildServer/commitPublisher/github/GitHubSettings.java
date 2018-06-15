@@ -6,6 +6,7 @@ import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthToken;
@@ -35,6 +36,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
     add(Event.STARTED);
     add(Event.FINISHED);
     add(Event.INTERRUPTED);
+    add(Event.MARKED_AS_SUCCESSFUL);
   }};
 
   public GitHubSettings(@NotNull ChangeStatusUpdater updater,
@@ -44,8 +46,9 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
                         @NotNull CommitStatusPublisherProblems problems,
                         @NotNull OAuthConnectionsManager oauthConnectionsManager,
                         @NotNull OAuthTokensStorage oauthTokensStorage,
-                        @NotNull SecurityContext securityContext) {
-    super(executorServices, descriptor, links, problems);
+                        @NotNull SecurityContext securityContext,
+                        @NotNull SSLTrustStoreProvider trustStoreProvider) {
+    super(executorServices, descriptor, links, problems, trustStoreProvider);
     myUpdater = updater;
     myOauthConnectionsManager = oauthConnectionsManager;
     myOAuthTokensStorage = oauthTokensStorage;
@@ -171,7 +174,6 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
                 if (token.getOauthLogin().equals(oauthUsername)) {
                   p.put(c.getAccessTokenKey(), token.getAccessToken());
                   p.remove(c.getOAuthProviderIdKey());
-                  p.remove(c.getOAuthUserKey());
                 }
               }
             }
@@ -179,10 +181,10 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
           checkNotEmpty(p, c.getAccessTokenKey(), "Personal Access Token must be specified", result);
         }
 
-        if (!checkNotEmpty(p, c.getServerKey(), "GitHub api URL", result)) {
+        if (!checkNotEmpty(p, c.getServerKey(), "GitHub API URL must be specified", result)) {
           final String url = "" + p.get(c.getServerKey());
           if (!ReferencesResolverUtil.mayContainReference(url) && !(url.startsWith("http://") || url.startsWith("https://"))) {
-            result.add(new InvalidProperty(c.getServerKey(), "GitHub api URL should start with http:// or https://"));
+            result.add(new InvalidProperty(c.getServerKey(), "GitHub API URL should start with http:// or https://"));
           }
         }
 

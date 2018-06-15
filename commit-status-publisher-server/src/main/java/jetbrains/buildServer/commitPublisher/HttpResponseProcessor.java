@@ -1,7 +1,5 @@
 package jetbrains.buildServer.commitPublisher;
 
-import org.apache.http.HttpResponse;
-
 import java.io.IOException;
 
 /**
@@ -9,6 +7,6 @@ import java.io.IOException;
  */
 public interface HttpResponseProcessor {
 
-  void processResponse(HttpResponse response) throws HttpPublisherException, IOException;
+  void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException;
 
 }

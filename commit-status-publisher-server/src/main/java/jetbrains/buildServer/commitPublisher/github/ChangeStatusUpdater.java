@@ -241,7 +241,8 @@ public class ChangeStatusUpdater {
 
               if (build.getBuildStatus() != Status.NORMAL) {
 
-                final List<STestRun> failedTests = build.getFullStatistics().getFailedTests();
+                BuildStatistics stats = build.getBuildStatistics(BuildStatisticsOptions.ALL_TESTS_NO_DETAILS);
+                final List<STestRun> failedTests = stats.getFailedTests();
                 if (!failedTests.isEmpty()) {
                   comment.append("\n### Failed tests\n");
                   comment.append("```\n");
@@ -250,13 +251,11 @@ public class ChangeStatusUpdater {
                     final STestRun testRun = failedTests.get(i);
                     comment.append("");
                     comment.append(testRun.getTest().getName().toString());
-                    comment.append(": ");
-                    comment.append(getFailureText(testRun.getFailureInfo()));
-                    comment.append("\n\n");
+                    comment.append("\n");
 
                     if (i == 10) {
                       comment.append("\n##### there are ")
-                              .append(build.getFullStatistics().getFailedTestCount() - i)
+                              .append(stats.getFailedTestCount() - i)
                               .append(" more failed tests, see build details\n");
                       break;
                     }

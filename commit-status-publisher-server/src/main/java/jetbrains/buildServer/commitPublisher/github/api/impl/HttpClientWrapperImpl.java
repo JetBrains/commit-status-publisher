@@ -16,145 +16,97 @@
 
 package jetbrains.buildServer.commitPublisher.github.api.impl;
 
-import com.intellij.openapi.diagnostic.Logger;
+import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.util.Map;
+import java.util.function.Consumer;
+import jetbrains.buildServer.http.SimpleCredentials;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
-import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.version.ServerVersionHolder;
-import org.apache.commons.beanutils.PropertyUtils;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.Credentials;
-import org.apache.http.auth.NTCredentials;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.protocol.RequestAcceptEncoding;
-import org.apache.http.client.protocol.ResponseContentEncoding;
-import org.apache.http.conn.params.ConnRoutePNames;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.conn.ssl.TrustStrategy;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
-import org.apache.http.impl.conn.ProxySelectorRoutePlanner;
-import org.apache.http.impl.conn.SchemeRegistryFactory;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
-import org.apache.http.params.HttpProtocolParams;
-import org.apache.http.protocol.HttpContext;
+import jetbrains.buildServer.util.HTTPRequestBuilder;
+import jetbrains.buildServer.util.http.HttpMethod;
+import jetbrains.buildServer.util.http.RedirectStrategy;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import org.jetbrains.annotations.NotNull;
-
-import javax.net.ssl.SSLSocket;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.ProxySelector;
-import java.net.Socket;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 
 /**
  * Created by Eugene Petrenko (eugene.petrenko@gmail.com)
  * Date: 11.08.11 16:24
  */
 public class HttpClientWrapperImpl implements HttpClientWrapper {
-  private final Logger LOG = Logger.getInstance(HttpClientWrapperImpl.class.getName());
 
-  private final HttpClient myClient;
+  private static final int RETRY_COUNT = 3;
 
-  public HttpClientWrapperImpl() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
-    final String serverVersion = ServerVersionHolder.getVersion().getDisplayVersion();
+  private final HTTPRequestBuilder.RequestHandler myRequestHandler;
+  private final SSLTrustStoreProvider mySSLTrustStoreProvider;
 
-    final HttpParams ps = new BasicHttpParams();
-
-    DefaultHttpClient.setDefaultHttpParams(ps);
-    final int timeout = TeamCityProperties.getInteger("teamcity.github.http.timeout", 300 * 1000);
-    HttpConnectionParams.setConnectionTimeout(ps, timeout);
-    HttpConnectionParams.setSoTimeout(ps, timeout);
-    HttpProtocolParams.setUserAgent(ps, "JetBrains TeamCity " + serverVersion);
-
-    final SchemeRegistry schemaRegistry = SchemeRegistryFactory.createDefault();
-    final SSLSocketFactory sslSocketFactory = new SSLSocketFactory(new TrustStrategy() {
-      public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-        return !TeamCityProperties.getBoolean("teamcity.github.verify.ssl.certificate");
-      }
-    }) {
-      @Override
-      public Socket connectSocket(int connectTimeout, Socket socket,
-              HttpHost host, InetSocketAddress remoteAddress,
-              InetSocketAddress localAddress, HttpContext context) throws IOException {
-        if (socket instanceof SSLSocket) {
-          try {
-            PropertyUtils.setProperty(socket, "host", host.getHostName());
-          } catch (Exception ex) {
-            LOG.warn(String.format("A host name is not passed to SSL connection for the purpose of supporting SNI due to the following exception: %s", ex.toString()));
-          }
-        }
-        return super.connectSocket(connectTimeout, socket, host, remoteAddress, localAddress, context);
-      }
-    };
-    schemaRegistry.register(new Scheme("https", 443, sslSocketFactory));
-
-    final DefaultHttpClient httpclient = new DefaultHttpClient(new ThreadSafeClientConnManager(schemaRegistry), ps);
-
-    setupProxy(httpclient);
-
-    httpclient.setRoutePlanner(new ProxySelectorRoutePlanner(
-            httpclient.getConnectionManager().getSchemeRegistry(),
-            ProxySelector.getDefault()));
-    httpclient.addRequestInterceptor(new RequestAcceptEncoding());
-    httpclient.addResponseInterceptor(new ResponseContentEncoding());
-    httpclient.setHttpRequestRetryHandler(new DefaultHttpRequestRetryHandler(3, true));
-
-    myClient = httpclient;
+  public HttpClientWrapperImpl(final HTTPRequestBuilder.RequestHandler requestHandler, final SSLTrustStoreProvider sslTrustStoreProvider) {
+    myRequestHandler = requestHandler;
+    mySSLTrustStoreProvider = sslTrustStoreProvider;
   }
 
-  private void setupProxy(DefaultHttpClient httpclient) {
-    final String httpProxy = TeamCityProperties.getProperty("teamcity.github.http.proxy.host");
-    if (StringUtil.isEmptyOrSpaces(httpProxy)) return;
-
-    final int httpProxyPort = TeamCityProperties.getInteger("teamcity.github.http.proxy.port", -1);
-    if (httpProxyPort <= 0) return;
-
-    LOG.info("TeamCity.GitHub will use proxy: " + httpProxy + ", port " + httpProxyPort);
-    httpclient.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, new HttpHost(httpProxy, httpProxyPort));
-
-    final String httpProxyUser = TeamCityProperties.getProperty("teamcity.github.http.proxy.user");
-    final String httpProxyPassword = TeamCityProperties.getProperty("teamcity.github.http.proxy.password");
-    final String httpProxyDomain = TeamCityProperties.getProperty("teamcity.github.http.proxy.domain");
-    final String httpProxyWorkstation = TeamCityProperties.getProperty("teamcity.github.http.proxy.workstation");
-
-    if (StringUtil.isEmptyOrSpaces(httpProxyUser) || StringUtil.isEmptyOrSpaces(httpProxyPassword)) return;
-
-    final Credentials creds;
-    if (StringUtil.isEmptyOrSpaces(httpProxyDomain) || StringUtil.isEmptyOrSpaces(httpProxyWorkstation)) {
-      LOG.info("TeamCity.GitHub will use proxy credentials: " + httpProxyUser);
-      creds = new UsernamePasswordCredentials(httpProxyUser, httpProxyPassword);
-    } else {
-      LOG.info("TeamCity.GitHub will use proxy NT credentials: " + httpProxyDomain + "/" + httpProxyUser);
-      creds = new NTCredentials(httpProxyUser, httpProxyPassword, httpProxyWorkstation, httpProxyDomain);
+  @Override
+  public void get(
+    @NotNull final String uri,
+    @NotNull final SimpleCredentials simpleCredentials,
+    @NotNull final Map<String, String> headers,
+    @NotNull final HTTPRequestBuilder.ResponseConsumer success,
+    @NotNull final HTTPRequestBuilder.ResponseConsumer error,
+    @NotNull final Consumer<Exception> exception
+  ) {
+    try {
+      final HTTPRequestBuilder.Request request =
+        constructBuilder(uri, simpleCredentials, headers, success, error, exception)
+          .withMethod(HttpMethod.GET)
+          .build();
+      myRequestHandler.doRequest(request);
+    } catch (URISyntaxException e) {
+      exception.accept(e);
     }
-
-    httpclient.getCredentialsProvider().setCredentials(
-            new AuthScope(httpProxy, httpProxyPort),
-            creds
-    );
   }
 
-  @NotNull
-  public HttpResponse execute(@NotNull HttpUriRequest request) throws IOException {
-    return myClient.execute(request);
+  @Override
+  public void post(
+    @NotNull final String uri,
+    @NotNull final SimpleCredentials simpleCredentials,
+    @NotNull final Map<String, String> headers,
+    @NotNull final String data,
+    @NotNull final String mimeType,
+    @NotNull final Charset charset,
+    @NotNull final HTTPRequestBuilder.ResponseConsumer success,
+    @NotNull final HTTPRequestBuilder.ResponseConsumer error,
+    @NotNull final Consumer<Exception> exception
+  ) {
+    try {
+      final HTTPRequestBuilder.Request request =
+        constructBuilder(uri, simpleCredentials, headers, success, error, exception)
+          .withMethod(HttpMethod.POST)
+          .withPostStringEntity(data, mimeType, charset)
+          .build();
+      myRequestHandler.doRequest(request);
+    } catch (URISyntaxException e) {
+      exception.accept(e);
+    }
   }
 
-  public void dispose() {
-    myClient.getConnectionManager().shutdown();
+  private HTTPRequestBuilder constructBuilder(
+    @NotNull final String uri,
+    @NotNull final SimpleCredentials simpleCredentials,
+    @NotNull final Map<String, String> headers,
+    @NotNull final HTTPRequestBuilder.ResponseConsumer success,
+    @NotNull final HTTPRequestBuilder.ResponseConsumer error,
+    @NotNull final Consumer<Exception> exception
+  ) throws URISyntaxException {
+    return new HTTPRequestBuilder(uri)
+      .withTimeout(TeamCityProperties.getInteger("teamcity.github.http.timeout", 300 * 1000))
+      .withAuthenticateHeader(simpleCredentials)
+      .withRedirectStrategy(RedirectStrategy.LAX)
+      .withTrustStore(mySSLTrustStoreProvider.getTrustStore())
+      .allowNonSecureConnection(true)
+      .withEncodingInterceptor(true)
+      .withRetryCount(RETRY_COUNT)
+      .withHeader(headers)
+      .onException(exception)
+      .onErrorResponse(error)
+      .onSuccess(success);
   }
-
 }
