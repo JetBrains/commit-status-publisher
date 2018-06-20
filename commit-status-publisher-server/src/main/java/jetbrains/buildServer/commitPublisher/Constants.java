@@ -10,6 +10,11 @@ public class Constants {
   public static final String VCS_ROOT_ID_PARAM = "vcsRootId";
   public static final String PUBLISHER_ID_PARAM = "publisherId";
 
+  public static final String PUBLISH_TO_DEPENDENCIES = "publishToDependencies";
+  public static final String PUBLISH_TO_UNMATCHED_BRANCHES = "publishToUnmatchedBranches";
+  public static final String PUBLISH_TO_DEPENDENCIES_WHITELIST = "publishToDependenciesWhitelist";
+  public static final String PUBLISH_TO_DEPENDENCIES_BLACKLIST = "publishToDependenciesBlacklist";
+
   public static final String PASSWORD_PARAMETER_TYPE = "password";
   public static final String TEST_CONNECTION_PARAM = "testconnection";
   public static final String TEST_CONNECTION_YES = "yes";
@@ -64,6 +69,26 @@ public class Constants {
   @NotNull
   public String getPublisherIdParam() {
     return PUBLISHER_ID_PARAM;
+  }
+
+  @NotNull
+  public String getPublishToDependencies() {
+    return PUBLISH_TO_DEPENDENCIES;
+  }
+
+  @NotNull
+  public String getPublishToUnmatchedBranches() {
+    return PUBLISH_TO_UNMATCHED_BRANCHES;
+  }
+
+  @NotNull
+  public String getPublishToDependenciesWhitelistPattern() {
+    return PUBLISH_TO_DEPENDENCIES_WHITELIST;
+  }
+
+  @NotNull
+  public String getPublishToDependenciesBlacklistPattern() {
+    return PUBLISH_TO_DEPENDENCIES_BLACKLIST;
   }
 
   @NotNull

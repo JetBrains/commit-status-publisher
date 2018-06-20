@@ -3,6 +3,7 @@ package jetbrains.buildServer.commitPublisher;
 import com.google.common.util.concurrent.Striped;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -88,6 +89,26 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   public boolean isPublishingForRevision(@NotNull final BuildRevision revision) {
     VcsRoot vcsRoot = revision.getRoot();
     return getSettings().isPublishingForVcsRoot(vcsRoot);
+  }
+
+  public boolean isDependencyPublishingEnabled() {
+    final String publishPullRequest = StringUtil.emptyIfNull(myParams.get(Constants.PUBLISH_TO_DEPENDENCIES)).trim();
+    return Boolean.valueOf(publishPullRequest);
+  }
+
+  public boolean isPublishingUnmatchedBranchesEnabled() {
+    final String publishPullRequest = StringUtil.emptyIfNull(myParams.get(Constants.PUBLISH_TO_UNMATCHED_BRANCHES)).trim();
+    return Boolean.valueOf(publishPullRequest);
+  }
+
+  @Nullable
+  public String getDependencyPublishingWhitelistPattern() {
+    return myParams.get(Constants.PUBLISH_TO_DEPENDENCIES_WHITELIST);
+  }
+
+  @Nullable
+  public String getDependencyPublishingBlacklistPattern() {
+    return myParams.get(Constants.PUBLISH_TO_DEPENDENCIES_BLACKLIST);
   }
 
   public boolean isEventSupported(Event event) {

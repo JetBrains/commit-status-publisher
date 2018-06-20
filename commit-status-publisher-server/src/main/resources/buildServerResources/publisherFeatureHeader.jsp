@@ -107,6 +107,50 @@
         publishing statuses for commits in all attached VCS roots.</span>
     </td>
   </tr>
+
+  <tr class="advancedSetting">
+    <th>Options:</th>
+    <td>
+      <props:checkboxProperty name="${constants.publishToDependencies}"/>
+      <label for="${constants.publishToDependencies}">Publish to dependencies</label>
+      <span class="smallNote">
+        This will publish the status of this build configuration to all dependent build configurations in the build chain.
+      </span>
+    </td>
+  </tr>
+
+  <tr class="advancedSetting">
+    <th></th>
+    <td>
+      <props:checkboxProperty name="${constants.publishToUnmatchedBranches}"/>
+      <label for="${constants.publishToUnmatchedBranches}">Publish to unmatched branches</label>
+      <span class="smallNote">
+          This option will publish commit status to default branches even if the build was triggered by a non matching
+          branch of another dependency in the build chain.
+        </span>
+    </td>
+  </tr>
+
+  <tr class="advancedSetting">
+    <th><label for="${constants.publishToDependenciesWhitelistPattern}">Dependency Whitelist Pattern: </label></th>
+    <td>
+      <props:textProperty name="${constants.publishToDependenciesWhitelistPattern}" className="longField"/>
+      <span class="smallNote">
+        Optional regex of the git repository urls to whitelist when publishing to dependencies.
+      </span>
+    </td>
+  </tr>
+
+  <tr class="advancedSetting">
+    <th><label for="${constants.publishToDependenciesBlacklistPattern}">Dependency Blacklist Pattern: </label></th>
+    <td>
+      <props:textProperty name="${constants.publishToDependenciesBlacklistPattern}" className="longField"/>
+      <span class="smallNote">
+          Optional regex of the git repository urls to blacklist when publishing to dependencies.
+        </span>
+    </td>
+  </tr>
+
   <tr>
     <th>
       <label for="${constants.publisherIdParam}">Publisher:<l:star/></label>

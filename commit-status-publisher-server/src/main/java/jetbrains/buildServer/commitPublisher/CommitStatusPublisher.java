@@ -43,6 +43,16 @@ public interface CommitStatusPublisher {
 
   boolean isPublishingForRevision(@NotNull BuildRevision revision);
 
+  boolean isDependencyPublishingEnabled();
+
+  boolean isPublishingUnmatchedBranchesEnabled();
+
+  @Nullable
+  String getDependencyPublishingWhitelistPattern();
+
+  @Nullable
+  String getDependencyPublishingBlacklistPattern();
+
   void setConnectionTimeout(int timeout);
 
   boolean isEventSupported(Event event);
