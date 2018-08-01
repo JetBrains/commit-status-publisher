@@ -1,6 +1,9 @@
 package jetbrains.buildServer.commitPublisher;
 
 import com.intellij.openapi.util.io.StreamUtil;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.version.ServerVersionHolder;
 import org.apache.http.*;
@@ -13,9 +16,6 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
-
-import java.io.*;
-import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.BDDAssertions.then;
 
@@ -133,7 +133,8 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
     then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
                           .matches(myExpectedRegExps.get(EventToTest.FINISHED));
-    then(myLastAgent).isEqualTo("TeamCity Server " + ServerVersionHolder.getVersion().getDisplayVersion());
+    then(myLastAgent).isEqualTo("TeamCity Server " + ServerVersionHolder.getVersion().getDisplayVersion()
+                                + " (build " + ServerVersionHolder.getVersion().getBuildNumber() + ")");
   }
 
   protected boolean populateResponse(HttpRequest httpRequest, String requestData, HttpResponse httpResponse) {
