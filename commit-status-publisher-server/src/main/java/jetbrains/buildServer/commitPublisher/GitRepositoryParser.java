@@ -23,17 +23,14 @@ public class GitRepositoryParser {
   public static Repository parseRepository(@NotNull String uri, @Nullable String pathPrefix) {
 
     Matcher m = GIT_URL_PATTERN.matcher(uri);
-    if (m.matches())
-      if (m.group(1).toLowerCase().startsWith("http")) {
-        return getRepositoryInfo(m.group(2), m.group(3), pathPrefix);
-      } else {
-        return getRepositoryInfo(m.group(2), m.group(3), "");
-      }
+    if (m.matches()){
+      return getRepositoryInfo(m.group(2), m.group(3), pathPrefix);
+    }
     m = PROTOCOL_PREFIX_PATTERN.matcher(uri);
     if (!m.matches()) {
       m = GIT_SCP_PATTERN.matcher(uri);
       if (m.matches()) {
-        return getRepositoryInfo(m.group(1), m.group(2), "");
+        return getRepositoryInfo(m.group(1), m.group(2), pathPrefix);
       }
     }
     LOG.warn("Cannot parse Git repository url " + uri);
