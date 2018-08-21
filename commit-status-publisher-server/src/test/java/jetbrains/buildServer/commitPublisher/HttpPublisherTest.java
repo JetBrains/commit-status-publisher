@@ -133,7 +133,7 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
     then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
                           .matches(myExpectedRegExps.get(EventToTest.FINISHED));
-    then(myLastAgent).isEqualTo("TeamCity Server " + ServerVersionHolder.getVersion().getDisplayVersion());
+    then(myLastAgent).isEqualTo("TeamCity Server " + ServerVersionHolder.getVersion().getDisplayVersion() + " (build " + ServerVersionHolder.getVersion().getBuildNumber() + ")");
   }
 
   protected boolean populateResponse(HttpRequest httpRequest, String requestData, HttpResponse httpResponse) {
