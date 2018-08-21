@@ -1,6 +1,5 @@
 package jetbrains.buildServer.commitPublisher;
 
-import com.intellij.openapi.diagnostic.Logger;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.KeyStore;
@@ -11,7 +10,6 @@ import jetbrains.buildServer.http.SimpleCredentials;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.util.http.HttpMethod;
 import jetbrains.buildServer.util.http.RedirectStrategy;
-import jetbrains.buildServer.version.ServerVersionHolder;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,8 +18,6 @@ import org.jetbrains.annotations.Nullable;
  * @author anton.zamolotskikh, 23/11/16.
  */
 public class HttpHelper {
-  private static final Logger LOG = Logger.getInstance(HttpBasedCommitStatusPublisher.class.getName());
-
   private static final HTTPRequestBuilder.RequestHandler REQUEST_HANDLER =
     new HTTPRequestBuilder.ApacheClient43RequestHandler();
 
@@ -122,11 +118,6 @@ public class HttpHelper {
     return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
   }
 
-
-  @NotNull
-  public static String buildUserAgentString() {
-    return "TeamCity Server " + ServerVersionHolder.getVersion().getDisplayVersion();
-  }
 
   @Nullable
   private static SimpleCredentials getCredentials(@Nullable final String username, @Nullable final String password) {
