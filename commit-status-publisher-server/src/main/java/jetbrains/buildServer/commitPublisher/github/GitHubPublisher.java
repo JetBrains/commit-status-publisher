@@ -53,6 +53,12 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
+  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) throws PublisherException {
+    updateBuildStatus(build, revision, false);
+    return true;
+  }
+
+  @Override
   public boolean buildMarkedAsSuccessful(@NotNull final SBuild build, @NotNull final BuildRevision revision, final boolean buildInProgress) throws PublisherException {
     updateBuildStatus(build, revision, buildInProgress);
     return true;
