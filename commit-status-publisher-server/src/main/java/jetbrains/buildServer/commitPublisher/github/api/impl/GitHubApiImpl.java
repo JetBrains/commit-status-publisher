@@ -49,7 +49,7 @@ import static org.apache.http.HttpVersion.HTTP_1_1;
  */
 public abstract class GitHubApiImpl implements GitHubApi {
   private static final Logger LOG = Logger.getInstance(GitHubApiImpl.class.getName());
-  private static final Pattern PULL_REQUEST_BRANCH = Pattern.compile("/?refs/pull/(\\d+)/(.*)");
+  private static final Pattern PULL_REQUEST_BRANCH = Pattern.compile("/?refs/[^/]*pull/(\\d+)/(.*)");
   private static final String MSG_PROXY_OR_PERMISSIONS = "Please check if the error is not returned by a proxy or caused by the lack of permissions.";
 
   private final HttpClientWrapper myClient;
