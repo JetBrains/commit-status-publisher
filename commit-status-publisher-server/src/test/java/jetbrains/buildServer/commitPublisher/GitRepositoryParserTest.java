@@ -31,27 +31,27 @@ public class GitRepositoryParserTest {
 
   @TestFor(issues = "TW-49264")
   public void parse_ssh_urls_with_slashes_and_path() {
-    parse_ssh_urls_ex("one/two/three", "/somepath/morepath");
+    parse_ssh_urls_ex("one/two/three", "somepath/morepath/");
   }
 
   private void parse_ssh_urls_ex(String owner, String vcsRootPath) {
     List<String> urls = Arrays.asList(
-            "git@gitlab.com:%s/repository.git",
-            "git@github.com:/%s/repository.git",
-            "git@github.com:/%s/repository.git/",
-            "non_standard_name@github.com:%s/repository.git",
-            "git.mygithubserver.com:%s/repository.git/",
-            "ssh://git@github.com:%s/repository.git",
-            "ssh://git@github.com:%s/repository.git/",
-            "ssh://non_standard_name@github.com:%s/repository.git",
-            "ssh://git@bitbucket.org/%s/repository.git",
-            "ssh://git@bitbucket.org/%s/repository",
-            "ssh://git@altssh.bitbucket.org:443/%s/repository.git",
-            "ssh://bitbucket.org/%s/repository",
-            "ssh://bitbucket.org/%s/repository/");
+            "git@gitlab.com:%s%s/repository.git",
+            "git@github.com:/%s%s/repository.git",
+            "git@github.com:/%s%s/repository.git/",
+            "non_standard_name@github.com:%s%s/repository.git",
+            "git.mygithubserver.com:%s%s/repository.git/",
+            "ssh://git@github.com:%s%s/repository.git",
+            "ssh://git@github.com:%s%s/repository.git/",
+            "ssh://non_standard_name@github.com:%s%s/repository.git",
+            "ssh://git@bitbucket.org/%s%s/repository.git",
+            "ssh://git@bitbucket.org/%s%s/repository",
+            "ssh://git@altssh.bitbucket.org:443/%s%s/repository.git",
+            "ssh://bitbucket.org/%s%s/repository",
+            "ssh://bitbucket.org/%s%s/repository/");
 
     for(String url : urls) {
-      String urlWithOwner = String.format(url, owner);
+      String urlWithOwner = String.format(url, null == vcsRootPath ? "" : vcsRootPath, owner);
       Repository repo = null == vcsRootPath ? GitRepositoryParser.parseRepository(urlWithOwner)
                                             : GitRepositoryParser.parseRepository(urlWithOwner, vcsRootPath);
       then(repo).overridingErrorMessage("Failed to parse url " + urlWithOwner).isNotNull();
