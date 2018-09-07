@@ -37,6 +37,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
     add(Event.FINISHED);
     add(Event.INTERRUPTED);
     add(Event.MARKED_AS_SUCCESSFUL);
+    add(Event.FAILURE_DETECTED);
   }};
 
   public GitHubSettings(@NotNull ChangeStatusUpdater updater,

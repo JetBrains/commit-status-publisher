@@ -47,7 +47,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS, null); // not to be tested
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*", REVISION));
-    myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*build failed.*", REVISION)); // not to be tested
     myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*success.*build finished.*", REVISION)); // not to be tested
     myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*build started.*", REVISION)); // not to be tested
     myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*build failed.*%s.*", REVISION, BT_NAME_ESCAPED_REGEXP));
