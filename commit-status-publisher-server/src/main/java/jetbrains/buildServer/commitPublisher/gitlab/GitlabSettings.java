@@ -137,7 +137,7 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
 
   @NotNull
   public static String getProjectsUrl(@NotNull String apiUrl, @NotNull String owner, @NotNull String repo) {
-    return apiUrl + "/projects/" + owner.replace(".", "%2E").replace("/", "%2F") + "%2F" + repo.replace(".", "%2E");
+    return apiUrl + "/projects/" + owner.replace(".", "%2E").replace("/", "%2F") + "%2F" + repo.replace(".", "%2E").replace("/", "%2F");
   }
 
   @NotNull
