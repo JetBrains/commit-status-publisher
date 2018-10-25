@@ -18,7 +18,7 @@
         <td>
             <props:passwordProperty name="${keys.gitlabToken}" className="mediumField"/>
             <span class="smallNote">
-                Can be found at <strong>/profile/account</strong> in GitLab
+                Can be found at <strong>/profile/personal_access_tokens</strong> in GitLab
             </span>
             <span class="error" id="error_${keys.gitlabToken}"></span>
             <c:if test="${testConnectionSupported}">

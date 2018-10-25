@@ -151,7 +151,7 @@
                 </param>
                 <param name="secure:gitlabAccessToken" dslName="accessToken" mandatory="true">
                     <description>
-                        Access token to use for GitLab connection. Can be found at /profile/account in GitLab.
+                        Access token to use for GitLab connection. Can be found at /profile/personal_access_tokens in GitLab.
                     </description>
                 </param>
             </option>
