@@ -28,15 +28,13 @@ import jetbrains.buildServer.http.SimpleCredentials;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
-import org.apache.commons.codec.Charsets;
 import org.apache.http.*;
-import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
 import org.apache.http.message.BasicStatusLine;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -130,7 +128,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
   private Map<String, String> defaultHeaders() {
     final Map<String, String> result = new LinkedHashMap<String, String>();
     result.put(HttpHeaders.ACCEPT_ENCODING, "UTF-8");
-    result.put(HttpHeaders.ACCEPT, "application/json");
+    result.put(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType());
 
     return result;
   }
@@ -152,7 +150,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     myClient.post(
       url, authenticationCredentials(), defaultHeaders(),
-      entity, "application/json", Charsets.UTF_8,
+      entity, ContentType.APPLICATION_JSON.getMimeType(), ContentType.APPLICATION_JSON.getCharset(),
       response -> {},
       response -> {
         logFailedResponse(method, url, entity, response);
@@ -337,7 +335,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     myClient.post(
       url, authenticationCredentials(), defaultHeaders(),
-      entity, "application/json", Charsets.UTF_8,
+      entity, ContentType.APPLICATION_JSON.getMimeType(), ContentType.APPLICATION_JSON.getCharset(),
       response -> {},
       response -> {
         logFailedResponse(method, url, entity, response);
