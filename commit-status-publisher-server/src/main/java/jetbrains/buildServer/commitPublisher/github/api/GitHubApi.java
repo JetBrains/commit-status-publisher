@@ -54,7 +54,7 @@ public interface GitHubApi {
 
   /**
    * this method parses branch name and attempts to detect
-   * /refs/pull/X/head revision for given branch
+   * last /refs/pull/X/head revision for given branch
    *
    * The main use-case for it is to resolve /refs/pull/X/merge branch
    * into head commit hash in order to call github status API

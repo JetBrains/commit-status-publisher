@@ -80,9 +80,9 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     }
 
     if (isStarting) {
-      h.scheduleChangeStarted(revision.getRepositoryVersion(), build);
+      h.scheduleChangeStarted(revision, build);
     } else {
-      h.scheduleChangeCompleted(revision.getRepositoryVersion(), build);
+      h.scheduleChangeCompleted(revision, build);
     }
   }
 

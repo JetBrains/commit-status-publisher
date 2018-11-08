@@ -101,7 +101,8 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     Map<String, String> params = getPublisherParams();
 
     myChangeStatusUpdater = new ChangeStatusUpdater(myExecServices,
-                                                    new GitHubApiFactoryImpl(new HttpClientWrapperImpl(new HTTPRequestBuilder.ApacheClient43RequestHandler(), () -> null)), myWebLinks);
+                                                    new GitHubApiFactoryImpl(new HttpClientWrapperImpl(new HTTPRequestBuilder.ApacheClient43RequestHandler(), () -> null)),
+                                                    myWebLinks, myFixture.getVcsHistory());
 
     myPublisherSettings = new GitHubSettings(myChangeStatusUpdater, myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems,
                                              myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext(),

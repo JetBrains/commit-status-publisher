@@ -26,6 +26,8 @@ import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.vcs.VcsModificationHistory;
+import jetbrains.buildServer.vcs.VcsModificationOrder;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -44,6 +46,7 @@ public class ChangeStatusUpdater {
   private static final Logger LOG = Logger.getInstance(ChangeStatusUpdater.class.getName());
   private static final UpdateChangesConstants C = new UpdateChangesConstants();
 
+  private final VcsModificationHistory myModificationHistory;
   private final ExecutorService myExecutor;
   @NotNull
   private final GitHubApiFactory myFactory;
@@ -51,10 +54,12 @@ public class ChangeStatusUpdater {
 
   public ChangeStatusUpdater(@NotNull final ExecutorServices services,
                              @NotNull final GitHubApiFactory factory,
-                             @NotNull final WebLinks web) {
+                             @NotNull final WebLinks web,
+                             @NotNull final VcsModificationHistory vcsModificationHistory) {
     myFactory = factory;
     myWeb = web;
     myExecutor = services.getLowPriorityExecutorService();
+    myModificationHistory = vcsModificationHistory;
   }
 
   @NotNull
@@ -135,17 +140,17 @@ public class ChangeStatusUpdater {
         return shouldReportOnFinish;
       }
 
-      public void scheduleChangeStarted(@NotNull RepositoryVersion version, @NotNull SBuild build) {
-        scheduleChangeUpdate(version, build, "TeamCity build started", GitHubChangeState.Pending);
+      public void scheduleChangeStarted(@NotNull BuildRevision revision, @NotNull SBuild build) {
+        scheduleChangeUpdate(revision, build, "TeamCity build started", GitHubChangeState.Pending);
       }
 
-      public void scheduleChangeCompleted(@NotNull RepositoryVersion version, @NotNull SBuild build) {
+      public void scheduleChangeCompleted(@NotNull BuildRevision revision, @NotNull SBuild build) {
         LOG.debug("Status :" + build.getStatusDescriptor().getStatus().getText());
         LOG.debug("Status Priority:" + build.getStatusDescriptor().getStatus().getPriority());
 
         final GitHubChangeState status = getGitHubChangeState(build);
         final String text = getGitHubChangeText(build);
-        scheduleChangeUpdate(version, build, text, status);
+        scheduleChangeUpdate(revision, build, text, status);
       }
 
       @NotNull
@@ -176,15 +181,16 @@ public class ChangeStatusUpdater {
         }
       }
 
-      private void scheduleChangeUpdate(@NotNull final RepositoryVersion version,
+      private void scheduleChangeUpdate(@NotNull final BuildRevision revision,
                                         @NotNull final SBuild build,
                                         @NotNull final String message,
                                         @NotNull final GitHubChangeState status) {
+        final RepositoryVersion version = revision.getRepositoryVersion();
         LOG.info("Scheduling GitHub status update for " +
-                "hash: " + version.getVersion() + ", " +
-                "branch: " + version.getVcsBranch() + ", " +
-                "buildId: " + build.getBuildId() + ", " +
-                "status: " + status);
+                 "hash: " + version.getVersion() + ", " +
+                 "branch: " + version.getVcsBranch() + ", " +
+                 "buildId: " + build.getBuildId() + ", " +
+                 "status: " + status);
 
         myExecutor.submit(ExceptionUtil.catchAll("set change status on github", new Runnable() {
           @NotNull
@@ -278,11 +284,11 @@ public class ChangeStatusUpdater {
                   throw new IOException("Failed to find head hash for commit from " + vcsBranch);
                 }
                 LOG.info("Resolved GitHub change commit for " + vcsBranch + " to point to pull request head for " +
-                        "hash: " + version.getVersion() + ", " +
-                        "newHash: " + hash + ", " +
-                        "branch: " + version.getVcsBranch() + ", " +
-                        "buildId: " + build.getBuildId() + ", " +
-                        "status: " + status);
+                         "hash: " + version.getVersion() + ", " +
+                         "newHash: " + hash + ", " +
+                         "branch: " + version.getVcsBranch() + ", " +
+                         "buildId: " + build.getBuildId() + ", " +
+                         "status: " + status);
                 return hash;
               } catch (Exception e) {
                 LOG.warn("Failed to find status update hash for " + vcsBranch + " for repository " + repositoryName);
@@ -293,6 +299,13 @@ public class ChangeStatusUpdater {
 
           public void run() {
             final String hash = resolveCommitHash();
+            if (!(hash.equals(version.getVersion()) ||
+                  myModificationHistory.getModificationsOrder(revision.getRoot(), hash, version.getVersion())
+                                       .equals(VcsModificationOrder.BEFORE))) {
+              LOG.info("GitHub status for pull request commit has not been updated. The head branch hash: " + hash
+                       + " does not correspond to the merge branch hash " + version.getVersion() + " any longer (buildId: " + build.getBuildId() + ", status: " + status + ")");
+              return;
+            }
             final GitHubPublisher publisher = getPublisher();
             final Lock lock = GitHubPublisher.getLocks().get(publisher.getBuildType().getExternalId());
             final CommitStatusPublisherProblems problems = publisher.getProblems();
@@ -340,7 +353,7 @@ public class ChangeStatusUpdater {
   interface Handler {
     boolean shouldReportOnStart();
     boolean shouldReportOnFinish();
-    void scheduleChangeStarted(@NotNull final RepositoryVersion hash, @NotNull final SBuild build);
-    void scheduleChangeCompleted(@NotNull final RepositoryVersion hash, @NotNull final SBuild build);
+    void scheduleChangeStarted(@NotNull final BuildRevision revision, @NotNull final SBuild build);
+    void scheduleChangeCompleted(@NotNull final BuildRevision revision, @NotNull final SBuild build);
   }
 }
