@@ -22,17 +22,6 @@
   </c:forEach>
 </c:set>
 
-<tr class="advancedSetting">
-  <th><label for="${keys.serverUrl}">Server URL:</label></th>
-  <td>
-    <props:textProperty name="${keys.serverUrl}" className="longField"/>
-    <span class="error" id="error_${keys.serverUrl}"></span>
-    <span class="smallNote">
-      Server URL for SSH-based VCS roots: http[s]://&lt;host&gt;[:&lt;port&gt;]
-    </span>
-  </td>
-</tr>
-
 <tr>
   <th><label for="${keys.accessTokenKey}">Access Token:<l:star/></label></th>
   <td>
@@ -45,8 +34,19 @@
     <span class="smallNote">
       This publisher supports build status update only for Git repositories.<br/>
       You need to grant <strong><em>Code (status)</em></strong> and <strong><em>Code (read)</em></strong>
-      <a href="https://www.visualstudio.com/en-us/docs/integrate/get-started/auth/oauth#scopes" target="_blank">scopes</a>
+      <a href="https://docs.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/oauth?view=vsts#scopes" target="_blank">scopes</a>
       for token.
+    </span>
+  </td>
+</tr>
+
+<tr class="advancedSetting">
+  <th><label for="${keys.serverUrl}">Server URL:</label></th>
+  <td>
+    <props:textProperty name="${keys.serverUrl}" className="longField"/>
+    <span class="error" id="error_${keys.serverUrl}"></span>
+    <span class="smallNote">
+      Server URL for SSH-based VCS roots: http[s]://&lt;host&gt;[:&lt;port&gt;]
     </span>
   </td>
 </tr>
@@ -58,7 +58,7 @@
     <label for="${keys.publishPullRequests}">Publish pull request statuses</label>
     <span class="smallNote">
       You need to grant <strong><em>Code (status)</em></strong> and <strong><em>Code (write)</em></strong>
-      <a href="https://www.visualstudio.com/en-us/docs/integrate/get-started/auth/oauth#scopes" target="_blank">scopes</a>
+      <a href="https://docs.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/oauth?view=vsts#scopes" target="_blank">scopes</a>
       for token and add the "+:refs/(pull/*)/merge" rule in VCS root branch specification.
     </span>
   </td>

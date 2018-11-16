@@ -56,7 +56,7 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
 
   @NotNull
   public String getName() {
-    return "Visual Studio Team Services";
+    return "Azure DevOps";
   }
 
   @Nullable

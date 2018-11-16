@@ -182,7 +182,7 @@
             </option>
             <option name="tfs" value="tfs">
                 <description>
-                    Publish build status to VSTS / TFS
+                    Publish build status to Azure DevOps / TFS
                 </description>
                 <param name="tfsServerUrl" dslName="serverUrl">
                     <description>
