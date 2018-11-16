@@ -184,6 +184,11 @@
                 <description>
                     Publish build status to VSTS / TFS
                 </description>
+                <param name="tfsServerUrl" dslName="serverUrl">
+                    <description>
+                        Server URL for SSH-based VCS roots
+                    </description>
+                </param>
                 <param name="tfsAuthType" dslName="authType" mandatory="true">
                     <description>
                         Authentication type

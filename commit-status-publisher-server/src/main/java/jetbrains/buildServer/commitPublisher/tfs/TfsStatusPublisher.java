@@ -104,7 +104,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
       throw new PublisherException("Status publisher supports only Git VCS roots");
     }
 
-    final TfsRepositoryInfo info = getServerAndProject(root);
+    final TfsRepositoryInfo info = getServerAndProject(root, params);
     try {
       final String url = MessageFormat.format(COMMIT_STATUS_URL_FORMAT,
         info.getServer(), info.getProject(), info.getRepository(), commitId);
@@ -139,7 +139,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   public static String getLatestCommitId(@NotNull final VcsRoot root,
                                          @NotNull final Map<String, String> params,
                                          @Nullable final KeyStore trustStore) throws PublisherException {
-    final TfsRepositoryInfo info = getServerAndProject(root);
+    final TfsRepositoryInfo info = getServerAndProject(root, params);
     final String url = MessageFormat.format(COMMITS_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository());
     final String[] commitId = {null};
 
@@ -304,7 +304,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
       return;
     }
 
-    final TfsRepositoryInfo info = getServerAndProject(root);
+    final TfsRepositoryInfo info = getServerAndProject(root, myParams);
     final CommitStatus status = getCommitStatus(build, isStarting);
     final String data = myGson.toJson(status);
 
@@ -393,9 +393,10 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @NotNull
-  private static TfsRepositoryInfo getServerAndProject(VcsRoot root) throws PublisherException {
+  private static TfsRepositoryInfo getServerAndProject(VcsRoot root, final Map<String, String> params) throws PublisherException {
     final String url = root.getProperty("url");
-    final TfsRepositoryInfo info = TfsRepositoryInfo.parse(url);
+    final String serverUrl = params.get(TfsConstants.SERVER_URL);
+    final TfsRepositoryInfo info = TfsRepositoryInfo.parse(url, serverUrl);
     if (info == null) {
       throw new PublisherException(String.format("Invalid URL for TFS Git project '%s'. Publisher supports only TFS servers", url));
     }

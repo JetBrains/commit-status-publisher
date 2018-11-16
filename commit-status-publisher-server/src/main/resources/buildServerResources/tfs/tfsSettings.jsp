@@ -22,6 +22,17 @@
   </c:forEach>
 </c:set>
 
+<tr class="advancedSetting">
+  <th><label for="${keys.serverUrl}">Server URL:</label></th>
+  <td>
+    <props:textProperty name="${keys.serverUrl}" className="longField"/>
+    <span class="error" id="error_${keys.serverUrl}"></span>
+    <span class="smallNote">
+      Server URL for SSH-based VCS roots: http[s]://&lt;host&gt;[:&lt;port&gt;]
+    </span>
+  </td>
+</tr>
+
 <tr>
   <th><label for="${keys.accessTokenKey}">Access Token:<l:star/></label></th>
   <td>
@@ -86,6 +97,9 @@
     if (cre != null) {
       $('${keys.authUser}').value = cre.oauthLogin;
       $('${keys.authProviderId}').value = cre.oauthProviderId;
+      if (cre.serverUrl && !/(visualstudio\.com|dev\.azure\.com)/.test(cre.serverUrl)) {
+        $('${keys.serverUrl}').value = cre.serverUrl;
+      }
       $('${keys.accessTokenKey}').value = '******************************'
     }
     BS.TfsAccessTokenPopup.hidePopup(0, true);

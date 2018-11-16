@@ -20,6 +20,19 @@ public class TfsRepositoryInfoTest {
     }
   }
 
+  @Test
+  public void testUseServerUrlHintForSshRoots() {
+    TfsRepositoryInfo info = TfsRepositoryInfo.parse(
+      "ssh://host:22/DefaultCollection/_git/Project",
+      "http://host:81/DefaultCollection"
+    );
+
+    Assert.assertNotNull(info);
+    Assert.assertEquals(info.getServer(), "http://host:81/DefaultCollection");
+    Assert.assertEquals(info.getProject(), "Project");
+    Assert.assertEquals(info.getRepository(), "Project");
+  }
+
   @DataProvider
   public Object[][] repositoryData() {
     return new Object[][]{
@@ -53,7 +66,15 @@ public class TfsRepositoryInfoTest {
       {"ssh://test@test.visualstudio.com:22/DefaultCollection/Project/_git/Repository",
         new TfsRepositoryInfo("https://test.visualstudio.com/DefaultCollection", "Repository", "Project")
       },
-      {"ssh://host:22/DefaultCollection/_git/Repository", null}
+      {"ssh://host:22/DefaultCollection/_git/Repository", null},
+      {
+        "ssh://git@ssh.dev.azure.com:v3/org/Project/Repository",
+        new TfsRepositoryInfo("https://dev.azure.com/org", "Repository", "Project")
+      },
+      {
+        "https://org@dev.azure.com/org/Project/_git/Repository",
+        new TfsRepositoryInfo("https://dev.azure.com/org", "Repository", "Project")
+      }
     };
   }
 }

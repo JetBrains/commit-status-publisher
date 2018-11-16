@@ -165,12 +165,7 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
 
   @Override
   public boolean isPublishingForVcsRoot(final VcsRoot root) {
-    if (!TfsConstants.GIT_VCS_ROOT.equals(root.getVcsName())) {
-      return false;
-    }
-
-    final String url = root.getProperty("url");
-    return TfsRepositoryInfo.parse(url) != null;
+    return TfsConstants.GIT_VCS_ROOT.equals(root.getVcsName());
   }
 
   @Override
