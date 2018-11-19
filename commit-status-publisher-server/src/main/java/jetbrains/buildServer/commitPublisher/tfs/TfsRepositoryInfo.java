@@ -107,8 +107,8 @@ public class TfsRepositoryInfo {
     if (lastSlash >= 0) {
       final String lastPathSegment = path.substring(lastSlash + 1);
       if (!"defaultCollection".equalsIgnoreCase(lastPathSegment)) {
-        String collection = path.substring(0, lastSlash);
-        if (StringUtil.isNotEmpty(collection) || isHosted(server)) {
+        final String collection = path.substring(0, lastSlash);
+        if (StringUtil.isNotEmpty(collection) && !collection.equals("/tfs") || isHosted(server)) {
           project = lastPathSegment;
           path = collection;
         }
