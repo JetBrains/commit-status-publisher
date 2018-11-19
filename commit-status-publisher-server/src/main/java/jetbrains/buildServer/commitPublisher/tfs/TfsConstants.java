@@ -11,6 +11,7 @@ public class TfsConstants {
   public static final String PUBLISH_PULL_REQUESTS = "publish.pull.requests";
   public static final String SERVER_URL = "tfsServerUrl";
   public static final String GIT_VCS_ROOT = "jetbrains.git";
+  public static final String GIT_VCS_URL = "url";
 
   public String getAuthenticationTypeKey() {
     return AUTHENTICATION_TYPE;

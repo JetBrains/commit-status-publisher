@@ -66,6 +66,12 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
+  public boolean isPublishingForRevision(@NotNull final BuildRevision revision) {
+    final VcsRoot vcsRoot = revision.getRoot();
+    return tryGetServerAndProject(vcsRoot, myParams) != null;
+  }
+
+  @Override
   public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) throws PublisherException {
     updateBuildStatus(build, revision, true);
     return true;
@@ -392,13 +398,21 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     return StatusState.Pending;
   }
 
+  @Nullable
+  private static TfsRepositoryInfo tryGetServerAndProject(VcsRoot root, final Map<String, String> params) {
+    final String url = root.getProperty(TfsConstants.GIT_VCS_URL);
+    final String serverUrl = params.get(TfsConstants.SERVER_URL);
+    return TfsRepositoryInfo.parse(url, serverUrl);
+  }
+
   @NotNull
   private static TfsRepositoryInfo getServerAndProject(VcsRoot root, final Map<String, String> params) throws PublisherException {
-    final String url = root.getProperty("url");
-    final String serverUrl = params.get(TfsConstants.SERVER_URL);
-    final TfsRepositoryInfo info = TfsRepositoryInfo.parse(url, serverUrl);
+    final TfsRepositoryInfo info = tryGetServerAndProject(root, params);
     if (info == null) {
-      throw new PublisherException(String.format("Invalid URL for TFS Git project '%s'. Publisher supports only TFS servers", url));
+      throw new PublisherException(String.format(
+        "Invalid URL for TFS Git project '%s'. Publisher supports only TFS servers",
+        root.getProperty(TfsConstants.GIT_VCS_URL)
+      ));
     }
 
     return info;
