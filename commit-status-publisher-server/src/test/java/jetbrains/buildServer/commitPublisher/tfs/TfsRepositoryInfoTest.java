@@ -20,17 +20,14 @@ public class TfsRepositoryInfoTest {
     }
   }
 
-  @Test
-  public void testUseServerUrlHintForSshRoots() {
-    TfsRepositoryInfo info = TfsRepositoryInfo.parse(
-      "ssh://host:22/DefaultCollection/_git/Project",
-      "http://host:81/DefaultCollection"
-    );
+  @Test(dataProvider = "sshRootWithHintData")
+  public void testUseServerUrlHintForSshRoots(final String repositoryUrl, final String hintUrl, final TfsRepositoryInfo info) {
+    TfsRepositoryInfo repositoryInfo = TfsRepositoryInfo.parse(repositoryUrl, hintUrl);
 
-    Assert.assertNotNull(info);
-    Assert.assertEquals(info.getServer(), "http://host:81/DefaultCollection");
-    Assert.assertEquals(info.getProject(), "Project");
-    Assert.assertEquals(info.getRepository(), "Project");
+    Assert.assertNotNull(repositoryInfo);
+    Assert.assertEquals(repositoryInfo.getServer(), info.getServer());
+    Assert.assertEquals(repositoryInfo.getProject(), info.getProject());
+    Assert.assertEquals(repositoryInfo.getRepository(), info.getRepository());
   }
 
   @DataProvider
@@ -74,6 +71,27 @@ public class TfsRepositoryInfoTest {
       {
         "https://org@dev.azure.com/org/Project/_git/Repository",
         new TfsRepositoryInfo("https://dev.azure.com/org", "Repository", "Project")
+      }
+    };
+  }
+
+  @DataProvider
+  public Object[][] sshRootWithHintData() {
+    return new Object[][]{
+      {
+        "ssh://host:22/DefaultCollection/_git/Project",
+        "http://host:81/DefaultCollection",
+        new TfsRepositoryInfo("http://host:81/DefaultCollection", "Project", null)
+      },
+      {
+        "ssh://host:22/DefaultCollection/Project/_git/Repository",
+        "http://host:81",
+        new TfsRepositoryInfo("http://host:81/DefaultCollection", "Repository", "Project")
+      },
+      {
+        "ssh://host:22/CustomCollection/Project/_git/Repository",
+        "http://host:81",
+        new TfsRepositoryInfo("http://host:81/CustomCollection", "Repository", "Project")
       }
     };
   }
