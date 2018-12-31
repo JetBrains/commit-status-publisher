@@ -40,7 +40,7 @@
       <span class="error" id="error_${keys.serverKey}"></span>
       <span class="smallNote">
         Format: <strong>http[s]://&lt;host&gt;[:&lt;port&gt;]/api/v3</strong>
-        for <a href="https://support.enterprise.github.com/entries/21391237-Using-the-API" target="_blank">GitHub Enterprise</a>
+        for <a href="https://developer.github.com/enterprise/v3/" target="_blank">GitHub Enterprise</a>
       </span>
     </td>
   </tr>
