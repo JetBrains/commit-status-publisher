@@ -24,13 +24,17 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
   private static final Pattern URL_WITH_API_SUFFIX = Pattern.compile("(.*)/api/v.");
 
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
-    add(Event.QUEUED);
-    add(Event.REMOVED_FROM_QUEUE);
     add(Event.STARTED);
     add(Event.FINISHED);
     add(Event.MARKED_AS_SUCCESSFUL);
     add(Event.INTERRUPTED);
     add(Event.FAILURE_DETECTED);
+  }};
+
+  private static final Set<Event> mySupportedEventsWithQueued = new HashSet<Event>() {{
+    add(Event.QUEUED);
+    add(Event.REMOVED_FROM_QUEUE);
+    addAll(mySupportedEvents);
   }};
 
   public GitlabSettings(@NotNull ExecutorServices executorServices,
@@ -154,7 +158,7 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
 
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
-    return mySupportedEvents;
+    return isBuildQueuedSupported(buildType, params) ? mySupportedEventsWithQueued : mySupportedEvents;
   }
 
   private abstract class JsonResponseProcessor<T> extends DefaultHttpResponseProcessor {
