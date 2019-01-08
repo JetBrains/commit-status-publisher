@@ -16,7 +16,7 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import java.io.IOException;
 import java.util.*;
 
-import static jetbrains.buildServer.commitPublisher.stash.StashPublisher.PUBLISH_QUEUED_BUILD_STATUS;
+import static jetbrains.buildServer.commitPublisher.stash.StashPublisher.PROP_PUBLISH_QUEUED_BUILD_STATUS;
 
 public class StashSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
@@ -144,6 +144,12 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
 
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
-    return TeamCityProperties.getBoolean(PUBLISH_QUEUED_BUILD_STATUS) ? mySupportedEventsWithQueued : mySupportedEvents;
+    return isBuildQueuedSupported(buildType, params) ? mySupportedEventsWithQueued : mySupportedEvents;
+  }
+
+  protected boolean isBuildQueuedSupported(final SBuildType buildType, final Map<String, String> params) {
+    return TeamCityProperties.getBoolean(PROP_PUBLISH_QUEUED_BUILD_STATUS) || super.isBuildQueuedSupported(buildType, params);
   }
 }
+
+

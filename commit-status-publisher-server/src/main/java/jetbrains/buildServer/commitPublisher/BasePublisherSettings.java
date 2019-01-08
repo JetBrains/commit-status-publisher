@@ -21,11 +21,13 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 public abstract class BasePublisherSettings implements CommitStatusPublisherSettings {
 
+  private static final String PARAM_PUBLISH_BUILD_QUEUED_STATUS = "teamcity.commitStatusPublisher.publishQueuedBuildStatus";
+
   protected final PluginDescriptor myDescriptor;
   protected final WebLinks myLinks;
   protected final ExecutorServices myExecutorServices;
-  protected CommitStatusPublisherProblems myProblems;
-  private SSLTrustStoreProvider myTrustStoreProvider;
+  protected final CommitStatusPublisherProblems myProblems;
+  private final SSLTrustStoreProvider myTrustStoreProvider;
   protected final Gson myGson = new Gson();
 
   public BasePublisherSettings(@NotNull final ExecutorServices executorServices,
@@ -94,4 +96,9 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
     return Collections.emptySet();
   }
+
+  protected boolean isBuildQueuedSupported(final SBuildType buildType, final Map<String, String> params) {
+    return "true".equalsIgnoreCase(buildType.getParameterValue(PARAM_PUBLISH_BUILD_QUEUED_STATUS));
+  }
+
 }

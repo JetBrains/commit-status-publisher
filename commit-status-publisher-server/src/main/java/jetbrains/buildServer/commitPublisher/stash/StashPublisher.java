@@ -15,7 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 
 class StashPublisher extends HttpBasedCommitStatusPublisher {
-  public static final String PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
+  public static final String PROP_PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
 
   private static final Logger LOG = Logger.getInstance(StashPublisher.class.getName());
   private final Gson myGson = new Gson();
@@ -43,25 +43,19 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) {
-    if (TeamCityProperties.getBoolean(PUBLISH_QUEUED_BUILD_STATUS)) {
-      vote(build, revision, StashBuildStatus.INPROGRESS, "Build queued");
-      return true;
-    }
-    return false;
+    vote(build, revision, StashBuildStatus.INPROGRESS, "Build queued");
+    return true;
   }
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) {
-    if (TeamCityProperties.getBoolean(PUBLISH_QUEUED_BUILD_STATUS)) {
-      StringBuilder description = new StringBuilder("Build removed from queue");
-      if (user != null)
-        description.append(" by ").append(user.getName());
-      if (comment != null)
-        description.append(" with comment \"").append(comment).append("\"");
-      vote(build, revision, StashBuildStatus.FAILED, description.toString());
-      return true;
-    }
-    return false;
+    StringBuilder description = new StringBuilder("Build removed from queue");
+    if (user != null)
+      description.append(" by ").append(user.getName());
+    if (comment != null)
+      description.append(" with comment \"").append(comment).append("\"");
+    vote(build, revision, StashBuildStatus.FAILED, description.toString());
+    return true;
   }
 
   @Override
