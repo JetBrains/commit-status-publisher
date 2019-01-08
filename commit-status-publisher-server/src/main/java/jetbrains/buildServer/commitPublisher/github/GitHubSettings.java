@@ -200,7 +200,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
   }
 
   @Override
-  protected Set<Event> getSupportedEvents() {
+  protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
     return mySupportedEvents;
   }
 }

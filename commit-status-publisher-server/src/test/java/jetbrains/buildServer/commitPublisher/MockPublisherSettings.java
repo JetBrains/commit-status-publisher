@@ -42,7 +42,7 @@ public class MockPublisherSettings extends DummyPublisherSettings {
   }
 
   @Override
-  public boolean isEventSupported(final CommitStatusPublisher.Event event) {
+  public boolean isEventSupported(final CommitStatusPublisher.Event event, final SBuildType buildType, final Map<String, String> params) {
     return true; // Mock publisher "supports" all events
   }
 

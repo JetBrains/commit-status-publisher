@@ -21,17 +21,18 @@ import static jetbrains.buildServer.commitPublisher.stash.StashPublisher.PUBLISH
 public class StashSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
-    if (TeamCityProperties.getBoolean(PUBLISH_QUEUED_BUILD_STATUS)) {
-      add(Event.QUEUED);
-      add(Event.REMOVED_FROM_QUEUE);
-    }
     add(Event.STARTED);
     add(Event.FINISHED);
     add(Event.COMMENTED);
     add(Event.MARKED_AS_SUCCESSFUL);
     add(Event.INTERRUPTED);
     add(Event.FAILURE_DETECTED);
+  }};
 
+  private static final Set<Event> mySupportedEventsWithQueued = new HashSet<Event>() {{
+    add(Event.QUEUED);
+    add(Event.REMOVED_FROM_QUEUE);
+    addAll(mySupportedEvents);
   }};
 
   public StashSettings(@NotNull final ExecutorServices executorServices,
@@ -142,7 +143,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
   }
 
   @Override
-  protected Set<Event> getSupportedEvents() {
-    return mySupportedEvents;
+  protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
+    return TeamCityProperties.getBoolean(PUBLISH_QUEUED_BUILD_STATUS) ? mySupportedEventsWithQueued : mySupportedEvents;
   }
 }

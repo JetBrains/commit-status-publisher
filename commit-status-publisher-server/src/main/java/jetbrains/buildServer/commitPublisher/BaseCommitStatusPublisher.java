@@ -91,7 +91,7 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   }
 
   public boolean isEventSupported(Event event) {
-    return mySettings.isEventSupported(event);
+    return mySettings.isEventSupported(event, myBuildType, myParams);
   }
 
   @NotNull

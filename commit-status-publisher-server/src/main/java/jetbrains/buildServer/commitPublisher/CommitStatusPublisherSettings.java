@@ -52,7 +52,7 @@ public interface CommitStatusPublisherSettings {
 
   boolean isPublishingForVcsRoot(VcsRoot vcsRoot);
 
-  public boolean isEventSupported(Event event);
+  public boolean isEventSupported(Event event, final SBuildType buildType, final Map<String, String> params);
 
   boolean isTestConnectionSupported();
 

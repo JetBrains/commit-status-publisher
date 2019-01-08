@@ -2,7 +2,6 @@ package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudRepoInfo;
 import jetbrains.buildServer.serverSide.*;
@@ -130,7 +129,7 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
   }
 
   @Override
-  protected Set<Event> getSupportedEvents() {
+  protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
     return mySupportedEvents;
   }
 }

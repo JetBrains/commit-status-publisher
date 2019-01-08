@@ -5,6 +5,7 @@ import java.security.KeyStore;
 import java.util.Collections;
 import java.util.Set;
 import jetbrains.buildServer.serverSide.BuildTypeIdentity;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
@@ -72,8 +73,8 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
   }
 
   @Override
-  public boolean isEventSupported(Event event) {
-    return getSupportedEvents().contains(event);
+  public boolean isEventSupported(Event event, final SBuildType buildType, final Map<String, String> params) {
+    return getSupportedEvents(buildType, params).contains(event);
   }
 
   @Override
@@ -90,7 +91,7 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
     return myTrustStoreProvider.getTrustStore();
   }
 
-  protected Set<Event> getSupportedEvents() {
+  protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
     return Collections.emptySet();
   }
 }
