@@ -52,6 +52,10 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
     return myNumberOfCurrentRequests;
   }
 
+  protected boolean isPublishingRequest(HttpRequest httpRequest) {
+    return true;
+  }
+
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
@@ -64,27 +68,29 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
             .registerHandler("/*", new HttpRequestHandler() {
               @Override
               public void handle(HttpRequest httpRequest, HttpResponse httpResponse, HttpContext httpContext) throws IOException {
-                myLastAgent = httpRequest.getLastHeader("User-Agent").getValue();
-                if (myRespondWithRedirectCode > 0) {
-                  setRedirectionResponse(httpRequest, httpResponse);
-                  return;
-                }
+                boolean isPublishingRequest = isPublishingRequest(httpRequest);
+                if (isPublishingRequest) {
+                  myLastAgent = httpRequest.getLastHeader("User-Agent").getValue();
+                  if (myRespondWithRedirectCode > 0) {
+                    setRedirectionResponse(httpRequest, httpResponse);
+                    return;
+                  }
 
-                myNumberOfCurrentRequests++;
-                myProcessingStarted.release(); // indicates that we are processing request
-                try {
-                  if (null != myServerMutex && !myServerMutex.tryAcquire(TIMEOUT * 2, TimeUnit.MILLISECONDS)) {
+                  myNumberOfCurrentRequests++;
+                  myProcessingStarted.release(); // indicates that we are processing request
+                  try {
+                    if (null != myServerMutex && !myServerMutex.tryAcquire(TIMEOUT * 2, TimeUnit.MILLISECONDS)) {
+                      myNumberOfCurrentRequests--;
+                      return;
+                    }
+                  } catch (InterruptedException ex) {
+                    httpResponse.setStatusCode(500);
                     myNumberOfCurrentRequests--;
                     return;
                   }
-                } catch (InterruptedException ex) {
-                  httpResponse.setStatusCode(500);
-                  myNumberOfCurrentRequests--;
-                  return;
                 }
                 myLastRequest = httpRequest.getRequestLine().toString();
                 String requestData = null;
-
                 if (httpRequest instanceof HttpEntityEnclosingRequest) {
                   HttpEntity entity = ((HttpEntityEnclosingRequest) httpRequest).getEntity();
                   InputStream is = entity.getContent();
@@ -97,9 +103,10 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
                 if(!populateResponse(httpRequest, requestData, httpResponse)) {
                   myLastRequest = "HTTP error: " + httpResponse.getStatusLine();
                 }
-
-                myNumberOfCurrentRequests--;
-                myProcessingFinished.release();
+                if (isPublishingRequest) {
+                  myNumberOfCurrentRequests--;
+                  myProcessingFinished.release();
+                }
               }
             });
 
