@@ -44,7 +44,8 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     PluginDescriptor pluginDescr = new MockPluginDescriptor();
     myProjectManager = myFixture.getProjectManager();
     myPublisherSettings = new MockPublisherSettings(myProblems);
-    final PublisherManager publisherManager = new PublisherManager(Collections.singletonList((CommitStatusPublisherSettings) myPublisherSettings));
+    myServer.registerExtension(CommitStatusPublisherSettings.class, "mockPublisherSettings", myPublisherSettings);
+    final PublisherManager publisherManager = new PublisherManager(myServer);
 
     myCurrentVersions = new HashMap<String, String>();
     mySettingsController = new PublisherSettingsController(wcm, pluginDescr, publisherManager, myProjectManager);

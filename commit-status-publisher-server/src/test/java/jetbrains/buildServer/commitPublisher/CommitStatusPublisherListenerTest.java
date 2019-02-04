@@ -30,7 +30,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   public void setUp() throws Exception {
     super.setUp();
     myLogger = new PublisherLogger();
-    final PublisherManager myPublisherManager = new PublisherManager(Collections.<CommitStatusPublisherSettings>singletonList(myPublisherSettings));
+    final PublisherManager myPublisherManager = new PublisherManager(myServer);
     final BuildHistory history = myFixture.getHistory();
     myListener = new CommitStatusPublisherListener(EventDispatcher.create(BuildServerListener.class), myPublisherManager, history, myRBManager, myProblems,
                                                    myFixture.getServerResponsibility());

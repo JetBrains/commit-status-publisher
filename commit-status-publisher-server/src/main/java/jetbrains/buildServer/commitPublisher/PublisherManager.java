@@ -1,5 +1,7 @@
 package jetbrains.buildServer.commitPublisher;
 
+import jetbrains.buildServer.ExtensionHolder;
+import jetbrains.buildServer.ExtensionsCollection;
 import jetbrains.buildServer.serverSide.SBuildType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -8,13 +10,10 @@ import java.util.*;
 
 public class PublisherManager {
 
-  private final Map<String, CommitStatusPublisherSettings> myPublisherSettings;
+  private final ExtensionsCollection<CommitStatusPublisherSettings> myPublisherSettings;
 
-  public PublisherManager(@NotNull Collection<CommitStatusPublisherSettings> settings) {
-    myPublisherSettings = new HashMap<String, CommitStatusPublisherSettings>();
-    for (CommitStatusPublisherSettings s : settings) {
-      myPublisherSettings.put(s.getId(), s);
-    }
+  public PublisherManager(@NotNull ExtensionHolder extensionHolder) {
+    myPublisherSettings = extensionHolder.getExtensionsCollection(CommitStatusPublisherSettings.class);
   }
 
   @Nullable
@@ -22,7 +21,7 @@ public class PublisherManager {
     String publisherId = params.get(Constants.PUBLISHER_ID_PARAM);
     if (publisherId == null)
       return null;
-    CommitStatusPublisherSettings settings = myPublisherSettings.get(publisherId);
+    CommitStatusPublisherSettings settings = findSettings(publisherId);
     if (settings == null)
       return null;
     return settings.createPublisher(buildType, buildFeatureId, params);
@@ -30,13 +29,13 @@ public class PublisherManager {
 
   @Nullable
   public CommitStatusPublisherSettings findSettings(@NotNull String publisherId) {
-    return myPublisherSettings.get(publisherId);
+    return myPublisherSettings.getExtensions().stream().filter(s -> publisherId.equals(s.getId())).findFirst().orElse(null);
   }
 
   @NotNull
   List<CommitStatusPublisherSettings> getAllPublisherSettings() {
     List<CommitStatusPublisherSettings> settings = new ArrayList<CommitStatusPublisherSettings>();
-    for (CommitStatusPublisherSettings s : myPublisherSettings.values()) {
+    for (CommitStatusPublisherSettings s : myPublisherSettings.getExtensions()) {
       if (s.isEnabled())
         settings.add(s);
     }

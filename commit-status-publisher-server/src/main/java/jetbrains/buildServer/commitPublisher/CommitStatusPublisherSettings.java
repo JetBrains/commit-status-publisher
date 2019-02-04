@@ -1,6 +1,7 @@
 package jetbrains.buildServer.commitPublisher;
 
 import java.security.KeyStore;
+import jetbrains.buildServer.TeamCityExtension;
 import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -14,7 +15,7 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 import java.util.Map;
 
-public interface CommitStatusPublisherSettings {
+public interface CommitStatusPublisherSettings extends TeamCityExtension {
 
   @NotNull
   String getId();
