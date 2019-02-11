@@ -28,7 +28,7 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
   protected final static String OWNER = "owner";
   protected final static String CORRECT_REPO = "project";
   protected final static String READ_ONLY_REPO = "readonly";
-  private final static long GRACEFUL_SHUTDOWN_TIMEOUT = 5000;
+  private final static long GRACEFUL_SHUTDOWN_TIMEOUT = 300;
 
   private HttpServer myHttpServer;
   private volatile int myNumberOfCurrentRequests = 0;
@@ -117,6 +117,7 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
     super.setUp();
   }
 
+
   protected void setRedirectionResponse(final HttpRequest httpRequest, final HttpResponse httpResponse) {
     httpResponse.setStatusCode(307);
     httpResponse.setHeader("Location", httpRequest.getRequestLine().getUri());
@@ -179,8 +180,8 @@ public abstract class HttpPublisherTest extends AsyncPublisherTest {
   @AfterMethod
   @Override
   protected void tearDown() throws Exception {
-    super.tearDown();
     myHttpServer.shutdown(GRACEFUL_SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
+    super.tearDown();
   }
 
   protected void setExpectedApiPath(String path) {

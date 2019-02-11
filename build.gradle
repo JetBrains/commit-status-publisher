@@ -1,0 +1,65 @@
+allprojects {
+  apply plugin: 'java'
+
+  group = 'org.jetbrains.teamcity'
+  version = '1.0-SNAPSHOT'
+
+  clean {
+    delete "target"
+  }
+}
+
+ext {
+  teamcityVersion = project.hasProperty("TeamCityVersion") ? "$TeamCityVersion"
+                                                           : "SNAPSHOT"
+  teamcityLibs = project.hasProperty("TeamCityLibs") ? "$TeamCityLibs"
+      : "../../../.idea_artifacts/web-deployment/WEB-INF/lib"
+  teamcityTestLibs = project.hasProperty("TeamCityTestLibs") ? "$TeamCityTestLibs"
+      : "../../../.idea_artifacts/dist_openapi_integration/tests"
+}
+
+subprojects {
+
+    apply plugin: 'java'
+
+    repositories {
+        mavenLocal()
+        maven {
+            url = 'http://download.jetbrains.com/teamcity-repository'
+        }
+
+        maven {
+            url = 'http://repo.maven.apache.org/maven2'
+        }
+    }
+
+    sourceCompatibility = '1.8'
+}
+
+task copyDependencies(type: Copy, dependsOn:  ':commit-status-publisher-server:jar') {
+  project(':commit-status-publisher-server').configurations.getAt("runtime").setCanBeResolved(true)
+  println("implementation canBeResolved change to ："+project(':commit-status-publisher-server').configurations.getAt("runtime").canBeResolved)
+  from project(':commit-status-publisher-server').configurations.getAt("runtime")
+  into "./build/dependencies"
+  include 'jsch*.jar'
+  include 'httpclient*.jar'
+}
+
+task zipPlugin(type: Zip, dependsOn: 'copyDependencies') {
+  destinationDir = new File(rootDir, './target')
+  into('server') {
+    from project(':commit-status-publisher-server').configurations.runtime.allArtifacts.files
+    include '*'
+    from './build/dependencies'
+    include '*'
+  }
+  into('kotlin-dsl') {
+    from 'kotlin-dsl'
+    include 'CommitStatusPublisher.xml'
+  }
+  from "."
+  include 'teamcity-plugin.xml'
+  archiveName = 'commit-status-publisher.zip'
+}
+
+build.dependsOn zipPlugin

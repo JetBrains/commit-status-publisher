@@ -2,3 +2,6 @@ target
 .idea
 *.iml
 !modules/*.iml
+.gradle
+/build/
+/commit-status-publisher-server/build/

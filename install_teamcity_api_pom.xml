@@ -1,0 +1,50 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.jetbrains.teamcity</groupId>
+  <artifactId>local-artifact-installer</artifactId>
+  <version>${TeamCityVersion}</version>
+  <properties>
+    <teamcity.path.api>${project.basedir}/../../.idea_artifacts/dist-openapi</teamcity.path.api>
+  </properties>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-install-plugin</artifactId>
+        <executions>
+
+          <execution>
+            <id>install-common-api</id>
+            <phase>package</phase><goals><goal>install-file</goal></goals>
+            <configuration>
+              <artifactId>common-api</artifactId>
+              <groupId>org.jetbrains.teamcity</groupId><version>${TeamCityVersion}</version><packaging>jar</packaging><createChecksum>true</createChecksum>
+              <file>${teamcity.path.api}/common-api.jar</file>
+            </configuration>
+          </execution>
+
+          <execution>
+            <id>install-server-api</id>
+            <phase>package</phase><goals><goal>install-file</goal></goals>
+            <configuration>
+              <artifactId>server-api</artifactId>
+              <groupId>org.jetbrains.teamcity</groupId><version>${TeamCityVersion}</version><packaging>jar</packaging><createChecksum>true</createChecksum>
+              <file>${teamcity.path.api}/server-api.jar</file>
+            </configuration>
+          </execution>
+
+          <execution>
+            <id>install-tests-support</id>
+            <phase>package</phase><goals><goal>install-file</goal></goals>
+            <configuration>
+              <artifactId>tests-support</artifactId>
+              <groupId>org.jetbrains.teamcity</groupId><version>${TeamCityVersion}</version><packaging>jar</packaging><createChecksum>true</createChecksum>
+              <file>${teamcity.path.api}/tests/tests-support.jar</file>
+            </configuration>
+          </execution>
+
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

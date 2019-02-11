@@ -1,0 +1,22 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="Tests for Commit Status Publisher">
+  <test name="Tests for Commit Status Publisher">
+    <classes>
+      <class name="jetbrains.buildServer.commitPublisher.ServerListenerTest" />
+      <class name="jetbrains.buildServer.commitPublisher.PublisherSettingsControllerTest" />
+      <class name="jetbrains.buildServer.commitPublisher.GitRepositoryParserTest" />
+      <class name="jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeatureTest" />
+      <class name="jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeatureControllerTest" />
+      <class name="jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblemsTest" />
+      <class name="jetbrains.buildServer.commitPublisher.CommitStatusPublisherListenerTest" />
+      <class name="jetbrains.buildServer.commitPublisher.ConstantsTest" />
+      <class name="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudPublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.gerrit.GerritPublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.github.GitHubPublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.gitlab.GitlabPublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.stash.StashPublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.tfs.TfsPublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.upsource.UpsourcePublisherTest" />
+    </classes>
+  </test>
+</suite>
