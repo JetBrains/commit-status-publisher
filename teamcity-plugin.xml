@@ -3,7 +3,7 @@
   <info>
     <name>commit-status-publisher</name>
     <display-name>Commit Status Publisher</display-name>
-    <version>@Version@</version>
+    <version>$PluginVersion</version>
     <description>Publishes the status of a commit to an external system</description>
     <vendor>
       <name>JetBrains, s.r.o.</name>

@@ -1,21 +1,23 @@
-allprojects {
-  apply plugin: 'java'
-
-  group = 'org.jetbrains.teamcity'
-  version = '1.0-SNAPSHOT'
-
-  clean {
-    delete "target"
-  }
-}
-
 ext {
+  pluginVersion = project.hasProperty("PluginVersion") ? "$PluginVersion"
+                                                         : "SNAPSHOT"
   teamcityVersion = project.hasProperty("TeamCityVersion") ? "$TeamCityVersion"
                                                            : "SNAPSHOT"
   teamcityLibs = project.hasProperty("TeamCityLibs") ? "$TeamCityLibs"
       : "../../../.idea_artifacts/web-deployment/WEB-INF/lib"
   teamcityTestLibs = project.hasProperty("TeamCityTestLibs") ? "$TeamCityTestLibs"
       : "../../../.idea_artifacts/dist_openapi_integration/tests"
+}
+
+allprojects {
+  apply plugin: 'java'
+
+  group = 'org.jetbrains.teamcity'
+  version = "$rootProject.ext.pluginVersion"
+
+  clean {
+    delete "target"
+  }
 }
 
 subprojects {
@@ -40,12 +42,20 @@ task copyDependencies(type: Copy, dependsOn:  ':commit-status-publisher-server:j
   project(':commit-status-publisher-server').configurations.getAt("runtime").setCanBeResolved(true)
   println("implementation canBeResolved change to ："+project(':commit-status-publisher-server').configurations.getAt("runtime").canBeResolved)
   from project(':commit-status-publisher-server').configurations.getAt("runtime")
-  into "./build/dependencies"
   include 'jsch*.jar'
   include 'httpclient*.jar'
+  into './build/dependencies'
 }
 
-task zipPlugin(type: Zip, dependsOn: 'copyDependencies') {
+
+task copyPluginFiles(type: Copy, dependsOn:  ':commit-status-publisher-server:jar') {
+  from '.'
+  include 'teamcity-plugin.xml'
+  into './build/plugin-files'
+  expand(PluginVersion: "$rootProject.ext.pluginVersion")
+}
+
+task zipPlugin(type: Zip, dependsOn: ['copyDependencies', 'copyPluginFiles']) {
   destinationDir = new File(rootDir, './target')
   into('server') {
     from project(':commit-status-publisher-server').configurations.runtime.allArtifacts.files
@@ -57,8 +67,9 @@ task zipPlugin(type: Zip, dependsOn: 'copyDependencies') {
     from 'kotlin-dsl'
     include 'CommitStatusPublisher.xml'
   }
-  from "."
+  from './build/plugin-files'
   include 'teamcity-plugin.xml'
+
   archiveName = 'commit-status-publisher.zip'
 }
 
