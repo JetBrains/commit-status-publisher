@@ -43,7 +43,6 @@ task copyDependencies(type: Copy, dependsOn:  ':commit-status-publisher-server:j
   println("implementation canBeResolved change to ："+project(':commit-status-publisher-server').configurations.getAt("runtime").canBeResolved)
   from project(':commit-status-publisher-server').configurations.getAt("runtime")
   include 'jsch*.jar'
-  include 'httpclient*.jar'
   into './build/dependencies'
 }
 
