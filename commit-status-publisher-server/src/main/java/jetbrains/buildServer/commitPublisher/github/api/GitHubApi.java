@@ -17,6 +17,7 @@
 package jetbrains.buildServer.commitPublisher.github.api;
 
 import jetbrains.buildServer.commitPublisher.PublisherException;
+import jetbrains.buildServer.commitPublisher.Repository;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,7 +30,7 @@ import java.util.Collection;
  */
 public interface GitHubApi {
 
-  void testConnection(@NotNull String repoOwner, @NotNull String repositoryName) throws PublisherException;
+  void testConnection(@NotNull Repository repo) throws PublisherException;
 
   String readChangeStatus(@NotNull String repoOwner,
                           @NotNull String repositoryName,

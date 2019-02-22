@@ -119,7 +119,7 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
                      Collections.singletonMap("Accept", "application/json"),
                      BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processor);
     } catch (Exception ex) {
-      throw new PublisherException(String.format("Bitbucket Cloud publisher has failed to connect to %s/%s repository", repository.owner(), repository.repositoryName()), ex);
+      throw new PublisherException(String.format("Bitbucket Cloud publisher has failed to connect to \"%s\" repository", repository.url()), ex);
     }
   }
 

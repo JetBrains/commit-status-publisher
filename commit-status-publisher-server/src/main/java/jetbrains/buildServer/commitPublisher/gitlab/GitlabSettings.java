@@ -100,7 +100,7 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
         }
       }
     } catch (Exception ex) {
-      throw new PublisherException(String.format("GitLab publisher has failed to connect to %s/%s repository", repository.owner(), repository.repositoryName()), ex);
+      throw new PublisherException(String.format("GitLab publisher has failed to connect to \"%s\" repository", repository.url()), ex);
     }
   }
 
