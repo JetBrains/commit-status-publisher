@@ -21,6 +21,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import jetbrains.buildServer.commitPublisher.PublisherException;
+import jetbrains.buildServer.commitPublisher.Repository;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.*;
@@ -78,21 +79,20 @@ public abstract class GitHubApiImpl implements GitHubApi {
     return pullRequestId;
   }
 
-  public void testConnection(@NotNull final String repoOwner,
-                             @NotNull final String repoName) throws PublisherException {
-    final String uri = myUrls.getRepoInfo(repoOwner, repoName);
+  public void testConnection(@NotNull final Repository repo) throws PublisherException {
+    final String uri = myUrls.getRepoInfo(repo.owner(), repo.repositoryName());
     RepoInfo repoInfo;
     try {
       repoInfo = processResponse(uri, RepoInfo.class, true);
     } catch (Throwable ex) {
-      throw new PublisherException(String.format("Error while retrieving %s/%s repository information", repoOwner, repoName), ex);
+      throw new PublisherException(String.format("Error while retrieving \"%s\" repository information", repo.url()), ex);
     }
 
     if (null == repoInfo.name || null == repoInfo.permissions) {
-      throw new PublisherException(String.format("Repository %s/%s is inaccessible", repoOwner, repoName));
+      throw new PublisherException(String.format("Repository \"%s\" is inaccessible", repo.url()));
     }
     if (!repoInfo.permissions.push) {
-      throw new PublisherException(String.format("There is no push access to the repository %s/%s", repoOwner, repoName));
+      throw new PublisherException(String.format("There is no push access to the repository \"%s\"", repo.url()));
     }
   }
 

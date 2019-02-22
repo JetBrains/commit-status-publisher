@@ -89,9 +89,7 @@ public class ChangeStatusUpdater {
   }
 
   void testConnection(@NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    final GitHubApi api = getGitHubApi(params);
-    Repository repo = parseRepository(root);
-    api.testConnection(repo.owner(), repo.repositoryName());
+    getGitHubApi(params).testConnection(parseRepository(root));
   }
 
   @NotNull

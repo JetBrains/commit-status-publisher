@@ -11,7 +11,8 @@ public class Repository {
     myRepo = repo;
   }
 
-  @NotNull String url() {return myUrl; }
+  @NotNull
+  public String url() {return myUrl; }
 
   @NotNull
   public String owner() {
