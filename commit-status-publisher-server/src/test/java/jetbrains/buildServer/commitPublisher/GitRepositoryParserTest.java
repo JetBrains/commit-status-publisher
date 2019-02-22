@@ -57,6 +57,7 @@ public class GitRepositoryParserTest {
       then(repo).overridingErrorMessage("Failed to parse url " + urlWithOwner).isNotNull();
       then(repo.owner()).as("Must parse owner from URL " + urlWithOwner).isEqualTo(owner);
       then(repo.repositoryName()).isEqualTo("repository");
+      then(repo.url()).isEqualTo(urlWithOwner);
     }
   }
 
@@ -76,17 +77,21 @@ public class GitRepositoryParserTest {
 
   @TestFor(issues = "TW-47493")
   public void parse_git_like_urls() {
-    Repository repo = GitRepositoryParser.parseRepository("git://github.com/owner/repository.git");
+    final String url = "git://github.com/owner/repository.git";
+    Repository repo = GitRepositoryParser.parseRepository(url);
     then(repo.owner()).isEqualTo("owner");
     then(repo.repositoryName()).isEqualTo("repository");
+    then(repo.url()).isEqualTo(url);
   }
 
 
   @TestFor(issues = "TW-43075")
   public void parse_scp_like_urls_ghe() {
-    Repository repo = GitRepositoryParser.parseRepository("git@ghe.server:owner/repository.git");
+    final String url = "git@ghe.server:owner/repository.git";
+    Repository repo = GitRepositoryParser.parseRepository(url);
     then(repo.owner()).isEqualTo("owner");
     then(repo.repositoryName()).isEqualTo("repository");
+    then(repo.url()).isEqualTo(url);
   }
 
   public void parse_http_urls_with_slashes() {
@@ -109,6 +114,7 @@ public class GitRepositoryParserTest {
       Repository repo = GitRepositoryParser.parseRepository(urlWithOwner, prefix);
       then(repo.owner()).as(String.format("Must parse owner in URL %s", urlWithOwner)).isEqualTo("group/subgroup/owner");
       then(repo.repositoryName()).isEqualTo("repository");
+      then(repo.url()).isEqualTo(urlWithOwner);
     }
   }
   
@@ -129,6 +135,7 @@ public class GitRepositoryParserTest {
       Repository repo = GitRepositoryParser.parseRepository(urlWithOwner);
       then(repo.owner()).as(String.format("Must parse owner in URL %s", urlWithOwner)).isEqualTo("owner");
       then(repo.repositoryName()).isEqualTo("repository");
+      then(repo.url()).isEqualTo(urlWithOwner);
     }
   }
 }
