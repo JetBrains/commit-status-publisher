@@ -1,20 +1,25 @@
 package jetbrains.buildServer.commitPublisher;
 
-import com.intellij.openapi.util.Pair;
 import org.jetbrains.annotations.NotNull;
 
-public class Repository extends Pair<String, String> {
-  public Repository(@NotNull String owner, @NotNull String repo) {
-    super(owner, repo);
+public class Repository {
+  private final String myOwner, myRepo, myUrl;
+
+  public Repository(@NotNull String url, @NotNull String owner, @NotNull String repo) {
+    myUrl = url;
+    myOwner = owner;
+    myRepo = repo;
   }
+
+  @NotNull String url() {return myUrl; }
 
   @NotNull
   public String owner() {
-    return first;
+    return myOwner;
   }
 
   @NotNull
   public String repositoryName() {
-    return second;
+    return myRepo;
   }
 }

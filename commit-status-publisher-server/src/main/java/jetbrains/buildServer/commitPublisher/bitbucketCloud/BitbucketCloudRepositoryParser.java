@@ -39,7 +39,7 @@ class BitbucketCloudRepositoryParser {
       }
       String owner = m.group(1);
       String repo = m.group(2);
-      return new Repository(owner, repo);
+      return new Repository(uri, owner, repo);
     }
 
     URL url;
@@ -65,6 +65,6 @@ class BitbucketCloudRepositoryParser {
     }
     String owner = path.substring(0, idx);
     String repo = path.substring(idx + 1, path.length());
-    return new Repository(owner, repo);
+    return new Repository(uri, owner, repo);
   }
 }
