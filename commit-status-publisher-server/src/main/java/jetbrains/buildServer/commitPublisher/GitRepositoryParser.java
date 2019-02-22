@@ -24,20 +24,20 @@ public class GitRepositoryParser {
 
     Matcher m = GIT_URL_PATTERN.matcher(uri);
     if (m.matches()){
-      return getRepositoryInfo(m.group(2), m.group(3), pathPrefix);
+      return getRepositoryInfo(uri, m.group(2), m.group(3), pathPrefix);
     }
     m = PROTOCOL_PREFIX_PATTERN.matcher(uri);
     if (!m.matches()) {
       m = GIT_SCP_PATTERN.matcher(uri);
       if (m.matches()) {
-        return getRepositoryInfo(m.group(1), m.group(2), pathPrefix);
+        return getRepositoryInfo(uri, m.group(1), m.group(2), pathPrefix);
       }
     }
     LOG.warn("Cannot parse Git repository url " + uri);
     return null;
   }
 
-  private static Repository getRepositoryInfo(@NotNull String pathGroup, @NotNull String repoGroup, @Nullable String pathPrefix) {
+  private static Repository getRepositoryInfo(@NotNull String url, @NotNull String pathGroup, @NotNull String repoGroup, @Nullable String pathPrefix) {
     String userGroup = pathGroup;
     if (null != pathPrefix) {
       userGroup = stripPrefixTrimmingSlashes(userGroup, pathPrefix);
@@ -49,7 +49,7 @@ public class GitRepositoryParser {
     String repo = repoGroup;
     if (repo.endsWith(".git"))
       repo = repo.substring(0, repo.length() - 4);
-    return new Repository(userGroup, repo);
+    return new Repository(url, userGroup, repo);
   }
 
   private static String stripPrefixTrimmingSlashes(@NotNull final String str, @NotNull final String prefix) {
