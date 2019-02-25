@@ -35,10 +35,10 @@
       </library>
     </orderEntry>
     <orderEntry type="module-library">
-      <library name="com.jcraft:jsch:0.1.50" type="repository">
-        <properties maven-id="com.jcraft:jsch:0.1.50" />
+      <library name="com.jcraft:jsch:0.1.54" type="repository">
+        <properties maven-id="com.jcraft:jsch:0.1.54" />
         <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/com/jcraft/jsch/0.1.50/jsch-0.1.50.jar!/" />
+          <root url="jar://$MAVEN_REPOSITORY$/com/jcraft/jsch/0.1.54/jsch-0.1.54.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
