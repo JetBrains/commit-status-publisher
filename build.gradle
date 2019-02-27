@@ -27,11 +27,11 @@ subprojects {
     repositories {
         mavenLocal()
         maven {
-            url = 'http://download.jetbrains.com/teamcity-repository'
+            url = 'https://download.jetbrains.com/teamcity-repository'
         }
 
         maven {
-            url = 'http://repo.maven.apache.org/maven2'
+            url = 'https://repo.maven.apache.org/maven2'
         }
     }
 
