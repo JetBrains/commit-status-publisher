@@ -13,7 +13,7 @@ public class TfsRepositoryInfo {
   // Captures the following groups: (protocol) (username) (hostname) (path)
   // Example: (ssh) :// (test) @ (vs-ssh.visualstudio.com:22) (/DefaultCollection/Project/_ssh/Repository)
   private static final Pattern TFS_URL_PATTERN = Pattern.compile(
-    "(https?|ssh)\\:\\/\\/(?:([^@]+)@)?([^\\/\\:]+(?:\\:\\d+)?)(?:\\:v?\\d+)?(\\/.+)?"
+    "(?:(https?|ssh)\\:\\/\\/)?(?:([^@]+)@)?([^\\/\\:]+(?:\\:\\d+)?)(?:\\:v?\\d+)?(\\/.+)?"
   );
 
   // Captures the following groups: (project path) (repository name)
@@ -60,7 +60,7 @@ public class TfsRepositoryInfo {
     String urlPath = StringUtil.notEmpty(urlMatcher.group(4), StringUtil.EMPTY);
 
     String server;
-    if ("ssh".equalsIgnoreCase(schema)) {
+    if (StringUtil.isEmpty(schema) || "ssh".equalsIgnoreCase(schema)) {
       // DevOps URL
       if (StringUtil.endsWithIgnoreCase(hostname, "dev.azure.com")) {
         final Matcher pathMatcher = TFS_DEVOPS_PATH_PATTERN.matcher(urlPath);
