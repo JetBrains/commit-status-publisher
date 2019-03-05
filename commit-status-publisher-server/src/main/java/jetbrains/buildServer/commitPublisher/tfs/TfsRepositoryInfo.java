@@ -56,13 +56,13 @@ public class TfsRepositoryInfo {
 
     String schema = urlMatcher.group(1);
     String username = urlMatcher.group(2);
-    String hostname = urlMatcher.group(3);
+    String hostname = urlMatcher.group(3).toLowerCase();
     String urlPath = StringUtil.notEmpty(urlMatcher.group(4), StringUtil.EMPTY);
 
     String server;
     if (StringUtil.isEmpty(schema) || "ssh".equalsIgnoreCase(schema)) {
       // DevOps URL
-      if (StringUtil.endsWithIgnoreCase(hostname, "dev.azure.com")) {
+      if (StringUtil.endsWith(hostname, "dev.azure.com")) {
         final Matcher pathMatcher = TFS_DEVOPS_PATH_PATTERN.matcher(urlPath);
         if (!pathMatcher.find()) {
           return null;
@@ -73,12 +73,23 @@ public class TfsRepositoryInfo {
           pathMatcher.group(2)
         );
       }
-      if (StringUtil.endsWithIgnoreCase(hostname, ".visualstudio.com:22")) {
+      if (StringUtil.endsWith(hostname, ".visualstudio.com:22")) {
         // VSTS URL
         if (StringUtil.isEmpty(username)) {
           return null;
         }
         server = String.format("https://%s.visualstudio.com", username);
+      } else if (StringUtil.endsWith(hostname, "vs-ssh.visualstudio.com")) {
+        // VSTS URL
+        final Matcher pathMatcher = TFS_DEVOPS_PATH_PATTERN.matcher(urlPath);
+        if (!pathMatcher.find()) {
+          return null;
+        }
+        return new TfsRepositoryInfo(
+          String.format("https://%s.visualstudio.com", pathMatcher.group(1)),
+          pathMatcher.group(3),
+          pathMatcher.group(2)
+        );
       } else if (!StringUtil.isEmpty(serverUrl)) {
         // Has configured server URl for on-premises TFS
         final Matcher serverUrlMatcher = TFS_URL_PATTERN.matcher(serverUrl.trim());
