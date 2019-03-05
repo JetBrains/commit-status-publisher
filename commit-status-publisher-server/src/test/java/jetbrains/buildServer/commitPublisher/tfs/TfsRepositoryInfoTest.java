@@ -84,6 +84,10 @@ public class TfsRepositoryInfoTest {
         "git@ssh.dev.azure.com:v3/org/Project/Repository",
         new TfsRepositoryInfo("https://dev.azure.com/org", "Repository", "Project")
       },
+      {
+        "git@vs-ssh.visualstudio.com:v3/test/Project/Repository",
+        new TfsRepositoryInfo("https://test.visualstudio.com", "Repository", "Project")
+      },
     };
   }
 
