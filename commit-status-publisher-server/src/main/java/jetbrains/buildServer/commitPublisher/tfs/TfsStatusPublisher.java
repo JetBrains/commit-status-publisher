@@ -375,7 +375,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
     final StatusState state = getState(isStarting, build.getBuildStatus());
     status.state = state;
-    status.description = String.format("The build %s #%s %s %s",
+    status.description = String.format("The build %s %s %s %s",
       build.getFullName(), build.getBuildNumber(),
       isStarting ? "is" : "has", state.toString().toLowerCase());
     status.targetURL = myLinks.getViewResultsUrl(build);
