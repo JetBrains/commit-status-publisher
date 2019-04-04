@@ -191,16 +191,6 @@ public class ChangeStatusUpdater {
                  "status: " + status);
 
         myExecutor.submit(ExceptionUtil.catchAll("set change status on github", new Runnable() {
-          @NotNull
-          private String getFailureText(@Nullable final TestFailureInfo failureInfo) {
-            final String no_data = "<no details avaliable>";
-            if (failureInfo == null) return no_data;
-
-            final String stacktrace = failureInfo.getShortStacktrace();
-            if (stacktrace == null || StringUtil.isEmptyOrSpaces(stacktrace)) return no_data;
-
-            return stacktrace;
-          }
 
           @NotNull
           private String getFriendlyDuration(final long seconds) {
