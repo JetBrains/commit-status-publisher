@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.commitPublisher.gerrit.data.GerritProjectInfo;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.impl.SecondaryNodeSecurityManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,14 +27,16 @@ abstract class GerritClientBase implements GerritClient {
                      @NotNull final String vote,
                      @NotNull final String message,
                      @NotNull final String revision)
-    throws JSchException, IOException {
+    throws Exception {
 
     StringBuilder command = new StringBuilder();
     command.append("gerrit review --project ").append(connectionDetails.getGerritProject())
            .append(buildVoteClause(label)).append(vote)
            .append(" -m \"").append(escape(message)).append("\" ")
            .append(revision);
-    runCommand(connectionDetails, command.toString());
+    SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
+        runCommand(connectionDetails, command.toString());
+    });
   }
 
   @Override

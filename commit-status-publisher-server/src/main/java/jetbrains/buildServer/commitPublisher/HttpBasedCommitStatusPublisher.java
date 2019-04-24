@@ -3,6 +3,7 @@ package jetbrains.buildServer.commitPublisher;
 import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.impl.SecondaryNodeSecurityManager;
 import jetbrains.buildServer.util.ExceptionUtil;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
@@ -40,8 +41,10 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
         Lock lock = getLocks().get(myBuildType.getExternalId());
         try {
           lock.lock();
-          HttpHelper.post(url, username, password, data, contentType, headers, getConnectionTimeout(),
-                          getSettings().trustStore(), that);
+          SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
+            HttpHelper.post(url, username, password, data, contentType, headers, getConnectionTimeout(),
+                            getSettings().trustStore(), that);
+          });
         } catch (Exception ex) {
           myProblems.reportProblem("Commit Status Publisher HTTP request has failed",
                                    HttpBasedCommitStatusPublisher.this, buildDescription,

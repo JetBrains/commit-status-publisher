@@ -9,6 +9,7 @@ import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.impl.SecondaryNodeSecurityManager;
 import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.filters.Filter;
@@ -183,25 +184,27 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     final List<String> commits = new ArrayList<String>();
 
     try {
-      HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
-        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
-                     trustStore, new DefaultHttpResponseProcessor() {
-          @Override
-          public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
-            super.processResponse(response);
+      SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
+        HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
+                       Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
+                       trustStore, new DefaultHttpResponseProcessor() {
+            @Override
+            public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+              super.processResponse(response);
 
-            Commit commit = processGetResponse(response, Commit.class);
-            if (commit == null) {
-              throw new HttpPublisherException(String.format("Commit %s is not available in repository %s",
-                parentCommitId, info)
-              );
-            }
+              Commit commit = processGetResponse(response, Commit.class);
+              if (commit == null) {
+                throw new HttpPublisherException(String.format("Commit %s is not available in repository %s",
+                                                               parentCommitId, info)
+                );
+              }
 
-            if (commit.parents != null) {
-              commits.addAll(commit.parents);
+              if (commit.parents != null) {
+                commits.addAll(commit.parents);
+              }
             }
-          }
-        });
+          });
+      });
     } catch (Exception e) {
       final String message = "TFS publisher has failed to get parent commits in repository " + info;
       LOG.debug(message, e);
@@ -222,33 +225,35 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     final String[] iterationId = {null};
 
     try {
-      HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
-        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
-                     trustStore, new DefaultHttpResponseProcessor() {
-          @Override
-          public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
-            super.processResponse(response);
+      SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
+        HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
+                       Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
+                       trustStore, new DefaultHttpResponseProcessor() {
+            @Override
+            public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+              super.processResponse(response);
 
-            IterationsList iterations = processGetResponse(response, IterationsList.class);
-            if (iterations == null || iterations.value == null || iterations.value.size() == 0) {
-              LOG.debug("No iterations are available in repository " + info);
-              return;
-            }
+              IterationsList iterations = processGetResponse(response, IterationsList.class);
+              if (iterations == null || iterations.value == null || iterations.value.size() == 0) {
+                LOG.debug("No iterations are available in repository " + info);
+                return;
+              }
 
-            for (Iteration iteration : iterations.value) {
-              final IterationCommit commitRef = iteration.sourceRefCommit;
-              if (commitRef != null && CollectionsUtil.findFirst(commits, new Filter<String>() {
-                @Override
-                public boolean accept(@NotNull String commit) {
-                  return commit.equals(commitRef.commitId);
+              for (Iteration iteration : iterations.value) {
+                final IterationCommit commitRef = iteration.sourceRefCommit;
+                if (commitRef != null && CollectionsUtil.findFirst(commits, new Filter<String>() {
+                  @Override
+                  public boolean accept(@NotNull String commit) {
+                    return commit.equals(commitRef.commitId);
+                  }
+                }) != null) {
+                  iterationId[0] = iteration.id;
+                  break;
                 }
-              }) != null) {
-                iterationId[0] = iteration.id;
-                break;
               }
             }
-          }
-        });
+          });
+      });
     } catch (Exception e) {
       final String message = String.format("Unable to get pull request %s iterations in repository %s", pullRequestId, info);
       LOG.debug(message, e);

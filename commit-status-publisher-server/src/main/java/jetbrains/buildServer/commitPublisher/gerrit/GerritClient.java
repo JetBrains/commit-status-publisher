@@ -12,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
  */
 interface GerritClient {
 
-  void review(@NotNull GerritConnectionDetails connectionDetails, @Nullable final String label, @NotNull String vote, @NotNull String message, @NotNull String revision) throws JSchException, IOException;
+  void review(@NotNull GerritConnectionDetails connectionDetails, @Nullable final String label, @NotNull String vote, @NotNull String message, @NotNull String revision) throws Exception;
 
   void testConnection(@NotNull GerritConnectionDetails connectionDetails) throws JSchException, IOException, PublisherException;
 
