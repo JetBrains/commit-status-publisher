@@ -59,13 +59,13 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildStarted(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, StashBuildStatus.INPROGRESS, "Build started");
     return true;
   }
 
   @Override
-  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) {
     StashBuildStatus status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.SUCCESSFUL : StashBuildStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
     vote(build, revision, status, description);
@@ -95,13 +95,13 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildInterrupted(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) {
+  public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, StashBuildStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
   }
 
   @Override
-  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, StashBuildStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
   }

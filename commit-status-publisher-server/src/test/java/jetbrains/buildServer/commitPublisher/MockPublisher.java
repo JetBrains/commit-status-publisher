@@ -74,13 +74,13 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   void shouldReportError() {myShouldReportError = true; }
 
   @Override
-  public boolean buildStarted(@NotNull final SRunningBuild build, @NotNull final BuildRevision revision) throws PublisherException {
+  public boolean buildStarted(@NotNull final SBuild build, @NotNull final BuildRevision revision) throws PublisherException {
     myStartedReceived++;
     return true;
   }
 
   @Override
-  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
+  public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     myFinishedReceived++;
     Status s = build.getBuildStatus();
     if (s.equals(Status.NORMAL)) mySuccessReceived++;
@@ -106,7 +106,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   }
 
   @Override
-  public boolean buildFailureDetected(@NotNull SRunningBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) {
     myFailuresReceived++;
     return true;
   }

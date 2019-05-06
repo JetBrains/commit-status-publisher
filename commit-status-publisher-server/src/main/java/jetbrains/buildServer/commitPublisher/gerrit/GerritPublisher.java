@@ -35,7 +35,7 @@ class GerritPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildFinished(@NotNull SFinishedBuild build, @NotNull BuildRevision revision) throws PublisherException {
+  public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     Branch branch = build.getBranch();
     if (branch == null || branch.isDefaultBranch())
       return false;
