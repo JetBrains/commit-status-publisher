@@ -32,8 +32,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myLogger = new PublisherLogger();
     final PublisherManager myPublisherManager = new PublisherManager(myServer);
     final BuildHistory history = myFixture.getHistory();
-    myListener = new CommitStatusPublisherListener(EventDispatcher.create(BuildServerListener.class), myPublisherManager, history, myRBManager, myProblems,
-                                                   myFixture.getServerResponsibility());
+    myListener = new CommitStatusPublisherListener(EventDispatcher.create(BuildServerListener.class), myPublisherManager, history, myBuildsManager, myFixture.getBuildPromotionManager(), myProblems,
+                                                   myFixture.getServerResponsibility(), myMultiNodeTasks);
     myPublisher = new MockPublisher(myPublisherSettings, MockPublisherSettings.PUBLISHER_ID, myBuildType, myFeatureDescriptor.getId(),
                                     Collections.<String, String>emptyMap(), myProblems, myLogger);
     myPublisherSettings.setPublisher(myPublisher);
@@ -84,6 +84,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     myFixture.finishBuild(runningBuild, false);
     myListener.buildFinished(runningBuild);
+    waitFor(() -> myMultiNodeTasks.findTasks(Collections.singleton(CommitStatusPublisher.Event.FINISHED.getName())).isEmpty(), 10000);
     then(myPublisher.isFinishedReceived()).isTrue();
     then(myPublisher.isSuccessReceived()).isTrue();
   }

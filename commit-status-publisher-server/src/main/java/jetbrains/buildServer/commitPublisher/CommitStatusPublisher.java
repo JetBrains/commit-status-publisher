@@ -53,10 +53,12 @@ public interface CommitStatusPublisher {
     COMMENTED("buildCommented"), INTERRUPTED("buildInterrupted"),
     FAILURE_DETECTED("buildFailureDetected"), MARKED_AS_SUCCESSFUL("buildMarkedAsSuccessful");
 
+    private final static String PUBLISHING_TASK_PREFIX = "publishBuildStatus";
+
     private final String myName;
 
     Event(String name) {
-      myName = name;
+      myName = PUBLISHING_TASK_PREFIX + "." + name;
     }
 
     public String getName() {

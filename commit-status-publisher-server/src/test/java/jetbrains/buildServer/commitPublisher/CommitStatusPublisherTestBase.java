@@ -31,18 +31,20 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
   protected VcsManagerEx myVcsManager;
   protected ProjectManager myProjectManager;
   protected SBuildFeatureDescriptor myFeatureDescriptor;
-  protected RunningBuildsManager myRBManager;
+  protected BuildsManager myBuildsManager;
   protected MockPublisherSettings myPublisherSettings;
   protected CommitStatusPublisherProblems myProblems;
   protected CommitStatusPublisherFeature myFeature;
   protected Map<String, String> myCurrentVersions;
   protected SystemProblemNotificationEngine myProblemNotificationEngine;
+  protected MultiNodeTasks myMultiNodeTasks;
 
   protected void setUp() throws Exception {
     super.setUp();
     WebControllerManager wcm = new MockWebControllerManager();
     PluginDescriptor pluginDescr = new MockPluginDescriptor();
     myProjectManager = myFixture.getProjectManager();
+    myMultiNodeTasks = myFixture.getSingletonService(MultiNodeTasks.class);
     myPublisherSettings = new MockPublisherSettings(myProblems);
     myServer.registerExtension(CommitStatusPublisherSettings.class, "mockPublisherSettings", myPublisherSettings);
     final PublisherManager publisherManager = new PublisherManager(myServer);
@@ -70,7 +72,7 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
 
     myFeatureDescriptor = myBuildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, Collections.singletonMap(Constants.PUBLISHER_ID_PARAM, MockPublisherSettings.PUBLISHER_ID));
     myFeature = new CommitStatusPublisherFeature(myFeatureController, publisherManager);
-    myRBManager = myFixture.getSingletonService(RunningBuildsManager.class);
+    myBuildsManager = myFixture.getSingletonService(BuildsManager.class);
     myProblemNotificationEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
     myProblems = new CommitStatusPublisherProblems(myProblemNotificationEngine);
     ExtensionHolder extensionHolder = myFixture.getSingletonService(ExtensionHolder.class);
