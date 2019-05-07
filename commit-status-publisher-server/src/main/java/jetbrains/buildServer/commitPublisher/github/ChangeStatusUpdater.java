@@ -24,13 +24,11 @@ import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
-import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
 import jetbrains.buildServer.vcs.VcsModificationOrder;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.List;
@@ -190,7 +188,7 @@ public class ChangeStatusUpdater {
                  "buildId: " + build.getBuildId() + ", " +
                  "status: " + status);
 
-        myExecutor.submit(ExceptionUtil.catchAll("set change status on github", new Runnable() {
+        final Runnable scheduleUpdater = new Runnable() {
 
           @NotNull
           private String getFriendlyDuration(final long seconds) {
@@ -333,7 +331,8 @@ public class ChangeStatusUpdater {
               lock.unlock();
             }
           }
-        }));
+        };
+        scheduleUpdater.run();
       }
     };
   }
