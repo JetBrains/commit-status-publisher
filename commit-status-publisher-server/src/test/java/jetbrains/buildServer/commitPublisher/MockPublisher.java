@@ -23,6 +23,9 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   private int mySuccessReceived = 0;
   private int myStartedReceived = 0;
   private int myCommentedReceived = 0;
+  private int myQueuedReceived = 0;
+  private int myRemovedFromQueue = 0;
+  private int myInterrupted = 0;
   private String myLastComment = null;
 
   private boolean myShouldThrowException = false;
@@ -34,6 +37,9 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   boolean isSuccessReceived() { return mySuccessReceived > 0; }
   boolean isStartedReceived() { return myStartedReceived > 0; }
   boolean isCommentedReceived() { return myCommentedReceived > 0; }
+  boolean isQueuedReceived() {return myQueuedReceived > 0; }
+  boolean isRemovedFromQueueReceived() { return myRemovedFromQueue > 0; }
+  boolean isInterruptedReceieved() { return myInterrupted > 0; }
   String getLastComment() { return myLastComment; }
 
 
@@ -74,6 +80,19 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   void shouldReportError() {myShouldReportError = true; }
 
   @Override
+  public boolean buildQueued(@NotNull final SQueuedBuild build, @NotNull final BuildRevision revision) throws PublisherException {
+    myQueuedReceived++;
+    return true;
+  }
+
+  @Override
+  public boolean buildRemovedFromQueue(@NotNull final SQueuedBuild build, @NotNull final BuildRevision revision, @Nullable final User user, @Nullable final String comment)
+    throws PublisherException {
+    myRemovedFromQueue++;
+    return true;
+  }
+
+  @Override
   public boolean buildStarted(@NotNull final SBuild build, @NotNull final BuildRevision revision) throws PublisherException {
     myStartedReceived++;
     return true;
@@ -102,6 +121,12 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     throws PublisherException {
     myCommentedReceived++;
     myLastComment = comment;
+    return true;
+  }
+
+  @Override
+  public boolean buildInterrupted(@NotNull final SBuild build, @NotNull final BuildRevision revision) throws PublisherException {
+    myInterrupted++;
     return true;
   }
 
