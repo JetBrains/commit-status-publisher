@@ -59,7 +59,7 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     BuildRevision revision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     if (!myPublisherSettings.isTestConnectionSupported()) return;
     myPublisherSettings.testConnection(myBuildType, vcsRoot, getPublisherParams());
-    then(waitForRequest()).isNotNull().matches(myExpectedRegExps.get(EventToTest.TEST_CONNECTION));
+    then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.TEST_CONNECTION));
   }
 
   public void should_fail_with_error_on_wrong_vcs_url() throws InterruptedException {

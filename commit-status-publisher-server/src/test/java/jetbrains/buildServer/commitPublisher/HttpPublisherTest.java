@@ -34,19 +34,15 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
   private final static long GRACEFUL_SHUTDOWN_TIMEOUT = 300;
 
   private HttpServer myHttpServer;
-  private volatile int myNumberOfCurrentRequests = 0;
-  private volatile String myLastRequest;
-  private volatile String myExpectedApiPath = "";
-  private volatile String myExpectedEndpointPrefix = "";
-  private volatile int myRespondWithRedirectCode = 0;
-  private volatile String myLastAgent;
+  private String myLastRequest;
+  private String myExpectedApiPath = "";
+  private String myExpectedEndpointPrefix = "";
+  private int myRespondWithRedirectCode;
+  private boolean myDoNotRespond;
+  private String myLastAgent;
+
   private static final int TIMEOUT = 2000;
   private static final int SHORT_TIMEOUT_TO_FAIL = 100;
-
-  private Semaphore
-    myServerMutex, // released if the test wants the server to finish processing a request
-    myProcessingFinished, // released by the server to indicate to the test client that it can check the request data
-    myProcessingStarted; // released by the server when it has started processing a request
 
 
   @DataProvider(name = "provideRedirectCodes")
@@ -56,7 +52,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
 
   public void test_user_agent_is_teamcity() throws Exception {
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
-    then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
+    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
                           .matches(myExpectedRegExps.get(EventToTest.FINISHED));
     then(myLastAgent).isEqualTo("TeamCity Server " + ServerVersionHolder.getVersion().getDisplayVersion()
                                 + " (build " + ServerVersionHolder.getVersion().getBuildNumber() + ")");
@@ -66,24 +62,18 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
   public void test_redirection(int httpCode) throws Exception {
     myRespondWithRedirectCode = httpCode;
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
-    then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
+    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
                           .matches(myExpectedRegExps.get(EventToTest.FINISHED));
   }
 
-  public void should_report_publishing_failure() throws Exception {
+  public void should_report_timeout_failure() throws Exception {
     setPublisherTimeout(SHORT_TIMEOUT_TO_FAIL);
-    myServerMutex = new Semaphore(1);
-    myServerMutex.acquire();
-    // The HTTP client is supposed to wait for server for twice as less as we are waiting for its results
-    // and the test HTTP server is supposed to wait for twice as much
+    myDoNotRespond = true;
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
-    then(myProcessingStarted.tryAcquire(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue(); // At least one request must arrive
-    // The server mutex is never released, so the server does not respond until the connection times out
-    then(waitForRequest(SHORT_TIMEOUT_TO_FAIL * 2)).isNull();
+    then(getRequestAsString()).isNull();
     Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
     then(problems.size()).isEqualTo(1);
     then(problems.iterator().next().getProblem().getDescription()).matches(String.format("Commit Status Publisher.*%s.*timed out.*", myPublisher.getId()));
-    myServerMutex.release();
   }
 
   @BeforeMethod
@@ -92,9 +82,8 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
 
     myLastRequest = null;
     myLastAgent = null;
-    myServerMutex = null;
-    myProcessingFinished = new Semaphore(0);
-    myProcessingStarted = new Semaphore(0);
+    myDoNotRespond = false;
+    myRespondWithRedirectCode = 0;
 
     final SocketConfig socketConfig = SocketConfig.custom().setSoTimeout(TIMEOUT * 2).build();
     ServerBootstrap bootstrap = ServerBootstrap.bootstrap().setSocketConfig(socketConfig).setServerInfo("TEST/1.1")
@@ -109,16 +98,13 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
                                                        return;
                                                      }
 
-                                                     myNumberOfCurrentRequests++;
-                                                     myProcessingStarted.release(); // indicates that we are processing request
                                                      try {
-                                                       if (null != myServerMutex && !myServerMutex.tryAcquire(TIMEOUT * 2, TimeUnit.MILLISECONDS)) {
-                                                         myNumberOfCurrentRequests--;
+                                                       if (myDoNotRespond) {
+                                                         Thread.sleep(SHORT_TIMEOUT_TO_FAIL * 2);
                                                          return;
                                                        }
                                                      } catch (InterruptedException ex) {
                                                        httpResponse.setStatusCode(500);
-                                                       myNumberOfCurrentRequests--;
                                                        return;
                                                      }
                                                    }
@@ -136,10 +122,6 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
                                                    if(!populateResponse(httpRequest, requestData, httpResponse)) {
                                                      myLastRequest = "HTTP error: " + httpResponse.getStatusLine();
                                                    }
-                                                   if (isPublishingRequest) {
-                                                     myNumberOfCurrentRequests--;
-                                                     myProcessingFinished.release();
-                                                   }
                                                  }
                                                });
 
@@ -155,29 +137,12 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
   }
 
   @Override
-  protected String waitForRequest() throws InterruptedException {
-    return waitForRequest(TIMEOUT);
-  }
-
-  protected String waitForRequest(long timeout) throws InterruptedException {
-    if (!myProcessingFinished.tryAcquire(timeout, TimeUnit.MILLISECONDS)) {
-      return null;
-    }
-    return super.waitForRequest();
-  }
-
-  @Override
   protected String getRequestAsString() {
     return myLastRequest;
   }
 
   protected String getServerUrl() {
     return "http://localhost:" + String.valueOf(myHttpServer.getLocalPort());
-  }
-
-  @Override
-  protected int getNumberOfCurrentRequests() {
-    return myNumberOfCurrentRequests;
   }
 
   protected boolean isPublishingRequest(HttpRequest httpRequest) {

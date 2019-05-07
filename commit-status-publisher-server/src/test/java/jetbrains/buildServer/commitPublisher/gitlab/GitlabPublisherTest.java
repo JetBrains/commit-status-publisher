@@ -89,7 +89,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     BuildRevision revision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     setExpectedEndpointPrefix("/projects/own%2Eer%2Fpro%2Eject");
     myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), revision);
-    then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
+    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
                           .matches(String.format(".*/projects/own%%2Eer%%2Fpro%%2Eject/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
   }
 
@@ -99,7 +99,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     BuildRevision revision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     setExpectedEndpointPrefix("/projects/group%2Fsubgroup%2Fanothergroup%2Fproject");
     myPublisher.buildFinished(myFixture.createBuild(myBuildType, Status.NORMAL), revision);
-    then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
+    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
                           .matches(String.format(".*/projects/group%%2Fsubgroup%%2Fanothergroup%%2Fproject/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
   }
 
@@ -108,7 +108,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     Map<String, String> params = getPublisherParams();
     myVcsRoot.setProperties(Collections.singletonMap("url", getServerUrl()  + "/" + OWNER + "/" + GROUP_REPO));
     myPublisherSettings.testConnection(myBuildType, myVcsRoot, params);
-    then(waitForRequest()).isNotNull()
+    then(getRequestAsString()).isNotNull()
                           .doesNotMatch(".*error.*")
                           .matches(".*/projects/owner%2Fgroup_repo .*");
   }

@@ -74,7 +74,7 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
     params.remove(Constants.GERRIT_LABEL);
     myPublisher = new GerritPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myGerritClient, myWebLinks, params, myProblems);
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
-    then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
+    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
                           .matches(String.format(".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --label Verified=\\+1.*", REVISION));
   }
 
@@ -83,7 +83,7 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
     setInternalProperty("teamcity.commitStatusPublisher.gerrit.verified.option", "true");
     myPublisher = new GerritPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myGerritClient, myWebLinks, params, myProblems);
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
-    then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
+    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
                           .matches(String.format(".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\+1.*", REVISION));
   }
 
@@ -92,7 +92,7 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
     params.put(Constants.GERRIT_LABEL, "$verified-option");
     myPublisher = new GerritPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myGerritClient, myWebLinks, params, myProblems);
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
-    then(waitForRequest()).isNotNull().doesNotMatch(".*error.*")
+    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
                           .matches(String.format(".*server: gerrit_server, user: gerrit_user, command: gerrit review --project PRJ1 --verified \\+1.*", REVISION));
   }
 
@@ -111,11 +111,6 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
       put(Constants.GERRIT_SUCCESS_VOTE, "+1");
       put(Constants.GERRIT_FAILURE_VOTE, "-1");
     }};
-  }
-
-  @Override
-  protected int getNumberOfCurrentRequests() {
-    return 0;
   }
 
   @Override
