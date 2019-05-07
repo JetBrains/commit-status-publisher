@@ -117,7 +117,7 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
 
   private void publish(@NotNull String payload, @NotNull String buildDescription) {
     String url = HttpHelper.stripTrailingSlash(myParams.get(Constants.UPSOURCE_SERVER_URL)) + "/" + UpsourceSettings.ENDPOINT_BUILD_STATUS;
-    postAsync(url, myParams.get(Constants.UPSOURCE_USERNAME),
+    post(url, myParams.get(Constants.UPSOURCE_USERNAME),
             myParams.get(Constants.UPSOURCE_PASSWORD), payload, ContentType.APPLICATION_JSON, null, buildDescription);
   }
 

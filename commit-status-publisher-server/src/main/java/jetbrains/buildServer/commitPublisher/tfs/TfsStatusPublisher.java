@@ -322,7 +322,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     final String commitId = revision.getRevision();
     final String commitStatusUrl = MessageFormat.format(COMMIT_STATUS_URL_FORMAT,
       info.getServer(), info.getProject(), info.getRepository(), commitId);
-    postAsync(commitStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
+    post(commitStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
       data, ContentType.APPLICATION_JSON,
       Collections.singletonMap("Accept", "application/json"),
       LogUtil.describe(build));
@@ -367,7 +367,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
         info.getServer(), info.getProject(), info.getRepository(), pullRequestId, iterationId);
     }
 
-    postAsync(pullRequestStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
+    post(pullRequestStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
       data, ContentType.APPLICATION_JSON,
       Collections.singletonMap("Accept", "application/json"),
       LogUtil.describe(build)

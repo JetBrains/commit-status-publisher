@@ -120,7 +120,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   private void vote(@NotNull String commit, @NotNull String data, @NotNull Repository repository, @NotNull String buildDescription) {
     LOG.debug(getBaseUrl() + " :: " + commit + " :: " + data);
     String url = getBaseUrl() + "2.0/repositories/" + repository.owner() + "/" + repository.repositoryName() + "/commit/" + commit + "/statuses/build";
-    postAsync(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, null, buildDescription);
+    post(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, null, buildDescription);
   }
 
 

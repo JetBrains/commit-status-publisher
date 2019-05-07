@@ -30,6 +30,24 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
     myHttpResponseProcessor = new DefaultHttpResponseProcessor();
   }
 
+  protected void post(final String url, final String username, final String password,
+                      final String data, final ContentType contentType, final Map<String, String> headers,
+                      final String buildDescription) {
+    Lock lock = getLocks().get(myBuildType.getExternalId());
+    try {
+      lock.lock();
+      SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
+        HttpHelper.post(url, username, password, data, contentType, headers, getConnectionTimeout(),
+          getSettings().trustStore(), this);
+      });
+    } catch (Exception ex) {
+      myProblems.reportProblem("Commit Status Publisher HTTP request has failed", this, buildDescription, url, ex, LOG);
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  @Deprecated // The method is no longer necessary as all commit status publisher methods are already invoked asynchronously
   protected Future postAsync(final String url, final String username, final String password,
                              final String data, final ContentType contentType, final Map<String, String> headers,
                              final String buildDescription) {

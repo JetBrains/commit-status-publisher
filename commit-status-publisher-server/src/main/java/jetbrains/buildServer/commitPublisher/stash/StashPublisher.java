@@ -139,7 +139,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   private void vote(@NotNull String commit, @NotNull String data, @NotNull String buildDescription) {
     String url = getBaseUrl() + "/rest/build-status/1.0/commits/" + commit;
-    postAsync(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, null, buildDescription);
+    post(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, null, buildDescription);
   }
 
   @Override
