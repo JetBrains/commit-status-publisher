@@ -15,6 +15,7 @@ import org.testng.annotations.BeforeMethod;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import org.testng.annotations.Test;
 
 import static org.assertj.core.api.BDDAssertions.then;
 
@@ -23,6 +24,7 @@ import static org.assertj.core.api.BDDAssertions.then;
  *         Date: 20.04.2017
  *         Time: 18:06
  */
+@Test
 public class TfsPublisherTest extends HttpPublisherTest {
 
   TfsPublisherTest() {
