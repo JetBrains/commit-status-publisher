@@ -78,7 +78,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
   }
 
 
-  public void should_fail_with_error_on_wrong_vcs_url() throws InterruptedException {
+  public void should_fail_with_error_on_wrong_vcs_url() {
     myVcsRoot.setProperties(Collections.singletonMap("url", "wrong://url.com"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     BuildRevision revision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
@@ -100,8 +100,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
 
     Map<String, String> params = getPublisherParams();
 
-    myChangeStatusUpdater = new ChangeStatusUpdater(myExecServices,
-                                                    new GitHubApiFactoryImpl(new HttpClientWrapperImpl(new HTTPRequestBuilder.ApacheClient43RequestHandler(), () -> null)),
+    myChangeStatusUpdater = new ChangeStatusUpdater(new GitHubApiFactoryImpl(new HttpClientWrapperImpl(new HTTPRequestBuilder.ApacheClient43RequestHandler(), () -> null)),
                                                     myWebLinks, myFixture.getVcsHistory());
 
     myPublisherSettings = new GitHubSettings(myChangeStatusUpdater, myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems,

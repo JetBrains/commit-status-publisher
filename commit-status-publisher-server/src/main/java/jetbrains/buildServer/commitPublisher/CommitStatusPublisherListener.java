@@ -126,8 +126,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       build -> new PublishTask() {
         @Override
         public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
-          return publisher.buildRemovedFromQueue(build, revision, null, null);
-          // TODO: we need real user and comment here
+          Comment comment = build.getBuildPromotion().getBuildComment();
+          return publisher.buildRemovedFromQueue(build, revision, comment == null ? null : comment.getUser(), comment == null ? null : comment.getComment());
         }
       }
     ));
@@ -218,9 +218,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   public void buildRemovedFromQueue(@NotNull final SQueuedBuild build, final User user, final String comment) {
     SBuildType buildType = getBuildType(Event.REMOVED_FROM_QUEUE, build);
     if (buildType == null)
-      return;
-
-    if (user == null)
       return;
 
     submitTaskForQueuedBuild(Event.REMOVED_FROM_QUEUE, build);

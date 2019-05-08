@@ -45,18 +45,15 @@ public class ChangeStatusUpdater {
   private static final UpdateChangesConstants C = new UpdateChangesConstants();
 
   private final VcsModificationHistory myModificationHistory;
-  private final ExecutorService myExecutor;
   @NotNull
   private final GitHubApiFactory myFactory;
   private final WebLinks myWeb;
 
-  public ChangeStatusUpdater(@NotNull final ExecutorServices services,
-                             @NotNull final GitHubApiFactory factory,
+  public ChangeStatusUpdater(@NotNull final GitHubApiFactory factory,
                              @NotNull final WebLinks web,
                              @NotNull final VcsModificationHistory vcsModificationHistory) {
     myFactory = factory;
     myWeb = web;
-    myExecutor = services.getLowPriorityExecutorService();
     myModificationHistory = vcsModificationHistory;
   }
 
