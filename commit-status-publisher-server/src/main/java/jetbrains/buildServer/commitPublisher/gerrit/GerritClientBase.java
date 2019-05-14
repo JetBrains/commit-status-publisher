@@ -34,9 +34,7 @@ abstract class GerritClientBase implements GerritClient {
            .append(buildVoteClause(label)).append(vote)
            .append(" -m \"").append(escape(message)).append("\" ")
            .append(revision);
-    SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
-        runCommand(connectionDetails, command.toString());
-    });
+    runCommand(connectionDetails, command.toString());
   }
 
   @Override

@@ -106,16 +106,14 @@ public abstract class GitHubApiImpl implements GitHubApi {
     logRequest(method, statusUrl, null);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
-    SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
-      myClient.get(statusUrl, authenticationCredentials(), defaultHeaders(),
-                   response -> {
-                   },
-                   response -> {
-                     logFailedResponse(method, statusUrl, null, response);
-                     exceptionRef.set(new IOException(getErrorMessage(response, null)));
-                   },
-                   e -> exceptionRef.set(e));
-    });
+    myClient.get(statusUrl, authenticationCredentials(), defaultHeaders(),
+                 response -> {
+                 },
+                 response -> {
+                   logFailedResponse(method, statusUrl, null, response);
+                   exceptionRef.set(new IOException(getErrorMessage(response, null)));
+                 },
+                 e -> exceptionRef.set(e));
 
     final Exception ex;
     if ((ex = exceptionRef.get()) != null) {
@@ -152,18 +150,16 @@ public abstract class GitHubApiImpl implements GitHubApi {
     logRequest(method, url, entity);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
-    SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
-      myClient.post(
-        url, authenticationCredentials(), defaultHeaders(),
-        entity, ContentType.APPLICATION_JSON.getMimeType(), ContentType.APPLICATION_JSON.getCharset(),
-        response -> {
-        },
-        response -> {
-          logFailedResponse(method, url, entity, response);
-          exceptionRef.set(new IOException(getErrorMessage(response, MSG_PROXY_OR_PERMISSIONS)));
-        },
-        e -> exceptionRef.set(e));
-    });
+    myClient.post(
+      url, authenticationCredentials(), defaultHeaders(),
+      entity, ContentType.APPLICATION_JSON.getMimeType(), ContentType.APPLICATION_JSON.getCharset(),
+      response -> {
+      },
+      response -> {
+        logFailedResponse(method, url, entity, response);
+        exceptionRef.set(new IOException(getErrorMessage(response, MSG_PROXY_OR_PERMISSIONS)));
+      },
+      e -> exceptionRef.set(e));
 
     final Exception ex;
     if ((ex = exceptionRef.get()) != null) {
@@ -225,32 +221,30 @@ public abstract class GitHubApiImpl implements GitHubApi {
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     final AtomicReference<T> resultRef = new AtomicReference<>();
-    SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
-      myClient.get(uri, authenticationCredentials(), defaultHeaders(),
-                   success -> {
-                     final String json = success.getBodyAsString();
-                     if (StringUtil.isEmptyOrSpaces(json)) {
-                       logFailedResponse(HttpMethod.GET, uri, null, success, logErrorsDebugOnly);
-                       exceptionRef.set(new IOException(getErrorMessage(success, "Empty response.")));
+    myClient.get(uri, authenticationCredentials(), defaultHeaders(),
+                 success -> {
+                   final String json = success.getBodyAsString();
+                   if (StringUtil.isEmptyOrSpaces(json)) {
+                     logFailedResponse(HttpMethod.GET, uri, null, success, logErrorsDebugOnly);
+                     exceptionRef.set(new IOException(getErrorMessage(success, "Empty response.")));
+                   } else {
+                     LOG.debug("Parsing json for " + uri + ": " + json);
+                     T result = myGson.fromJson(json, clazz);
+                     if (null == result) {
+                       exceptionRef.set(new PublisherException("GitHub publisher fails to parse a response"));
                      } else {
-                       LOG.debug("Parsing json for " + uri + ": " + json);
-                       T result = myGson.fromJson(json, clazz);
-                       if (null == result) {
-                         exceptionRef.set(new PublisherException("GitHub publisher fails to parse a response"));
-                       } else {
-                         resultRef.set(result);
-                       }
+                       resultRef.set(result);
                      }
-                   },
-                   error -> {
-                     logFailedResponse(HttpMethod.GET, uri, null, error, logErrorsDebugOnly);
-                     exceptionRef.set(new IOException(getErrorMessage(error, MSG_PROXY_OR_PERMISSIONS)));
-                   },
-                   e -> {
-                     exceptionRef.set(e);
                    }
-      );
-    });
+                 },
+                 error -> {
+                   logFailedResponse(HttpMethod.GET, uri, null, error, logErrorsDebugOnly);
+                   exceptionRef.set(new IOException(getErrorMessage(error, MSG_PROXY_OR_PERMISSIONS)));
+                 },
+                 e -> {
+                   exceptionRef.set(e);
+                 }
+    );
 
     final Exception ex;
     if ((ex = exceptionRef.get()) != null) {
@@ -342,18 +336,16 @@ public abstract class GitHubApiImpl implements GitHubApi {
     logRequest(method, url, entity);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
-    SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
-      myClient.post(
-        url, authenticationCredentials(), defaultHeaders(),
-        entity, ContentType.APPLICATION_JSON.getMimeType(), ContentType.APPLICATION_JSON.getCharset(),
-        response -> {
-        },
-        response -> {
-          logFailedResponse(method, url, entity, response);
-          exceptionRef.set(new IOException(getErrorMessage(response, null)));
-        },
-        e -> exceptionRef.set(e));
-    });
+    myClient.post(
+      url, authenticationCredentials(), defaultHeaders(),
+      entity, ContentType.APPLICATION_JSON.getMimeType(), ContentType.APPLICATION_JSON.getCharset(),
+      response -> {
+      },
+      response -> {
+        logFailedResponse(method, url, entity, response);
+        exceptionRef.set(new IOException(getErrorMessage(response, null)));
+      },
+      e -> exceptionRef.set(e));
 
     final Exception ex;
     if ((ex = exceptionRef.get()) != null) {
