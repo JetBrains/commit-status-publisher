@@ -335,13 +335,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       Event eventType = getEventType(task);
       SBuild build = getBuild(task);
       if (eventType == null || build == null) {
-        task.finished(new Date());
+        task.finished();
         return;
       }
       CompletableFuture.runAsync(() -> {
         runForEveryPublisher(eventType, build);
       }, myExecutorServices.getLowPriorityExecutorService()).handle((r, t) -> {
-        task.finished(new Date());
+        task.finished();
         return r;
       });
     }
@@ -406,13 +406,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       Event eventType = getEventType(task);
       SQueuedBuild build = getBuild(task);
       if (eventType == null || build == null) {
-        task.finished(new Date());
+        task.finished();
         return;
       }
       CompletableFuture.runAsync(() -> {
         runForEveryPublisher(eventType, build);
       }, myExecutorServices.getLowPriorityExecutorService()).handle((r, t) -> {
-        task.finished(new Date());
+        task.finished();
         return r;
       });
     }
