@@ -36,8 +36,10 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
     Lock lock = getLocks().get(myBuildType.getExternalId());
     try {
       lock.lock();
-      HttpHelper.post(url, username, password, data, contentType, headers, getConnectionTimeout(),
-        getSettings().trustStore(), this);
+      SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
+        HttpHelper.post(url, username, password, data, contentType, headers, getConnectionTimeout(),
+          getSettings().trustStore(), this);
+      });
     } catch (Exception ex) {
       myProblems.reportProblem("Commit Status Publisher HTTP request has failed", this, buildDescription, url, ex, LOG);
     } finally {
@@ -57,8 +59,10 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
         Lock lock = getLocks().get(myBuildType.getExternalId());
         try {
           lock.lock();
-          HttpHelper.post(url, username, password, data, contentType, headers, getConnectionTimeout(),
-                          getSettings().trustStore(), that);
+          SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
+            HttpHelper.post(url, username, password, data, contentType, headers, getConnectionTimeout(),
+                            getSettings().trustStore(), that);
+          });
         } catch (Exception ex) {
           myProblems.reportProblem("Commit Status Publisher HTTP request has failed",
                                    HttpBasedCommitStatusPublisher.this, buildDescription,
