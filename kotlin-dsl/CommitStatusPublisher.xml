@@ -2,13 +2,13 @@
 <dsl-extension kind="buildFeature" type="commit-status-publisher" generateDslJar="true">
     <class name="CommitStatusPublisher">
         <description>
-            A [build feature](https://confluence.jetbrains.com/display/TCDL/Commit+Status+Publisher) publishing
+            A [build feature](https://www.jetbrains.com/help/teamcity/?Commit+Status+Publisher) publishing
             status to external system
         </description>
     </class>
     <function name="commitStatusPublisher">
         <description>
-            Enables [status publishing](https://confluence.jetbrains.com/display/TCDL/Commit+Status+Publisher) to external system
+            Enables [status publishing](https://www.jetbrains.com/help/teamcity/?Commit+Status+Publisher) to external system
             @see CommitStatusPublisher
         </description>
     </function>
@@ -94,7 +94,7 @@
                 </param>
                 <param name="teamcitySshKey" dslName="uploadedKey">
                     <description>
-                        Name of the [uploaded key](https://confluence.jetbrains.com/display/TCDL/SSH+Keys+Management) to use for Gerrit connection
+                        Name of the [uploaded key](https://www.jetbrains.com/help/teamcity/?SSH+Keys+Management) to use for Gerrit connection
                     </description>
                 </param>
             </option>
