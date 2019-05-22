@@ -325,7 +325,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       if (buildId == null) return false;
 
       SBuild build = myBuildsManager.findBuildInstanceById(buildId);
-      if (build == null) return false;
+      if (build == null) {
+        return myServerResponsibility.canManageBuilds();
+      }
 
       return isResponsibleForBuild(build);
     }
