@@ -224,7 +224,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private boolean isBuildFeatureAbsent(@Nullable SBuildType buildType) {
-    return buildType == null || buildType.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE).isEmpty();
+    return buildType == null || buildType.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE).stream()
+                                         .noneMatch(f -> buildType.isEnabled(f.getId()));
   }
 
   private boolean isPublishingDisabled(SBuildType buildType) {
