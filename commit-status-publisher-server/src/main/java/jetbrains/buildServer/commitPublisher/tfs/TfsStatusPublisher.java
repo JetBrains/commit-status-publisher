@@ -4,15 +4,14 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.intellij.openapi.diagnostic.Logger;
 import java.security.KeyStore;
+import java.util.concurrent.atomic.AtomicReference;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.impl.SecondaryNodeSecurityManager;
-import jetbrains.buildServer.util.CollectionsUtil;
 import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.util.filters.Filter;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
@@ -176,12 +175,12 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @NotNull
-  private static List<String> getParentCommits(@NotNull final TfsRepositoryInfo info,
+  private static Set<String> getParentCommits(@NotNull final TfsRepositoryInfo info,
                                                @NotNull final String parentCommitId,
                                                @NotNull final Map<String, String> params,
                                                @Nullable final KeyStore trustStore) throws PublisherException {
     final String url = MessageFormat.format(COMMIT_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository(), parentCommitId);
-    final List<String> commits = new ArrayList<String>();
+    final Set<String> commits = new HashSet<String>();
 
     try {
       SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
@@ -217,12 +216,13 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   @Nullable
   private static String getPullRequestIteration(@NotNull final TfsRepositoryInfo info,
                                                 @NotNull final String pullRequestId,
-                                                @NotNull final List<String> commits,
+                                                @NotNull final Set<String> commits,
                                                 @NotNull final Map<String, String> params,
                                                 @Nullable final KeyStore trustStore) throws PublisherException {
     final String url = MessageFormat.format(PULL_REQUEST_ITERATIONS_URL_FORMAT,
       info.getServer(), info.getProject(), info.getRepository(), pullRequestId);
-    final String[] iterationId = {null};
+
+    final AtomicReference<String> iterationId = new AtomicReference<>();
 
     try {
       SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
@@ -239,18 +239,16 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                 return;
               }
 
-              for (Iteration iteration : iterations.value) {
-                final IterationCommit commitRef = iteration.sourceRefCommit;
-                if (commitRef != null && CollectionsUtil.findFirst(commits, new Filter<String>() {
-                  @Override
-                  public boolean accept(@NotNull String commit) {
-                    return commit.equals(commitRef.commitId);
-                  }
-                }) != null) {
-                  iterationId[0] = iteration.id;
-                  break;
-                }
-              }
+              Optional<Iteration> iteration = iterations.value.stream()
+                              .filter(
+                                it -> null != it.sourceRefCommit && null != it.targetRefCommit
+                                      && commits.contains(it.sourceRefCommit.commitId)
+                                      && commits.contains(it.targetRefCommit.commitId)
+                              )
+                              .max((it1, it2) -> it1.id.compareTo(it2.id));
+
+              if (iteration.isPresent())
+                iterationId.set(iteration.get().id);
             }
           });
       });
@@ -260,7 +258,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
       throw new PublisherException(message, e);
     }
 
-    return iterationId[0];
+    return iterationId.get();
   }
 
   private static <T> T processGetResponse(@NotNull final HttpHelper.HttpResponse response, @NotNull final Class<T> type) throws HttpPublisherException, IOException {
@@ -351,7 +349,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     final KeyStore trustStore = getSettings().trustStore();
 
     // Since it's a merge request we need to get parent commit for it
-    final List<String> commits = getParentCommits(info, commitId, myParams, trustStore);
+    final Set<String> commits = getParentCommits(info, commitId, myParams, trustStore);
 
     // Then we need to get pull request iteration where this commit present
     final String iterationId = getPullRequestIteration(info, pullRequestId, commits, myParams, trustStore);
@@ -459,6 +457,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   private static class Iteration {
     private String id;
     private IterationCommit sourceRefCommit;
+    private IterationCommit targetRefCommit;
   }
 
   private static class IterationCommit {
