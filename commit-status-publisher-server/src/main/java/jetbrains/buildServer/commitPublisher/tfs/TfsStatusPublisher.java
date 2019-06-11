@@ -42,7 +42,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   private final WebLinks myLinks;
 
   // Captures pull request identifier. Example: refs/pull/1/merge
-  private static final Pattern TFS_GIT_PULL_REQUEST_PATTERN = Pattern.compile("^refs\\/pull\\/(\\d+)");
+  private static final Pattern TFS_GIT_PULL_REQUEST_PATTERN = Pattern.compile("^refs\\/pull\\/(\\d+)/merge");
 
   TfsStatusPublisher(@NotNull final CommitStatusPublisherSettings settings,
                      @NotNull final SBuildType buildType,
