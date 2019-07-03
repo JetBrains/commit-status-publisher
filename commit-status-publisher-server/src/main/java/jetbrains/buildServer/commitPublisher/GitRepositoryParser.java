@@ -33,7 +33,6 @@ public class GitRepositoryParser {
         return getRepositoryInfo(uri, m.group(1), m.group(2), pathPrefix);
       }
     }
-    LOG.warn("Cannot parse Git repository url " + uri);
     return null;
   }
 
