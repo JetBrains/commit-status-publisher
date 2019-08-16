@@ -146,10 +146,8 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
       if (!responseString.contains("Cannot transition status via :enqueue from :pending") &&
           !responseString.contains("Cannot transition status via :enqueue from :running") &&
           !responseString.contains("Cannot transition status via :run from :running")) {
-        HttpPublisherException exception = new HttpPublisherException(statusCode,
-          response.getStatusText(), "HTTP response error");
-        LOG.warn(responseString, exception);
-        throw exception;
+        throw new HttpPublisherException(statusCode,
+          response.getStatusText(), "HTTP response error" + (responseString == null ? "" : ": " + responseString));
       }
     }
   }
