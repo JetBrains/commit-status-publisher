@@ -34,7 +34,7 @@
     <span class="smallNote">
       This publisher supports build status update only for Git repositories.<br/>
       You need to grant <strong><em>Code (status)</em></strong> and <strong><em>Code (read)</em></strong>
-      <a href="https://docs.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/oauth?view=vsts#scopes" target="_blank">scopes</a>
+      <a href="https://docs.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/oauth?view=vsts#scopes" target="_blank" rel="noopener noreferrer">scopes</a>
       for token.
     </span>
   </td>
@@ -58,7 +58,7 @@
     <label for="${keys.publishPullRequests}">Publish pull request statuses</label>
     <span class="smallNote">
       You need to grant <strong><em>Code (status)</em></strong> and <strong><em>Code (write)</em></strong>
-      <a href="https://docs.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/oauth?view=vsts#scopes" target="_blank">scopes</a>
+      <a href="https://docs.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/oauth?view=vsts#scopes" target="_blank" rel="noopener noreferrer">scopes</a>
       for token and add the "+:refs/(pull/*)/merge" rule in VCS root branch specification.
     </span>
   </td>
