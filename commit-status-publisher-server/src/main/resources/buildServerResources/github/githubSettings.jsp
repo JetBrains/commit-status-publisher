@@ -40,7 +40,7 @@
       <span class="error" id="error_${keys.serverKey}"></span>
       <span class="smallNote">
         Format: <strong>http[s]://&lt;host&gt;[:&lt;port&gt;]/api/v3</strong>
-        for <a href="https://developer.github.com/enterprise/v3/" target="_blank" rel="noopener noreferrer">GitHub Enterprise</a>
+        for <a href="https://developer.github.com/enterprise/v3/" target="_blank" rel="noreferrer">GitHub Enterprise</a>
       </span>
     </td>
   </tr>
@@ -58,7 +58,7 @@
           <span class="error" id="error_${keys.accessTokenKey}"></span>
           <span class="smallNote">
             <span id="note_oauth_token">OAuth access token issued for GitHub user <strong id="note_oauth_user"></strong></span>
-            <span id="note_personal_token">GitHub <a href="https://github.com/settings/applications" target="_blank" rel="noopener noreferrer">Personal Access Token</a></span>
+            <span id="note_personal_token">GitHub <a href="https://github.com/settings/applications" target="_blank" rel="noreferrer">Personal Access Token</a></span>
             <br />
             It is required to have the following permissions:
             <strong><em>repo:status</em></strong> and
