@@ -239,15 +239,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     LOG.info(String.format("Event: %s, build %s, publisher %s: %s", event.getName(), buildDescription, publisher.toString(), message));
   }
 
-  private boolean isResponsibleForBuild(SBuild build) {
-    final TeamCityNode ownerNode = ((BuildPromotionEx) build.getBuildPromotion()).getOwnerNode();
-
-    return myServerResponsibility.isResponsibleForBuild(build)
-        || ((ownerNode != null && ownerNode.getSupportedResponsibilities().size() == 1 && CurrentNodeInfo.isMainNode()));
-  }
-
   private void submitTaskForBuild(@NotNull Event event, @NotNull SBuild build) {
-    if  (!isResponsibleForBuild(build)) {
+    if  (!myServerResponsibility.isResponsibleForBuild(build)) {
       LOG.debug("Current node is not responsible for build " + LogUtil.describe(build) + ", skip processing event " + event);
       return;
     }
@@ -334,7 +327,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         return myServerResponsibility.canManageBuilds();
       }
 
-      return isResponsibleForBuild(build);
+      return myServerResponsibility.isResponsibleForBuild(build);
     }
 
     @Override
