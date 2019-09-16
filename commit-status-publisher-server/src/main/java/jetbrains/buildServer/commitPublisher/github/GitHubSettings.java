@@ -163,9 +163,10 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
         if (authenticationType == GitHubApiAuthenticationType.PASSWORD_AUTH) {
           checkNotEmpty(p, c.getUserNameKey(), "Username must be specified", result);
           checkNotEmpty(p, c.getPasswordKey(), "Password must be specified", result);
-        }
-
-        if (authenticationType == GitHubApiAuthenticationType.TOKEN_AUTH) {
+          p.remove(c.getAccessTokenKey());
+        } else if (authenticationType == GitHubApiAuthenticationType.TOKEN_AUTH) {
+          p.remove(c.getUserNameKey());
+          p.remove(c.getPasswordKey());
           String oauthUsername = p.get(c.getOAuthUserKey());
           String oauthProviderId = p.get(c.getOAuthProviderIdKey());
           if (null != oauthUsername && null != oauthProviderId) {
