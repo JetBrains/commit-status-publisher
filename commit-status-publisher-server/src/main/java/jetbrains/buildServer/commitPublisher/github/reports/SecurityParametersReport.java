@@ -1,5 +1,6 @@
 package jetbrains.buildServer.commitPublisher.github.reports;
 
+import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.healthStatus.*;
@@ -44,11 +45,12 @@ public class SecurityParametersReport extends HealthStatusReport {
       return;
 
     for (SBuildType bt : scope.getBuildTypes()) {
+      if (bt.getProject().isArchived()) continue;
       if (!hasSecureParameters(bt))
         continue;
       List<VcsRootInstance> pullRequestRoots = new ArrayList<VcsRootInstance>();
-      for (VcsRootInstance root : getGitRoots(bt)) {
-        if (githubRoot(root) && buildsPullRequests(bt, root))
+      for (VcsRootInstance root : pullRequestVcsRoots(bt)) {
+        if (githubRoot(root))
           pullRequestRoots.add(root);
       }
       if (!pullRequestRoots.isEmpty()) {
@@ -72,9 +74,9 @@ public class SecurityParametersReport extends HealthStatusReport {
     return false;
   }
 
-
-  private boolean buildsPullRequests(@NotNull SBuildType bt, @NotNull VcsRootInstance root) {
-    return ((BuildTypeEx) bt).getBranchSpec(root).asString().contains("+:refs/pull");
+  @NotNull
+  private List<VcsRootInstance> pullRequestVcsRoots(@NotNull SBuildType bt) {
+    return ((BuildTypeEx) bt).getLastUsedBranchSpecMap().entrySet().stream().filter(e -> e.getValue().asString().contains("+:refs/pull")).map(e -> e.getKey()).collect(Collectors.toList());
   }
 
 
