@@ -210,7 +210,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
       throw new PublisherException(message, e);
     }
     
-    commits.add(parentCommitId); //include the merge commit in-case the head of the merge branch is the same as source
+    commits.add(parentCommitId); //include the current revision in search
       
     return commits;
   }
