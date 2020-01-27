@@ -23,6 +23,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   private static final String REFS_TAGS = "refs/tags/";
   private static final Logger LOG = Logger.getInstance(GitlabPublisher.class.getName());
   private final Gson myGson = new Gson();
+  private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
   private final WebLinks myLinks;
 
@@ -185,7 +186,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   static Repository parseRepository(@NotNull VcsRoot root, @Nullable String pathPrefix) {
     if ("jetbrains.git".equals(root.getVcsName())) {
       String url = root.getProperty("url");
-      return url == null ? null : GitRepositoryParser.parseRepository(url, pathPrefix);
+      return url == null ? null : VCS_URL_PARSER.parseRepository(url, pathPrefix);
     } else {
       return null;
     }

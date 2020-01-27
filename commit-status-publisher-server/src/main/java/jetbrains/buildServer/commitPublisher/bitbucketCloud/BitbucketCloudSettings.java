@@ -16,6 +16,8 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 public class BitbucketCloudSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
   final static String DEFAULT_API_URL = "https://api.bitbucket.org/";
+  static final BitbucketCloudRepositoryParser VCS_PROPERTIES_PARSER = new BitbucketCloudRepositoryParser();
+
 
   private String myDefaultApiUrl = DEFAULT_API_URL;
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
@@ -90,7 +92,7 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
 
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    Repository repository = BitbucketCloudRepositoryParser.parseRepository(root);
+    Repository repository = VCS_PROPERTIES_PARSER.parseRepository(root);
     if (null == repository)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
     final String repoName = repository.repositoryName();

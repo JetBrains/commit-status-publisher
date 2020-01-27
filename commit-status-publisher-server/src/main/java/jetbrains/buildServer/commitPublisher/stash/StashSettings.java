@@ -20,6 +20,8 @@ import static jetbrains.buildServer.commitPublisher.stash.StashPublisher.PROP_PU
 
 public class StashSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
+  static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
+
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     add(Event.STARTED);
     add(Event.FINISHED);
@@ -94,7 +96,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     if (null == vcsRootUrl) {
       throw new PublisherException("Missing VCS root URL");
     }
-    final Repository repository = GitRepositoryParser.parseRepository(vcsRootUrl);
+    final Repository repository = VCS_URL_PARSER.parseRepository(vcsRootUrl);
     if (null == repository)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
     String apiUrl = params.get(Constants.STASH_BASE_URL);

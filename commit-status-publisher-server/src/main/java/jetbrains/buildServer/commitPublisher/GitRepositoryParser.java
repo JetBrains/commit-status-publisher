@@ -15,12 +15,12 @@ public class GitRepositoryParser {
   private static final Pattern GIT_SCP_PATTERN = Pattern.compile("(?:[^:@/]+@)?[^:/]+:/?([^:]+)/([^/]+)/?");
 
   @Nullable
-  public static Repository parseRepository(@NotNull String uri) {
+  public Repository parseRepository(@NotNull String uri) {
     return parseRepository(uri, null);
   }
 
   @Nullable
-  public static Repository parseRepository(@NotNull String uri, @Nullable String pathPrefix) {
+  public Repository parseRepository(@NotNull String uri, @Nullable String pathPrefix) {
 
     Matcher m = GIT_URL_PATTERN.matcher(uri);
     if (m.matches()){
@@ -36,7 +36,7 @@ public class GitRepositoryParser {
     return null;
   }
 
-  private static Repository getRepositoryInfo(@NotNull String url, @NotNull String pathGroup, @NotNull String repoGroup, @Nullable String pathPrefix) {
+  private Repository getRepositoryInfo(@NotNull String url, @NotNull String pathGroup, @NotNull String repoGroup, @Nullable String pathPrefix) {
     String userGroup = pathGroup;
     if (null != pathPrefix) {
       userGroup = stripPrefixTrimmingSlashes(userGroup, pathPrefix);

@@ -15,22 +15,23 @@ import java.util.regex.Pattern;
 class BitbucketCloudRepositoryParser {
   private static final Logger LOG = Logger.getInstance(BitbucketCloudRepositoryParser.class.getName());
   private static final Pattern SSH_PATTERN = Pattern.compile("ssh://hg@bitbucket.org/([^/]+)/(.+)");
+  private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
   @Nullable
-  public static Repository parseRepository(@NotNull VcsRoot root) {
+  public Repository parseRepository(@NotNull VcsRoot root) {
     if ("jetbrains.git".equals(root.getVcsName())) {
       String url = root.getProperty("url");
-      return url == null ? null : GitRepositoryParser.parseRepository(url);
+      return url == null ? null : VCS_URL_PARSER.parseRepository(url);
     }
     if ("mercurial".equals(root.getVcsName())) {
       String url = root.getProperty("repositoryPath");
-      return url == null ? null : parseRepository(url);
+      return url == null ? null : parseMercurialRepository(url);
     }
     return null;
   }
 
   @Nullable
-  private static Repository parseRepository(@NotNull String uri) {
+  private Repository parseMercurialRepository(@NotNull String uri) {
     if (uri.startsWith("ssh")) {
       Matcher m = SSH_PATTERN.matcher(uri);
       if (!m.matches()) {

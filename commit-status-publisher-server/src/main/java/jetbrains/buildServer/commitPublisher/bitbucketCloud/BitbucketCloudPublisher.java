@@ -95,7 +95,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
                     @NotNull String comment) throws PublisherException {
     String msg = createMessage(status, build.getBuildPromotion().getBuildTypeId(), getBuildName(build), myLinks.getViewResultsUrl(build), comment);
     final VcsRootInstance root = revision.getRoot();
-    Repository repository = BitbucketCloudRepositoryParser.parseRepository(root);
+    Repository repository = BitbucketCloudSettings.VCS_PROPERTIES_PARSER.parseRepository(root);
     if (repository == null) {
       throw new PublisherException(String.format("Bitbucket publisher has failed to parse repository URL from VCS root '%s'", root.getName()));
     }

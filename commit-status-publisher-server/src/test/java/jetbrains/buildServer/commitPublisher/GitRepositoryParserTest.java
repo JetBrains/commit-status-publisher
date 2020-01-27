@@ -3,6 +3,7 @@ package jetbrains.buildServer.commitPublisher;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.util.TestFor;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
@@ -14,6 +15,13 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public class GitRepositoryParserTest {
 
+  private GitRepositoryParser myGitRepositoryParser;
+  
+  @BeforeMethod
+  protected void setUp() {
+    myGitRepositoryParser = new GitRepositoryParser();
+  }
+  
   @TestFor(issues = {"TW-43075", "TW-45758", "TW-46969"})
   public void parse_ssh_urls() {
     parse_ssh_urls_ex("owner", null);
@@ -52,8 +60,8 @@ public class GitRepositoryParserTest {
 
     for(String url : urls) {
       String urlWithOwner = String.format(url, null == vcsRootPath ? "" : vcsRootPath, owner);
-      Repository repo = null == vcsRootPath ? GitRepositoryParser.parseRepository(urlWithOwner)
-                                            : GitRepositoryParser.parseRepository(urlWithOwner, vcsRootPath);
+      Repository repo = null == vcsRootPath ? myGitRepositoryParser.parseRepository(urlWithOwner)
+                                            : myGitRepositoryParser.parseRepository(urlWithOwner, vcsRootPath);
       then(repo).overridingErrorMessage("Failed to parse url " + urlWithOwner).isNotNull();
       then(repo.owner()).as("Must parse owner from URL " + urlWithOwner).isEqualTo(owner);
       then(repo.repositoryName()).isEqualTo("repository");
@@ -71,14 +79,14 @@ public class GitRepositoryParserTest {
             "ssh://git@bitbucket.org::owner/repository.git");
 
     for(String url : urls) {
-      then(GitRepositoryParser.parseRepository(url)).isNull();
+      then(myGitRepositoryParser.parseRepository(url)).isNull();
     }
   }
 
   @TestFor(issues = "TW-47493")
   public void parse_git_like_urls() {
     final String url = "git://github.com/owner/repository.git";
-    Repository repo = GitRepositoryParser.parseRepository(url);
+    Repository repo = myGitRepositoryParser.parseRepository(url);
     then(repo.owner()).isEqualTo("owner");
     then(repo.repositoryName()).isEqualTo("repository");
     then(repo.url()).isEqualTo(url);
@@ -88,7 +96,7 @@ public class GitRepositoryParserTest {
   @TestFor(issues = "TW-43075")
   public void parse_scp_like_urls_ghe() {
     final String url = "git@ghe.server:owner/repository.git";
-    Repository repo = GitRepositoryParser.parseRepository(url);
+    Repository repo = myGitRepositoryParser.parseRepository(url);
     then(repo.owner()).isEqualTo("owner");
     then(repo.repositoryName()).isEqualTo("repository");
     then(repo.url()).isEqualTo(url);
@@ -111,7 +119,7 @@ public class GitRepositoryParserTest {
       String url = urlEntry.getKey();
       String prefix = urlEntry.getValue();
       String urlWithOwner = String.format(url, "group/subgroup/owner");
-      Repository repo = GitRepositoryParser.parseRepository(urlWithOwner, prefix);
+      Repository repo = myGitRepositoryParser.parseRepository(urlWithOwner, prefix);
       then(repo.owner()).as(String.format("Must parse owner in URL %s", urlWithOwner)).isEqualTo("group/subgroup/owner");
       then(repo.repositoryName()).isEqualTo("repository");
       then(repo.url()).isEqualTo(urlWithOwner);
@@ -132,7 +140,7 @@ public class GitRepositoryParserTest {
             "https://bitbucket.org/%s/repository.git");
     for(String url : urls) {
       String urlWithOwner = String.format(url, "owner");
-      Repository repo = GitRepositoryParser.parseRepository(urlWithOwner);
+      Repository repo = myGitRepositoryParser.parseRepository(urlWithOwner);
       then(repo.owner()).as(String.format("Must parse owner in URL %s", urlWithOwner)).isEqualTo("owner");
       then(repo.repositoryName()).isEqualTo("repository");
       then(repo.url()).isEqualTo(urlWithOwner);

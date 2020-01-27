@@ -22,7 +22,6 @@ import jetbrains.buildServer.commitPublisher.github.api.*;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
@@ -33,7 +32,6 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -43,6 +41,7 @@ import java.util.concurrent.locks.Lock;
 public class ChangeStatusUpdater {
   private static final Logger LOG = Logger.getInstance(ChangeStatusUpdater.class.getName());
   private static final UpdateChangesConstants C = new UpdateChangesConstants();
+  private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
   private final VcsModificationHistory myModificationHistory;
   @NotNull
@@ -94,7 +93,7 @@ public class ChangeStatusUpdater {
     if (null == url) {
       repo = null;
     } else {
-      repo = GitRepositoryParser.parseRepository(url);
+      repo = VCS_URL_PARSER.parseRepository(url);
     }
     if (null == repo)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
