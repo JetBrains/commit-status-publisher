@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 class BitbucketCloudRepositoryParser {
   private static final Logger LOG = Logger.getInstance(BitbucketCloudRepositoryParser.class.getName());
   private static final Pattern SSH_PATTERN = Pattern.compile("ssh://hg@bitbucket.org/([^/]+)/(.+)");
-  private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
+  private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser(true);
 
   @Nullable
   public Repository parseRepository(@NotNull VcsRoot root) {
@@ -38,8 +38,8 @@ class BitbucketCloudRepositoryParser {
         LOG.warn("Cannot parse mercurial repository url " + uri);
         return null;
       }
-      String owner = m.group(1);
-      String repo = m.group(2);
+      String owner = m.group(1).toLowerCase();
+      String repo = m.group(2).toLowerCase();
       return new Repository(uri, owner, repo);
     }
 

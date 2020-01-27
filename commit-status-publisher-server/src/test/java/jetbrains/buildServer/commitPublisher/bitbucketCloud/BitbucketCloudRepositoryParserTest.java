@@ -39,7 +39,7 @@ public class BitbucketCloudRepositoryParserTest extends BaseServerTestCase {
                                                Collections.singletonMap("url", url));
     Repository repo = myParser.parseRepository(vcsRoot);
     then(repo.owner()).isEqualTo("owner");
-    then(repo.repositoryName()).isEqualTo("repo");
+    then(repo.repositoryName()).isEqualTo("repo-name");
     then(repo.url()).isEqualTo(url);
   }
 }

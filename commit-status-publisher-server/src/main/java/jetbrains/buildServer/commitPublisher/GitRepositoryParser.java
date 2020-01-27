@@ -13,6 +13,15 @@ public class GitRepositoryParser {
   private static final Pattern GIT_URL_PATTERN = Pattern.compile("([a-zA-Z]+)://(?:[^:@/]+@)?[^:/]+(?::[0-9]+)?[:/]([^:]+)/([^/]+)/?");
   private static final Pattern PROTOCOL_PREFIX_PATTERN = Pattern.compile("[a-zA-Z]+://.+");
   private static final Pattern GIT_SCP_PATTERN = Pattern.compile("(?:[^:@/]+@)?[^:/]+:/?([^:]+)/([^/]+)/?");
+  private final boolean myLowercaseOwnerAndRepo;
+
+  public GitRepositoryParser() {
+    this(false);
+  }
+
+  public GitRepositoryParser(final boolean lowerCaseOwnerAndRepo) {
+    myLowercaseOwnerAndRepo = lowerCaseOwnerAndRepo;
+  }
 
   @Nullable
   public Repository parseRepository(@NotNull String uri) {
@@ -48,7 +57,10 @@ public class GitRepositoryParser {
     String repo = repoGroup;
     if (repo.endsWith(".git"))
       repo = repo.substring(0, repo.length() - 4);
-    return new Repository(url, userGroup, repo);
+    if (myLowercaseOwnerAndRepo)
+      return new Repository(url, userGroup.toLowerCase(), repo.toLowerCase());
+    else
+      return new Repository(url, userGroup, repo);
   }
 
   private static String stripPrefixTrimmingSlashes(@NotNull final String str, @NotNull final String prefix) {
