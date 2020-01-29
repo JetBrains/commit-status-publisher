@@ -26,13 +26,13 @@ public class GitRepositoryParser {
 
   @Deprecated
   @Nullable
-  public Repository parseRepository(@NotNull String uri) {
+  public static Repository parseRepository(@NotNull String uri) {
     return myStaticParser.parseRepositoryUrl(uri);
   }
 
   @Deprecated
   @Nullable
-  public Repository parseRepository(@NotNull String uri, @Nullable String pathPrefix) {
+  public static Repository parseRepository(@NotNull String uri, @Nullable String pathPrefix) {
     return  myStaticParser.parseRepositoryUrl(uri, pathPrefix);
   }
 
