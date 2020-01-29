@@ -21,7 +21,7 @@ class BitbucketCloudRepositoryParser {
   public Repository parseRepository(@NotNull VcsRoot root) {
     if ("jetbrains.git".equals(root.getVcsName())) {
       String url = root.getProperty("url");
-      return url == null ? null : VCS_URL_PARSER.parseRepository(url);
+      return url == null ? null : VCS_URL_PARSER.parseRepositoryUrl(url);
     }
     if ("mercurial".equals(root.getVcsName())) {
       String url = root.getProperty("repositoryPath");

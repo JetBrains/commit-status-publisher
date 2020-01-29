@@ -96,7 +96,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     if (null == vcsRootUrl) {
       throw new PublisherException("Missing VCS root URL");
     }
-    final Repository repository = VCS_URL_PARSER.parseRepository(vcsRootUrl);
+    final Repository repository = VCS_URL_PARSER.parseRepositoryUrl(vcsRootUrl);
     if (null == repository)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
     String apiUrl = params.get(Constants.STASH_BASE_URL);

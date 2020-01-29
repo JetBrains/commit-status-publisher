@@ -186,7 +186,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   static Repository parseRepository(@NotNull VcsRoot root, @Nullable String pathPrefix) {
     if ("jetbrains.git".equals(root.getVcsName())) {
       String url = root.getProperty("url");
-      return url == null ? null : VCS_URL_PARSER.parseRepository(url, pathPrefix);
+      return url == null ? null : VCS_URL_PARSER.parseRepositoryUrl(url, pathPrefix);
     } else {
       return null;
     }

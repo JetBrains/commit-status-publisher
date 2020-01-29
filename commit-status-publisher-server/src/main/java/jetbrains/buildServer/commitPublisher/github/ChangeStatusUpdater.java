@@ -93,7 +93,7 @@ public class ChangeStatusUpdater {
     if (null == url) {
       repo = null;
     } else {
-      repo = VCS_URL_PARSER.parseRepository(url);
+      repo = VCS_URL_PARSER.parseRepositoryUrl(url);
     }
     if (null == repo)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());

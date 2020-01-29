@@ -13,6 +13,7 @@ public class GitRepositoryParser {
   private static final Pattern GIT_URL_PATTERN = Pattern.compile("([a-zA-Z]+)://(?:[^:@/]+@)?[^:/]+(?::[0-9]+)?[:/]([^:]+)/([^/]+)/?");
   private static final Pattern PROTOCOL_PREFIX_PATTERN = Pattern.compile("[a-zA-Z]+://.+");
   private static final Pattern GIT_SCP_PATTERN = Pattern.compile("(?:[^:@/]+@)?[^:/]+:/?([^:]+)/([^/]+)/?");
+  private static final GitRepositoryParser myStaticParser = new GitRepositoryParser();
   private final boolean myLowercaseOwnerAndRepo;
 
   public GitRepositoryParser() {
@@ -23,13 +24,25 @@ public class GitRepositoryParser {
     myLowercaseOwnerAndRepo = lowerCaseOwnerAndRepo;
   }
 
+  @Deprecated
   @Nullable
   public Repository parseRepository(@NotNull String uri) {
-    return parseRepository(uri, null);
+    return myStaticParser.parseRepositoryUrl(uri);
+  }
+
+  @Deprecated
+  @Nullable
+  public Repository parseRepository(@NotNull String uri, @Nullable String pathPrefix) {
+    return  myStaticParser.parseRepositoryUrl(uri, pathPrefix);
   }
 
   @Nullable
-  public Repository parseRepository(@NotNull String uri, @Nullable String pathPrefix) {
+  public Repository parseRepositoryUrl(@NotNull String uri) {
+    return parseRepositoryUrl(uri, null);
+  }
+
+  @Nullable
+  public Repository parseRepositoryUrl(@NotNull String uri, @Nullable String pathPrefix) {
 
     Matcher m = GIT_URL_PATTERN.matcher(uri);
     if (m.matches()){
