@@ -20,9 +20,11 @@ import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.http.SimpleCredentials;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
 import jetbrains.buildServer.util.http.RedirectStrategy;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
@@ -82,10 +84,19 @@ public class HttpClientWrapperImpl implements HttpClientWrapper {
           .withMethod(HttpMethod.POST)
           .withPostStringEntity(data, mimeType, charset)
           .build();
+      String logToggle = TeamCityProperties.getProperty(GitHubApiImpl.PROPERTY_LOG_REQUEST);
+      if (!StringUtil.isEmpty(logToggle) && uri.contains(logToggle))
+        logRequest(request);
+
       myRequestHandler.doRequest(request);
     } catch (URISyntaxException e) {
       exception.accept(e);
     }
+  }
+
+  private void logRequest(final HTTPRequestBuilder.Request request) {
+    GitHubApiImpl.LOG.debug("Commit Status Publisher is posting to GitHub at " + request.getUrl() + " with the following headers:\n"
+                            + request.getHeaders().entrySet().stream().map(e -> e.getKey() + " = " + e.getValue()).collect(Collectors.joining("\n")));
   }
 
   private HTTPRequestBuilder constructBuilder(

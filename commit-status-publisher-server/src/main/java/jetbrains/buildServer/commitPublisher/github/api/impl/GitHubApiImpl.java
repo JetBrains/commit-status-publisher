@@ -26,6 +26,7 @@ import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.*;
 import jetbrains.buildServer.http.SimpleCredentials;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.serverSide.impl.SecondaryNodeSecurityManager;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.util.StringUtil;
@@ -48,7 +49,10 @@ import static org.apache.http.HttpVersion.HTTP_1_1;
  *         Date: 05.09.12 23:39
  */
 public abstract class GitHubApiImpl implements GitHubApi {
-  private static final Logger LOG = Logger.getInstance(GitHubApiImpl.class.getName());
+  static final Logger LOG = Logger.getInstance(GitHubApiImpl.class.getName());
+  static final String PROPERTY_LOG_REQUEST = "teamcity.commitStatusPublisher.github.log.request.repository";
+  static final String PROPERTY_LOG_RESPONSE = "teamcity.commitStatusPublisher.github.log.response.repository";
+
   private static final Pattern PULL_REQUEST_BRANCH = Pattern.compile("/?refs/pull/(\\d+)/(.*)");
   private static final String MSG_PROXY_OR_PERMISSIONS = "Please check if the error is not returned by a proxy or caused by the lack of permissions.";
 
@@ -157,6 +161,9 @@ public abstract class GitHubApiImpl implements GitHubApi {
         url, authenticationCredentials(), defaultHeaders(),
         entity, ContentType.APPLICATION_JSON.getMimeType(), ContentType.APPLICATION_JSON.getCharset(),
         response -> {
+          String logToggle = TeamCityProperties.getProperty(GitHubApiImpl.PROPERTY_LOG_RESPONSE);
+          if (!StringUtil.isEmpty(logToggle) && url.contains(logToggle))
+            logResponse("Succeeded posting status to GitHub", method, url, entity, response, true);
         },
         response -> {
           logFailedResponse(method, url, entity, response);
@@ -287,12 +294,20 @@ public abstract class GitHubApiImpl implements GitHubApi {
     logFailedResponse(method, uri, requestEntity, response, false);
   }
 
-
   private void logFailedResponse(@NotNull HttpMethod method,
                                  @NotNull String uri,
                                  @Nullable String requestEntity,
                                  @NotNull HTTPRequestBuilder.Response response,
                                  boolean debugOnly) throws IOException {
+    logResponse("Failed to complete query to GitHub with:", method, uri, requestEntity, response, debugOnly);
+  }
+
+  private void logResponse(@NotNull String message,
+                           @NotNull HttpMethod method,
+                           @NotNull String uri,
+                           @Nullable String requestEntity,
+                           @NotNull HTTPRequestBuilder.Response response,
+                           boolean debugOnly) throws IOException {
     String responseText = response.getBodyAsStringLimit(256 * 1024); //limit buffer with 256K
     if (responseText == null) {
       responseText = "<none>";
@@ -301,17 +316,28 @@ public abstract class GitHubApiImpl implements GitHubApi {
       requestEntity = "<none>";
     }
 
-    final String logEntry = "Failed to complete query to GitHub with:\n" +
+
+
+    final String logEntry = message + "\n" +
             "  requestURL: " + uri + "\n" +
             "  requestMethod: " + method + "\n" +
             "  requestEntity: " + requestEntity + "\n" +
             "  response: " + response.getStatusText() + "\n" +
-            "  responseEntity: " + responseText;
+            "  responseEntity: " + responseText +
+            headerLine(response, "X-RateLimit-Limit") +
+            headerLine(response, "X-RateLimit-Remaining") +
+            headerLine(response, "X-RateLimit-Reset");
+
     if (debugOnly) {
       LOG.debug(logEntry);
     } else {
       LOG.warn(logEntry);
     }
+  }
+
+  private static String headerLine(HTTPRequestBuilder.Response response, String header) {
+    String val = response.getHeader(header);
+    return StringUtil.isEmpty(val) ? "" : "\n  " + header + ": " + val;
   }
 
   private void logRequest(@NotNull HttpMethod method,
