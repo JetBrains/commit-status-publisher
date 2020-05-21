@@ -7,8 +7,8 @@ import java.util.HashMap;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.commitPublisher.gerrit.data.GerritProjectInfo;
+import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
-import jetbrains.buildServer.serverSide.impl.SecondaryNodeSecurityManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,9 +34,7 @@ abstract class GerritClientBase implements GerritClient {
            .append(buildVoteClause(label)).append(vote)
            .append(" -m \"").append(escape(message)).append("\" ")
            .append(revision);
-    SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
-        runCommand(connectionDetails, command.toString());
-    });
+    IOGuard.allowNetworkCall(() -> runCommand(connectionDetails, command.toString()));
   }
 
   @Override

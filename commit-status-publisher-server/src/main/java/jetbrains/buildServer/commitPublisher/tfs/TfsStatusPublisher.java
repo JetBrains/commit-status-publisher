@@ -10,7 +10,6 @@ import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
-import jetbrains.buildServer.serverSide.impl.SecondaryNodeSecurityManager;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.apache.http.entity.ContentType;
@@ -176,14 +175,14 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
   @NotNull
   private static Set<String> getParentCommits(@NotNull final TfsRepositoryInfo info,
-                                               @NotNull final String parentCommitId,
-                                               @NotNull final Map<String, String> params,
-                                               @Nullable final KeyStore trustStore) throws PublisherException {
+                                              @NotNull final String parentCommitId,
+                                              @NotNull final Map<String, String> params,
+                                              @Nullable final KeyStore trustStore) throws PublisherException {
     final String url = MessageFormat.format(COMMIT_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository(), parentCommitId);
     final Set<String> commits = new HashSet<String>();
 
     try {
-      SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
+      IOGuard.allowNetworkCall(() -> {
         HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
                        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
                        trustStore, new DefaultHttpResponseProcessor() {
@@ -225,7 +224,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     final AtomicReference<String> iterationId = new AtomicReference<>();
 
     try {
-      SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
+      IOGuard.allowNetworkCall(() -> {
         HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
                        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
                        trustStore, new DefaultHttpResponseProcessor() {

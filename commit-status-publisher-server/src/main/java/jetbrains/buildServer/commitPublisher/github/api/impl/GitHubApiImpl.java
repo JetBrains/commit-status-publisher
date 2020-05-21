@@ -26,7 +26,7 @@ import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.*;
 import jetbrains.buildServer.http.SimpleCredentials;
-import jetbrains.buildServer.serverSide.impl.SecondaryNodeSecurityManager;
+import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
@@ -106,7 +106,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     logRequest(method, statusUrl, null);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
-    SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
+    IOGuard.allowNetworkCall(() -> {
       myClient.get(statusUrl, authenticationCredentials(), defaultHeaders(),
                    response -> {
                    },
@@ -152,7 +152,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     logRequest(method, url, entity);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
-    SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
+    IOGuard.allowNetworkCall(() -> {
       myClient.post(
         url, authenticationCredentials(), defaultHeaders(),
         entity, ContentType.APPLICATION_JSON.getMimeType(), ContentType.APPLICATION_JSON.getCharset(),
@@ -225,7 +225,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     final AtomicReference<T> resultRef = new AtomicReference<>();
-    SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
+    IOGuard.allowNetworkCall(() -> {
       myClient.get(uri, authenticationCredentials(), defaultHeaders(),
                    success -> {
                      final String json = success.getBodyAsString();
@@ -342,7 +342,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     logRequest(method, url, entity);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
-    SecondaryNodeSecurityManager.runSafeNetworkOperation(() -> {
+    IOGuard.allowNetworkCall(() -> {
       myClient.post(
         url, authenticationCredentials(), defaultHeaders(),
         entity, ContentType.APPLICATION_JSON.getMimeType(), ContentType.APPLICATION_JSON.getCharset(),
