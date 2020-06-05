@@ -1,8 +1,10 @@
 package jetbrains.buildServer.commitPublisher;
 
+import com.google.common.util.concurrent.Striped;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.locks.Lock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildProblemData;
@@ -34,6 +36,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   private final MultiNodeTasks myMultiNodeTasks;
   private final ExecutorServices myExecutorServices;
   private final Map<String, Event> myEventTypes = new HashMap<>();
+  private static final Striped<Lock> myLocks = Striped.lazyWeakLock(100);
+
 
   public CommitStatusPublisherListener(@NotNull EventDispatcher<BuildServerListener> events,
                                        @NotNull PublisherManager voterManager,
@@ -339,7 +343,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         return;
       }
       CompletableFuture.runAsync(() -> {
-        runForEveryPublisher(eventType, build);
+        Lock lock = myLocks.get(build.getBuildId());
+        lock.lock();
+        try {
+          runForEveryPublisher(eventType, build);
+        } finally {
+          lock.unlock();
+        }
       }, myExecutorServices.getLowPriorityExecutorService()).handle((r, t) -> {
         task.finished();
         return r;
