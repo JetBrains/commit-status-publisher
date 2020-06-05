@@ -55,6 +55,23 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.isStartedReceived()).isTrue();
   }
 
+
+  public void should_publish_statuses_in_order() throws InterruptedException {
+    prepareVcs();
+    myPublisher.setEventToWait(Event.STARTED);
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myListener.changesLoaded(runningBuild);
+    myFixture.finishBuild(runningBuild, false);
+    myListener.buildFinished(runningBuild);
+    myPublisher.notifyWaitingEvent(Event.STARTED, 1000);
+    waitForTasksToFinish(Event.STARTED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    then(myPublisher.isStartedReceived()).isTrue();
+    then(myPublisher.isFinishedReceived()).isTrue();
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.STARTED, Event.FINISHED));
+  }
+
+
   public void should_publish_commented() {
     prepareVcs();
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
