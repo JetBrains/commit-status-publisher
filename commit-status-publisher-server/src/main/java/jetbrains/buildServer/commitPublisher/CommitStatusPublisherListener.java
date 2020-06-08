@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.Striped;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -26,6 +27,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private final static Logger LOG = Logger.getInstance(CommitStatusPublisherListener.class.getName());
   private final static String PUBLISHING_ENABLED_PROPERTY_NAME = "teamcity.commitStatusPublisher.enabled";
+  private final static int MAX_LAST_EVENTS_TO_REMEMBER = 1000;
 
   private final PublisherManager myPublisherManager;
   private final BuildHistory myBuildHistory;
@@ -37,7 +39,14 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   private final ExecutorServices myExecutorServices;
   private final Map<String, Event> myEventTypes = new HashMap<>();
   private static final Striped<Lock> myLocks = Striped.lazyWeakLock(100);
-
+  private final Map<Long, Event> myLastEvents =
+    new LinkedHashMap<Long, Event> () {
+      @Override
+      protected boolean removeEldestEntry(Map.Entry<Long, Event> eldest)
+      {
+        return this.size() > MAX_LAST_EVENTS_TO_REMEMBER;
+      }
+    };
 
   public CommitStatusPublisherListener(@NotNull EventDispatcher<BuildServerListener> events,
                                        @NotNull PublisherManager voterManager,
@@ -342,6 +351,14 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         task.finished();
         return;
       }
+
+      synchronized (myLastEvents) {
+        if (myLastEvents.put(build.getBuildId(), eventType) != null && eventType.isFirstTaskForBuild()) {
+          task.finished();
+          return;
+        }
+      }
+
       CompletableFuture.runAsync(() -> {
         Lock lock = myLocks.get(build.getBuildTypeId());
         lock.lock();
