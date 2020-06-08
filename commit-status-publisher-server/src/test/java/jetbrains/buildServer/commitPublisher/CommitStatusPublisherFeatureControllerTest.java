@@ -19,7 +19,6 @@ import static org.assertj.core.api.BDDAssertions.then;
 
 @Test
 public class CommitStatusPublisherFeatureControllerTest extends CommitStatusPublisherTestBase {
-  private BuildTypeForm myForm;
   private VcsSettingsBean myBean;
   private HttpServletRequest myRequest;
   private HttpServletResponse myResponse;
@@ -28,9 +27,9 @@ public class CommitStatusPublisherFeatureControllerTest extends CommitStatusPubl
   public void setUp() throws Exception {
     super.setUp();
     myBean = new MockVcsSettingsBean(myProject, myBuildType, myVcsManager, myProjectManager);
-    myForm = new MockBuildTypeForm(myBuildType, myBean);
+    final BuildTypeForm form = new MockBuildTypeForm(myBuildType, myBean);
     myRequest = new MockRequest();
-    myRequest.setAttribute("buildForm", myForm);
+    myRequest.setAttribute("buildForm", form);
     myResponse = new MockResponse();
   }
 

@@ -32,16 +32,17 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
     myProblemEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
     myProblems = new CommitStatusPublisherProblems(myProblemEngine);
     myPublisherSettings = new MockPublisherSettings(myProblems);
-    myPublisher = new MockPublisher(myPublisherSettings, "PUBLISHER1", myBuildType, FEATURE_1, Collections.<String, String>emptyMap(), myProblems, myLogger);
+    myPublisher = new MockPublisher(myPublisherSettings, "PUBLISHER1", myBuildType, FEATURE_1, Collections.emptyMap(), myProblems, myLogger);
   }
 
   public void must_add_and_delete_problems() {
     myProblems.reportProblem("Some problem description", myPublisher, "Build description", null, null, myLogger);
     then(myProblemEngine.getProblems(myBuildType).size()).isEqualTo(1);
     String lastLogged = myLogger.popLast();
-    then(lastLogged.contains("Some problem description"));
-    then(lastLogged.contains(myPublisher.getId()));
-    then(lastLogged.contains("Build description"));
+    then(lastLogged)
+      .contains("Some problem description")
+      .contains(myPublisher.getId())
+      .contains("Build description");
     myProblems.clearProblem(myPublisher);
     then(myProblemEngine.getProblems(myBuildType).size()).isEqualTo(0);
   }
@@ -51,7 +52,7 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
     final String PUB2_P1 = "First issue of publisher 2";
     final String PUB2_P2 = "Second issue of publisher 2";
     CommitStatusPublisher publisher2 = new MockPublisher(myPublisherSettings, "PUBLISHER2", myBuildType, FEATURE_2,
-                                                         Collections.<String, String>emptyMap(), myProblems, myLogger);
+                                                         Collections.emptyMap(), myProblems, myLogger);
 
     myProblems.reportProblem(PUB2_P1, publisher2, "Build description", null, null, myLogger);
     myProblems.reportProblem(PUB1_P1, myPublisher, "Build description", null, null, myLogger);

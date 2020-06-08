@@ -47,7 +47,7 @@ public class CommitStatusPublisherFeatureController extends BaseController {
 
   @Nullable
   @Override
-  protected ModelAndView doHandle(@NotNull HttpServletRequest request, @NotNull HttpServletResponse response) throws Exception {
+  protected ModelAndView doHandle(@NotNull HttpServletRequest request, @NotNull HttpServletResponse response) {
     BasePropertiesBean props = (BasePropertiesBean) request.getAttribute("propertiesBean");
     String publisherId = props.getProperties().get(Constants.PUBLISHER_ID_PARAM);
     ModelAndView mv = publisherId != null ? createEditPublisherModel(publisherId) : createAddPublisherModel();

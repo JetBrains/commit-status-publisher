@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NonNls;
  */
 class PublisherLogger extends Logger {
 
-  private Stack<String> entries = new Stack<String>();
+  private final Stack<String> entries = new Stack<String>();
 
   String popLast() {
     return entries.pop();

@@ -2,7 +2,6 @@ package jetbrains.buildServer.commitPublisher;
 
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
-import jetbrains.buildServer.util.TestFor;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 

@@ -12,7 +12,6 @@ import java.util.*;
 @Test
 public class ServerListenerTest extends BaseServerTestCase {
 
-  private EventDispatcher<ConfigActionsServerListener> myDispatcher;
   private SVcsRoot myVcsRoot;
 
   private static final String MY_VCS_ID = "MY_VCS_ID";
@@ -24,8 +23,8 @@ public class ServerListenerTest extends BaseServerTestCase {
     myVcsRoot = myFixture.addVcsRoot("vcs", "vcs1");
     myVcsRoot.setExternalId(MY_VCS_ID);
     myBuildType.addVcsRoot(myVcsRoot);
-    myDispatcher = myFixture.getSingletonService(ConfigActionsEventDispatcher.class);
-    ServerListener listener = new ServerListener(myDispatcher);
+    final EventDispatcher<ConfigActionsServerListener> dispatcher = myFixture.getSingletonService(ConfigActionsEventDispatcher.class);
+    ServerListener listener = new ServerListener(dispatcher);
     myFixture.addService(listener);
   }
 

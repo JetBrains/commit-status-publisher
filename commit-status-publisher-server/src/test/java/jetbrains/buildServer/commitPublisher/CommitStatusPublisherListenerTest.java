@@ -25,7 +25,7 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTestBase {
 
-  private long TASK_COMPLETION_TIMEOUT_MS = 3000;
+  private final long TASK_COMPLETION_TIMEOUT_MS = 3000;
 
   private CommitStatusPublisherListener myListener;
   private MockPublisher myPublisher;
@@ -42,7 +42,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myListener = new CommitStatusPublisherListener(EventDispatcher.create(BuildServerListener.class), myPublisherManager, history, myBuildsManager, myFixture.getBuildPromotionManager(), myProblems,
                                                    myFixture.getServerResponsibility(), myFixture.getSingletonService(ExecutorServices.class), myMultiNodeTasks);
     myPublisher = new MockPublisher(myPublisherSettings, MockPublisherSettings.PUBLISHER_ID, myBuildType, myFeatureDescriptor.getId(),
-                                    Collections.<String, String>emptyMap(), myProblems, myLogger);
+                                    Collections.emptyMap(), myProblems, myLogger);
     myUser = myFixture.createUserAccount("newuser");
     myPublisherSettings.setPublisher(myPublisher);
   }
@@ -71,7 +71,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.STARTED, Event.FINISHED));
   }
 
-  public void should_not_accept_pending_after_finished() throws InterruptedException {
+  public void should_not_accept_pending_after_finished() {
     prepareVcs();
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     myFixture.finishBuild(runningBuild, false);
@@ -214,11 +214,11 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
     then(problems.size()).isEqualTo(1);
     SystemProblem problem = problems.iterator().next().getProblem();
-    then(problem.getDescription());
-    then(problem.getDescription()).contains("Commit Status Publisher");
-    then(problem.getDescription()).contains("buildFinished");
-    then(problem.getDescription()).contains(MockPublisher.PUBLISHER_ERROR);
-    then(problem.getDescription()).contains(myPublisher.getId());
+    then(problem.getDescription())
+      .contains("Commit Status Publisher")
+      .contains("buildFinished")
+      .contains(MockPublisher.PUBLISHER_ERROR)
+      .contains(myPublisher.getId());
   }
 
   public void should_handle_async_errors() {

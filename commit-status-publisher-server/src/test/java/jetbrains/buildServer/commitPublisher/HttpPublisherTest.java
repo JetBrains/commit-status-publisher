@@ -4,7 +4,6 @@ import com.intellij.openapi.util.io.StreamUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;

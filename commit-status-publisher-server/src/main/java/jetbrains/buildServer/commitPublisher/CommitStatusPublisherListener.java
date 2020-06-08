@@ -4,7 +4,6 @@ import com.google.common.util.concurrent.Striped;
 import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -44,7 +43,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       @Override
       protected boolean removeEldestEntry(Map.Entry<Long, Event> eldest)
       {
-        return this.size() > MAX_LAST_EVENTS_TO_REMEMBER;
+        return size() > MAX_LAST_EVENTS_TO_REMEMBER;
       }
     };
 
@@ -318,7 +317,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private boolean shouldFailBuild(@NotNull SBuildType buildType) {
-    return Boolean.valueOf(buildType.getParameters().get("teamcity.commitStatusPublisher.failBuildOnPublishError"));
+    return Boolean.parseBoolean(buildType.getParameters().get("teamcity.commitStatusPublisher.failBuildOnPublishError"));
   }
 
   private class BuildPublisherTaskConsumer extends PublisherTaskConsumer {

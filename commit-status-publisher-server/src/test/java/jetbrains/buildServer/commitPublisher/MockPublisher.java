@@ -23,7 +23,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   private boolean myShouldReportError = false;
   private int myFailuresReceived = 0;
   private int mySuccessReceived = 0;
-  private Set<Event> myEventsToWait = new HashSet<Event>();
+  private final Set<Event> myEventsToWait = new HashSet<Event>();
 
   private final PublisherLogger myLogger;
 

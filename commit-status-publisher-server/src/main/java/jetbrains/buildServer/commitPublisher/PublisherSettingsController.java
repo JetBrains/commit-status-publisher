@@ -60,7 +60,7 @@ public class PublisherSettingsController extends BaseController {
       return null;
 
     String settingsUrl = settings.getEditSettingsUrl();
-    Map<String, String> params = settings.getDefaultParameters() != null ? settings.getDefaultParameters() : Collections.<String, String>emptyMap();
+    Map<String, String> params = settings.getDefaultParameters() != null ? settings.getDefaultParameters() : Collections.emptyMap();
     if (Constants.TEST_CONNECTION_YES.equals(request.getParameter(Constants.TEST_CONNECTION_PARAM))) {
       processTestConnectionRequest(request, response, settings, params);
       return null;

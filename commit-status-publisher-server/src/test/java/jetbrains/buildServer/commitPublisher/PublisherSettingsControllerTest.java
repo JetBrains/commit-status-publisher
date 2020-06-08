@@ -6,7 +6,6 @@ import javax.servlet.http.HttpServletResponse;
 import jetbrains.buildServer.controllers.MockRequest;
 import jetbrains.buildServer.controllers.MockResponse;
 import jetbrains.buildServer.vcs.SVcsRoot;
-import org.springframework.web.servlet.ModelAndView;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
