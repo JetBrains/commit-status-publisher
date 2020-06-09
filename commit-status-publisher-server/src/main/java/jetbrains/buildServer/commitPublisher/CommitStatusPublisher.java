@@ -48,7 +48,7 @@ public interface CommitStatusPublisher {
   boolean isEventSupported(Event event);
 
   enum Event {
-    STARTED("buildStarted"), FINISHED("buildFinished"),
+    STARTED("buildStarted", true), FINISHED("buildFinished"),
     QUEUED("buildQueued"), REMOVED_FROM_QUEUE("buildRemovedFromQueue"),
     COMMENTED("buildCommented"), INTERRUPTED("buildInterrupted"),
     FAILURE_DETECTED("buildFailureDetected"), MARKED_AS_SUCCESSFUL("buildMarkedAsSuccessful");
@@ -56,13 +56,23 @@ public interface CommitStatusPublisher {
     private final static String PUBLISHING_TASK_PREFIX = "publishBuildStatus";
 
     private final String myName;
+    private final boolean myIsFirstTaskForBuild;
 
     Event(String name) {
+      this(name, false);
+    }
+
+    Event(String name, boolean isFirstTaskForBuild) {
       myName = PUBLISHING_TASK_PREFIX + "." + name;
+      myIsFirstTaskForBuild = isFirstTaskForBuild;
     }
 
     public String getName() {
       return myName;
+    }
+
+    public boolean isFirstTaskForBuild() {
+      return myIsFirstTaskForBuild;
     }
   }
 }
