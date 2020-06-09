@@ -350,7 +350,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         return;
       }
       CompletableFuture.runAsync(() -> {
-        Lock lock = myLocks.get(build.getBuildId());
+        Lock lock = myLocks.get(build.getBuildTypeId());
         lock.lock();
         try {
           runForEveryPublisher(eventType, build);
@@ -427,7 +427,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         return;
       }
       CompletableFuture.runAsync(() -> {
-        runForEveryPublisher(eventType, build);
+        Lock lock = myLocks.get(build.getBuildTypeId());
+        lock.lock();
+        try {
+          runForEveryPublisher(eventType, build);
+        } finally {
+          lock.unlock();
+        }
       }, myExecutorServices.getLowPriorityExecutorService()).handle((r, t) -> {
         task.finished();
         return r;
