@@ -71,6 +71,18 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.STARTED, Event.FINISHED));
   }
 
+  public void should_not_accept_pending_after_finished() throws InterruptedException {
+    prepareVcs();
+    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myFixture.finishBuild(runningBuild, false);
+    myListener.buildFinished(runningBuild);
+    waitForTasksToFinish(Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    then(myPublisher.isFinishedReceived()).isTrue();
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.FINISHED));
+    myListener.changesLoaded(runningBuild);
+    waitForTasksToFinish(Event.STARTED, TASK_COMPLETION_TIMEOUT_MS);
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.FINISHED));
+  }
 
   public void should_publish_commented() {
     prepareVcs();
