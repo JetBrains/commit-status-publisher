@@ -22,7 +22,6 @@ import jetbrains.buildServer.commitPublisher.github.api.*;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
@@ -33,7 +32,6 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.Lock;
 
 /**
@@ -290,42 +288,36 @@ public class ChangeStatusUpdater {
               return;
             }
             final GitHubPublisher publisher = getPublisher();
-            final Lock lock = GitHubPublisher.getLocks().get(publisher.getBuildType().getExternalId());
             final CommitStatusPublisherProblems problems = publisher.getProblems();
             boolean prMergeBranch = !hash.equals(version.getVersion());
-            lock.lock();
             String url;
             try {
+              url = getViewResultsUrl(build);
+              api.setChangeStatus(
+                      repositoryOwner,
+                      repositoryName,
+                      hash,
+                      status,
+                      url,
+                      message,
+                      prMergeBranch ? context + " - merge" : context
+              );
+              LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
+            } catch (IOException e) {
+              problems.reportProblem(String.format("Commit Status Publisher error. GitHub status: '%s'", status.toString()), publisher, LogUtil.describe(build), publisher.getServerUrl(), e, LOG);
+            }
+            if (addComments) {
               try {
-                url = getViewResultsUrl(build);
-                api.setChangeStatus(
+                api.postComment(
                         repositoryOwner,
                         repositoryName,
                         hash,
-                        status,
-                        url,
-                        message,
-                        prMergeBranch ? context + " - merge" : context
+                        getComment(version, build, status != GitHubChangeState.Pending, hash)
                 );
-                LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
+                LOG.info("Added comment to GitHub commit: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
               } catch (IOException e) {
-                problems.reportProblem(String.format("Commit Status Publisher error. GitHub status: '%s'", status.toString()), publisher, LogUtil.describe(build), publisher.getServerUrl(), e, LOG);
+                problems.reportProblem("Commit Status Publisher has failed to add a comment", publisher, LogUtil.describe(build), null, e, LOG);
               }
-              if (addComments) {
-                try {
-                  api.postComment(
-                          repositoryOwner,
-                          repositoryName,
-                          hash,
-                          getComment(version, build, status != GitHubChangeState.Pending, hash)
-                  );
-                  LOG.info("Added comment to GitHub commit: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
-                } catch (IOException e) {
-                  problems.reportProblem("Commit Status Publisher has failed to add a comment", publisher, LogUtil.describe(build), null, e, LOG);
-                }
-              }
-            } finally {
-              lock.unlock();
             }
           }
         };

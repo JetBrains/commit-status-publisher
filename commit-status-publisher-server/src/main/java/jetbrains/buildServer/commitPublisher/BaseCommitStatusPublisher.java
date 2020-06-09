@@ -19,7 +19,6 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   protected SBuildType myBuildType;
   private final String myBuildFeatureId;
   private final CommitStatusPublisherSettings mySettings;
-  private static final Striped<Lock> myLocks = Striped.lazyWeakLock(100);
 
   protected BaseCommitStatusPublisher(@NotNull CommitStatusPublisherSettings settings,
                                       @NotNull SBuildType buildType,@NotNull String buildFeatureId,
@@ -64,8 +63,6 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
     return false;
   }
-
-  public static Striped<Lock> getLocks() { return myLocks; }
 
   int getConnectionTimeout() {
     return myConnectionTimeout;
