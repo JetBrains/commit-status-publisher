@@ -70,6 +70,14 @@
 
     <props:selectSectionPropertyContent value="${keys.authenticationTypePasswordValue}" caption="Password">
       <tr>
+        <td colspan="2">
+          <em>
+            Please note that username/password authentication is now deprecated in GitHub.com for GraphQL and REST API calls and will be completely disabled soon.
+            Consider using access tokens instead.
+          </em>
+        </td>
+      </tr>
+      <tr>
         <th><label for="${keys.userNameKey}">GitHub Username:<l:star/></label></th>
         <td>
           <props:textProperty name="${keys.userNameKey}" className="mediumField"/>
