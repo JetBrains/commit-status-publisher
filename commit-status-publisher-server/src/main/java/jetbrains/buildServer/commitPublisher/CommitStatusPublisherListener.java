@@ -352,10 +352,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       }
 
       synchronized (myLastEvents) {
-        if (myLastEvents.put(build.getBuildId(), eventType) != null && eventType.isFirstTaskForBuild()) {
+        if (myLastEvents.get(build.getBuildId()) != null && eventType.isFirstTask()) {
           task.finished();
           return;
         }
+        if (eventType.isConsequentTask())
+          myLastEvents.put(build.getBuildId(), eventType);
       }
 
       CompletableFuture.runAsync(() -> {

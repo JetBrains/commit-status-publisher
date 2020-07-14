@@ -47,32 +47,43 @@ public interface CommitStatusPublisher {
 
   boolean isEventSupported(Event event);
 
+
   enum Event {
-    STARTED("buildStarted", true), FINISHED("buildFinished"),
-    QUEUED("buildQueued"), REMOVED_FROM_QUEUE("buildRemovedFromQueue"),
-    COMMENTED("buildCommented"), INTERRUPTED("buildInterrupted"),
+    STARTED("buildStarted", EventPriority.FIRST), FINISHED("buildFinished"),
+    QUEUED("buildQueued", EventPriority.FIRST), REMOVED_FROM_QUEUE("buildRemovedFromQueue", EventPriority.FIRST),
+    COMMENTED("buildCommented", EventPriority.ANY), INTERRUPTED("buildInterrupted"),
     FAILURE_DETECTED("buildFailureDetected"), MARKED_AS_SUCCESSFUL("buildMarkedAsSuccessful");
 
     private final static String PUBLISHING_TASK_PREFIX = "publishBuildStatus";
 
     private final String myName;
-    private final boolean myIsFirstTaskForBuild;
+    private final EventPriority myEventPriority;
 
     Event(String name) {
-      this(name, false);
+      this(name, EventPriority.CONSEQUENT);
     }
 
-    Event(String name, boolean isFirstTaskForBuild) {
+    Event(String name, EventPriority eventPriority) {
       myName = PUBLISHING_TASK_PREFIX + "." + name;
-      myIsFirstTaskForBuild = isFirstTaskForBuild;
+      myEventPriority = eventPriority;
     }
 
     public String getName() {
       return myName;
     }
 
-    public boolean isFirstTaskForBuild() {
-      return myIsFirstTaskForBuild;
+    public boolean isFirstTask() {
+      return myEventPriority == EventPriority.FIRST;
+    }
+
+    public boolean isConsequentTask() {
+      return myEventPriority == EventPriority.CONSEQUENT;
+    }
+
+    private enum EventPriority {
+      FIRST, // the event of this priority will not be accepted if any of the previous events are of the type CONSEQUENT
+      ANY, // accepted at any time, will not prevent any events to be accepted after it
+      CONSEQUENT // accepted at any time too, but will prevent events of priority FIRST to be accepted after it
     }
   }
 }
