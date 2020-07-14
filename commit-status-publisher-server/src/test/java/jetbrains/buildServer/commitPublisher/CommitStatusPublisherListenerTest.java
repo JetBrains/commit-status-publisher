@@ -78,6 +78,18 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
   }
 
+  public void should_accept_pending_after_build_triggered_with_comment() {
+    prepareVcs();
+    BuildCustomizerFactory customizerFactory = myFixture.getSingletonService(BuildCustomizerFactory.class);
+    BuildCustomizer customizer = customizerFactory.createBuildCustomizer(myBuildType, myUser);
+    customizer.setBuildComment("Non-empty comment");
+    BuildPromotion promotion = customizer.createPromotion();
+    SQueuedBuild queuedBuild = promotion.addToQueue("");
+    SRunningBuild runningBuild = myFixture.waitForQueuedBuildToStart(queuedBuild);
+    waitForTasksToFinish(Event.STARTED, TASK_COMPLETION_TIMEOUT_MS);
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED,Event.STARTED));
+  }
+
   public void should_publish_commented() {
     prepareVcs();
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
