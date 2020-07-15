@@ -111,7 +111,6 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   public void should_publish_queued() {
     prepareVcs();
     SQueuedBuild queuedBuild = myBuildType.addToQueue("");
-    myListener.buildTypeAddedToQueue(queuedBuild);
     waitForTasksToFinish(Event.QUEUED, TASK_COMPLETION_TIMEOUT_MS);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED));
   }
@@ -127,7 +126,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   }
 
   // this test fails after being rewritten to use the real event due to promotion manager
-  // not being able to find promotion by id, so REMOVED_FROeM_QUEUE event did never work properly
+  // not being able to find promotion by id, so REMOVED_FROM_QUEUE event did never work properly
   @Test(enabled = false)
   public void should_publish_removed_from_queue() {
     prepareVcs();
