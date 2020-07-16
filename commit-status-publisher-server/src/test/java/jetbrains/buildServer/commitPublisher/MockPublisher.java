@@ -32,12 +32,6 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   boolean isFailureReceived() { return myFailuresReceived > 0; }
   boolean isSuccessReceived() { return mySuccessReceived > 0; }
 
-  boolean isFinishedReceived() { return myEventsReceived.contains(Event.FINISHED); }
-  boolean isStartedReceived() { return myEventsReceived.contains(Event.STARTED); }
-  boolean isCommentedReceived() { return myEventsReceived.contains(Event.COMMENTED); }
-  boolean isQueuedReceived() {return myEventsReceived.contains(Event.QUEUED); }
-  boolean isRemovedFromQueueReceived() { return myEventsReceived.contains(Event.REMOVED_FROM_QUEUE); }
-  boolean isInterruptedReceieved() { return myEventsReceived.contains(Event.INTERRUPTED); }
   String getLastComment() { return myLastComment; }
   List<Event> getEventsReceived() { return myEventsReceived; }
 
@@ -80,10 +74,6 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   public String getId() {
     return myType;
   }
-
-  int failuresReceived() { return myFailuresReceived; }
-
-  int finishedReceived() { return (int) myEventsReceived.stream().map(e -> e == Event.FINISHED).count(); }
 
   int successReceived() { return mySuccessReceived; }
 

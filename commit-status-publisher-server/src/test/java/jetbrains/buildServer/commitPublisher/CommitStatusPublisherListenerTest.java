@@ -19,7 +19,7 @@ import java.util.*;
 
 import static org.assertj.core.api.BDDAssertions.then;
 
-@Test
+@Test(invocationCount = 100)
 public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTestBase {
 
   private final long TASK_COMPLETION_TIMEOUT_MS = 3000;
@@ -46,9 +46,10 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_publish_started() {
     prepareVcs();
-    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
-    myListener.changesLoaded(runningBuild);
-    waitForTasksToFinish(Event.STARTED, TASK_COMPLETION_TIMEOUT_MS);
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
   }
 
@@ -56,26 +57,29 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   public void should_publish_statuses_in_order() throws InterruptedException {
     prepareVcs();
     myPublisher.setEventToWait(Event.STARTED);
-    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    SRunningBuild runningBuild = myFixture.flushQueueAndWait();
     myListener.changesLoaded(runningBuild);
     myFixture.finishBuild(runningBuild, false);
-    myListener.buildFinished(runningBuild);
     myPublisher.notifyWaitingEvent(Event.STARTED, 1000);
-    waitForTasksToFinish(Event.STARTED, TASK_COMPLETION_TIMEOUT_MS);
-    waitForTasksToFinish(Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.FINISHED);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
   }
 
   public void should_not_accept_pending_after_finished() {
     prepareVcs();
-    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    SRunningBuild runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
     myFixture.finishBuild(runningBuild, false);
-    waitForTasksToFinish(Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
-    then(myPublisher.isFinishedReceived()).isTrue();
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
+    waitForTasksToFinish(Event.FINISHED);
+    List<Event> eventsAfterFinished = myPublisher.getEventsReceived();
+    then(eventsAfterFinished).contains(Event.FINISHED);
     myListener.changesLoaded(runningBuild);
-    waitForTasksToFinish(Event.STARTED, TASK_COMPLETION_TIMEOUT_MS);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
+    waitForTasksToFinish(Event.STARTED);
+    then(myPublisher.getEventsReceived()).isEqualTo(eventsAfterFinished);  // no more events must arrive at the publisher
   }
 
   public void should_accept_pending_after_build_triggered_with_comment() {
@@ -85,44 +89,53 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     customizer.setBuildComment("Non-empty comment");
     BuildPromotion promotion = customizer.createPromotion();
     SQueuedBuild queuedBuild = promotion.addToQueue("");
-    SRunningBuild runningBuild = myFixture.waitForQueuedBuildToStart(queuedBuild);
-    waitForTasksToFinish(Event.STARTED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.QUEUED);
+    myFixture.waitForQueuedBuildToStart(queuedBuild);
+    waitForTasksToFinish(Event.STARTED);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED,Event.STARTED));
   }
 
   public void should_publish_commented() {
     prepareVcs();
-    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    SRunningBuild runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
     runningBuild.setBuildComment(myUser , "My test comment");
-    waitForTasksToFinish(Event.COMMENTED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.COMMENTED);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.COMMENTED));
     then(myPublisher.getLastComment()).isEqualTo("My test comment");
   }
 
   public void should_publish_failure() {
     prepareVcs();
-    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    SRunningBuild runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
     myListener.buildChangedStatus(runningBuild, Status.NORMAL, Status.FAILURE);
-    waitForTasksToFinish(Event.FAILURE_DETECTED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.FAILURE_DETECTED);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FAILURE_DETECTED));
     then(myPublisher.isFailureReceived()).isTrue();
   }
 
   public void should_publish_queued() {
     prepareVcs();
-    SQueuedBuild queuedBuild = myBuildType.addToQueue("");
-    waitForTasksToFinish(Event.QUEUED, TASK_COMPLETION_TIMEOUT_MS);
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED));
   }
 
   public void should_publish_interrupted() {
     prepareVcs();
-    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    SRunningBuild runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
     runningBuild.setInterrupted(RunningBuildState.INTERRUPTED_BY_USER, myUser, "My reason");
     finishBuild(false);
-    waitForTasksToFinish(Event.INTERRUPTED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.INTERRUPTED);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.INTERRUPTED));
-    then(myPublisher.isInterruptedReceieved()).isTrue();
   }
 
   // this test fails after being rewritten to use the real event due to promotion manager
@@ -130,18 +143,20 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   @Test(enabled = false)
   public void should_publish_removed_from_queue() {
     prepareVcs();
-    SQueuedBuild queuedBuild = myBuildType.addToQueue("");
+    myBuildType.addToQueue("");
     myServer.getQueue().removeAllFromQueue();
-    waitForTasksToFinish(Event.REMOVED_FROM_QUEUE, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.REMOVED_FROM_QUEUE);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE));
-    then(myPublisher.isRemovedFromQueueReceived()).isTrue();
   }
 
   public void should_publish_finished_success() {
     prepareVcs();
-    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    SRunningBuild runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
     myFixture.finishBuild(runningBuild, false);
-    waitForTasksToFinish(Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.FINISHED);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
     then(myPublisher.isSuccessReceived()).isTrue();
   }
@@ -151,7 +166,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     setInternalProperty("teamcity.commitStatusPublisher.enabled", "false");
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     myFixture.finishBuild(runningBuild, false);
-    waitForTasksToFinish(Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.FINISHED);
     then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
   }
 
@@ -160,7 +175,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.enabled", "false"));
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     myFixture.finishBuild(runningBuild, false);
-    waitForTasksToFinish(Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.FINISHED);
     then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
   }
 
@@ -168,9 +183,12 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     prepareVcs();
     setInternalProperty("teamcity.commitStatusPublisher.enabled", "false");
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.enabled", "true"));
-    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    SRunningBuild runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
     myFixture.finishBuild(runningBuild, false);
-    waitForTasksToFinish(Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.FINISHED);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
   }
 
@@ -181,7 +199,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     myFixture.finishBuild(runningBuild, false);
     myListener.buildFinished(runningBuild);
-    waitForTasksToFinish(Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.FINISHED);
     then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
   }
 
@@ -189,9 +207,12 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.DONT);
     prepareVcs("vcs2", "222", "rev2_2", SetVcsRootIdMode.DONT);
     prepareVcs("vcs3", "333", "rev3_2", SetVcsRootIdMode.DONT);
-    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    SRunningBuild runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
     myFixture.finishBuild(runningBuild, false);
-    waitForTasksToFinish(Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.FINISHED);
     // This documents the current behaviour, i.e. only one QUEUED event received for some reason
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED,
                                                                   Event.STARTED, Event.STARTED, Event.STARTED,
@@ -203,9 +224,12 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.DONT);
     prepareVcs("vcs2", "222", "rev2_2", SetVcsRootIdMode.EXT_ID);
     prepareVcs("vcs3", "333", "rev3_2", SetVcsRootIdMode.DONT);
-    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    SRunningBuild runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
     myFixture.finishBuild(runningBuild, false);
-    waitForTasksToFinish(Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.FINISHED);
     // This documents the current behaviour, i.e. no QUEUED event received
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.STARTED, Event.FINISHED));
     then(myPublisher.successReceived()).isEqualTo(1);
@@ -213,10 +237,13 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_handle_publisher_exception() {
     prepareVcs();
-    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    SRunningBuild runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
     myPublisher.shouldThrowException();
     myFixture.finishBuild(runningBuild, false);
-    waitForTasksToFinish(Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.FINISHED);
     Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
     then(problems.size()).isEqualTo(1);
     SystemProblem problem = problems.iterator().next().getProblem();
@@ -231,7 +258,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     prepareVcs();
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     myFixture.finishBuild(runningBuild, false);
-    waitForTasksToFinish(Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.FINISHED);
     myProblems.reportProblem(myPublisher, "My build", null, null, myLogger);
     Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
     then(problems.size()).isEqualTo(1);
@@ -246,7 +273,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     myPublisher.shouldReportError();
     myFixture.finishBuild(runningBuild, false);
-    waitForTasksToFinish(Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    waitForTasksToFinish(Event.FINISHED);
     myProblems.reportProblem(myPublisher, "My build", null, null, myLogger); // and one more - later
     Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
     then(problems.size()).isEqualTo(4); // Must be 4 in total, neither 1 nor 5
@@ -255,7 +282,10 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_not_publish_additional_status_if_marked_successful() {
     prepareVcs();
-    SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    SRunningBuild runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
     myListener.buildChangedStatus(runningBuild, Status.FAILURE, Status.NORMAL);
     assertIfNoTasks(Event.FAILURE_DETECTED);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
@@ -293,8 +323,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
             "descr2", "user", vcsRootInstance, revNo, revNo));
   }
 
-  private void waitForTasksToFinish(Event eventType, long timeout) {
-    waitFor(() -> myMultiNodeTasks.findFinishedTasks(Collections.singleton(eventType.getName()), Dates.ONE_MINUTE).stream().findAny().isPresent(), timeout);
+  private void waitForTasksToFinish(Event eventType) {
+    waitFor(() -> myMultiNodeTasks.findFinishedTasks(Collections.singleton(eventType.getName()), Dates.ONE_MINUTE).stream().findAny().isPresent(), TASK_COMPLETION_TIMEOUT_MS);
   }
 
   private void assertIfNoTasks(Event eventType) {
