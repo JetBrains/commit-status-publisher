@@ -19,7 +19,7 @@ import java.util.*;
 
 import static org.assertj.core.api.BDDAssertions.then;
 
-@Test(invocationCount = 100)
+@Test
 public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTestBase {
 
   private final long TASK_COMPLETION_TIMEOUT_MS = 3000;
