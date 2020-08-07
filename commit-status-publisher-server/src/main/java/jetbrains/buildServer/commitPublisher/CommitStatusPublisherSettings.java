@@ -62,5 +62,10 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
   void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException;
 
   @Nullable
+  default public String getServerVersion(@NotNull String url) {
+    return null;
+  }
+
+  @Nullable
   KeyStore trustStore();
 }

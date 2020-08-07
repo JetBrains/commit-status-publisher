@@ -4,6 +4,8 @@ import com.google.gson.Gson;
 import java.security.KeyStore;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
@@ -28,6 +30,7 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
   protected final ExecutorServices myExecutorServices;
   protected final CommitStatusPublisherProblems myProblems;
   private final SSLTrustStoreProvider myTrustStoreProvider;
+  private final ConcurrentHashMap<String, TimestampedServerVersion> myServerVersions;
   protected final Gson myGson = new Gson();
 
   public BasePublisherSettings(@NotNull final ExecutorServices executorServices,
@@ -40,6 +43,7 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
     myExecutorServices = executorServices;
     myProblems = problems;
     myTrustStoreProvider = trustStoreProvider;
+    myServerVersions = new ConcurrentHashMap<>();
   }
 
   @Nullable
@@ -101,4 +105,53 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
     return "true".equalsIgnoreCase(buildType.getParameterValue(PARAM_PUBLISH_BUILD_QUEUED_STATUS));
   }
 
+  @Override
+  @Nullable
+  public String getServerVersion(@NotNull String url) {
+    TimestampedServerVersion version = myServerVersions.get(url);
+    if (version != null && !version.isObsolete())
+      return version.get();
+    final String v;
+    try {
+       v = retrieveServerVersion(url);
+    } catch (PublisherException ex) {
+      if (version != null) {
+        // if we failed to retrieve the information, just renew the timestamp of the old one for now
+        myServerVersions.put(url, new TimestampedServerVersion(version.get()));
+        return version.get();
+      }
+      return null;
+    }
+    if (v != null) {
+      version = new TimestampedServerVersion(v);
+      myServerVersions.put(url, version);
+      return v;
+    }
+    return null;
+  }
+
+  @Nullable
+  protected String retrieveServerVersion(@NotNull String url) throws PublisherException {
+    return null;
+  }
+
+  private static class TimestampedServerVersion {
+    final static long EXPIRATION_TIME_MS = TimeUnit.DAYS.toMillis(1);
+    final private String myServerVersion;
+    final private long myTimestamp;
+
+    TimestampedServerVersion(@NotNull String version) {
+      myServerVersion = version;
+      myTimestamp = System.currentTimeMillis();
+    }
+
+    @NotNull
+    String get() {
+      return myServerVersion;
+    }
+
+    boolean isObsolete() {
+      return System.currentTimeMillis() - myTimestamp > EXPIRATION_TIME_MS;
+    }
+  }
 }
