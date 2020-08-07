@@ -8,6 +8,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.util.VersionComparatorUtil;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -104,6 +105,15 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, StashBuildStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
+  }
+
+  // There are two ways in Bitbucket Server to report the build status: the older Build API and a new endpoint in the Core API
+  // We will be using the former if the Bitbucket Server version is below 7.4 or not retrieved by any reason
+  private boolean useBuildAPI(SBuildType buildType) {
+    if (buildType instanceof BuildTypeEx && ((BuildTypeEx)buildType).getBooleanInternalParameter("commitStatusPublisher.enforceDeprecatedAPI"))
+      return true;
+    // NOTE: compare(null, "7.4") < 0
+    return VersionComparatorUtil.compare(getSettings().getServerVersion(getBaseUrl()), "7.4") < 0;
   }
 
   private void vote(@NotNull SBuild build,
