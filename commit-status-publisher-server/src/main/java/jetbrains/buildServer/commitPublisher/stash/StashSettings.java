@@ -3,6 +3,7 @@ package jetbrains.buildServer.commitPublisher.stash;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.stash.data.StashError;
 import jetbrains.buildServer.commitPublisher.stash.data.StashRepoInfo;
+import jetbrains.buildServer.commitPublisher.stash.data.StashServerInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
@@ -16,6 +17,7 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import java.io.IOException;
 import java.util.*;
 
+import static jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT;
 import static jetbrains.buildServer.commitPublisher.stash.StashPublisher.PROP_PUBLISH_QUEUED_BUILD_STATUS;
 
 public class StashSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
@@ -152,6 +154,42 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
   protected boolean isBuildQueuedSupported(final SBuildType buildType, final Map<String, String> params) {
     return TeamCityProperties.getBoolean(PROP_PUBLISH_QUEUED_BUILD_STATUS) || super.isBuildQueuedSupported(buildType, params);
   }
+
+  @Nullable
+  @Override
+  protected String retrieveServerVersion(@NotNull String url) throws PublisherException {
+    try {
+      ServerVersionResponseProcessor processor = new ServerVersionResponseProcessor();
+      HttpHelper.get(url + "/rest/api/1.0/application-properties", null, null, null, DEFAULT_CONNECTION_TIMEOUT, null, processor);
+      return processor.getVersion();
+    } catch (Exception e) {
+      throw new PublisherException("Failed to obtain Bitbucket Server version", e);
+    }
+  }
+
+  private class ServerVersionResponseProcessor extends DefaultHttpResponseProcessor {
+
+    private String myVersion;
+
+    @Nullable
+    String getVersion() {
+      return myVersion;
+    }
+
+    @Override
+    public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+      super.processResponse(response);
+      final String json = response.getContent();
+      if (null == json) {
+        throw new HttpPublisherException("Bitbucket Server publisher has received no response");
+      }
+      StashServerInfo serverInfo = myGson.fromJson(json, StashServerInfo.class);
+      if (null == serverInfo)
+        throw new HttpPublisherException("Bitbucket Server publisher has received a malformed response");
+      myVersion = serverInfo.version;
+    }
+  }
+
 }
 
 
