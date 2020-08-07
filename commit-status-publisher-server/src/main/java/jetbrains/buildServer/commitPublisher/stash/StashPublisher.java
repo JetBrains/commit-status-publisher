@@ -21,6 +21,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   private static final Logger LOG = Logger.getInstance(StashPublisher.class.getName());
   private final Gson myGson = new Gson();
   private final WebLinks myLinks;
+  private final BuildApiEndpoint myBuildApiEndpoint;
 
   StashPublisher(@NotNull CommitStatusPublisherSettings settings,
                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
@@ -29,6 +30,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
                  @NotNull CommitStatusPublisherProblems problems) {
     super(settings, buildType, buildFeatureId, executorServices, params, problems);
     myLinks = links;
+    myBuildApiEndpoint = new BuildApiEndpoint();
   }
 
   @NotNull
@@ -120,36 +122,16 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
                     @NotNull BuildRevision revision,
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) {
-    String msg = createMessage(status, build.getBuildPromotion().getBuildTypeExternalId(), getBuildName(build), myLinks.getViewResultsUrl(build), comment);
-    vote(revision.getRevision(), msg, LogUtil.describe(build));
+    SBuildData data = new SBuildData(build, revision, status, comment);
+    myBuildApiEndpoint.publish(data, LogUtil.describe(build));
   }
 
   private void vote(@NotNull SQueuedBuild build,
                     @NotNull BuildRevision revision,
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) {
-    String msg = createMessage(status, build.getBuildPromotion().getBuildTypeExternalId(), getBuildName(build), myLinks.getQueuedBuildUrl(build), comment);
-    vote(revision.getRevision(), msg, LogUtil.describe(build));
-  }
-
-  @NotNull
-  private String createMessage(@NotNull StashBuildStatus status,
-                               @NotNull String id,
-                               @NotNull String name,
-                               @NotNull String url,
-                               @NotNull String description) {
-    Map<String, String> data = new LinkedHashMap<String, String>();
-    data.put("state", status.toString());
-    data.put("key", id);
-    data.put("name", name);
-    data.put("url", url);
-    data.put("description", description);
-    return myGson.toJson(data);
-  }
-
-  private void vote(@NotNull String commit, @NotNull String data, @NotNull String buildDescription) {
-    String url = getBaseUrl() + "/rest/build-status/1.0/commits/" + commit;
-    post(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, null, buildDescription);
+    SQueuedBuildData data = new SQueuedBuildData(build, revision, status, comment);
+    myBuildApiEndpoint.publish(data, LogUtil.describe(build));
   }
 
   @Override
@@ -187,16 +169,6 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     }
   }
 
-  @NotNull
-  private String getBuildName(@NotNull SBuild build) {
-    return build.getFullName() + " #" + build.getBuildNumber();
-  }
-
-  @NotNull
-  private String getBuildName(@NotNull SQueuedBuild build) {
-    return build.getBuildType().getName();
-  }
-
   private String getBaseUrl() {
     return HttpHelper.stripTrailingSlash(myParams.get(Constants.STASH_BASE_URL));
   }
@@ -208,4 +180,137 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   private String getPassword() {
     return myParams.get(Constants.STASH_PASSWORD);
   }
+
+  private interface StatusData {
+    @NotNull String getCommit();
+    @NotNull String getState();
+    @NotNull String getKey();
+    @NotNull String getName();
+    @NotNull String getUrl();
+    @NotNull String getDescription();
+  }
+
+  private abstract class BaseBuildData implements StatusData {
+    private final String myCommit;
+    private final StashBuildStatus myStatus;
+    private final String myDescription;
+
+    BaseBuildData(@NotNull BuildRevision revision, @NotNull StashBuildStatus status, @NotNull String description) {
+      myCommit = revision.getRevision();
+      myStatus = status;
+      myDescription = description;
+    }
+
+    @NotNull
+    @Override
+    public String getCommit() {
+      return myCommit;
+    }
+
+    @NotNull
+    @Override
+    public String getState() {
+      return myStatus.toString();
+    }
+
+    @NotNull
+    @Override
+    public String getDescription() {
+      return myDescription;
+    }
+  }
+
+  private class SBuildData extends BaseBuildData implements StatusData {
+
+    private final SBuild myBuild;
+
+    SBuildData(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull StashBuildStatus status, @NotNull String description) {
+      super(revision, status, description);
+      myBuild = build;
+    }
+
+    @NotNull
+    @Override
+    public String getKey() {
+      return myBuild.getBuildPromotion().getBuildTypeExternalId();
+    }
+
+    @NotNull
+    @Override
+    public String getName() {
+      return myBuild.getFullName() + " #" + myBuild.getBuildNumber();
+    }
+
+    @NotNull
+    @Override
+    public String getUrl() {
+      return myLinks.getViewResultsUrl(myBuild);
+    }
+  }
+
+  private class SQueuedBuildData extends BaseBuildData implements StatusData {
+
+    private final SQueuedBuild myBuild;
+
+    SQueuedBuildData(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @NotNull StashBuildStatus status, @NotNull String description) {
+      super(revision, status, description);
+      myBuild = build;
+    }
+
+    @NotNull
+    @Override
+    public String getKey() {
+      return myBuild.getBuildPromotion().getBuildTypeExternalId();
+    }
+
+    @NotNull
+    @Override
+    public String getName() {
+      return myBuild.getBuildType().getName();
+    }
+
+    @NotNull
+    @Override
+    public String getUrl() {
+      return myLinks.getQueuedBuildUrl(myBuild);
+    }
+  }
+
+  private interface BuildStatusEndpoint {
+    void publish(@NotNull StatusData data, @NotNull String buildDescription);
+  }
+
+  private abstract class BaseBuildStatusEndpoint implements BuildStatusEndpoint {
+
+    @Override
+    public void publish(@NotNull StatusData data, @NotNull String buildDescription) {
+      post(getEndpointUrl(data), getUsername(), getPassword(), createMessage(data), ContentType.APPLICATION_JSON, null, buildDescription);
+    }
+
+    protected abstract String getEndpointUrl(final StatusData data);
+
+    @NotNull
+    protected abstract String createMessage(@NotNull StatusData data);
+  }
+
+  private class BuildApiEndpoint extends BaseBuildStatusEndpoint implements BuildStatusEndpoint {
+
+    @Override
+    protected String getEndpointUrl(final StatusData data) {
+      return getBaseUrl() + "/rest/build-status/1.0/commits/" + data.getCommit();
+    }
+
+    @NotNull
+    @Override
+    protected String createMessage(@NotNull final StatusData data) {
+      Map<String, String> jsonData = new LinkedHashMap<String, String>();
+      jsonData.put("state", data.getState());
+      jsonData.put("key", data.getKey());
+      jsonData.put("name", data.getName());
+      jsonData.put("url", data.getUrl());
+      jsonData.put("description", data.getDescription());
+      return myGson.toJson(jsonData);
+    }
+  }
+
 }
