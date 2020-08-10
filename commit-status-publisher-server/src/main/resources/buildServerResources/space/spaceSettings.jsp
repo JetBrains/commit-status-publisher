@@ -71,10 +71,10 @@
 </tr>
 
 <tr class="${keys.spaceCredentialsUser}_row">
-  <th><label for="${keys.spaceServiceSecret}">Service secret:<l:star/></label></th>
+  <th><label for="${keys.spaceClientSecret}">Client secret:<l:star/></label></th>
   <td>
-    <props:passwordProperty name="${keys.spaceServiceSecret}" className="longField"/>
-    <span class="error" id="error_${keys.spaceServiceSecret}"></span>
+    <props:passwordProperty name="${keys.spaceClientSecret}" className="longField"/>
+    <span class="error" id="error_${keys.spaceClientSecret}"></span>
   </td>
 </tr>
 
@@ -117,7 +117,7 @@
   var clearCredentialsUserFields = function () {
     $('${keys.spaceServerUrl}').value = '';
     $('${keys.spaceClientId}').value = '';
-    $('${keys.spaceServiceSecret}').value = '';
+    $('${keys.spaceClientSecret}').value = '';
   };
 
   var showCredentialsConnectionFields = function () {

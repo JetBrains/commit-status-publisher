@@ -138,7 +138,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
       if (StringUtil.areEqual(credentialsType, Constants.SPACE_CREDENTIALS_USER)) {
         checkContains(params, Constants.SPACE_SERVER_URL, "JetBrains Space server URL", errors);
         checkContains(params, Constants.SPACE_CLIENT_ID, "Client ID", errors);
-        checkContains(params, Constants.SPACE_SERVICE_SECRET, "Service secret", errors);
+        checkContains(params, Constants.SPACE_CLIENT_SECRET, "Client secret", errors);
       }
 
       checkContains(params, Constants.SPACE_PROJECT_KEY, "Project key", errors);
