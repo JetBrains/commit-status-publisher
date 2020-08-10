@@ -4,6 +4,7 @@ dependencies {
     compile "org.apache.tomcat:tomcat-servlet-api:8.5.32"
     compile 'com.jcraft:jsch:0.1.54'
     compile "org.jetbrains.teamcity:server-api:$rootProject.ext.teamcityVersion"
+    compile "org.jetbrains.teamcity:oauth:$rootProject.ext.teamcityVersion"
     testCompile "org.jetbrains.teamcity:tests-support:$rootProject.ext.teamcityVersion"
     testCompile "jmock:jmock:1.2.0"
     testCompile fileTree(dir: "$rootProject.ext.teamcityTestLibs", include: ['*.jar'])
