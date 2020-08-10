@@ -34,6 +34,9 @@
   <!-- tfs -->
   <bean class="jetbrains.buildServer.commitPublisher.tfs.TfsPublisherSettings"/>
 
+  <!-- space -->
+  <bean class="jetbrains.buildServer.commitPublisher.space.SpaceSettings"/>
+
   <bean class="jetbrains.buildServer.commitPublisher.ServerListener">
     <constructor-arg index="0" ref="configActionsDispatcher"/>
   </bean>
