@@ -15,6 +15,7 @@ import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
+import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -23,9 +24,6 @@ import java.util.*;
 
 public class SpaceSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
-  static final String PROJECT_KEY_FIELD = "project";
-  static final String REPOSITORY_FIELD = "repository";
-  static final String REVISION_FIELD = "revision";
   static final String CHANGES_FIELD = "changes";
   static final String EXECUTION_STATUS_FIELD = "executionStatus";
   static final String BUILD_URL_FIELD = "url";
@@ -34,10 +32,6 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   static final String TASK_ID_FIELD = "taskId";
   static final String TIMESTAMP_FIELD = "timestamp";
   static final String DESCRIPTION_FIELD = "description";
-
-  static private final String ENDPOINT_COMMIT_STATUS_SERVICE = "http_api/CommitStatusService";
-  static final String ENDPOINT_ADD_STATUS = ENDPOINT_COMMIT_STATUS_SERVICE + "/addStatus";
-  static final String ENDPOINT_CHECK_SERVICE = ENDPOINT_COMMIT_STATUS_SERVICE + "/checkService";
 
   private final OAuthConnectionsManager myOAuthConnectionManager;
   private final OAuthTokensStorage myOAuthTokensStorage;
@@ -182,12 +176,19 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
 
     try {
       SpaceToken token = SpaceToken.requestToken(serviceId, serviceSecret, serverUrl, myGson, trustStore());
+      String url = SpaceApiUrls.commitStatusTestConnectionUrl(serverUrl, projectKey);
 
-      HashMap<String, Object> data = new HashMap<>();
-      data.put(PROJECT_KEY_FIELD, SpaceUtils.createProjectKey(projectKey));
+      Map<String, String> headers = new LinkedHashMap<>();
+      headers.put(HttpHeaders.ACCEPT, ContentType.TEXT_PLAIN.getMimeType());
+      token.toHeader(headers);
 
-      HttpHelper.post(String.format("%s/%s", serverUrl, ENDPOINT_CHECK_SERVICE), null, null, myGson.toJson(data), ContentType.APPLICATION_JSON,
-        token.toHeader(), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), new ContentResponseProcessor());
+      IOGuard.allowNetworkCall(() ->
+        HttpHelper.post(
+          url, null, null, null, ContentType.APPLICATION_JSON,
+          headers, BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), new ContentResponseProcessor()
+        )
+      );
+
     } catch (Exception ex) {
       throw new PublisherException("JetBrains Space publisher has failed to test connection", ex);
     }

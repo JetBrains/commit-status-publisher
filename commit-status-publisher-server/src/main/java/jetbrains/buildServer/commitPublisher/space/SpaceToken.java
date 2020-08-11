@@ -5,10 +5,11 @@ import com.google.gson.JsonObject;
 import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.HttpHelper;
 import jetbrains.buildServer.serverSide.IOGuard;
+import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
-
 import java.security.KeyStore;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,8 +43,12 @@ public class SpaceToken {
 
   public Map<String, String> toHeader() {
     Map<String, String> headers = new HashMap<>();
-    headers.put("Authorization", String.format("%s %s", myTokenType, myAccessToken));
+    toHeader(headers);
     return headers;
+  }
+
+  public void toHeader(Map<String, String> headers) {
+    headers.put("Authorization", String.format("%s %s", myTokenType, myAccessToken));
   }
 
   public static SpaceToken requestToken(@NotNull final String serviceId,
@@ -56,8 +61,13 @@ public class SpaceToken {
     final String data = String.format("%s=%s&%s=%s", GRANT_TYPE, CLIENT_CREDENTIALS_GRAND_TYPE, SCOPE, ALL_SCOPE);
     final ContentResponseProcessor contentResponseProcessor = new ContentResponseProcessor();
 
-    IOGuard.allowNetworkCall(() -> HttpHelper.post(urlPost, serviceId, serviceSecret, data, ContentType.APPLICATION_FORM_URLENCODED, null,
-      BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, keyStore, contentResponseProcessor));
+    IOGuard.allowNetworkCall(() ->
+      HttpHelper.post(
+        urlPost, serviceId, serviceSecret, data, ContentType.APPLICATION_FORM_URLENCODED,
+        Collections.singletonMap(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType()),
+        BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, keyStore, contentResponseProcessor
+      )
+    );
 
     return SpaceToken.parseToken(contentResponseProcessor.getContent(), gson);
   }

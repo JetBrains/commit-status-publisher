@@ -10,16 +10,10 @@ import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
-
 import java.util.Map;
 
 public class SpaceUtils {
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
-
-  @NotNull
-  public static String createProjectKey(@NotNull String projectKey) {
-    return "key:" + projectKey.toUpperCase();
-  }
 
   @NotNull
   public static String getRepositoryName(VcsRoot root) throws PublisherException {

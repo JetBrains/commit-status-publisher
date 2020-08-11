@@ -7,13 +7,11 @@ import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
 import jetbrains.buildServer.vcs.VcsModification;
+import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class SpacePublisher extends HttpBasedCommitStatusPublisher {
@@ -88,9 +86,6 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
       .collect(Collectors.toList());
 
     String payload = createPayload(
-      myParams.get(Constants.SPACE_PROJECT_KEY),
-      SpaceUtils.getRepositoryName(revision.getRoot()),
-      revision.getRevision(),
       changes,
       status,
       myLinks.getViewResultsUrl(build),
@@ -110,25 +105,26 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
         getSettings().trustStore()
       );
 
-      publish(payload, token, LogUtil.describe(build));
+      String url = SpaceApiUrls.commitStatusUrl(
+        mySpaceConnector.getFullAddress(),
+        myParams.get(Constants.SPACE_PROJECT_KEY),
+        SpaceUtils.getRepositoryName(revision.getRoot()),
+        revision.getRevision()
+      );
+
+      Map<String, String> headers = new LinkedHashMap<>();
+      headers.put(HttpHeaders.ACCEPT, ContentType.TEXT_PLAIN.getMimeType());
+      token.toHeader(headers);
+
+      post(url, null, null, payload, ContentType.APPLICATION_JSON, headers, LogUtil.describe(build));
     } catch (Exception e) {
       throw new PublisherException("Cannot publish status to Space for VCS root " +
         revision.getRoot().getName() + ": " + e.toString(), e);
     }
   }
 
-
-  private void publish(@NotNull String payload, @NotNull SpaceToken token, @NotNull String buildDescription) {
-    String url = HttpHelper.stripTrailingSlash(mySpaceConnector.getFullAddress()) + "/" + SpaceSettings.ENDPOINT_ADD_STATUS;
-    post(url, null, null, payload, ContentType.APPLICATION_JSON,
-      token.toHeader(), buildDescription);
-  }
-
   @NotNull
-  private String createPayload(@NotNull String projectKey,
-                               @NotNull String repository,
-                               @NotNull String revision,
-                               @NotNull List<String> changes,
+  private String createPayload(@NotNull List<String> changes,
                                @NotNull SpaceBuildStatus executionStatus,
                                @NotNull String url,
                                @NotNull String externalServiceName,
@@ -137,9 +133,6 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
                                Long timestamp,
                                String description) {
     Map<String, Object> data = new HashMap<>();
-    data.put(SpaceSettings.PROJECT_KEY_FIELD, SpaceUtils.createProjectKey(projectKey));
-    data.put(SpaceSettings.REPOSITORY_FIELD, repository);
-    data.put(SpaceSettings.REVISION_FIELD, revision);
     data.put(SpaceSettings.CHANGES_FIELD, changes);
     data.put(SpaceSettings.EXECUTION_STATUS_FIELD, executionStatus.getName());
     data.put(SpaceSettings.BUILD_URL_FIELD, url);
@@ -158,8 +151,10 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
   @Override
   public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException {
     int statusCode = response.getStatusCode();
+    String responseContent = response.getContent();
+
     if (statusCode >= 400) {
-      throw new HttpPublisherException(statusCode, response.getStatusText(), "HTTP response error: " + response.getContent());
+      throw new HttpPublisherException(statusCode, response.getStatusText(), "HTTP response error: " + (responseContent != null ? responseContent : "<empty>"));
     }
   }
 }
