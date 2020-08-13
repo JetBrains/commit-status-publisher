@@ -101,23 +101,20 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
   }
 
   protected void mockRequestHandler(HttpRequest httpRequest, HttpResponse httpResponse, HttpContext httpContext) throws IOException {
-    boolean isPublishingRequest = isPublishingRequest(httpRequest);
-    if (isPublishingRequest) {
-      myLastAgent = httpRequest.getLastHeader("User-Agent").getValue();
-      if (myRespondWithRedirectCode > 0) {
-        setRedirectionResponse(httpRequest, httpResponse);
-        return;
-      }
+    myLastAgent = httpRequest.getLastHeader("User-Agent").getValue();
+    if (myRespondWithRedirectCode > 0) {
+      setRedirectionResponse(httpRequest, httpResponse);
+      return;
+    }
 
-      try {
-        if (myDoNotRespond) {
-          Thread.sleep(SHORT_TIMEOUT_TO_FAIL * 2);
-          return;
-        }
-      } catch (InterruptedException ex) {
-        httpResponse.setStatusCode(500);
+    try {
+      if (myDoNotRespond) {
+        Thread.sleep(SHORT_TIMEOUT_TO_FAIL * 2);
         return;
       }
+    } catch (InterruptedException ex) {
+      httpResponse.setStatusCode(500);
+      return;
     }
     myLastRequest = httpRequest.getRequestLine().toString();
     String requestData = null;
@@ -146,10 +143,6 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
 
   protected String getServerUrl() {
     return "http://localhost:" + String.valueOf(myHttpServer.getLocalPort());
-  }
-
-  protected boolean isPublishingRequest(HttpRequest httpRequest) {
-    return true;
   }
 
   protected void setRedirectionResponse(final HttpRequest httpRequest, final HttpResponse httpResponse) {
