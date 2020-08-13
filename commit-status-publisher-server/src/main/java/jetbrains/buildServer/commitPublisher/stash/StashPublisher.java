@@ -23,7 +23,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   private static final Logger LOG = Logger.getInstance(StashPublisher.class.getName());
   private final Gson myGson = new Gson();
   private final WebLinks myLinks;
-  private final BuildStatusEndpoint myBuildStatusEndpoint;
+  private BuildStatusEndpoint myBuildStatusEndpoint = null;
 
   StashPublisher(@NotNull CommitStatusPublisherSettings settings,
                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
@@ -32,7 +32,6 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
                  @NotNull CommitStatusPublisherProblems problems) {
     super(settings, buildType, buildFeatureId, executorServices, params, problems);
     myLinks = links;
-    myBuildStatusEndpoint = useBuildAPI() ? new BuildApiEndpoint() : new CoreApiEndpoint();
   }
 
   @NotNull
@@ -125,7 +124,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) {
     SBuildData data = new SBuildData(build, revision, status, comment);
-    myBuildStatusEndpoint.publish(data, LogUtil.describe(build));
+    getEndpoint().publish(data, LogUtil.describe(build));
   }
 
   private void vote(@NotNull SQueuedBuild build,
@@ -133,7 +132,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) {
     SQueuedBuildData data = new SQueuedBuildData(build, revision, status, comment);
-    myBuildStatusEndpoint.publish(data, LogUtil.describe(build));
+    getEndpoint().publish(data, LogUtil.describe(build));
   }
 
   @Override
@@ -181,6 +180,12 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   private String getPassword() {
     return myParams.get(Constants.STASH_PASSWORD);
+  }
+
+  private BuildStatusEndpoint getEndpoint() {
+    if (myBuildStatusEndpoint == null)
+      myBuildStatusEndpoint = useBuildAPI() ? new BuildApiEndpoint() : new CoreApiEndpoint();
+    return myBuildStatusEndpoint;
   }
 
   private interface StatusData {
