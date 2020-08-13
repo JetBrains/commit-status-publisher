@@ -16,6 +16,7 @@
       <class name="jetbrains.buildServer.commitPublisher.github.GitHubPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.gitlab.GitlabPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.stash.StashPublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.stash.BitbucketServer74PublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.tfs.TfsPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.tfs.TfsRepositoryInfoTest" />
       <class name="jetbrains.buildServer.commitPublisher.upsource.UpsourcePublisherTest" />
