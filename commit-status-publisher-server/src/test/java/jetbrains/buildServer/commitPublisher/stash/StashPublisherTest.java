@@ -6,6 +6,7 @@ import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.stash.data.StashRepoInfo;
+import jetbrains.buildServer.commitPublisher.stash.data.StashServerInfo;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
@@ -17,13 +18,13 @@ import org.testng.annotations.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * @author anton.zamolotskikh, 05/10/16.
- */
 @Test
 public class StashPublisherTest extends HttpPublisherTest {
 
+  private String myServerVersion;
+
   public StashPublisherTest() {
+    myServerVersion = "6.0";
     myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.REMOVED, null);  // not to be tested
     myExpectedRegExps.put(EventToTest.STARTED, String.format(".*build-status/.*/commits/%s.*ENTITY:.*INPROGRESS.*Build started.*", REVISION));
@@ -90,7 +91,12 @@ public class StashPublisherTest extends HttpPublisherTest {
 
   @Override
   protected boolean respondToGet(String url, HttpResponse httpResponse) {
-    if (url.endsWith(OWNER + "/repos/" + CORRECT_REPO)) {
+    if (url.endsWith("/rest/api/1.0/application-properties")) {
+      StashServerInfo info = new StashServerInfo();
+      info.version = myServerVersion;
+      info.displayName = "Bitbucket Server";
+      httpResponse.setEntity(new StringEntity(new Gson().toJson(info), "UTF-8"));
+    } else if (url.endsWith(OWNER + "/repos/" + CORRECT_REPO)) {
       respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
     } else if (url.endsWith(OWNER + "/repos/" + READ_ONLY_REPO)) {
       respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false);
