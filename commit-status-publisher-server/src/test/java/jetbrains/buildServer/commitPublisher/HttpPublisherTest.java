@@ -89,38 +89,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
                                                .registerHandler("/*", new HttpRequestHandler() {
                                                  @Override
                                                  public void handle(HttpRequest httpRequest, HttpResponse httpResponse, HttpContext httpContext) throws IOException {
-                                                   boolean isPublishingRequest = isPublishingRequest(httpRequest);
-                                                   if (isPublishingRequest) {
-                                                     myLastAgent = httpRequest.getLastHeader("User-Agent").getValue();
-                                                     if (myRespondWithRedirectCode > 0) {
-                                                       setRedirectionResponse(httpRequest, httpResponse);
-                                                       return;
-                                                     }
-
-                                                     try {
-                                                       if (myDoNotRespond) {
-                                                         Thread.sleep(SHORT_TIMEOUT_TO_FAIL * 2);
-                                                         return;
-                                                       }
-                                                     } catch (InterruptedException ex) {
-                                                       httpResponse.setStatusCode(500);
-                                                       return;
-                                                     }
-                                                   }
-                                                   myLastRequest = httpRequest.getRequestLine().toString();
-                                                   String requestData = null;
-                                                   if (httpRequest instanceof HttpEntityEnclosingRequest) {
-                                                     HttpEntity entity = ((HttpEntityEnclosingRequest) httpRequest).getEntity();
-                                                     InputStream is = entity.getContent();
-                                                     requestData = StreamUtil.readText(is);
-                                                     myLastRequest += "\tENTITY: " + requestData;
-                                                     httpResponse.setStatusCode(201);
-                                                   } else {
-                                                     httpResponse.setStatusCode(200);
-                                                   }
-                                                   if(!populateResponse(httpRequest, requestData, httpResponse)) {
-                                                     myLastRequest = "HTTP error: " + httpResponse.getStatusLine();
-                                                   }
+                                                   mockRequestHandler(httpRequest, httpResponse, httpContext);
                                                  }
                                                });
 
@@ -129,6 +98,41 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
     myVcsURL = getServerUrl() + "/" + OWNER + "/" + CORRECT_REPO;
     myReadOnlyVcsURL = getServerUrl()  + "/" + OWNER + "/" + READ_ONLY_REPO;
     super.setUp();
+  }
+
+  protected void mockRequestHandler(HttpRequest httpRequest, HttpResponse httpResponse, HttpContext httpContext) throws IOException {
+    boolean isPublishingRequest = isPublishingRequest(httpRequest);
+    if (isPublishingRequest) {
+      myLastAgent = httpRequest.getLastHeader("User-Agent").getValue();
+      if (myRespondWithRedirectCode > 0) {
+        setRedirectionResponse(httpRequest, httpResponse);
+        return;
+      }
+
+      try {
+        if (myDoNotRespond) {
+          Thread.sleep(SHORT_TIMEOUT_TO_FAIL * 2);
+          return;
+        }
+      } catch (InterruptedException ex) {
+        httpResponse.setStatusCode(500);
+        return;
+      }
+    }
+    myLastRequest = httpRequest.getRequestLine().toString();
+    String requestData = null;
+    if (httpRequest instanceof HttpEntityEnclosingRequest) {
+      HttpEntity entity = ((HttpEntityEnclosingRequest) httpRequest).getEntity();
+      InputStream is = entity.getContent();
+      requestData = StreamUtil.readText(is);
+      myLastRequest += "\tENTITY: " + requestData;
+      httpResponse.setStatusCode(201);
+    } else {
+      httpResponse.setStatusCode(200);
+    }
+    if(!populateResponse(httpRequest, requestData, httpResponse)) {
+      myLastRequest = "HTTP error: " + httpResponse.getStatusLine();
+    }
   }
 
   protected void setPublisherTimeout(int timeout) {
