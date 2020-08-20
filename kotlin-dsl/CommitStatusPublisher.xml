@@ -205,6 +205,36 @@
                     </description>
                 </param>
             </option>
+            <option name="space" value="spaceStatusPublisher">
+                <description>
+                    Publish status to JetBrains Space
+                </description>
+                <param name="spaceCredentialsType" dslName="authType" type="compound">
+                    <description>
+                        Type of authentication
+                    </description>
+                    <option name="connection" value="spaceCredentialsConnection">
+                        <description>
+                            Authentication using JetBrains Space Connection
+                        </description>
+                        <param name="spaceConnectionId" dslName="connectionId" mandatory="true">
+                            <description>
+                                JetBrains Space Connection project feature ID
+                            </description>
+                        </param>
+                    </option>
+                </param>
+                <param name="spaceProjectKey" dslName="projectKey" mandatory="true">
+                    <description>
+                        JetBrains Space Project Key
+                    </description>
+                </param>
+                <param name="spaceCommitStatusPublisherDisplayName" dslName="displayName" mandatory="true">
+                    <description>
+                        Display name
+                    </description>
+                </param>
+          </option>
         </param>
     </params>
 </dsl-extension>
