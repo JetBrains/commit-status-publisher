@@ -207,14 +207,4 @@
             </option>
         </param>
     </params>
-    <types>
-        <enum name="FileEncoding">
-            <option name="AUTODETECT" value="autodetect"/>
-            <option name="ASCII" value="US-ASCII"/>
-            <option name="UTF_8" value="UTF-8"/>
-            <option name="UTF_16BE" value="UTF-16BE"/>
-            <option name="UTF_16LE" value="UTF-16LE"/>
-            <option name="CUSTOM" value="custom"/>
-        </enum>
-    </types>
 </dsl-extension>
