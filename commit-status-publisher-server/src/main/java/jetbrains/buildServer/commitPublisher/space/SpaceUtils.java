@@ -54,9 +54,6 @@ public class SpaceUtils {
         }
         return new SpaceConnectDescriber(oAuthConnectionDescriptor);
 
-      case Constants.SPACE_CREDENTIALS_USER:
-        return new SpaceConnectDescriber(params);
-
       default:
         throw new IllegalArgumentException("Incorrect JetBrains Space credentials type");
 

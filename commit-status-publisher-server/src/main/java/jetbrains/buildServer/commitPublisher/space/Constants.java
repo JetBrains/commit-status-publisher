@@ -16,7 +16,6 @@ public class Constants {
   public static final String SPACE_CONNECTION_ID = "spaceConnectionId";
   public static final String SPACE_CREDENTIALS_TYPE = "spaceCredentialsType";
   public static final String SPACE_CREDENTIALS_CONNECTION = "spaceCredentialsConnection";
-  public static final String SPACE_CREDENTIALS_USER = "spaceCredentialsUser";
 
   @NotNull
   public String getSpacePublisherId() {
@@ -61,8 +60,4 @@ public class Constants {
     return SPACE_CREDENTIALS_CONNECTION;
   }
 
-  @NotNull
-  public String getSpaceCredentialsUser() {
-    return SPACE_CREDENTIALS_USER;
-  }
 }

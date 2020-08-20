@@ -94,15 +94,6 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
         case Constants.SPACE_CREDENTIALS_CONNECTION:
           sb.append(" using JetBrains Space connection");
           break;
-
-        case Constants.SPACE_CREDENTIALS_USER:
-          String serverUrl = params.get(Constants.SPACE_SERVER_URL);
-          if (serverUrl != null) {
-            sb.append(": ");
-            sb.append(WebUtil.escapeXml(serverUrl));
-
-          }
-          break;
       }
     }
 
@@ -128,13 +119,6 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
       if (StringUtil.areEqual(credentialsType, Constants.SPACE_CREDENTIALS_CONNECTION)) {
         checkContains(params, Constants.SPACE_CONNECTION_ID, "JetBrains Space connection", errors);
       }
-
-      if (StringUtil.areEqual(credentialsType, Constants.SPACE_CREDENTIALS_USER)) {
-        checkContains(params, Constants.SPACE_SERVER_URL, "JetBrains Space server URL", errors);
-        checkContains(params, Constants.SPACE_CLIENT_ID, "Client ID", errors);
-        checkContains(params, Constants.SPACE_CLIENT_SECRET, "Client secret", errors);
-      }
-
       checkContains(params, Constants.SPACE_PROJECT_KEY, "Project key", errors);
       checkContains(params, Constants.SPACE_COMMIT_STATUS_PUBLISHER_DISPLAY_NAME, "Commit status publisher display name", errors);
       return errors;
