@@ -47,12 +47,12 @@
   </td>
 </tr>
 
-<tr>
+<tr class="advancedSetting">
   <th><label for="${keys.spaceCommitStatusPublisherDisplayName}">Commit status publisher display
-    name:<l:star/></label></th>
+    name:</label></th>
   <td>
     <props:textProperty name="${keys.spaceCommitStatusPublisherDisplayName}" className="mediumField"/>
-    <span class="smallNote">This name will be displayed for this service in Space UI</span>
+    <span class="smallNote">If provided this name will be displayed for this service in Space UI. The default display name is "TeamCity".</span>
     <span class="error" id="error_${keys.spaceCommitStatusPublisherDisplayName}"></span>
     <c:if test="${testConnectionSupported}">
       <script>

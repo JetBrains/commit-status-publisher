@@ -17,6 +17,8 @@ public class Constants {
   public static final String SPACE_CREDENTIALS_TYPE = "spaceCredentialsType";
   public static final String SPACE_CREDENTIALS_CONNECTION = "spaceCredentialsConnection";
 
+  public static final String SPACE_DEFAULT_DISPLAY_NAME = "TeamCity";
+
   @NotNull
   public String getSpacePublisherId() {
     return SPACE_PUBLISHER_ID;

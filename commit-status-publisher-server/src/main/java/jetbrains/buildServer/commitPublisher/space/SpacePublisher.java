@@ -89,7 +89,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
       changes,
       status,
       myLinks.getViewResultsUrl(build),
-      myParams.get(Constants.SPACE_COMMIT_STATUS_PUBLISHER_DISPLAY_NAME),
+      SpaceSettings.getDisplayName(myParams),
       build.getFullName(),
       build.getBuildTypeExternalId(),
       (finishDate == null ? build.getServerStartDate() : finishDate).getTime(),

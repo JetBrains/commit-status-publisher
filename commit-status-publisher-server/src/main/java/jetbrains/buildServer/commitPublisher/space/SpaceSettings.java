@@ -98,7 +98,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     }
 
     String projectKey = params.get(Constants.SPACE_PROJECT_KEY);
-    String publisherDisplayName = params.get(Constants.SPACE_COMMIT_STATUS_PUBLISHER_DISPLAY_NAME);
+    String publisherDisplayName = getDisplayName(params);
     sb.append("\nProject key: ");
     sb.append(WebUtil.escapeXml(projectKey));
     sb.append("\nPublisher display name: ");
@@ -120,7 +120,6 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
         checkContains(params, Constants.SPACE_CONNECTION_ID, "JetBrains Space connection", errors);
       }
       checkContains(params, Constants.SPACE_PROJECT_KEY, "Project key", errors);
-      checkContains(params, Constants.SPACE_COMMIT_STATUS_PUBLISHER_DISPLAY_NAME, "Commit status publisher display name", errors);
       return errors;
     };
   }
@@ -194,5 +193,11 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     }
 
     return connections;
+  }
+
+  @NotNull
+  static String getDisplayName(@NotNull Map<String, String> params) {
+    String displayName = params.get(Constants.SPACE_COMMIT_STATUS_PUBLISHER_DISPLAY_NAME);
+    return displayName == null ? Constants.SPACE_DEFAULT_DISPLAY_NAME : displayName;
   }
 }
