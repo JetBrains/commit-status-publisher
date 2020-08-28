@@ -72,9 +72,9 @@ public class SpaceToken {
     return SpaceToken.parseToken(contentResponseProcessor.getContent(), gson);
   }
 
-  private static SpaceToken parseToken(String token, Gson gson) throws Exception {
+  private static SpaceToken parseToken(@NotNull String token, @NotNull Gson gson) throws Exception {
     JsonObject jsonObject = gson.fromJson(token, JsonObject.class);
-    if (!jsonObject.has(TOKEN_TYPE_FIELD_NAME) || !jsonObject.has(ACCESS_TOKEN_FIELD_NAME)) {
+    if (jsonObject == null || !jsonObject.has(TOKEN_TYPE_FIELD_NAME) || !jsonObject.has(ACCESS_TOKEN_FIELD_NAME)) {
       throw new Exception(String.format("Response body must contains `%s` and `%s` fields. Response body: %s", TOKEN_TYPE_FIELD_NAME, ACCESS_TOKEN_FIELD_NAME, token));
     }
     return new SpaceToken(jsonObject.get(TOKEN_TYPE_FIELD_NAME).getAsString(), jsonObject.get(ACCESS_TOKEN_FIELD_NAME).getAsString());
