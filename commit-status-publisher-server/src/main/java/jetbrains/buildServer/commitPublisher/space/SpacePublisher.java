@@ -96,8 +96,10 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
       description
     );
 
+    SpaceToken token;
+    String buildDescription = LogUtil.describe(build);
     try {
-      SpaceToken token = SpaceToken.requestToken(
+      token = SpaceToken.requestToken(
         mySpaceConnector.getServiceId(),
         mySpaceConnector.getServiceSecret(),
         mySpaceConnector.getFullAddress(),
@@ -105,23 +107,23 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
         myGson,
         getSettings().trustStore()
       );
-
-      String url = SpaceApiUrls.commitStatusUrl(
-        mySpaceConnector.getFullAddress(),
-        myParams.get(Constants.SPACE_PROJECT_KEY),
-        SpaceUtils.getRepositoryName(revision.getRoot()),
-        revision.getRevision()
-      );
-
-      Map<String, String> headers = new LinkedHashMap<>();
-      headers.put(HttpHeaders.ACCEPT, ContentType.TEXT_PLAIN.getMimeType());
-      token.toHeader(headers);
-
-      post(url, null, null, payload, ContentType.APPLICATION_JSON, headers, LogUtil.describe(build));
     } catch (Exception e) {
-      throw new PublisherException("Cannot publish status to Space for VCS root " +
-        revision.getRoot().getName() + ": " + e.toString(), e);
+      myProblems.reportProblem("Commit Status Publisher has failed to obtain a token from JetBrains Space for VCS root " + revision.getRoot().getName(), this, buildDescription, null, e, LOG);
+      return;
     }
+
+    String url = SpaceApiUrls.commitStatusUrl(
+      mySpaceConnector.getFullAddress(),
+      myParams.get(Constants.SPACE_PROJECT_KEY),
+      SpaceUtils.getRepositoryName(revision.getRoot()),
+      revision.getRevision()
+    );
+
+    Map<String, String> headers = new LinkedHashMap<>();
+    headers.put(HttpHeaders.ACCEPT, ContentType.TEXT_PLAIN.getMimeType());
+    token.toHeader(headers);
+
+    post(url, null, null, payload, ContentType.APPLICATION_JSON, headers, buildDescription);
   }
 
   @NotNull

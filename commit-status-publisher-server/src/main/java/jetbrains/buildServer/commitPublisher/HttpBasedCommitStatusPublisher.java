@@ -15,7 +15,7 @@ import java.util.concurrent.Future;
 
 public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPublisher implements HttpResponseProcessor {
 
-  private static final Logger LOG = Logger.getInstance(HttpBasedCommitStatusPublisher.class.getName());
+  protected static final Logger LOG = Logger.getInstance(HttpBasedCommitStatusPublisher.class.getName());
   private final ExecutorServices myExecutorServices;
   private final HttpResponseProcessor myHttpResponseProcessor;
 
