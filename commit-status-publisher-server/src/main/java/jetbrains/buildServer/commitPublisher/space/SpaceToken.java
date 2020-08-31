@@ -2,7 +2,6 @@ package jetbrains.buildServer.commitPublisher.space;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.HttpHelper;
 import jetbrains.buildServer.serverSide.IOGuard;
 import org.apache.http.HttpHeaders;
