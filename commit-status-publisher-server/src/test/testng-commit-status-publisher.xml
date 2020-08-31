@@ -20,6 +20,7 @@
       <class name="jetbrains.buildServer.commitPublisher.tfs.TfsPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.tfs.TfsRepositoryInfoTest" />
       <class name="jetbrains.buildServer.commitPublisher.upsource.UpsourcePublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.space.SpacePublisherTest" />
     </classes>
   </test>
 </suite>
