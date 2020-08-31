@@ -38,10 +38,11 @@
   </td>
 </tr>
 
-<tr>
-  <th><label for="${keys.spaceProjectKey}">Space Project key:<l:star/></label></th>
+<tr class="advancedSetting">
+  <th><label for="${keys.spaceProjectKey}">Space Project key:</label></th>
   <td>
     <props:textProperty name="${keys.spaceProjectKey}" className="mediumField"/>
+    <span class="smallNote">If not provided the project key will be extracted from the fetch URL of the respective VCS root</span>
     <span class="smallNote">Project key from JetBrains Space</span>
     <span class="error" id="error_${keys.spaceProjectKey}"></span>
   </td>

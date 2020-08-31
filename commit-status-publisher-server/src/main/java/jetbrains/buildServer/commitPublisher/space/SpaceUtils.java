@@ -11,32 +11,36 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import java.util.Map;
+import org.jetbrains.annotations.Nullable;
 
 public class SpaceUtils {
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
   @NotNull
-  public static String getRepositoryName(VcsRoot root) throws PublisherException {
+  public static Repository getRepositoryInfo(@NotNull VcsRoot root, @Nullable String projectKey) throws PublisherException {
     String url = root.getProperty("url");
     if (null == url) {
       throw new PublisherException("Cannot parse repository URL from VCS root (url not present) " + root.getName());
     }
 
     Repository repo = VCS_URL_PARSER.parseRepositoryUrl(url);
-    String repoName;
-    if (null == repo) {
-      url = StringUtil.removeTailingSlash(url);
-      url = StringUtil.removeSuffix(url, ".git", true);
-      int lastSlash = url.lastIndexOf('/');
-      if (lastSlash == -1) {
-        throw new PublisherException("Cannot parse repository URL from VCS root (incorrect format) " + root.getName());
-      }
-      repoName = url.substring(lastSlash + 1);
-    } else {
-      repoName = repo.repositoryName();
+    if (repo != null) {
+      if(StringUtil.isEmpty(projectKey))
+        return repo;
+      return new Repository(url, projectKey, repo.repositoryName());
     }
 
-    return repoName;
+    url = StringUtil.removeTailingSlash(url);
+    url = StringUtil.removeSuffix(url, ".git", true);
+    int lastSlash = url.lastIndexOf('/');
+    if (lastSlash == -1) {
+      throw new PublisherException("Cannot parse repository URL from VCS root (incorrect format) " + root.getName());
+    }
+    String repoName = url.substring(lastSlash + 1);
+    if (!StringUtil.isEmpty(projectKey)) {
+      return new Repository(url, projectKey, repoName);
+    }
+    throw new PublisherException("A project key is neither provided nor can be derived from the repository URL " + url);
   }
 
   @NotNull

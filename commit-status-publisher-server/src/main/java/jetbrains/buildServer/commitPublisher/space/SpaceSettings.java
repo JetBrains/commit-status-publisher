@@ -101,11 +101,12 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
 
     String projectKey = params.get(Constants.SPACE_PROJECT_KEY);
     String publisherDisplayName = getDisplayName(params);
-    sb.append("\nProject key: ");
-    sb.append(WebUtil.escapeXml(projectKey));
+    if (!StringUtil.isEmpty(projectKey)) {
+      sb.append("\nProject key: ");
+      sb.append(WebUtil.escapeXml(projectKey));
+    }
     sb.append("\nPublisher display name: ");
     sb.append(WebUtil.escapeXml(publisherDisplayName));
-
     return sb.toString();
   }
 
@@ -121,7 +122,6 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
       if (StringUtil.areEqual(credentialsType, Constants.SPACE_CREDENTIALS_CONNECTION)) {
         checkContains(params, Constants.SPACE_CONNECTION_ID, "JetBrains Space connection", errors);
       }
-      checkContains(params, Constants.SPACE_PROJECT_KEY, "Project key", errors);
       return errors;
     };
   }
@@ -155,13 +155,11 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     String serviceId = connector.getServiceId();
     String serviceSecret = connector.getServiceSecret();
 
-    String projectKey = params.get(Constants.SPACE_PROJECT_KEY);
-    if (null == projectKey)
-      throw new PublisherException("Missing JetBrains Space project key");
+    Repository repository = SpaceUtils.getRepositoryInfo(root, params.get(Constants.SPACE_PROJECT_KEY));
 
     try {
       SpaceToken token = SpaceToken.requestToken(serviceId, serviceSecret, serverUrl, DEFAULT_CONNECTION_TIMEOUT, myGson, trustStore());
-      String url = SpaceApiUrls.commitStatusTestConnectionUrl(serverUrl, projectKey);
+      String url = SpaceApiUrls.commitStatusTestConnectionUrl(serverUrl, repository.owner());
 
       Map<String, String> headers = new LinkedHashMap<>();
       headers.put(HttpHeaders.ACCEPT, ContentType.TEXT_PLAIN.getMimeType());

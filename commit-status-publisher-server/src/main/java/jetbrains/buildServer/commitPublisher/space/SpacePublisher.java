@@ -112,10 +112,12 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
       return;
     }
 
+    Repository repoInfo= SpaceUtils.getRepositoryInfo(revision.getRoot(), myParams.get(Constants.SPACE_PROJECT_KEY));
+
     String url = SpaceApiUrls.commitStatusUrl(
       mySpaceConnector.getFullAddress(),
-      myParams.get(Constants.SPACE_PROJECT_KEY),
-      SpaceUtils.getRepositoryName(revision.getRoot()),
+      repoInfo.owner(),
+      repoInfo.repositoryName(),
       revision.getRevision()
     );
 
