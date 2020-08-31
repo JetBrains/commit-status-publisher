@@ -52,7 +52,7 @@
 </c:if>
 
 <tr class="advancedSetting">
-  <th><label for="${keys.spaceCommitStatusPublisherDisplayName}">Commit status publisher display
+  <th><label for="${keys.spaceCommitStatusPublisherDisplayName}">Display
     name:</label></th>
   <td>
     <props:textProperty name="${keys.spaceCommitStatusPublisherDisplayName}" className="mediumField"/>
