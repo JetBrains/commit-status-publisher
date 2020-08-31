@@ -54,7 +54,7 @@ public class SpaceToken {
   public static SpaceToken requestToken(@NotNull final String serviceId,
                                         @NotNull final String serviceSecret,
                                         @NotNull final String spaceUrl,
-                                        @NotNull Gson gson,
+                                        int connectionTimeout, @NotNull Gson gson,
                                         final KeyStore keyStore) throws Exception {
 
     final String urlPost = HttpHelper.stripTrailingSlash(spaceUrl) + "/" + JWT_TOKEN_ENDPOINT;
@@ -65,7 +65,7 @@ public class SpaceToken {
       HttpHelper.post(
         urlPost, serviceId, serviceSecret, data, ContentType.APPLICATION_FORM_URLENCODED,
         Collections.singletonMap(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType()),
-        BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, keyStore, contentResponseProcessor
+        connectionTimeout, keyStore, contentResponseProcessor
       )
     );
 

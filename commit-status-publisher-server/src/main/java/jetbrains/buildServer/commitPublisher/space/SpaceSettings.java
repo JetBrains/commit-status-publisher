@@ -22,6 +22,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
+import static jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT;
+
 public class SpaceSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
   static final String CHANGES_FIELD = "changes";
@@ -158,7 +160,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
       throw new PublisherException("Missing JetBrains Space project key");
 
     try {
-      SpaceToken token = SpaceToken.requestToken(serviceId, serviceSecret, serverUrl, myGson, trustStore());
+      SpaceToken token = SpaceToken.requestToken(serviceId, serviceSecret, serverUrl, DEFAULT_CONNECTION_TIMEOUT, myGson, trustStore());
       String url = SpaceApiUrls.commitStatusTestConnectionUrl(serverUrl, projectKey);
 
       Map<String, String> headers = new LinkedHashMap<>();
@@ -168,7 +170,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
       IOGuard.allowNetworkCall(() ->
         HttpHelper.post(
           url, null, null, null, ContentType.APPLICATION_JSON,
-          headers, BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), new ContentResponseProcessor()
+          headers, DEFAULT_CONNECTION_TIMEOUT, trustStore(), new ContentResponseProcessor()
         )
       );
 

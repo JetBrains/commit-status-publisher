@@ -62,7 +62,7 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     return false;
   }
 
-  int getConnectionTimeout() {
+  protected int getConnectionTimeout() {
     return myConnectionTimeout;
   }
 

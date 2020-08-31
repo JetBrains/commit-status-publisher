@@ -101,6 +101,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
         mySpaceConnector.getServiceId(),
         mySpaceConnector.getServiceSecret(),
         mySpaceConnector.getFullAddress(),
+        getConnectionTimeout(),
         myGson,
         getSettings().trustStore()
       );
