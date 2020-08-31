@@ -8,6 +8,7 @@
 <%@ taglib prefix="forms" tagdir="/WEB-INF/tags/forms" %>
 <%@ taglib prefix="bs" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
+<%@ taglib prefix="intprop" uri="/WEB-INF/functions/intprop"%>
 <jsp:useBean id="propertiesBean" scope="request" type="jetbrains.buildServer.controllers.BasePropertiesBean"/>
 <jsp:useBean id="project" scope="request" type="jetbrains.buildServer.serverSide.SProject"/>
 <jsp:useBean id="oauthConnections" scope="request" type="java.util.Map"/>
@@ -38,6 +39,7 @@
   </td>
 </tr>
 
+<c:if test="${intprop:getBoolean('teamcity.commitStatusPublisher.space.ui.projectKey.enabled')}">
 <tr class="advancedSetting">
   <th><label for="${keys.spaceProjectKey}">Space Project key:</label></th>
   <td>
@@ -47,6 +49,7 @@
     <span class="error" id="error_${keys.spaceProjectKey}"></span>
   </td>
 </tr>
+</c:if>
 
 <tr class="advancedSetting">
   <th><label for="${keys.spaceCommitStatusPublisherDisplayName}">Commit status publisher display
