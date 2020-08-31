@@ -15,14 +15,14 @@ import java.util.Map;
 
 public class SpaceToken {
 
-  private static final String TOKEN_TYPE_FIELD_NAME = "token_type";
-  private static final String ACCESS_TOKEN_FIELD_NAME = "access_token";
+  static final String TOKEN_TYPE_FIELD_NAME = "token_type";
+  static final String ACCESS_TOKEN_FIELD_NAME = "access_token";
 
-  private static final String JWT_TOKEN_ENDPOINT = "oauth/token";
-  private static final String GRANT_TYPE = "grant_type";
-  private static final String CLIENT_CREDENTIALS_GRAND_TYPE = "client_credentials";
-  private static final String SCOPE = "scope";
-  private static final String ALL_SCOPE = "**";
+  static final String JWT_TOKEN_ENDPOINT = "oauth/token";
+  static final String GRANT_TYPE = "grant_type";
+  static final String CLIENT_CREDENTIALS_GRAND_TYPE = "client_credentials";
+  static final String SCOPE = "scope";
+  static final String ALL_SCOPE = "**";
 
   private final String myTokenType;
   private final String myAccessToken;
