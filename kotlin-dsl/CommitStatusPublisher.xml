@@ -224,12 +224,12 @@
                         </param>
                     </option>
                 </param>
-                <param name="spaceProjectKey" dslName="projectKey" mandatory="true">
+                <param name="spaceProjectKey" dslName="projectKey">
                     <description>
                         JetBrains Space Project Key
                     </description>
                 </param>
-                <param name="spaceCommitStatusPublisherDisplayName" dslName="displayName" mandatory="true">
+                <param name="spaceCommitStatusPublisherDisplayName" dslName="displayName">
                     <description>
                         Display name
                     </description>
