@@ -2,7 +2,6 @@ package jetbrains.buildServer.commitPublisher.tfs;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-import com.intellij.openapi.diagnostic.Logger;
 import java.security.KeyStore;
 import java.util.concurrent.atomic.AtomicReference;
 import jetbrains.buildServer.commitPublisher.*;
@@ -22,12 +21,12 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 /**
  * Updates TFS Git commit statuses via REST API.
  */
 class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
-  private static final Logger LOG = Logger.getInstance(TfsStatusPublisher.class.getName());
   private static final String COMMITS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits?api-version=1.0&$top=1";
   private static final String COMMIT_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits/{3}?api-version=1.0";
   private static final String COMMIT_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits/{3}/statuses?api-version=2.1";

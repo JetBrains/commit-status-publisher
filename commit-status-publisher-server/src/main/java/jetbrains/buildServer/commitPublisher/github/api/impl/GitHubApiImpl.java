@@ -17,7 +17,6 @@
 package jetbrains.buildServer.commitPublisher.github.api.impl;
 
 import com.google.gson.Gson;
-import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import jetbrains.buildServer.commitPublisher.PublisherException;
@@ -41,6 +40,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.apache.http.HttpVersion.HTTP_1_1;
+import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
 
 /**
  * @author Eugene Petrenko (eugene.petrenko@gmail.com)
@@ -48,7 +48,6 @@ import static org.apache.http.HttpVersion.HTTP_1_1;
  *         Date: 05.09.12 23:39
  */
 public abstract class GitHubApiImpl implements GitHubApi {
-  private static final Logger LOG = Logger.getInstance(GitHubApiImpl.class.getName());
   private static final Pattern PULL_REQUEST_BRANCH = Pattern.compile("/?refs/pull/(\\d+)/(.*)");
   private static final String MSG_PROXY_OR_PERMISSIONS = "Please check if the error is not returned by a proxy or caused by the lack of permissions.";
 

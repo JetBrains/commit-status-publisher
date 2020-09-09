@@ -1,6 +1,5 @@
 package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
-import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.GitRepositoryParser;
 import jetbrains.buildServer.commitPublisher.Repository;
 import jetbrains.buildServer.vcs.VcsRoot;
@@ -12,8 +11,9 @@ import java.net.URL;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
+
 class BitbucketCloudRepositoryParser {
-  private static final Logger LOG = Logger.getInstance(BitbucketCloudRepositoryParser.class.getName());
   private static final Pattern SSH_PATTERN = Pattern.compile("ssh://hg@bitbucket.org/([^/]+)/(.+)");
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser(true);
 

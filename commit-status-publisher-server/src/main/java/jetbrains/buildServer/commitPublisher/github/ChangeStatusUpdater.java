@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.commitPublisher.github;
 
-import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.*;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
@@ -32,14 +31,14 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.Lock;
+
+import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
 
 /**
  * Created by Eugene Petrenko (eugene.petrenko@gmail.com)
  * Date: 06.09.12 3:29
  */
 public class ChangeStatusUpdater {
-  private static final Logger LOG = Logger.getInstance(ChangeStatusUpdater.class.getName());
   private static final UpdateChangesConstants C = new UpdateChangesConstants();
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 

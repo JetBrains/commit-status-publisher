@@ -1,11 +1,15 @@
 package jetbrains.buildServer.commitPublisher;
 
+import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public interface CommitStatusPublisher {
+
+  public static final String LOG_CATEGORY = "jetbrains.buildServer.COMMIT_STATUS";
+  public static final Logger LOG = Logger.getInstance(LOG_CATEGORY);
 
   boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException;
 

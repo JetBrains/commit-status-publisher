@@ -1,6 +1,5 @@
 package jetbrains.buildServer.commitPublisher.tfs;
 
-import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.serverSide.*;
@@ -16,15 +15,15 @@ import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
 import java.util.*;
+
+import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
 
 /**
  * Settings for TFS Git commit status publisher.
  */
 public class TfsPublisherSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
-  private static final Logger LOG = Logger.getInstance(TfsPublisherSettings.class.getName());
   private final OAuthConnectionsManager myOauthConnectionsManager;
   private final OAuthTokensStorage myOAuthTokensStorage;
   private final SecurityContext mySecurityContext;

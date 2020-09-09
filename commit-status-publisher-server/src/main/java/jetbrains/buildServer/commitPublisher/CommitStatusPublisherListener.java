@@ -1,7 +1,6 @@
 package jetbrains.buildServer.commitPublisher;
 
 import com.google.common.util.concurrent.Striped;
-import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.Lock;
@@ -22,9 +21,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
+import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
+
 public class CommitStatusPublisherListener extends BuildServerAdapter {
 
-  private final static Logger LOG = Logger.getInstance(CommitStatusPublisherListener.class.getName());
   private final static String PUBLISHING_ENABLED_PROPERTY_NAME = "teamcity.commitStatusPublisher.enabled";
   private final static int MAX_LAST_EVENTS_TO_REMEMBER = 1000;
 

@@ -1,6 +1,5 @@
 package jetbrains.buildServer.commitPublisher;
 
-import com.intellij.openapi.diagnostic.Logger;
 import java.util.*;
 import jetbrains.buildServer.controllers.*;
 import jetbrains.buildServer.controllers.admin.projects.EditBuildTypeFormFactory;
@@ -21,12 +20,13 @@ import org.springframework.web.servlet.ModelAndView;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
+
 public class PublisherSettingsController extends BaseController {
 
   private final String myUrl;
   private final PublisherManager myPublisherManager;
   private final ProjectManager myProjectManager;
-  private final static Logger LOG = Logger.getInstance(PublisherSettingsController.class.getName());
 
 
   public PublisherSettingsController(@NotNull WebControllerManager controllerManager,

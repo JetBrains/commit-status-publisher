@@ -1,6 +1,5 @@
 package jetbrains.buildServer.commitPublisher;
 
-import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
@@ -15,7 +14,6 @@ import java.util.concurrent.Future;
 
 public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPublisher implements HttpResponseProcessor {
 
-  protected static final Logger LOG = Logger.getInstance(HttpBasedCommitStatusPublisher.class.getName());
   private final ExecutorServices myExecutorServices;
   private final HttpResponseProcessor myHttpResponseProcessor;
 

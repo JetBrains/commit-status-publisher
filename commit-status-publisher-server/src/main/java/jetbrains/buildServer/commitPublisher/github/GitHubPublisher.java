@@ -1,6 +1,5 @@
 package jetbrains.buildServer.commitPublisher.github;
 
-import com.intellij.openapi.diagnostic.Logger;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.commitPublisher.*;
@@ -9,8 +8,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 class GitHubPublisher extends BaseCommitStatusPublisher {
-
-  private static final Logger LOG = Logger.getInstance(GitHubPublisher.class.getName());
 
   private final ChangeStatusUpdater myUpdater;
 

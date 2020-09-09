@@ -1,7 +1,6 @@
 package jetbrains.buildServer.commitPublisher.stash;
 
 import com.google.gson.*;
-import com.intellij.openapi.diagnostic.Logger;
 import java.util.LinkedHashMap;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
@@ -20,7 +19,6 @@ import java.util.Map;
 class StashPublisher extends HttpBasedCommitStatusPublisher {
   public static final String PROP_PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
 
-  private static final Logger LOG = Logger.getInstance(StashPublisher.class.getName());
   private final Gson myGson = new Gson();
   private final WebLinks myLinks;
   private BuildStatusEndpoint myBuildStatusEndpoint = null;

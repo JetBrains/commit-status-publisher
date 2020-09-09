@@ -1,7 +1,6 @@
 package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
 import com.google.gson.*;
-import com.intellij.openapi.diagnostic.Logger;
 import java.util.LinkedHashMap;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
@@ -15,7 +14,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 
 class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
-  private static final Logger LOG = Logger.getInstance(BitbucketCloudPublisher.class.getName());
   private String myBaseUrl = BitbucketCloudSettings.DEFAULT_API_URL;
   private final WebLinks myLinks;
   private final Gson myGson = new Gson();

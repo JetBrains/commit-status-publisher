@@ -1,6 +1,5 @@
 package jetbrains.buildServer.commitPublisher.gerrit;
 
-import com.intellij.openapi.diagnostic.Logger;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
@@ -18,12 +17,9 @@ import jetbrains.buildServer.ssh.TeamCitySshKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * @author anton.zamolotskikh, 20/12/16.
- */
-public class GerritClientImpl extends GerritClientBase implements GerritClient {
+import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
 
-  private final static Logger LOG = Logger.getInstance(GerritPublisher.class.getName());
+public class GerritClientImpl extends GerritClientBase implements GerritClient {
 
   private final ExtensionHolder myExtensionHolder;
   private final CommitStatusPublisherProblems myProblems;
