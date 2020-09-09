@@ -79,6 +79,9 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
                        @NotNull SpaceBuildStatus status,
                        @NotNull String description) throws PublisherException {
     Date finishDate = build.getFinishDate();
+    String buildDescription = LogUtil.describe(build);
+    String statusDescription = "Status: " + status.getName()+ ", revision: " + revision.getRevision() + ", build:" + buildDescription;
+    LOG.debug("Publishing status to JetBrains Space: " + statusDescription);
     List<String> changes = build.getContainingChanges()
       .stream()
       .limit(200)
@@ -95,9 +98,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
       (finishDate == null ? build.getServerStartDate() : finishDate).getTime(),
       description
     );
-
     SpaceToken token;
-    String buildDescription = LogUtil.describe(build);
     try {
       token = SpaceToken.requestToken(
         mySpaceConnector.getServiceId(),
@@ -111,6 +112,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
       myProblems.reportProblem("Commit Status Publisher has failed to obtain a token from JetBrains Space for VCS root " + revision.getRoot().getName(), this, buildDescription, null, e, LOG);
       return;
     }
+    LOG.debug("Token obtained for: " + statusDescription);
 
     Repository repoInfo= SpaceUtils.getRepositoryInfo(revision.getRoot(), myParams.get(Constants.SPACE_PROJECT_KEY));
 
@@ -126,6 +128,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
     token.toHeader(headers);
 
     post(url, null, null, payload, ContentType.APPLICATION_JSON, headers, buildDescription);
+    LOG.debug("Status published: " + statusDescription);
   }
 
   @NotNull

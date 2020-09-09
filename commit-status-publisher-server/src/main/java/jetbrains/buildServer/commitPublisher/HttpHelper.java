@@ -14,6 +14,8 @@ import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
+
 /**
  * @author anton.zamolotskikh, 23/11/16.
  */
@@ -57,6 +59,7 @@ public class HttpHelper {
         .onErrorResponse(new HTTPRequestBuilder.ResponseConsumer() {
           @Override
           public void consume(@NotNull final HTTPRequestBuilder.Response response) throws IOException {
+            LOG.debug("HTTP request error: " + response.getStatusCode() + " " + response.getStatusText());
             content.set(response.getBodyAsString());
             code.set(response.getStatusCode());
             text.set(response.getStatusText());
@@ -65,6 +68,7 @@ public class HttpHelper {
         .onSuccess(new HTTPRequestBuilder.ResponseConsumer() {
           @Override
           public void consume(@NotNull final HTTPRequestBuilder.Response response) throws IOException {
+            LOG.debug("HTTP request success: " + response.getStatusCode() + " " + response.getStatusText());
             content.set(response.getBodyAsString());
             code.set(response.getStatusCode());
             text.set(response.getStatusText());
@@ -97,6 +101,7 @@ public class HttpHelper {
                           @Nullable final Map<String, String> headers, int timeout, @Nullable final KeyStore trustStore,
                           @Nullable HttpResponseProcessor processor) throws IOException, HttpPublisherException {
 
+    LOG.debug("Sending POST request to " + url + (data == null ? "" : "\nContent: " + data));
     call(HttpMethod.POST, url, username, password, headers, timeout, trustStore, processor, new Consumer<HTTPRequestBuilder>() {
       @Override
       public void accept(final HTTPRequestBuilder builder) {
@@ -111,6 +116,7 @@ public class HttpHelper {
                          @Nullable final Map<String, String> headers, int timeout, @Nullable final KeyStore trustStore,
                          @Nullable HttpResponseProcessor processor) throws IOException, HttpPublisherException {
 
+    LOG.debug("Sending GET request to " + url);
     call(HttpMethod.GET, url, username, password, headers, timeout, trustStore, processor, null);
   }
 
