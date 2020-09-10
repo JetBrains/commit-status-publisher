@@ -96,12 +96,6 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
       return null;
     }
 
-    @Override
-    public void addPageExtension(WebPlace webPlace, WebExtension webExtension) { }
-
-    @Override
-    public void removePageExtension(WebPlace webPlace, WebExtension webExtension) { }
-
     @NotNull
     @Override
     public PagePlace getPlaceById(@NotNull PlaceId placeId) {
