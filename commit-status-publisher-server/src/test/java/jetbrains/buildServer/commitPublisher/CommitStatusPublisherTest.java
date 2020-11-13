@@ -1,30 +1,28 @@
 package jetbrains.buildServer.commitPublisher;
 
 import java.security.KeyStore;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import jetbrains.buildServer.BuildProblemData;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.executors.SimpleExecutorServices;
-import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.Test;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.assertj.core.api.BDDAssertions.then;
 
@@ -92,7 +90,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     myProblems = new CommitStatusPublisherProblems(myProblemNotificationEngine);
     myBranch = null;
     myOAuthConnectionsManager = new OAuthConnectionsManager(myServer, myWebLinks);
-    myOAuthTokenStorage =  new OAuthTokensStorage(myFixture.getServerPaths(), myFixture.getSingletonService(ExecutorServices.class), myFixture.getEncryptionManager());
+    myOAuthTokenStorage = new OAuthTokensStorage(myFixture.getProjectManager(), myFixture.getEncryptionManager());
     myTrustStoreProvider = new SSLTrustStoreProvider() {
       @Nullable
       @Override
