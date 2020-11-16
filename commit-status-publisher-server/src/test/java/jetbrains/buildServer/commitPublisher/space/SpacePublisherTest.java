@@ -7,6 +7,7 @@ import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConstants;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
+import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthKeys;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
@@ -53,8 +54,8 @@ public class SpacePublisherTest extends HttpPublisherTest {
     setExpectedEndpointPrefix("/projects/key:" + OWNER + "/repositories/" + CORRECT_REPO);
     super.setUp();
     myProjectFeatureId = myProject.addFeature(OAuthConstants.FEATURE_TYPE, new HashMap<String, String>() {{
-      put(Constants.SPACE_CLIENT_ID, FAKE_CLIENT_ID);
-      put(Constants.SPACE_CLIENT_SECRET, FAKE_CLIENT_SECRET);
+      put(SpaceOAuthKeys.SPACE_CLIENT_ID, FAKE_CLIENT_ID);
+      put(SpaceOAuthKeys.SPACE_CLIENT_SECRET, FAKE_CLIENT_SECRET);
       put(Constants.SPACE_SERVER_URL, getServerUrl());
     }}).getId();
     myPublisherSettings = new SpaceSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myOAuthConnectionsManager, myOAuthTokenStorage);
