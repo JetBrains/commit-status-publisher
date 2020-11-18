@@ -1,13 +1,12 @@
 package jetbrains.buildServer.commitPublisher;
 
+import java.util.HashMap;
+import java.util.Map;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.EventDispatcher;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class ServerListener  extends ConfigActionsServerAdapter implements CustomSettingsMapper  {
 
@@ -21,13 +20,13 @@ public class ServerListener  extends ConfigActionsServerAdapter implements Custo
     SProject vcsRootProject = vcsRoot.getProject();
     for (SBuildType bt: vcsRootProject.getBuildTypes()) {
       if (updateFeatures(oldExternalId, null, newExternalId, bt)) {
-        bt.persist(cause);
+        bt.schedulePersisting(cause);
       }
     }
 
     for (BuildTypeTemplate tpl: vcsRootProject.getBuildTypeTemplates()) {
       if (updateFeatures(oldExternalId, null, newExternalId, tpl)) {
-        tpl.persist(cause);
+        tpl.schedulePersisting(cause);
       }
     }
   }
