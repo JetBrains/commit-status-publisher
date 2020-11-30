@@ -86,22 +86,24 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     String token = params.get(Constants.GITLAB_TOKEN);
     if (null == token || token.length() == 0)
       throw new PublisherException("Missing GitLab API access token");
-    try {
-      ProjectInfoResponseProcessor processorPrj = new ProjectInfoResponseProcessor();
-      HttpHelper.get(getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName()),
-                     null, null, Collections.singletonMap("PRIVATE-TOKEN", token),
-                     BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorPrj);
-      if (processorPrj.getAccessLevel() < 30) {
-        UserInfoResponseProcessor processorUser = new UserInfoResponseProcessor();
-        HttpHelper.get(getUserUrl(apiUrl), null, null, Collections.singletonMap("PRIVATE-TOKEN", token),
-                       BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorUser);
-        if (!processorUser.isAdmin()) {
-          throw new HttpPublisherException("GitLab does not grant enough permissions to publish a commit status");
-        }
+      try {
+        IOGuard.allowNetworkCall(() -> {
+          ProjectInfoResponseProcessor processorPrj = new ProjectInfoResponseProcessor();
+          HttpHelper.get(getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName()),
+                         null, null, Collections.singletonMap("PRIVATE-TOKEN", token),
+                         BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorPrj);
+          if (processorPrj.getAccessLevel() < 30) {
+            UserInfoResponseProcessor processorUser = new UserInfoResponseProcessor();
+            HttpHelper.get(getUserUrl(apiUrl), null, null, Collections.singletonMap("PRIVATE-TOKEN", token),
+                           BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorUser);
+            if (!processorUser.isAdmin()) {
+              throw new HttpPublisherException("GitLab does not grant enough permissions to publish a commit status");
+            }
+          }
+        });
+      } catch (Exception ex) {
+        throw new PublisherException(String.format("GitLab publisher has failed to connect to \"%s\" repository", repository.url()), ex);
       }
-    } catch (Exception ex) {
-      throw new PublisherException(String.format("GitLab publisher has failed to connect to \"%s\" repository", repository.url()), ex);
-    }
   }
 
   @Nullable

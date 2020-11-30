@@ -105,37 +105,38 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     if (null == apiUrl || apiUrl.length() == 0)
       throw new PublisherException("Missing Bitbucket Server API URL parameter");
     String url = apiUrl + "/rest/api/1.0/projects/" + repository.owner() + "/repos/" + repository.repositoryName();
-    try {
-      HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
-        @Override
-        public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+    HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
+      @Override
+      public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
 
-          super.processResponse(response);
+        super.processResponse(response);
 
-          final String json = response.getContent();
-          if (null == json) {
-            throw new HttpPublisherException("Stash publisher has received no response");
-          }
-          StashRepoInfo repoInfo = myGson.fromJson(json, StashRepoInfo.class);
-          if (null == repoInfo)
-            throw new HttpPublisherException("Bitbucket Server publisher has received a malformed response");
-          if (null != repoInfo.errors && !repoInfo.errors.isEmpty()) {
-            StringBuilder sb = new StringBuilder();
-            for (StashError err: repoInfo.errors) {
-              sb.append("\n");
-              sb.append(err.message);
-            }
-            String pluralS = "";
-            if (repoInfo.errors.size() > 1)
-              pluralS = "s";
-            throw new HttpPublisherException(String.format("Bitbucket Server publisher error%s:%s", pluralS, sb.toString()));
-          }
+        final String json = response.getContent();
+        if (null == json) {
+          throw new HttpPublisherException("Stash publisher has received no response");
         }
-      };
-
-      HttpHelper.get(url, params.get(Constants.STASH_USERNAME), params.get(Constants.STASH_PASSWORD),
-                     Collections.singletonMap("Accept", "application/json"),
-                     BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processor);
+        StashRepoInfo repoInfo = myGson.fromJson(json, StashRepoInfo.class);
+        if (null == repoInfo)
+          throw new HttpPublisherException("Bitbucket Server publisher has received a malformed response");
+        if (null != repoInfo.errors && !repoInfo.errors.isEmpty()) {
+          StringBuilder sb = new StringBuilder();
+          for (StashError err: repoInfo.errors) {
+            sb.append("\n");
+            sb.append(err.message);
+          }
+          String pluralS = "";
+          if (repoInfo.errors.size() > 1)
+            pluralS = "s";
+          throw new HttpPublisherException(String.format("Bitbucket Server publisher error%s:%s", pluralS, sb.toString()));
+        }
+      }
+    };
+    try {
+      IOGuard.allowNetworkCall(() -> {
+        HttpHelper.get(url, params.get(Constants.STASH_USERNAME), params.get(Constants.STASH_PASSWORD),
+                       Collections.singletonMap("Accept", "application/json"),
+                       BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processor);
+      });
     } catch (Exception ex) {
       throw new PublisherException(String.format("Bitbucket Server publisher has failed to connect to \"%s\" repository", repository.url()), ex);
     }

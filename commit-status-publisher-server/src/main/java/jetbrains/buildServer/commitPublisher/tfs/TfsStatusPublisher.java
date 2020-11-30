@@ -112,26 +112,28 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     try {
       final String url = MessageFormat.format(COMMIT_STATUS_URL_FORMAT,
         info.getServer(), info.getProject(), info.getRepository(), commitId);
-      HttpHelper.post(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN), StringUtil.EMPTY, ContentType.DEFAULT_TEXT,
-        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
-                      trustStore, new DefaultHttpResponseProcessor() {
-          @Override
-          public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
-            final int status = response.getStatusCode();
-            if (status == 401 || status == 403) {
-              throw new HttpPublisherException(ERROR_AUTHORIZATION);
-            }
+      IOGuard.allowNetworkCall(() -> {
+        HttpHelper.post(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN), StringUtil.EMPTY, ContentType.DEFAULT_TEXT,
+                        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
+                        trustStore, new DefaultHttpResponseProcessor() {
+            @Override
+            public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+              final int status = response.getStatusCode();
+              if (status == 401 || status == 403) {
+                throw new HttpPublisherException(ERROR_AUTHORIZATION);
+              }
 
-            // Ignore Bad Request for POST check
-            if (status == 400) {
-              return;
-            }
+              // Ignore Bad Request for POST check
+              if (status == 400) {
+                return;
+              }
 
-            if (status != 200) {
-              processErrorResponse(response);
+              if (status != 200) {
+                processErrorResponse(response);
+              }
             }
-          }
-        });
+          });
+      });
     } catch (Exception e) {
       final String message = FAILED_TO_TEST_CONNECTION_TO_REPOSITORY + info;
       LOG.debug(message, e);

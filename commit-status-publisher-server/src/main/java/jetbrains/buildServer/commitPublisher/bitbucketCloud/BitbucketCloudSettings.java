@@ -97,29 +97,30 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
     final String repoName = repository.repositoryName();
     String url = myDefaultApiUrl + "/2.0/repositories/" + repository.owner() + "/" + repoName;
-    try {
-      HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
-        @Override
-        public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+    HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
+      @Override
+      public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
 
-          super.processResponse(response);
+        super.processResponse(response);
 
-          final String json = response.getContent();
-          if (null == json) {
-            throw new HttpPublisherException("Stash publisher has received no response");
-          }
-          BitbucketCloudRepoInfo repoInfo = myGson.fromJson(json, BitbucketCloudRepoInfo.class);
-          if (null == repoInfo)
-            throw new HttpPublisherException("Bitbucket Cloud publisher has received a malformed response");
-          if (null == repoInfo.slug || !repoInfo.slug.equals(repoName)) {
-            throw new HttpPublisherException("No repository found");
-          }
+        final String json = response.getContent();
+        if (null == json) {
+          throw new HttpPublisherException("Stash publisher has received no response");
         }
-      };
-
-      HttpHelper.get(url, params.get(Constants.BITBUCKET_CLOUD_USERNAME), params.get(Constants.BITBUCKET_CLOUD_PASSWORD),
-                     Collections.singletonMap("Accept", "application/json"),
-                     BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processor);
+        BitbucketCloudRepoInfo repoInfo = myGson.fromJson(json, BitbucketCloudRepoInfo.class);
+        if (null == repoInfo)
+          throw new HttpPublisherException("Bitbucket Cloud publisher has received a malformed response");
+        if (null == repoInfo.slug || !repoInfo.slug.equals(repoName)) {
+          throw new HttpPublisherException("No repository found");
+        }
+      }
+    };
+    try {
+      IOGuard.allowNetworkCall(() -> {
+        HttpHelper.get(url, params.get(Constants.BITBUCKET_CLOUD_USERNAME), params.get(Constants.BITBUCKET_CLOUD_PASSWORD),
+                       Collections.singletonMap("Accept", "application/json"),
+                       BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processor);
+      });
     } catch (Exception ex) {
       throw new PublisherException(String.format("Bitbucket Cloud publisher has failed to connect to \"%s\" repository", repository.url()), ex);
     }

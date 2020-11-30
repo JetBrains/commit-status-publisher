@@ -128,15 +128,19 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
       Map<String, String> data = new HashMap<String, String>();
       data.put(UpsourceSettings.PROJECT_FIELD, projectId);
       // Newer versions of Upsource support special test connection call, that works correctly for their CI-specific authentication
-      HttpHelper.post(urlPost, username, password, myGson.toJson(data), ContentType.APPLICATION_JSON, null,
-                      BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(),
-                      new DefaultHttpResponseProcessor());
+      IOGuard.allowNetworkCall(() -> {
+        HttpHelper.post(urlPost, username, password, myGson.toJson(data), ContentType.APPLICATION_JSON, null,
+                        BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(),
+                        new DefaultHttpResponseProcessor());
+      });
     } catch (Exception ex) {
       try {
         // If the newer method fails, we assume it may be an older version of Upsource, and test connection in a regular way
-        HttpHelper.get(urlGet, username, password, null,
-                       BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(),
-                       new TestConnectionResponseProcessor(projectId));
+        IOGuard.allowNetworkCall(() -> {
+          HttpHelper.get(urlGet, username, password, null,
+                         BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(),
+                         new TestConnectionResponseProcessor(projectId));
+        });
       } catch (Exception ex2) {
         throw new PublisherException(String.format("Upsource publisher has failed to connect to project '%s'", projectId), ex2);
       }
