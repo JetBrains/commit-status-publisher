@@ -27,6 +27,8 @@
   <bean class="jetbrains.buildServer.commitPublisher.reports.NoFQDNServerUrlReportPageExtension"/>
   <bean class="jetbrains.buildServer.commitPublisher.reports.DeprecatedAuthReport"/>
   <bean class="jetbrains.buildServer.commitPublisher.reports.DeprecatedAuthReportPageExtension"/>
+  <bean class="jetbrains.buildServer.commitPublisher.reports.MissingSettingsReport"/>
+  <bean class="jetbrains.buildServer.commitPublisher.reports.MissingSettingsReportPageExtension"/>
 
   <!-- upsource -->
   <bean class="jetbrains.buildServer.commitPublisher.upsource.UpsourceSettings"/>

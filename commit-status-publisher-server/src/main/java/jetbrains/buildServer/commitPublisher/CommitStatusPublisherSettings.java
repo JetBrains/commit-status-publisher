@@ -68,4 +68,9 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
 
   @Nullable
   KeyStore trustStore();
+
+  @Nullable
+  default Map<String, Object> checkHealth(@NotNull SBuildType buildType, @NotNull Map<String, String> params) {
+   return null;
+  }
 }

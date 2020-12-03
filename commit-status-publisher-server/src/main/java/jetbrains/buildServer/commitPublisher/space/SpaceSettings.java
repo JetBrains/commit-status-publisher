@@ -177,6 +177,21 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     }
   }
 
+  @Nullable
+  @Override
+  public Map<String, Object> checkHealth(@NotNull SBuildType buildType, @NotNull Map<String, String> params) {
+    String connectionId = params.get(Constants.SPACE_CONNECTION_ID);
+    if (connectionId == null)
+      return null;
+    OAuthConnectionDescriptor connectionDescriptor = myOAuthConnectionManager.findConnectionById(buildType.getProject(), connectionId);
+    if (connectionDescriptor == null) {
+      Map<String, Object> healthItemData = new HashMap<>();
+      healthItemData.put("message", "refers to a missing JetBrains Space connection id = '" + connectionId + "'");
+      return healthItemData;
+    }
+    return null;
+  }
+
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
     return mySupportedEvents;
