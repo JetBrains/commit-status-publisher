@@ -6,14 +6,10 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.PublisherManager;
-import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.healthStatus.*;
-import jetbrains.buildServer.vcs.SVcsRoot;
-import jetbrains.buildServer.vcs.VcsRoot;
-import jetbrains.buildServer.vcs.VcsRootEntry;
 import org.jetbrains.annotations.NotNull;
 
 public class NoFQDNServerUrlReport extends HealthStatusReport {

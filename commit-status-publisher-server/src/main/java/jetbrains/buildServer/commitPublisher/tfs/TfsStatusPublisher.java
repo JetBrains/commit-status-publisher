@@ -94,7 +94,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public void processResponse(@NotNull final HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+  public void processResponse(@NotNull final HttpHelper.HttpResponse response) throws HttpPublisherException {
     if (response.getStatusCode() >= 400) {
       processErrorResponse(response);
     }
@@ -117,7 +117,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                         Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
                         trustStore, new DefaultHttpResponseProcessor() {
             @Override
-            public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+            public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException {
               final int status = response.getStatusCode();
               if (status == 401 || status == 403) {
                 throw new HttpPublisherException(ERROR_AUTHORIZATION);
@@ -261,7 +261,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     return iterationId.get();
   }
 
-  private static <T> T processGetResponse(@NotNull final HttpHelper.HttpResponse response, @NotNull final Class<T> type) throws HttpPublisherException, IOException {
+  private static <T> T processGetResponse(@NotNull final HttpHelper.HttpResponse response, @NotNull final Class<T> type) throws HttpPublisherException {
     final int status = response.getStatusCode();
     if (status == 401 || status == 403) {
       throw new HttpPublisherException(ERROR_AUTHORIZATION);
@@ -282,7 +282,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     }
   }
 
-  private static void processErrorResponse(@NotNull final HttpHelper.HttpResponse response) throws IOException, HttpPublisherException {
+  private static void processErrorResponse(@NotNull final HttpHelper.HttpResponse response) throws HttpPublisherException {
     final int status = response.getStatusCode();
     final String content = response.getContent();
     if (null == content) {

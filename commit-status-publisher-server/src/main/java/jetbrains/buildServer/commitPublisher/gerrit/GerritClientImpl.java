@@ -86,7 +86,7 @@ public class GerritClientImpl extends GerritClientBase implements GerritClient {
     int idx = server.indexOf(":");
     if (idx != -1) {
       String host = server.substring(0, idx);
-      int port = Integer.valueOf(server.substring(idx + 1, server.length()));
+      int port = Integer.valueOf(server.substring(idx + 1));
       return jsch.getSession(username, host, port);
     } else {
       return jsch.getSession(username, server, 29418);

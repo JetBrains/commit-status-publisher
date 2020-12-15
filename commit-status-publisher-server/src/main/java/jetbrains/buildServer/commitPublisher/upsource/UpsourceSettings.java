@@ -153,7 +153,7 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
   }
 
   private class TestConnectionResponseProcessor  extends DefaultHttpResponseProcessor {
-    private String myProjectId;
+    private final String myProjectId;
 
     public TestConnectionResponseProcessor(String projectId) {
       super();
@@ -182,5 +182,5 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
       }
       throw new HttpPublisherException("Upsource does not grant enough permissions to publish a commit status");
     }
-  };
+  }
 }

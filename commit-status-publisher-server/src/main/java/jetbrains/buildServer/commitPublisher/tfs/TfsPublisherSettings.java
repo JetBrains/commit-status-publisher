@@ -93,6 +93,9 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
 
     if (commitId == null) {
       commitId = TfsStatusPublisher.getLatestCommitId(root, params, trustStore());
+      if (commitId == null) {
+        throw new PublisherException("No commits found in the repository");
+      }
     }
 
     TfsStatusPublisher.testConnection(root, params, commitId, trustStore());

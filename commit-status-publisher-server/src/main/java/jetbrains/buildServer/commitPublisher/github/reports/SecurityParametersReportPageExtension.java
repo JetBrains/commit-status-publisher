@@ -1,7 +1,6 @@
 package jetbrains.buildServer.commitPublisher.github.reports;
 
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.healthStatus.HealthStatusItem;
 import jetbrains.buildServer.web.openapi.PagePlaces;

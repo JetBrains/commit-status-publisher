@@ -16,8 +16,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collections;
 import java.util.Map;
 
-import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
-
 class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   private static final String REFS_HEADS = "refs/heads/";
@@ -148,7 +146,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
           !responseString.contains("Cannot transition status via :enqueue from :running") &&
           !responseString.contains("Cannot transition status via :run from :running")) {
         throw new HttpPublisherException(statusCode,
-          response.getStatusText(), "HTTP response error" + (responseString == null ? "" : ": " + responseString));
+          response.getStatusText(), "HTTP response error: " + responseString);
       }
     }
   }

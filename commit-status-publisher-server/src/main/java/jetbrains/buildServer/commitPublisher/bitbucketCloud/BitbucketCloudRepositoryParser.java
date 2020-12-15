@@ -65,7 +65,7 @@ class BitbucketCloudRepositoryParser {
       return null;
     }
     String owner = path.substring(0, idx);
-    String repo = path.substring(idx + 1, path.length());
+    String repo = path.substring(idx + 1);
     return new Repository(uri, owner, repo);
   }
 }
