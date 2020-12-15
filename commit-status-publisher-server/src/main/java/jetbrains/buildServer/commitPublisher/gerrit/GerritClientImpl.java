@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Collection;
 import jetbrains.buildServer.ExtensionHolder;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.ssh.TeamCitySshKey;
@@ -22,11 +21,9 @@ import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
 public class GerritClientImpl extends GerritClientBase implements GerritClient {
 
   private final ExtensionHolder myExtensionHolder;
-  private final CommitStatusPublisherProblems myProblems;
 
-  public GerritClientImpl(@NotNull ExtensionHolder extensionHolder, @NotNull CommitStatusPublisherProblems problems) {
+  public GerritClientImpl(@NotNull ExtensionHolder extensionHolder) {
     myExtensionHolder = extensionHolder;
-    myProblems = problems;
   }
 
   public String runCommand(@NotNull GerritConnectionDetails connectionDetails, @NotNull String command) throws JSchException, IOException {
