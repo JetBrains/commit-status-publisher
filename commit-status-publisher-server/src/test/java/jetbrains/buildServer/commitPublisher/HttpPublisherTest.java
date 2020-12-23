@@ -183,10 +183,12 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
     httpResponse.setReasonPhrase(msg);
   }
 
-  @AfterMethod
+  @AfterMethod(alwaysRun = true)
   @Override
   protected void tearDown() throws Exception {
-    myHttpServer.shutdown(GRACEFUL_SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
+    if (myHttpServer != null) {
+      myHttpServer.shutdown(GRACEFUL_SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
+    }
     super.tearDown();
   }
 
