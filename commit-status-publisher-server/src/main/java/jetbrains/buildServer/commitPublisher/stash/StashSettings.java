@@ -161,7 +161,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
   protected String retrieveServerVersion(@NotNull String url) throws PublisherException {
     try {
       ServerVersionResponseProcessor processor = new ServerVersionResponseProcessor();
-      HttpHelper.get(url + "/rest/api/1.0/application-properties", null, null, null, DEFAULT_CONNECTION_TIMEOUT, null, processor);
+      IOGuard.allowNetworkCall(() -> HttpHelper.get(url + "/rest/api/1.0/application-properties", null, null, null, DEFAULT_CONNECTION_TIMEOUT, null, processor));
       return processor.getVersion();
     } catch (Exception e) {
       throw new PublisherException("Failed to obtain Bitbucket Server version", e);
