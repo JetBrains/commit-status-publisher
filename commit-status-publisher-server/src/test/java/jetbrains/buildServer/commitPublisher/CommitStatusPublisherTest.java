@@ -240,14 +240,15 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   }
 
   private boolean isToBeTested(@NotNull EventToTest eventType) {
-    Event event = eventType.getEvent();
-    if (null != event && !myPublisher.isEventSupported(event))
-      return false;
-    then(myExpectedRegExps.containsKey(eventType))
-      .as(String.format("Event '%s' must either be tested or explicitly declared as not to be tested.", eventType.toString()))
-      .isTrue();
     String regExp = myExpectedRegExps.get(eventType);
     boolean toBeTested = null != regExp;
+
+    Event event = eventType.getEvent();
+    if (null != event && !myPublisher.isEventSupported(event)) {
+      then(toBeTested).as("Unsupported event has been tested").isFalse();
+      return false;
+    }
+
     then(null == event || toBeTested)
       .as(String.format("Event '%s' is supported by the publisher, but not tested", eventType.toString()))
       .isTrue();
