@@ -89,7 +89,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     myProblemNotificationEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
     myProblems = new CommitStatusPublisherProblems(myProblemNotificationEngine);
     myBranch = null;
-    myOAuthConnectionsManager = new OAuthConnectionsManager(myServer, myWebLinks);
+    myOAuthConnectionsManager = new OAuthConnectionsManager(myServer);
     myOAuthTokenStorage = new OAuthTokensStorage(myFixture.getProjectManager(), myFixture.getEncryptionManager());
     myTrustStoreProvider = new SSLTrustStoreProvider() {
       @Nullable
