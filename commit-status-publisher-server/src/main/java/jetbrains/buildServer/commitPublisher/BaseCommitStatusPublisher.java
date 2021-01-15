@@ -18,6 +18,7 @@ package jetbrains.buildServer.commitPublisher;
 
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,8 +28,9 @@ import java.util.Map;
 public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher {
 
   public static final int DEFAULT_CONNECTION_TIMEOUT = 10000;
+  public static final String CONNECTION_TIMEOUT_PARAM = "commitStatusPublisher.connectionTimeout";
   protected final Map<String, String> myParams;
-  private int myConnectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
+  private int myConnectionTimeout;
   protected CommitStatusPublisherProblems myProblems;
   protected SBuildType myBuildType;
   private final String myBuildFeatureId;
@@ -43,6 +45,17 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     myProblems = problems;
     myBuildType = buildType;
     myBuildFeatureId = buildFeatureId;
+    myConnectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
+    if (buildType instanceof BuildTypeEx) {
+      String strTimeout = ((BuildTypeEx)buildType).getInternalParameterValue(CONNECTION_TIMEOUT_PARAM, "");
+      if (!StringUtil.isEmpty(strTimeout)) {
+        try {
+          myConnectionTimeout = Integer.parseInt(strTimeout);
+        } catch (NumberFormatException ex) {
+          LOG.warnAndDebugDetails("Failure to parse connection timeout value " + strTimeout, ex);
+        }
+      }
+    }
   }
 
   public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException {
