@@ -61,7 +61,7 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
     super.setUp();
     myLastRequest = null;
     myGerritClient = new MockGerritClient();
-    myPublisherSettings = new GerritSettings(myExecServices, new MockPluginDescriptor(),
+    myPublisherSettings = new GerritSettings(new MockPluginDescriptor(),
                                              myFixture.getSingletonService(ExtensionHolder.class),
                                              myGerritClient,
                                              myWebLinks, myProblems, myTrustStoreProvider);

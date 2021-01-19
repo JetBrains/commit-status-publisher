@@ -20,7 +20,6 @@ import com.google.gson.*;
 import java.util.LinkedHashMap;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -38,11 +37,10 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
 
   BitbucketCloudPublisher(@NotNull CommitStatusPublisherSettings settings,
                           @NotNull SBuildType buildType, @NotNull String buildFeatureId,
-                          @NotNull final ExecutorServices executorServices,
                           @NotNull WebLinks links,
                           @NotNull Map<String, String> params,
                           @NotNull CommitStatusPublisherProblems problems) {
-    super(settings, buildType, buildFeatureId, executorServices, params, problems);
+    super(settings, buildType, buildFeatureId, params, problems);
     myLinks = links;
   }
 

@@ -19,7 +19,6 @@ package jetbrains.buildServer.commitPublisher.space;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
@@ -62,14 +61,13 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     add(Event.FAILURE_DETECTED);
   }};
 
-  public SpaceSettings(@NotNull ExecutorServices executorServices,
-                       @NotNull PluginDescriptor descriptor,
+  public SpaceSettings(@NotNull PluginDescriptor descriptor,
                        @NotNull WebLinks links,
                        @NotNull CommitStatusPublisherProblems problems,
                        @NotNull SSLTrustStoreProvider trustStoreProvider,
                        @NotNull OAuthConnectionsManager oAuthConnectionsManager,
                        @NotNull OAuthTokensStorage oauthTokensStorage) {
-    super(executorServices, descriptor, links, problems, trustStoreProvider);
+    super(descriptor, links, problems, trustStoreProvider);
     myOAuthConnectionManager = oAuthConnectionsManager;
     myOAuthTokensStorage = oauthTokensStorage;
   }
@@ -96,7 +94,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   @Override
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
     SpaceConnectDescriber connector = SpaceUtils.getConnectionData(params, myOAuthConnectionManager, buildType.getProject());
-    return new SpacePublisher(this, buildType, buildFeatureId, myExecutorServices, myLinks, params, myProblems, connector);
+    return new SpacePublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, connector);
   }
 
   @NotNull

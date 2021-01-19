@@ -20,7 +20,6 @@ import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.serverSide.oauth.*;
 import jetbrains.buildServer.serverSide.oauth.tfs.TfsAuthProvider;
@@ -50,15 +49,14 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
     add(Event.MARKED_AS_SUCCESSFUL);
   }};
 
-  public TfsPublisherSettings(@NotNull ExecutorServices executorServices,
-                              @NotNull PluginDescriptor descriptor,
+  public TfsPublisherSettings(@NotNull PluginDescriptor descriptor,
                               @NotNull WebLinks links,
                               @NotNull CommitStatusPublisherProblems problems,
                               @NotNull OAuthConnectionsManager oauthConnectionsManager,
                               @NotNull OAuthTokensStorage oauthTokensStorage,
                               @NotNull SecurityContext securityContext,
                               @NotNull SSLTrustStoreProvider trustStoreProvider) {
-    super(executorServices, descriptor, links, problems, trustStoreProvider);
+    super(descriptor, links, problems, trustStoreProvider);
     myOauthConnectionsManager = oauthConnectionsManager;
     myOAuthTokensStorage = oauthTokensStorage;
     mySecurityContext = securityContext;
@@ -119,7 +117,7 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new TfsStatusPublisher(this, buildType, buildFeatureId, myExecutorServices, myLinks, params, myProblems);
+    return new TfsStatusPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems);
   }
 
   @NotNull

@@ -18,7 +18,6 @@ package jetbrains.buildServer.commitPublisher;
 
 import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.http.HttpMethod;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
@@ -30,16 +29,13 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPublisher implements HttpResponseProcessor {
 
-  private final ExecutorServices myExecutorServices;
   private final HttpResponseProcessor myHttpResponseProcessor;
 
   public HttpBasedCommitStatusPublisher(@NotNull CommitStatusPublisherSettings settings,
                                         @NotNull SBuildType buildType, @NotNull String buildFeatureId,
-                                        @NotNull final ExecutorServices executorServices,
                                         @NotNull Map<String, String> params,
                                         @NotNull CommitStatusPublisherProblems problems) {
     super(settings, buildType, buildFeatureId, params, problems);
-    myExecutorServices = executorServices;
     myHttpResponseProcessor = new DefaultHttpResponseProcessor();
   }
 

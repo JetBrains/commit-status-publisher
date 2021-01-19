@@ -23,7 +23,6 @@ import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabUserInfo;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
@@ -53,12 +52,11 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     addAll(mySupportedEvents);
   }};
 
-  public GitlabSettings(@NotNull ExecutorServices executorServices,
-                        @NotNull PluginDescriptor descriptor,
+  public GitlabSettings(@NotNull PluginDescriptor descriptor,
                         @NotNull WebLinks links,
                         @NotNull CommitStatusPublisherProblems problems,
                         @NotNull SSLTrustStoreProvider trustStoreProvider) {
-    super(executorServices, descriptor, links, problems, trustStoreProvider);
+    super(descriptor, links, problems, trustStoreProvider);
   }
 
   @NotNull
@@ -82,7 +80,7 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
   @NotNull
   @Override
   public GitlabPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new GitlabPublisher(this, buildType, buildFeatureId, myExecutorServices, myLinks, params, myProblems);
+    return new GitlabPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems);
   }
 
   @Override

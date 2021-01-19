@@ -21,7 +21,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
@@ -43,10 +42,9 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
   UpsourcePublisher(@NotNull CommitStatusPublisherSettings settings,
                     @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                     @NotNull VcsModificationHistory vcsHistory,
-                    @NotNull final ExecutorServices executorServices,
                     @NotNull WebLinks links, @NotNull Map<String, String> params,
                     @NotNull CommitStatusPublisherProblems problems) {
-    super(settings, buildType, buildFeatureId, executorServices, params, problems);
+    super(settings, buildType, buildFeatureId, params, problems);
     myVcsHistory = vcsHistory;
     myLinks = links;
   }

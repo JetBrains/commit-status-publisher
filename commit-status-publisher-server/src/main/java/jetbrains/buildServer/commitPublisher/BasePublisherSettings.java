@@ -26,7 +26,6 @@ import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.WebLinks;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.users.SUser;
@@ -43,20 +42,17 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
 
   protected final PluginDescriptor myDescriptor;
   protected final WebLinks myLinks;
-  protected final ExecutorServices myExecutorServices;
   protected final CommitStatusPublisherProblems myProblems;
   private final SSLTrustStoreProvider myTrustStoreProvider;
   private final ConcurrentHashMap<String, TimestampedServerVersion> myServerVersions;
   protected final Gson myGson = new Gson();
 
-  public BasePublisherSettings(@NotNull final ExecutorServices executorServices,
-                               @NotNull PluginDescriptor descriptor,
+  public BasePublisherSettings(@NotNull PluginDescriptor descriptor,
                                @NotNull WebLinks links,
                                @NotNull CommitStatusPublisherProblems problems,
                                @NotNull SSLTrustStoreProvider trustStoreProvider) {
     myDescriptor = descriptor;
     myLinks= links;
-    myExecutorServices = executorServices;
     myProblems = problems;
     myTrustStoreProvider = trustStoreProvider;
     myServerVersions = new ConcurrentHashMap<>();

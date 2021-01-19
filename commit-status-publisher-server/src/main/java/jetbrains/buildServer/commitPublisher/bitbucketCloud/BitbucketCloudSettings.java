@@ -21,7 +21,6 @@ import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudRepoInfo;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
@@ -45,12 +44,11 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
     add(Event.FAILURE_DETECTED);
   }};
 
-  public BitbucketCloudSettings(@NotNull final ExecutorServices executorServices,
-                                @NotNull PluginDescriptor descriptor,
+  public BitbucketCloudSettings(@NotNull PluginDescriptor descriptor,
                                 @NotNull WebLinks links,
                                 @NotNull CommitStatusPublisherProblems problems,
                                 @NotNull SSLTrustStoreProvider trustStoreProvider) {
-    super(executorServices, descriptor, links, problems, trustStoreProvider);
+    super(descriptor, links, problems, trustStoreProvider);
   }
 
   void setDefaultApiUrl(@NotNull String url) {
@@ -75,7 +73,7 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new BitbucketCloudPublisher(this, buildType, buildFeatureId, myExecutorServices, myLinks, params, myProblems);
+    return new BitbucketCloudPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems);
   }
 
   @Nullable

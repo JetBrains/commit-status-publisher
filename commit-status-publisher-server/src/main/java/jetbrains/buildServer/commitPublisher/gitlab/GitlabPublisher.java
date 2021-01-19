@@ -20,7 +20,6 @@ import com.google.gson.Gson;
 import java.util.LinkedHashMap;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.vcs.VcsRoot;
@@ -45,10 +44,10 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   GitlabPublisher(@NotNull CommitStatusPublisherSettings settings,
                   @NotNull SBuildType buildType, @NotNull String buildFeatureId,
-                  @NotNull ExecutorServices executorServices, @NotNull WebLinks links,
+                  @NotNull WebLinks links,
                   @NotNull Map<String, String> params,
                   @NotNull CommitStatusPublisherProblems problems) {
-    super(settings, buildType, buildFeatureId, executorServices, params, problems);
+    super(settings, buildType, buildFeatureId, params, problems);
     myLinks = links;
   }
 

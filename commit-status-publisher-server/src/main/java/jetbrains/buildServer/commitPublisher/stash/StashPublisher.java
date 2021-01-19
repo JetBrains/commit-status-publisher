@@ -21,7 +21,6 @@ import java.util.LinkedHashMap;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.VersionComparatorUtil;
@@ -43,10 +42,9 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   StashPublisher(@NotNull CommitStatusPublisherSettings settings,
                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
-                 @NotNull final ExecutorServices executorServices,
                  @NotNull WebLinks links, @NotNull Map<String, String> params,
                  @NotNull CommitStatusPublisherProblems problems) {
-    super(settings, buildType, buildFeatureId, executorServices, params, problems);
+    super(settings, buildType, buildFeatureId, params, problems);
     myLinks = links;
   }
 

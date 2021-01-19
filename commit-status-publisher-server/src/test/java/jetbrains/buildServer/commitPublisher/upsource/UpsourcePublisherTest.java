@@ -62,16 +62,16 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
     setExpectedApiPath("/~buildStatus");
     setExpectedEndpointPrefix("");
     super.setUp();
-    myPublisherSettings = new UpsourceSettings(myFixture.getVcsHistory(), myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
+    myPublisherSettings = new UpsourceSettings(myFixture.getVcsHistory(), new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
     Map<String, String> params = getPublisherParams();
-    myPublisher = new UpsourcePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myFixture.getVcsHistory(), myExecServices, myWebLinks, params, myProblems);
+    myPublisher = new UpsourcePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myFixture.getVcsHistory(), myWebLinks, params, myProblems);
   }
 
   public void test_buildFinishedSuccessfully_server_url_with_subdir() throws Exception {
     Map<String, String> params = getPublisherParams();
     setExpectedApiPath("/subdir/~buildStatus");
     params.put(Constants.UPSOURCE_SERVER_URL, getServerUrl() + "/subdir");
-    myPublisher = new UpsourcePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myFixture.getVcsHistory(), myExecServices, myWebLinks, params, myProblems);
+    myPublisher = new UpsourcePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myFixture.getVcsHistory(), myWebLinks, params, myProblems);
     test_buildFinished_Successfully();
   }
 
@@ -79,7 +79,7 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
     Map<String, String> params = getPublisherParams();
     setExpectedApiPath("/subdir/~buildStatus");
     params.put(Constants.UPSOURCE_SERVER_URL, getServerUrl() + "/subdir/");
-    myPublisher = new UpsourcePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myFixture.getVcsHistory(), myExecServices, myWebLinks, params, myProblems);
+    myPublisher = new UpsourcePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myFixture.getVcsHistory(), myWebLinks, params, myProblems);
     test_buildFinished_Successfully();
   }
 

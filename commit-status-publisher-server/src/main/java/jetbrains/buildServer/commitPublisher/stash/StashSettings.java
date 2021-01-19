@@ -21,7 +21,6 @@ import jetbrains.buildServer.commitPublisher.stash.data.StashError;
 import jetbrains.buildServer.commitPublisher.stash.data.StashRepoInfo;
 import jetbrains.buildServer.commitPublisher.stash.data.StashServerInfo;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
@@ -55,12 +54,11 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     addAll(mySupportedEvents);
   }};
 
-  public StashSettings(@NotNull final ExecutorServices executorServices,
-                       @NotNull PluginDescriptor descriptor,
+  public StashSettings(@NotNull PluginDescriptor descriptor,
                        @NotNull WebLinks links,
                        @NotNull CommitStatusPublisherProblems problems,
                        @NotNull SSLTrustStoreProvider trustStoreProvider) {
-    super(executorServices, descriptor, links, problems, trustStoreProvider);
+    super(descriptor, links, problems, trustStoreProvider);
   }
 
   @NotNull
@@ -80,7 +78,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new StashPublisher(this, buildType, buildFeatureId, myExecutorServices, myLinks, params, myProblems);
+    return new StashPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems);
   }
 
   @NotNull

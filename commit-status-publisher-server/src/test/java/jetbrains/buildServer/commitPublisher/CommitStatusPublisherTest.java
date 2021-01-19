@@ -28,7 +28,6 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
-import jetbrains.buildServer.serverSide.impl.executors.SimpleExecutorServices;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
@@ -59,7 +58,6 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   protected CommitStatusPublisherSettings myPublisherSettings;
   protected CommitStatusPublisherProblems myProblems;
   protected Map<EventToTest, String> myExpectedRegExps = new HashMap<EventToTest, String>();
-  protected SimpleExecutorServices myExecServices;
   protected String myVcsURL = "http://localhost/defaultvcs";
   protected String myReadOnlyVcsURL = "http://localhost/owner/readonly";
   protected SVcsRoot myVcsRoot;
@@ -100,8 +98,6 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     myUser = myFixture.createUserAccount(USER);
-    myExecServices = myFixture.getSingletonService(SimpleExecutorServices.class);
-    myExecServices.start();
     myProblemNotificationEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
     myProblems = new CommitStatusPublisherProblems(myProblemNotificationEngine);
     myBranch = null;

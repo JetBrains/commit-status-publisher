@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
@@ -62,11 +61,10 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   TfsStatusPublisher(@NotNull final CommitStatusPublisherSettings settings,
                      @NotNull final SBuildType buildType,
                      @NotNull final String buildFeatureId,
-                     @NotNull final ExecutorServices executorServices,
                      @NotNull final WebLinks webLinks,
                      @NotNull final Map<String, String> params,
                      @NotNull final CommitStatusPublisherProblems problems) {
-    super(settings, buildType, buildFeatureId, executorServices, params, problems);
+    super(settings, buildType, buildFeatureId, params, problems);
     myLinks = webLinks;
   }
 

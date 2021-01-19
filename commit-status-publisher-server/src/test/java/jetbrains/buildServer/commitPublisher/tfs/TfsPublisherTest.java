@@ -65,10 +65,10 @@ public class TfsPublisherTest extends HttpPublisherTest {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
-    myPublisherSettings = new TfsPublisherSettings(myExecServices, new MockPluginDescriptor(), myWebLinks, myProblems,
-      myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext(), myTrustStoreProvider);
+    myPublisherSettings = new TfsPublisherSettings(new MockPluginDescriptor(), myWebLinks, myProblems,
+                                                   myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext(), myTrustStoreProvider);
     Map<String, String> params = getPublisherParams();
-    myPublisher = new TfsStatusPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myExecServices, myWebLinks, params, myProblems);
+    myPublisher = new TfsStatusPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
     myVcsURL = getServerUrl() + "/_git/" + CORRECT_REPO;
     myReadOnlyVcsURL = getServerUrl()  + "/_git/" + READ_ONLY_REPO;
     myVcsRoot.setProperties(Collections.singletonMap("url", myVcsURL));

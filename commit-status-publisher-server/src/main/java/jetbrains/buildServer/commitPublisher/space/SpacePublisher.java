@@ -19,7 +19,6 @@ package jetbrains.buildServer.commitPublisher.space;
 import com.google.gson.Gson;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
 import jetbrains.buildServer.vcs.VcsModification;
@@ -40,11 +39,11 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
 
   SpacePublisher(@NotNull CommitStatusPublisherSettings settings,
                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
-                 @NotNull ExecutorServices executorServices, @NotNull WebLinks links,
+                 @NotNull WebLinks links,
                  @NotNull Map<String, String> params,
                  @NotNull CommitStatusPublisherProblems problems,
                  @NotNull SpaceConnectDescriber spaceConnector) {
-    super(settings, buildType, buildFeatureId, executorServices, params, problems);
+    super(settings, buildType, buildFeatureId, params, problems);
     myLinks = links;
     mySpaceConnector = spaceConnector;
   }

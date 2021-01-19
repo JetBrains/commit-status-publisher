@@ -22,7 +22,6 @@ import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.upsource.data.UpsourceCurrentUser;
 import jetbrains.buildServer.commitPublisher.upsource.data.UpsourceGetCurrentUserResult;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
@@ -61,12 +60,11 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
   }};
 
   public UpsourceSettings(@NotNull VcsModificationHistory vcsHistory,
-                          @NotNull final ExecutorServices executorServices,
                           @NotNull PluginDescriptor descriptor,
                           @NotNull WebLinks links,
                           @NotNull CommitStatusPublisherProblems problems,
                           @NotNull SSLTrustStoreProvider trustStoreProvider) {
-    super(executorServices, descriptor, links, problems, trustStoreProvider);
+    super(descriptor, links, problems, trustStoreProvider);
     myVcsHistory = vcsHistory;
   }
 
@@ -87,7 +85,7 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new UpsourcePublisher(this, buildType, buildFeatureId, myVcsHistory, myExecutorServices, myLinks, params, myProblems);
+    return new UpsourcePublisher(this, buildType, buildFeatureId, myVcsHistory, myLinks, params, myProblems);
   }
 
   @NotNull

@@ -19,7 +19,6 @@ package jetbrains.buildServer.commitPublisher.gerrit;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import jetbrains.buildServer.vcs.VcsRoot;
@@ -51,14 +50,13 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
   }};
 
 
-  public GerritSettings(@NotNull ExecutorServices executorServices,
-                        @NotNull PluginDescriptor descriptor,
+  public GerritSettings(@NotNull PluginDescriptor descriptor,
                         @NotNull ExtensionHolder extensionHolder,
                         @NotNull GerritClient gerritClient,
                         @NotNull WebLinks links,
                         @NotNull CommitStatusPublisherProblems problems,
                         @NotNull SSLTrustStoreProvider trustStoreProvider) {
-    super(executorServices, descriptor, links, problems, trustStoreProvider);
+    super(descriptor, links, problems, trustStoreProvider);
     myExtensionHolder = extensionHolder;
     myGerritClient = gerritClient;
   }
