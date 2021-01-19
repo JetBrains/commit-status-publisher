@@ -19,6 +19,7 @@ package jetbrains.buildServer.commitPublisher.github.api.impl;
 import com.google.gson.Gson;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.LoggerUtil;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.commitPublisher.Repository;
@@ -103,7 +104,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     final String statusUrl = myUrls.getStatusUrl(repoOwner, repoName, hash);
 
     final HttpMethod method = HttpMethod.GET;
-    LoggerUtil.logRequest(method, statusUrl, null);
+    LoggerUtil.logRequest(Constants.GITHUB_PUBLISHER_ID, method, statusUrl, null);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     IOGuard.allowNetworkCall(() -> {
@@ -149,7 +150,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     final String entity = myGson.toJson(new CommitStatus(status.getState(), targetUrl, description, context));
 
     final HttpMethod method = HttpMethod.POST;
-    LoggerUtil.logRequest(method, url, entity);
+    LoggerUtil.logRequest(Constants.GITHUB_PUBLISHER_ID, method, url, entity);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     IOGuard.allowNetworkCall(() -> {
@@ -221,7 +222,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
 
   @NotNull
   private <T> T processResponse(@NotNull String uri, @NotNull final Class<T> clazz, boolean logErrorsDebugOnly) throws IOException, PublisherException {
-    LoggerUtil.logRequest(HttpMethod.GET, uri, null);
+    LoggerUtil.logRequest(Constants.GITHUB_PUBLISHER_ID, HttpMethod.GET, uri, null);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     final AtomicReference<T> resultRef = new AtomicReference<>();
@@ -323,7 +324,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     final String entity = myGson.toJson(new IssueComment(comment));
 
     final HttpMethod method = HttpMethod.POST;
-    LoggerUtil.logRequest(method, url, entity);
+    LoggerUtil.logRequest(Constants.GITHUB_PUBLISHER_ID, method, url, entity);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     IOGuard.allowNetworkCall(() -> {

@@ -43,7 +43,7 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
                       final String data, final ContentType contentType, final Map<String, String> headers,
                       final String buildDescription) {
     try {
-      LoggerUtil.logRequest(HttpMethod.POST, url, data);
+      LoggerUtil.logRequest(getId(), HttpMethod.POST, url, data);
       IOGuard.allowNetworkCall(() -> HttpHelper.post(url, username, password, data, contentType, headers, getConnectionTimeout(), getSettings().trustStore(), this));
     } catch (Exception ex) {
       myProblems.reportProblem("Commit Status Publisher HTTP request has failed", this, buildDescription, url, ex, LOG);

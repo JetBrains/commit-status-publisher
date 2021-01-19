@@ -11,16 +11,17 @@ public class LoggerUtil {
   public static final Logger LOG = Logger.getInstance(LOG_CATEGORY);
 
 
-  public static void logRequest(@NotNull HttpMethod method,
-                          @NotNull String uri,
-                          @Nullable String requestEntity) {
+  public static void logRequest(@NotNull String publisherId,
+                                @NotNull HttpMethod method,
+                                @NotNull String uri,
+                                @Nullable String requestEntity) {
     if (!LOG.isDebugEnabled()) return;
 
     if (requestEntity == null) {
       requestEntity = "<none>";
     }
 
-    LOG.debug("Calling GitHub with:\n" +
+    LOG.debug("Calling " + publisherId + " with:\n" +
             "  requestURL: " + uri + "\n" +
             "  requestMethod: " + method + "\n" +
             "  requestEntity: " + requestEntity
