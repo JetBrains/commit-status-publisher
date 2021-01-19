@@ -55,7 +55,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   private final MultiNodeTasks myMultiNodeTasks;
   private final ExecutorServices myExecutorServices;
   private final Map<String, Event> myEventTypes = new HashMap<>();
-  private static final Striped<Lock> myLocks = Striped.lazyWeakLock(100);
+  private final Striped<Lock> myLocks = Striped.lazyWeakLock(100);
   private final Map<Long, Event> myLastEvents =
     new LinkedHashMap<Long, Event> () {
       @Override
