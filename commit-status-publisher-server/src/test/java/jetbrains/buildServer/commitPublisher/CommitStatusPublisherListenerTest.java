@@ -25,6 +25,7 @@ import jetbrains.buildServer.serverSide.impl.RunningBuildState;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.*;
 import org.testng.annotations.BeforeMethod;
@@ -80,10 +81,21 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
     myFixture.finishBuild(runningBuild, false);
     myPublisher.notifyWaitingEvent(Event.STARTED, 1000);
-    waitFor(() -> {
-      return myPublisher.getEventsReceived().equals(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
-    }, TASK_COMPLETION_TIMEOUT_MS);
+    waitFor(() -> myPublisher.getEventsReceived().equals(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED)), TASK_COMPLETION_TIMEOUT_MS);
   }
+
+  @TestFor(issues = "TW-69618")
+  public void should_mark_task_finished_before_publishing() throws InterruptedException {
+    prepareVcs();
+    myPublisher.setEventToWait(Event.STARTED);
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    myFixture.flushQueueAndWait();
+    waitFor(() -> myMultiNodeTasks.findFinishedTasks(Collections.singleton(Event.STARTED.getName()), Dates.ONE_MINUTE).stream().findAny().isPresent(), TASK_COMPLETION_TIMEOUT_MS);
+    myPublisher.notifyWaitingEvent(Event.STARTED, 1000);
+    waitFor(() -> myPublisher.getEventsReceived().equals(Arrays.asList(Event.QUEUED, Event.STARTED)), TASK_COMPLETION_TIMEOUT_MS);
+  }
+
 
   public void should_not_accept_pending_after_finished() {
     prepareVcs();
