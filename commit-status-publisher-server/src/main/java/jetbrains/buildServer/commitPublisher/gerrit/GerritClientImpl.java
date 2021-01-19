@@ -32,7 +32,7 @@ import jetbrains.buildServer.ssh.TeamCitySshKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 public class GerritClientImpl extends GerritClientBase implements GerritClient {
 

@@ -36,7 +36,7 @@ import org.springframework.web.servlet.ModelAndView;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 public class PublisherSettingsController extends BaseController {
 

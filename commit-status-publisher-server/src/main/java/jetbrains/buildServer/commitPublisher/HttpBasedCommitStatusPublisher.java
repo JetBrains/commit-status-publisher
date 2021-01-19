@@ -19,14 +19,13 @@ package jetbrains.buildServer.commitPublisher;
 import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
-import jetbrains.buildServer.util.ExceptionUtil;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPublisher implements HttpResponseProcessor {
 

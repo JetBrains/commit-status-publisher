@@ -24,9 +24,6 @@ import org.jetbrains.annotations.Nullable;
 
 public interface CommitStatusPublisher {
 
-  public static final String LOG_CATEGORY = "jetbrains.buildServer.COMMIT_STATUS";
-  public static final Logger LOG = Logger.getInstance(LOG_CATEGORY);
-
   boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException;
 
   boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) throws PublisherException;

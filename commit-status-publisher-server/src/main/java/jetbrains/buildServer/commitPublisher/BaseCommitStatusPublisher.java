@@ -25,6 +25,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
+
 public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher {
 
   public static final int DEFAULT_CONNECTION_TIMEOUT = 10000;

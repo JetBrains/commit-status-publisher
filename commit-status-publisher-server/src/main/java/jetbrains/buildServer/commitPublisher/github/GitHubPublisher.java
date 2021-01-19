@@ -23,6 +23,8 @@ import jetbrains.buildServer.serverSide.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
+
 class GitHubPublisher extends BaseCommitStatusPublisher {
 
   private final ChangeStatusUpdater myUpdater;

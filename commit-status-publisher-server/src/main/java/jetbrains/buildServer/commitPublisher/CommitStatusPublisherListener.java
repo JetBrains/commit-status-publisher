@@ -39,7 +39,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
-import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 public class CommitStatusPublisherListener extends BuildServerAdapter {
 

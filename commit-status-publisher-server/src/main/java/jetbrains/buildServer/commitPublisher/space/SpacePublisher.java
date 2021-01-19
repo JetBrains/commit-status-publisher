@@ -30,6 +30,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.*;
+
 public class SpacePublisher extends HttpBasedCommitStatusPublisher {
 
   private final WebLinks myLinks;
@@ -124,7 +126,8 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
         getSettings().trustStore()
       );
     } catch (Exception e) {
-      myProblems.reportProblem("Commit Status Publisher has failed to obtain a token from JetBrains Space for VCS root " + revision.getRoot().getName(), this, buildDescription, null, e, LOG);
+      myProblems.reportProblem("Commit Status Publisher has failed to obtain a token from JetBrains Space for VCS root " + revision.getRoot().getName(),
+                               this, buildDescription, null, e, LOG);
       return;
     }
 

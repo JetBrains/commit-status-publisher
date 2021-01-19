@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 /**
  * Created by Eugene Petrenko (eugene.petrenko@gmail.com)

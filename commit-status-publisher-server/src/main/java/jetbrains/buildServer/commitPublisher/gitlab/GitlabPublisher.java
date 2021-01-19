@@ -32,6 +32,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collections;
 import java.util.Map;
 
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
+
 class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   private static final String REFS_HEADS = "refs/heads/";

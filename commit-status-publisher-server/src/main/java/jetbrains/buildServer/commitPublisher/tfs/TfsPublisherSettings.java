@@ -33,7 +33,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
-import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 /**
  * Settings for TFS Git commit status publisher.

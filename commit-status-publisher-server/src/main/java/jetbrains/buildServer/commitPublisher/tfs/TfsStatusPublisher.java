@@ -37,6 +37,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
+
 
 /**
  * Updates TFS Git commit statuses via REST API.

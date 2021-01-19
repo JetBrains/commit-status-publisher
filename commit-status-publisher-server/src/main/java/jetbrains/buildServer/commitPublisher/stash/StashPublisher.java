@@ -32,6 +32,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
+
 class StashPublisher extends HttpBasedCommitStatusPublisher {
   public static final String PROP_PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
 

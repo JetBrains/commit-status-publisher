@@ -29,6 +29,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
+
 class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   private String myBaseUrl = BitbucketCloudSettings.DEFAULT_API_URL;
   private final WebLinks myLinks;

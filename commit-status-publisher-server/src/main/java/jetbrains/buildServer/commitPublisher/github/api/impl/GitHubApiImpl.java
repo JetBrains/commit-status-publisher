@@ -19,6 +19,7 @@ package jetbrains.buildServer.commitPublisher.github.api.impl;
 import com.google.gson.Gson;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import jetbrains.buildServer.commitPublisher.LoggerUtil;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.commitPublisher.Repository;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
@@ -40,7 +41,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.apache.http.HttpVersion.HTTP_1_1;
-import static jetbrains.buildServer.commitPublisher.CommitStatusPublisher.LOG;
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 /**
  * @author Eugene Petrenko (eugene.petrenko@gmail.com)
@@ -102,7 +103,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     final String statusUrl = myUrls.getStatusUrl(repoOwner, repoName, hash);
 
     final HttpMethod method = HttpMethod.GET;
-    logRequest(method, statusUrl, null);
+    LoggerUtil.logRequest(method, statusUrl, null);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     IOGuard.allowNetworkCall(() -> {
@@ -148,7 +149,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     final String entity = myGson.toJson(new CommitStatus(status.getState(), targetUrl, description, context));
 
     final HttpMethod method = HttpMethod.POST;
-    logRequest(method, url, entity);
+    LoggerUtil.logRequest(method, url, entity);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     IOGuard.allowNetworkCall(() -> {
@@ -220,7 +221,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
 
   @NotNull
   private <T> T processResponse(@NotNull String uri, @NotNull final Class<T> clazz, boolean logErrorsDebugOnly) throws IOException, PublisherException {
-    logRequest(HttpMethod.GET, uri, null);
+    LoggerUtil.logRequest(HttpMethod.GET, uri, null);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     final AtomicReference<T> resultRef = new AtomicReference<>();
@@ -313,22 +314,6 @@ public abstract class GitHubApiImpl implements GitHubApi {
     }
   }
 
-  private void logRequest(@NotNull HttpMethod method,
-                          @NotNull String uri,
-                          @Nullable String requestEntity) {
-    if (!LOG.isDebugEnabled()) return;
-
-    if (requestEntity == null) {
-      requestEntity = "<none>";
-    }
-
-    LOG.debug("Calling GitHub with:\n" +
-            "  requestURL: " + uri + "\n" +
-            "  requestMethod: " + method + "\n" +
-            "  requestEntity: " + requestEntity
-    );
-  }
-
   public void postComment(@NotNull final String ownerName,
                           @NotNull final String repoName,
                           @NotNull final String hash,
@@ -338,7 +323,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     final String entity = myGson.toJson(new IssueComment(comment));
 
     final HttpMethod method = HttpMethod.POST;
-    logRequest(method, url, entity);
+    LoggerUtil.logRequest(method, url, entity);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     IOGuard.allowNetworkCall(() -> {
