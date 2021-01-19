@@ -45,12 +45,13 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   private MockPublisher myPublisher;
   private PublisherLogger myLogger;
   private SUser myUser;
-  private Event myLastEventProcessed = null;
+  private Event myLastEventProcessed;
   private final Consumer<Event> myEventProcessedCallback = event -> myLastEventProcessed = event;
 
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
+    myLastEventProcessed = null;
     myLogger = new PublisherLogger();
     final PublisherManager myPublisherManager = new PublisherManager(myServer);
     final BuildHistory history = myFixture.getHistory();
