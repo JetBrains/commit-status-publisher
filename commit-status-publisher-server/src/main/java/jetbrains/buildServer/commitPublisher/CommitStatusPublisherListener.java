@@ -20,9 +20,11 @@ import com.google.common.util.concurrent.Striped;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.Lock;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildProblemData;
+import jetbrains.buildServer.Used;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.MultiNodeTasks.PerformingTask;
@@ -62,6 +64,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         return size() > MAX_LAST_EVENTS_TO_REMEMBER;
       }
     };
+
+  private Consumer<Event> myEventProcessedCallback = null;
 
   public CommitStatusPublisherListener(@NotNull EventDispatcher<BuildServerListener> events,
                                        @NotNull PublisherManager voterManager,
@@ -251,6 +255,16 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     submitTaskForQueuedBuild(Event.REMOVED_FROM_QUEUE, build);
   }
 
+  @Used("tests")
+  void setEventProcessedCallback(@Nullable Consumer<Event> callback) {
+    myEventProcessedCallback = callback;
+  }
+
+  private void eventProcessed(Event event) {
+    if (myEventProcessedCallback != null)
+      myEventProcessedCallback.accept(event);
+  }
+
   private boolean isBuildFeatureAbsent(@Nullable SBuildType buildType) {
     return buildType == null || buildType.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE).stream()
                                          .noneMatch(f -> buildType.isEnabled(f.getId()));
@@ -364,12 +378,14 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       SBuild build = getBuild(task);
       if (eventType == null || build == null) {
         task.finished();
+        eventProcessed(eventType);
         return;
       }
 
       synchronized (myLastEvents) {
         if (myLastEvents.get(build.getBuildId()) != null && eventType.isFirstTask()) {
           task.finished();
+          eventProcessed(eventType);
           return;
         }
         if (eventType.isConsequentTask())
@@ -386,6 +402,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         }
       }, myExecutorServices.getLowPriorityExecutorService()).handle((r, t) -> {
         task.finished();
+        eventProcessed(eventType);
         return r;
       });
     }
@@ -451,6 +468,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       SQueuedBuild build = getBuild(task);
       if (eventType == null || build == null) {
         task.finished();
+        eventProcessed(eventType);
         return;
       }
       CompletableFuture.runAsync(() -> {
@@ -463,6 +481,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         }
       }, myExecutorServices.getLowPriorityExecutorService()).handle((r, t) -> {
         task.finished();
+        eventProcessed(eventType);
         return r;
       });
     }

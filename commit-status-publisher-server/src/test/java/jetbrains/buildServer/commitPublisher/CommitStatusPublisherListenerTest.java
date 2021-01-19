@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.commitPublisher;
 
+import java.util.function.Consumer;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -24,7 +25,6 @@ import jetbrains.buildServer.serverSide.impl.RunningBuildState;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.*;
 import org.testng.annotations.BeforeMethod;
@@ -44,7 +44,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   private MockPublisher myPublisher;
   private PublisherLogger myLogger;
   private SUser myUser;
-
+  private Event myLastEventProcessed = null;
+  private final Consumer<Event> myEventProcessedCallback = event -> myLastEventProcessed = event;
 
   @BeforeMethod
   public void setUp() throws Exception {
@@ -54,6 +55,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     final BuildHistory history = myFixture.getHistory();
     myListener = new CommitStatusPublisherListener(myFixture.getEventDispatcher(), myPublisherManager, history, myBuildsManager, myFixture.getBuildPromotionManager(), myProblems,
                                                    myFixture.getServerResponsibility(), myFixture.getSingletonService(ExecutorServices.class), myMultiNodeTasks);
+    myListener.setEventProcessedCallback(myEventProcessedCallback);
     myPublisher = new MockPublisher(myPublisherSettings, MockPublisherSettings.PUBLISHER_ID, myBuildType, myFeatureDescriptor.getId(),
                                     Collections.emptyMap(), myProblems, myLogger);
     myUser = myFixture.createUserAccount("newuser");
@@ -76,11 +78,11 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myBuildType.addToQueue("");
     waitForTasksToFinish(Event.QUEUED);
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
-    myListener.changesLoaded(runningBuild);
     myFixture.finishBuild(runningBuild, false);
     myPublisher.notifyWaitingEvent(Event.STARTED, 1000);
-    waitForTasksToFinish(Event.FINISHED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
+    waitFor(() -> {
+      return myPublisher.getEventsReceived().equals(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
+    }, TASK_COMPLETION_TIMEOUT_MS);
   }
 
   public void should_not_accept_pending_after_finished() {
@@ -340,7 +342,9 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   }
 
   private void waitForTasksToFinish(Event eventType) {
-    waitFor(() -> myMultiNodeTasks.findFinishedTasks(Collections.singleton(eventType.getName()), Dates.ONE_MINUTE).stream().findAny().isPresent(), TASK_COMPLETION_TIMEOUT_MS);
+    waitForAssert(() -> {
+      return myLastEventProcessed == eventType;
+    }, TASK_COMPLETION_TIMEOUT_MS);
   }
 
   private void assertIfNoTasks(Event eventType) {
