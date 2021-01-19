@@ -392,16 +392,19 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
           myLastEvents.put(build.getBuildId(), eventType);
       }
 
+      // We are accepting the task. It will be either completed or will fail
+      // One way or another it will be marked as finished (see TW-69618)
+      task.finished();
+
       CompletableFuture.runAsync(() -> {
-        Lock lock = myLocks.get(build.getBuildTypeId());
-        lock.lock();
-        try {
-          runForEveryPublisher(eventType, build);
-        } finally {
-          lock.unlock();
-        }
-      }, myExecutorServices.getLowPriorityExecutorService()).handle((r, t) -> {
-        task.finished();
+          Lock lock = myLocks.get(build.getBuildTypeId());
+          lock.lock();
+          try {
+            runForEveryPublisher(eventType, build);
+          } finally {
+            lock.unlock();
+          }
+        }, myExecutorServices.getLowPriorityExecutorService()).handle((r, t) -> {
         eventProcessed(eventType);
         return r;
       });
@@ -471,6 +474,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         eventProcessed(eventType);
         return;
       }
+
+      task.finished();
+
       CompletableFuture.runAsync(() -> {
         Lock lock = myLocks.get(build.getBuildTypeId());
         lock.lock();
@@ -480,7 +486,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
           lock.unlock();
         }
       }, myExecutorServices.getLowPriorityExecutorService()).handle((r, t) -> {
-        task.finished();
         eventProcessed(eventType);
         return r;
       });
