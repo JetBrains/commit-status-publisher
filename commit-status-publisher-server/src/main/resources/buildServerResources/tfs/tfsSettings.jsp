@@ -75,7 +75,7 @@
     <span class="smallNote">
       You need to grant <strong><em>Code (status)</em></strong> and <strong><em>Code (write)</em></strong>
       <a href="https://docs.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/oauth?view=vsts#scopes" target="_blank" rel="noreferrer">scopes</a>
-      for token and add the "+:refs/(pull/*)/merge" rule in VCS root branch specification.
+      for token and add <a href="https://www.jetbrains.com/help/teamcity/pull-requests.html" target="_blank">Pull Requests build feature</a>.
     </span>
   </td>
 </tr>
