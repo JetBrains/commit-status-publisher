@@ -38,6 +38,11 @@ class PublisherLogger extends Logger {
   }
 
   @Override
+  public boolean isTraceEnabled() {
+    return false;
+  }
+
+  @Override
   public void debug(@NonNls final String message) {
     entries.push("DEBUG: " + message);
   }
