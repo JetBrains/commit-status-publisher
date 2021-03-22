@@ -62,6 +62,8 @@ public class ServerListener  extends ConfigActionsServerAdapter implements Custo
   private static boolean updateFeatures(@NotNull String oldExternalId, @Nullable Long oldInternalId, @NotNull String newExternalId, @NotNull BuildTypeSettings btSettings) {
     boolean updated = false;
     for (SBuildFeatureDescriptor bf: btSettings.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE)) {
+      if (btSettings.isReadOnly()) continue;
+
       String vcsRootId = bf.getParameters().get(Constants.VCS_ROOT_ID_PARAM);
       Long internalId;
       try {
