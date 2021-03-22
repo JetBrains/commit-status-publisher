@@ -69,12 +69,10 @@ public class MissingVcsRootsReport extends HealthStatusReport {
     for (SBuildType bt : scope.getBuildTypes()) {
       List<VcsRootEntry> vcsRootEntries = bt.getVcsRootEntries();
       Set<String> vcsRootIds = new HashSet<String>();
-      Set<Long> vcsRootInternalIds = new HashSet<Long>();
       for (VcsRootEntry vcs: vcsRootEntries) {
         VcsRoot vcsRoot = vcs.getVcsRoot();
         if (vcsRoot instanceof SVcsRoot) {
           vcsRootIds.add(((SVcsRoot)vcsRoot).getExternalId());
-          vcsRootInternalIds.add(vcsRoot.getId());
         }
       }
       Collection<SBuildFeatureDescriptor> features = bt.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE);
@@ -83,13 +81,7 @@ public class MissingVcsRootsReport extends HealthStatusReport {
           Map<String, String> params = feature.getParameters();
           if (params.containsKey(Constants.VCS_ROOT_ID_PARAM)) {
             String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
-            Long internalId;
-            try {
-              internalId = Long.valueOf(vcsRootId);
-            } catch (NumberFormatException ex) {
-              internalId = null;
-            }
-            if (!(vcsRootIds.contains(vcsRootId) || (null != internalId && vcsRootInternalIds.contains(internalId)))) {
+            if (!vcsRootIds.contains(vcsRootId)) {
               String identity = REPORT_TYPE + "_BT_" + bt.getInternalId() + "_FEATURE_" + feature.getId();
               HashMap<String, Object> additionalData = new HashMap<String, Object>();
               additionalData.put("buildType", bt);
