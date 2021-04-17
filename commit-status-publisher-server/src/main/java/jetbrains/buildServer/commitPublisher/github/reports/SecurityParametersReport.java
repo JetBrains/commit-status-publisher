@@ -16,15 +16,14 @@
 
 package jetbrains.buildServer.commitPublisher.github.reports;
 
-import java.util.stream.Collectors;
+import java.util.*;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.healthStatus.*;
+import jetbrains.buildServer.vcs.BranchSpec;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.*;
 
 public class SecurityParametersReport extends HealthStatusReport {
 
@@ -92,37 +91,21 @@ public class SecurityParametersReport extends HealthStatusReport {
 
   @NotNull
   private List<VcsRootInstance> pullRequestVcsRoots(@NotNull SBuildType bt) {
-    return ((BuildTypeEx) bt).getLastUsedBranchSpecMap().entrySet().stream().filter(e -> e.getValue().asString().contains("+:refs/pull")).map(e -> e.getKey()).collect(Collectors.toList());
+    List<VcsRootInstance> res = new ArrayList<>();
+    for (SVcsRoot root: bt.getVcsRoots()) {
+      BranchSpec branchSpec = ((BuildTypeEx)bt).getBranchSpec(root);
+      if (branchSpec.asString().contains("+:refs/pull")) {
+        res.add(bt.getVcsRootInstanceForParent(root));
+      }
+    }
+
+    return res;
   }
 
 
   private boolean githubRoot(@NotNull VcsRootInstance root) {
     String url = root.getProperties().get(Constants.GIT_URL_PARAMETER);
     return url != null && url.contains("github.com");
-  }
-
-
-  @NotNull
-  private List<VcsRootInstance> getGitRoots(@NotNull SBuildType bt) {
-    List<SVcsRoot> gitRoots = getGitParentRoots(bt);
-    List<VcsRootInstance> result = new ArrayList<VcsRootInstance>(gitRoots.size());
-    for (SVcsRoot parentRoot : gitRoots) {
-      VcsRootInstance root = bt.getVcsRootInstanceForParent(parentRoot);
-      if (root != null)
-        result.add(root);
-    }
-    return result;
-  }
-
-
-  @NotNull
-  private List<SVcsRoot> getGitParentRoots(@NotNull SBuildType bt) {
-    List<SVcsRoot> result = new ArrayList<SVcsRoot>();
-    for (SVcsRoot parentRoot : bt.getVcsRoots()) {
-      if (Constants.GIT_VCS_NAME.equals(parentRoot.getVcsName()))
-        result.add(parentRoot);
-    }
-    return result;
   }
 
 
