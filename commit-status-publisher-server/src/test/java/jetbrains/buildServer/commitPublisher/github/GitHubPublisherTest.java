@@ -28,8 +28,10 @@ import jetbrains.buildServer.commitPublisher.github.api.impl.data.RepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BasePropertiesModel;
 import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
+import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -70,6 +72,18 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, String.format(".*/repos/owner/project .*")); // not to be tested
   }
 
+  @TestFor(issues="TW-54352")
+  public void default_context_must_not_contains_long_unicodes() {
+    char[] btNameCharCodes = { 0x41, 0x200d, 0x42b, 0x20, 0x3042, 0x231a, 0xd83e, 0xdd20, 0x39, 0xfe0f, 0x20e3, 0xd83d, 0x20, 0xdee9, 0xfe0f };
+    myBuildType.setName(new String(btNameCharCodes));
+    char[] prjNameCharCodes =  { 0x45, 0x263A,  0x09, 0xd841, 0xdd20 };
+    myBuildType.getProject().setName(new String(prjNameCharCodes));
+    SBuild build = createBuildInCurrentBranch(myBuildType, Status.NORMAL);
+    String context = ((GitHubPublisher) myPublisher).getDefaultContext(build);
+    char[] expectedBTNameCharCodes = { 0x41, 0x42b, 0x20, 0x3042, 0x231a, 0x39};
+    char[] expectedPrjNameCharCodes =  { 0x45, 0x263A };
+    then(context).isEqualTo(new String(expectedBTNameCharCodes) + " (" + new String(expectedPrjNameCharCodes) + ")");
+  }
 
   public void test_buildFinishedSuccessfully_server_url_with_subdir() throws Exception {
     Map<String, String> params = getPublisherParams();

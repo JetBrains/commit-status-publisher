@@ -112,17 +112,28 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     return result;
   }
 
-
   @NotNull
-  private String getDefaultContext(@NotNull SBuild build) {
+  String getDefaultContext(@NotNull SBuild build) {
     SBuildType buildType = build.getBuildType();
     if (buildType != null) {
-      return String.format("%s (%s)", buildType.getName(), buildType.getProject().getName());
+      String btName = removeMultiCharUnicodeAndTrim(buildType.getName());
+      String prjName = removeMultiCharUnicodeAndTrim(buildType.getProject().getName());
+      return String.format("%s (%s)", btName, prjName);
     } else {
       return "<Removed build configuration>";
     }
   }
 
+  private String removeMultiCharUnicodeAndTrim(String s) {
+    StringBuilder sb = new StringBuilder();
+    for (char c: s.toCharArray()) {
+      if (c >= 0xd800L && c <= 0xdfffL || (c & 0xfff0) == 0xfe00 || c == 0x20e3 || c == 0x200d) {
+        continue;
+      }
+      sb.append(c);
+    }
+    return sb.toString().trim();
+  }
 
   @Nullable
   private String getCustomContextFromParameter(@NotNull SBuild build) {
