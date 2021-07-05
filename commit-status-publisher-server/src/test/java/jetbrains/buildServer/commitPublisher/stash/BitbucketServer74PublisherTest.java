@@ -24,8 +24,8 @@ public class BitbucketServer74PublisherTest extends BaseStashPublisherTest {
 
   public BitbucketServer74PublisherTest() {
     myServerVersion = "7.4";
-    myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.REMOVED, null);  // not to be tested
+    myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*projects/owner/repos/project/commits/%s.*ENTITY:.*Build queued.*INPROGRESS.*", REVISION));
+    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*projects/owner/repos/project/commits/%s.*ENTITY:.*Build removed from queue.*FAILED.*", REVISION));
     myExpectedRegExps.put(EventToTest.STARTED, String.format(".*projects/owner/repos/project/commits/%s.*ENTITY:.*Build started.*INPROGRESS.*", REVISION));
     myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*projects/owner/repos/project/commits/%s.*ENTITY:.*Success.*SUCCESSFUL.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILED, String.format(".*projects/owner/repos/project/commits/%s.*ENTITY:.*Failure.*FAILED.*", REVISION));

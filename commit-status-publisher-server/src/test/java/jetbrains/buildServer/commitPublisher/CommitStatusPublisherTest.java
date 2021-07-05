@@ -26,6 +26,7 @@ import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
+import jetbrains.buildServer.serverSide.SQueuedBuild;
 import jetbrains.buildServer.serverSide.SRunningBuild;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
@@ -153,7 +154,9 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
 
   public void test_buildRemovedFromQueue()  throws Exception {
     if (isSkipEvent(EventToTest.REMOVED)) return;
-    myPublisher.buildRemovedFromQueue(myBuildType.addToQueue(""), myRevision, myUser, COMMENT);
+    SQueuedBuild queuedBuild = myBuildType.addToQueue("");
+    queuedBuild.removeFromQueue(myUser, COMMENT);
+    myPublisher.buildRemovedFromQueue(queuedBuild.getBuildPromotion().getAssociatedBuild(), myRevision, myUser, COMMENT);
     then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.REMOVED));
   }
 

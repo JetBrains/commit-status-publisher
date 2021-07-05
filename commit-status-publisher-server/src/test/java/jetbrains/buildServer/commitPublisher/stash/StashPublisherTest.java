@@ -24,8 +24,8 @@ public class StashPublisherTest extends BaseStashPublisherTest {
 
   public StashPublisherTest() {
     myServerVersion = "6.0";
-    myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.REMOVED, null);  // not to be tested
+    myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*build-status/.*/commits/%s.*ENTITY:.*INPROGRESS.*Build queued.*", REVISION));
+    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*build-status/.*/commits/%s.*ENTITY:.*FAILED.*Build removed from queue.*", REVISION));
     myExpectedRegExps.put(EventToTest.STARTED, String.format(".*build-status/.*/commits/%s.*ENTITY:.*INPROGRESS.*Build started.*", REVISION));
     myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*build-status/.*/commits/%s.*ENTITY:.*SUCCESSFUL.*Success.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILED, String.format(".*build-status/.*/commits/%s.*ENTITY:.*FAILED.*Failure.*", REVISION));

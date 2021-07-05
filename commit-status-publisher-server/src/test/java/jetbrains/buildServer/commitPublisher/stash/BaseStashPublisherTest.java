@@ -40,6 +40,7 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
+    setInternalProperty(StashPublisher.PROP_PUBLISH_QUEUED_BUILD_STATUS, true);
     Map<String, String> params = getPublisherParams();
     myPublisherSettings = new StashSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
     myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);

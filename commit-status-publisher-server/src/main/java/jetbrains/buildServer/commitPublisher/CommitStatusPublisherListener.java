@@ -154,7 +154,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       }
     ));
 
-    myMultiNodeTasks.subscribe(Event.REMOVED_FROM_QUEUE.getName(), new QueuedBuildPublisherTaskConsumer(
+    myMultiNodeTasks.subscribe(Event.REMOVED_FROM_QUEUE.getName(), new BuildPublisherTaskConsumer(
       build -> new PublishTask() {
         @Override
         public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
@@ -167,6 +167,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   @Override
   public void changesLoaded(@NotNull final SRunningBuild build) {
+    doChangesLoaded(build);
+  }
+
+  private void doChangesLoaded(@NotNull final SBuild build) {
     SBuildType buildType = getBuildType(Event.STARTED, build);
     if (isBuildFeatureAbsent(buildType))
       return;
@@ -176,6 +180,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   @Override
   public void buildFinished(@NotNull SRunningBuild build) {
+    doBuildFinished(build);
+  }
+
+  private void doBuildFinished(@NotNull SBuild build) {
     SBuildType buildType = getBuildType(Event.FINISHED, build);
     if (isBuildFeatureAbsent(buildType))
       return;
@@ -252,7 +260,23 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     if (isBuildFeatureAbsent(buildType))
       return;
 
-    submitTaskForQueuedBuild(Event.REMOVED_FROM_QUEUE, build);
+    long id = build.getBuildPromotion().getId();
+    BuildPromotion replacement = myBuildPromotionManager.findPromotionOrReplacement(id);
+    boolean replaced = replacement != null && replacement.getId() != id;
+    if (replaced) {
+      // We want to fire an event reflective of the build we were replaced with
+      SBuild replacementBuild = replacement.getAssociatedBuild();
+      if (replacementBuild != null) {
+        if (replacementBuild.isFinished()) {
+          doBuildFinished(replacementBuild);
+        } else {
+          doChangesLoaded(replacementBuild);
+        }
+      }
+    } else if (build.getBuildPromotion().isCanceled()) {
+      submitTaskForQueuedBuild(Event.REMOVED_FROM_QUEUE, build);
+    }
+    // Otherwise it's been removed from queue in the normal course of being run, no need for an event
   }
 
   @Used("tests")
@@ -412,10 +436,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
     @Nullable
     private SBuild getBuild(final PerformingTask task) {
-      Long buildId = task.getLongArg1();
-      if (buildId == null) return null;
-
-      return myBuildsManager.findBuildInstanceById(buildId);
+      Long id = task.getLongArg1();
+      SBuild build = myBuildsManager.findBuildInstanceById(id);
+      if (build != null) {
+        return build;
+      } else {
+        return myBuildPromotionManager.findPromotionById(id).getAssociatedBuild();
+      }
     }
 
 
@@ -437,7 +464,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
           logStatusNotPublished(event, LogUtil.describe(build), publisher, "commit status publishing is disabled");
           continue;
         }
-        List<BuildRevision> revisions = getBuildRevisionForVote(publisher, build);
+        List<BuildRevision> revisions = getQueuedBuildRevisionForVote(buildType, publisher, build);
         if (revisions.isEmpty()) {
           logStatusNotPublished(event, LogUtil.describe(build), publisher, "no compatible revisions found");
           continue;
@@ -604,7 +631,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     @NotNull
     protected List<BuildRevision> getQueuedBuildRevisionForVote(@NotNull SBuildType buildType,
                                                               @NotNull CommitStatusPublisher publisher,
-                                                              @NotNull SQueuedBuild build) {
+                                                              @NotNull BuildPromotionOwner build) {
       BuildPromotion p = build.getBuildPromotion();
       SBuild b = p.getAssociatedBuild();
       if (b != null) {

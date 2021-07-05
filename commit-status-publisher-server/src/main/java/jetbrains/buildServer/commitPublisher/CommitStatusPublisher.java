@@ -26,7 +26,7 @@ public interface CommitStatusPublisher {
 
   boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException;
 
-  boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) throws PublisherException;
+  boolean buildRemovedFromQueue(@NotNull SBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) throws PublisherException;
 
   boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException;
 

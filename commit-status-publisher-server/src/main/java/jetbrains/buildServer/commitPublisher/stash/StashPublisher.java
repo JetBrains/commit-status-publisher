@@ -66,7 +66,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) {
+  public boolean buildRemovedFromQueue(@NotNull SBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) {
     StringBuilder description = new StringBuilder("Build removed from queue");
     if (user != null)
       description.append(" by ").append(user.getName());

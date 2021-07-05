@@ -91,6 +91,8 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     return myType;
   }
 
+  int failuresReceived() { return myFailuresReceived; }
+
   int successReceived() { return mySuccessReceived; }
 
   void shouldThrowException() {myShouldThrowException = true; }
@@ -117,7 +119,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull final SQueuedBuild build, @NotNull final BuildRevision revision, @Nullable final User user, @Nullable final String comment)
+  public boolean buildRemovedFromQueue(@NotNull final SBuild build, @NotNull final BuildRevision revision, @Nullable final User user, @Nullable final String comment)
     throws PublisherException {
     pretendToHandleEvent(Event.REMOVED_FROM_QUEUE);
     return true;

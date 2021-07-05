@@ -72,7 +72,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) throws PublisherException {
+  public boolean buildRemovedFromQueue(@NotNull SBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) throws PublisherException {
     publish(build, revision, GitlabBuildStatus.CANCELED, "Build canceled");
     return true;
   }
