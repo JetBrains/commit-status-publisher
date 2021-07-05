@@ -20,6 +20,9 @@ import java.util.function.Consumer;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.dependency.Dependency;
+import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
+import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.RunningBuildState;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
@@ -123,7 +126,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.QUEUED);
     myFixture.waitForQueuedBuildToStart(queuedBuild);
     waitForTasksToFinish(Event.STARTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED,Event.STARTED));
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.COMMENTED, Event.STARTED));
   }
 
   public void should_publish_commented() {
@@ -169,15 +172,60 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.INTERRUPTED));
   }
 
-  // this test fails after being rewritten to use the real event due to promotion manager
-  // not being able to find promotion by id, so REMOVED_FROM_QUEUE event did never work properly
-  @Test(enabled = false)
+  @TestFor(issues = "TW-48863")
   public void should_publish_removed_from_queue() {
     prepareVcs();
     myBuildType.addToQueue("");
-    myServer.getQueue().removeAllFromQueue();
+    waitForTasksToFinish(Event.QUEUED);
+    myServer.getQueue().cancelMatchedItems(build -> true, myUser, null);
     waitForTasksToFinish(Event.REMOVED_FROM_QUEUE);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE));
+  }
+
+  @TestFor(issues = "TW-48863")
+  public void should_delegate_to_optimized_success() {
+    prepareVcs();
+    SBuildType dependent = myProject.copyBuildType(myBuildType, myBuildType.getExternalId() + "_dep", "Dependent", new CopyOptions());
+    myFixture.addDependency(dependent, myBuildType, true);
+    myBuildType.addToQueue("");
+    flushQueueAndWait();
+    SFinishedBuild finished = finishBuild();
+    dependent.addToQueue("");
+    then(myFixture.getBuildQueue().getNumberOfItems()).isEqualTo(2);
+    flushQueueAndWait();
+    then(myFixture.getBuildQueue().isQueueEmpty()).isTrue();
+    RunningBuildEx runningBuild = getRunningBuild();
+    then(runningBuild.getBuildPromotion().getDependenciesIds()).containsOnly(finished.getBuildId());
+    then(myPublisher.successReceived()).isEqualTo(2);
+    finishBuild();
+    waitForTasksToFinish(Event.FINISHED);
+    then(myPublisher.successReceived()).isEqualTo(3);
+    then(myPublisher.isFailureReceived()).isFalse();
+  }
+
+  @TestFor(issues = "TW-48863")
+  public void should_delegate_to_optimized_failure() throws InterruptedException {
+    prepareVcs();
+    myPublisher.setEventToWait(Event.FINISHED);
+    SBuildType dependent = myProject.copyBuildType(myBuildType, myBuildType.getExternalId() + "_dep", "Dependent", new CopyOptions());
+    Dependency dependency = myFixture.getSingletonService(DependencyFactory.class).createDependency(myBuildType);
+    dependency.setOption(DependencyOptions.TAKE_STARTED_BUILD_WITH_SAME_REVISIONS, Boolean.TRUE);
+    dependency.setOption(DependencyOptions.TAKE_SUCCESSFUL_BUILDS_ONLY, Boolean.FALSE);
+    dependent.addDependency(dependency);
+    myBuildType.addToQueue("");
+    flushQueueAndWait();
+    SFinishedBuild finished = finishBuild(true);
+    SQueuedBuild queuedBuild = dependent.addToQueue("");
+    then(myFixture.getBuildQueue().getNumberOfItems()).isEqualTo(2);
+    flushQueueAndWait();
+    for (int i = 0; i < 3; i++) {
+      myPublisher.notifyWaitingEvent(Event.FINISHED, 1000);
+    }
+    then(myFixture.getBuildQueue().isQueueEmpty()).isTrue();
+    then(queuedBuild.getBuildPromotion().getAllDependencies()).containsOnly(finished.getBuildPromotion());
+    then(myPublisher.isSuccessReceived()).isFalse();
+    then(myPublisher.getEventsReceived().stream().filter(e -> e == Event.FAILURE_DETECTED).count()).isEqualTo(2);
+    then(myPublisher.failuresReceived()).isEqualTo(5);
   }
 
   public void should_publish_finished_success() {
