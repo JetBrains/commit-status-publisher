@@ -56,5 +56,156 @@
     <orderEntry type="module" module-name="web-test-core" scope="TEST" />
     <orderEntry type="module" module-name="web" />
     <orderEntry type="module" module-name="oauth-integration" />
+    <orderEntry type="module" module-name="common-vcs" scope="TEST" />
+    <orderEntry type="module" module-name="patches-low" scope="TEST" />
+    <orderEntry type="module" module-name="server-openapi" />
+    <orderEntry type="module" module-name="server-model" />
+    <orderEntry type="module" module-name="messages" />
+    <orderEntry type="module" module-name="vcs-plugin-api" />
+    <orderEntry type="module" module-name="common" />
+    <orderEntry type="module" module-name="patches" />
+    <orderEntry type="module" module-name="server-common-api" />
+    <orderEntry type="module" module-name="vcs-api" />
+    <orderEntry type="module" module-name="common-graph" />
+    <orderEntry type="module" module-name="common-vcs" />
+    <orderEntry type="module" module-name="patches-low" />
+    <orderEntry type="module" module-name="runtime-util" />
+    <orderEntry type="library" name="Spring-Framework" level="project" />
+    <orderEntry type="library" name="Spring-Framework-web" level="project" />
+    <orderEntry type="library" name="ServletApi" level="project" />
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../../../web/lib/jstl.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../../../web/lib/standard.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module" module-name="server-model" />
+    <orderEntry type="module" module-name="messages" />
+    <orderEntry type="module" module-name="server-openapi" />
+    <orderEntry type="module" module-name="common-impl" />
+    <orderEntry type="module" module-name="db" />
+    <orderEntry type="module" module-name="plugin-model-server" />
+    <orderEntry type="module" module-name="server-common-api-impl" />
+    <orderEntry type="module" module-name="vcs-api-impl" />
+    <orderEntry type="module" module-name="server-startup" />
+    <orderEntry type="module" module-name="server-vcs-api" />
+    <orderEntry type="module" module-name="server-vcs-api-ex" />
+    <orderEntry type="module" module-name="configs-api" />
+    <orderEntry type="module" module-name="ro-server-util" />
+    <orderEntry type="module" module-name="server-metrics" />
+    <orderEntry type="module" module-name="vcs-plugin-api" />
+    <orderEntry type="module" module-name="common" />
+    <orderEntry type="module" module-name="patches" />
+    <orderEntry type="module" module-name="server-common-api" />
+    <orderEntry type="module" module-name="vcs-api" />
+    <orderEntry type="module" module-name="common-graph" />
+    <orderEntry type="module" module-name="common-vcs" />
+    <orderEntry type="module" module-name="patches-low" />
+    <orderEntry type="module" module-name="runtime-util" />
+    <orderEntry type="module" module-name="plugin-model-common" />
+    <orderEntry type="module" module-name="common-spring" />
+    <orderEntry type="module" module-name="common-step-conditions" />
+    <orderEntry type="module" module-name="server-openapi-vcs" />
+    <orderEntry type="library" name="Spring-Framework" level="project" />
+    <orderEntry type="library" name="Spring-Security" level="project" />
+    <orderEntry type="library" name="slf4j" level="project" />
+    <orderEntry type="library" name="FreeMarker" level="project" />
+    <orderEntry type="library" name="org.apache.httpcomponents:httpclient:4.5.10" level="project" />
+    <orderEntry type="library" name="annotations.jar" level="project" />
+    <orderEntry type="library" name="Guava" level="project" />
+    <orderEntry type="library" name="org.apache.httpcomponents:httpclient:4.5.10" level="project" />
+    <orderEntry type="module" module-name="common" scope="TEST" />
+    <orderEntry type="module" module-name="patches" scope="TEST" />
+    <orderEntry type="module" module-name="server-common-api" scope="TEST" />
+    <orderEntry type="module" module-name="vcs-api" scope="TEST" />
+    <orderEntry type="module" module-name="common-graph" scope="TEST" />
+    <orderEntry type="module" module-name="common-vcs" scope="TEST" />
+    <orderEntry type="module" module-name="patches-low" scope="TEST" />
+    <orderEntry type="module" module-name="web-openapi" />
+    <orderEntry type="module" module-name="server-openapi" />
+    <orderEntry type="module" module-name="server-model" />
+    <orderEntry type="module" module-name="messages" />
+    <orderEntry type="module" module-name="vcs-plugin-api" />
+    <orderEntry type="module" module-name="common" />
+    <orderEntry type="module" module-name="patches" />
+    <orderEntry type="module" module-name="server-common-api" />
+    <orderEntry type="module" module-name="vcs-api" />
+    <orderEntry type="module" module-name="common-graph" />
+    <orderEntry type="module" module-name="common-vcs" />
+    <orderEntry type="module" module-name="patches-low" />
+    <orderEntry type="module" module-name="runtime-util" />
+    <orderEntry type="library" name="Spring-Framework-web" level="project" />
+    <orderEntry type="library" name="Spring-Framework" level="project" />
+    <orderEntry type="library" name="websocket-api" level="project" />
+    <orderEntry type="library" name="Spring-Framework" level="project" />
+    <orderEntry type="library" name="Spring-Framework-web" level="project" />
+    <orderEntry type="library" name="ServletApi" level="project" />
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../../../web/lib/jstl.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../../../web/lib/standard.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module" module-name="server" />
+    <orderEntry type="module" module-name="server-model" />
+    <orderEntry type="module" module-name="messages" />
+    <orderEntry type="module" module-name="server-openapi" />
+    <orderEntry type="module" module-name="common-impl" />
+    <orderEntry type="module" module-name="db" />
+    <orderEntry type="module" module-name="plugin-model-server" />
+    <orderEntry type="module" module-name="server-common-api-impl" />
+    <orderEntry type="module" module-name="vcs-api-impl" />
+    <orderEntry type="module" module-name="server-startup" />
+    <orderEntry type="module" module-name="server-vcs-api" />
+    <orderEntry type="module" module-name="server-vcs-api-ex" />
+    <orderEntry type="module" module-name="configs-api" />
+    <orderEntry type="module" module-name="ro-server-util" />
+    <orderEntry type="module" module-name="server-metrics" />
+    <orderEntry type="module" module-name="vcs-plugin-api" />
+    <orderEntry type="module" module-name="common" />
+    <orderEntry type="module" module-name="patches" />
+    <orderEntry type="module" module-name="server-common-api" />
+    <orderEntry type="module" module-name="vcs-api" />
+    <orderEntry type="module" module-name="common-graph" />
+    <orderEntry type="module" module-name="common-vcs" />
+    <orderEntry type="module" module-name="patches-low" />
+    <orderEntry type="module" module-name="runtime-util" />
+    <orderEntry type="module" module-name="plugin-model-common" />
+    <orderEntry type="module" module-name="common-spring" />
+    <orderEntry type="module" module-name="common-step-conditions" />
+    <orderEntry type="module" module-name="server-openapi-vcs" />
+    <orderEntry type="library" name="github-client" level="project" />
+    <orderEntry type="library" name="Spring-Framework" level="project" />
+    <orderEntry type="library" name="Spring-Security" level="project" />
+    <orderEntry type="library" name="slf4j" level="project" />
+    <orderEntry type="library" name="FreeMarker" level="project" />
+    <orderEntry type="library" name="org.apache.httpcomponents:httpclient:4.5.10" level="project" />
+    <orderEntry type="library" name="annotations.jar" level="project" />
+    <orderEntry type="library" name="Guava" level="project" />
+    <orderEntry type="library" name="org.apache.httpcomponents:httpclient:4.5.10" level="project" />
   </component>
 </module>
