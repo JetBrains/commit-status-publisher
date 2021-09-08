@@ -23,6 +23,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.Used;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
@@ -54,6 +55,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   private final ServerResponsibility myServerResponsibility;
   private final MultiNodeTasks myMultiNodeTasks;
   private final ExecutorServices myExecutorServices;
+  private final ProjectManager myProjectManager;
   private final Map<String, Event> myEventTypes = new HashMap<>();
   private final Striped<Lock> myLocks = Striped.lazyWeakLock(100);
   private final Map<Long, Event> myLastEvents =
@@ -75,6 +77,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
                                        @NotNull CommitStatusPublisherProblems problems,
                                        @NotNull ServerResponsibility serverResponsibility,
                                        @NotNull final ExecutorServices executorServices,
+                                       @NotNull ProjectManager projectManager,
                                        @NotNull MultiNodeTasks multiNodeTasks) {
     myPublisherManager = voterManager;
     myBuildHistory = buildHistory;
@@ -84,6 +87,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myServerResponsibility = serverResponsibility;
     myMultiNodeTasks = multiNodeTasks;
     myExecutorServices = executorServices;
+    myProjectManager = projectManager;
     myEventTypes.putAll(Arrays.stream(Event.values()).collect(Collectors.toMap(Event::getName, et -> et)));
 
     events.addListener(this);
@@ -255,6 +259,37 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     submitTaskForQueuedBuild(Event.REMOVED_FROM_QUEUE, build);
   }
 
+  @Override
+  public void buildTypePersisted(@NotNull SBuildType buildType) {
+    if (!myProblems.hasProblems(buildType)) {
+      return;
+    }
+    clearObsoleteProblems(buildType);
+  }
+
+  @Override
+  public void projectPersisted(@NotNull String projectId) {
+    clearObsoleteProblemsForProject(projectId);
+  }
+
+  @Override
+  public void projectRestored(@NotNull String projectId) {
+    clearObsoleteProblemsForProject(projectId);
+  }
+
+  @Override
+  public void buildTypeMoved(@NotNull SBuildType buildType, @NotNull SProject original) {
+    if (!myProblems.hasProblems(buildType)) {
+      return;
+    }
+    clearObsoleteProblems(buildType);
+  }
+
+  @Override
+  public void buildTypeTemplatePersisted(@NotNull BuildTypeTemplate buildTemplate) {
+    clearObsoleteProblems(buildTemplate);
+  }
+
   @Used("tests")
   void setEventProcessedCallback(@Nullable Consumer<Event> callback) {
     myEventProcessedCallback = callback;
@@ -348,6 +383,51 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private boolean shouldFailBuild(@NotNull SBuildType buildType) {
     return Boolean.parseBoolean(buildType.getParameters().get("teamcity.commitStatusPublisher.failBuildOnPublishError"));
+  }
+
+  private void clearObsoleteProblemsForProject(@NotNull String projectId) {
+    SProject project = myProjectManager.findProjectById(projectId);
+    if (project == null) {
+      return;
+    }
+    clearObsoleteProblems(getBuildTypesWithProblems(project.getOwnBuildTypes().stream()));
+  }
+
+  private void clearObsoleteProblems(@NotNull BuildTypeTemplate buildTemplate) {
+    Collection<SBuildType> buildTypes = getBuildTypesWithProblems(buildTemplate.getUsages().stream());
+    buildTypes.addAll(getBuildTypesWithProblems(buildTemplate.getUsagesAsDefaultTemplate()));
+    if (buildTemplate instanceof BuildTypeTemplateEx) {
+      buildTypes.addAll(getBuildTypesWithProblems(((BuildTypeTemplateEx) buildTemplate).getUsagesAsEnforcedSettings()));
+    }
+    clearObsoleteProblems(buildTypes);
+  }
+
+  private Collection<SBuildType> getBuildTypesWithProblems(@NotNull Stream<SBuildType> buildTypes) {
+    return buildTypes.filter(myProblems::hasProblems)
+                     .collect(Collectors.toSet());
+  }
+
+  private Collection<SBuildType> getBuildTypesWithProblems(@NotNull Collection<SProject> projects) {
+    return getBuildTypesWithProblems(projects.stream()
+                                             .map(SProject::getBuildTypes)
+                                             .flatMap(Collection::stream));
+  }
+
+  private void clearObsoleteProblems(@NotNull Collection<SBuildType> buildTypes) {
+    if (buildTypes.isEmpty()) {
+      return;
+    }
+    myExecutorServices.getLowPriorityExecutorService().submit(() -> {
+      buildTypes.forEach(this::clearObsoleteProblems);
+    });
+  }
+
+  private void clearObsoleteProblems(@NotNull SBuildType buildType) {
+    Set<String> activeBuildFeaturesIds = buildType.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE).stream()
+                                                  .map(SBuildFeatureDescriptor::getId)
+                                                  .filter(buildType::isEnabled)
+                                                  .collect(Collectors.toSet());
+    myProblems.clearObsoleteProblems(buildType, activeBuildFeaturesIds);
   }
 
   private class BuildPublisherTaskConsumer extends PublisherTaskConsumer {

@@ -16,23 +16,27 @@
 
 package jetbrains.buildServer.commitPublisher;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 import java.util.function.Consumer;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.RunningBuildState;
+import jetbrains.buildServer.serverSide.impl.projects.ProjectsWatcher;
+import jetbrains.buildServer.serverSide.impl.xml.XmlConstants;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.Dates;
+import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.*;
+import org.jdom.Element;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import java.io.IOException;
-import java.util.*;
 
 import static org.assertj.core.api.BDDAssertions.then;
 
@@ -47,6 +51,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   private SUser myUser;
   private Event myLastEventProcessed;
   private final Consumer<Event> myEventProcessedCallback = event -> myLastEventProcessed = event;
+  private ConfigActionFactory myConfigActions;
+  private ProjectPersistingHandler myProjectPersistingHandler;
 
   @BeforeMethod
   public void setUp() throws Exception {
@@ -56,12 +62,16 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     final PublisherManager myPublisherManager = new PublisherManager(myServer);
     final BuildHistory history = myFixture.getHistory();
     myListener = new CommitStatusPublisherListener(myFixture.getEventDispatcher(), myPublisherManager, history, myBuildsManager, myFixture.getBuildPromotionManager(), myProblems,
-                                                   myFixture.getServerResponsibility(), myFixture.getSingletonService(ExecutorServices.class), myMultiNodeTasks);
+                                                   myFixture.getServerResponsibility(), myFixture.getSingletonService(ExecutorServices.class),
+                                                   myFixture.getSingletonService(ProjectManager.class),
+                                                   myMultiNodeTasks);
     myListener.setEventProcessedCallback(myEventProcessedCallback);
     myPublisher = new MockPublisher(myPublisherSettings, MockPublisherSettings.PUBLISHER_ID, myBuildType, myFeatureDescriptor.getId(),
                                     Collections.emptyMap(), myProblems, myLogger);
     myUser = myFixture.createUserAccount("newuser");
     myPublisherSettings.setPublisher(myPublisher);
+    myProjectPersistingHandler = myFixture.getSingletonService(ProjectPersistingHandler.class);
+    myConfigActions = myFixture.getSingletonService(ConfigActionFactory.class);
   }
 
   public void should_publish_started() {
@@ -331,6 +341,100 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     assertIfNoTasks(Event.FINISHED);
     then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
     then(myPublisher.isSuccessReceived()).isFalse();
+  }
+
+  @TestFor(issues = "TW-60688")
+  public void should_clear_problem_on_feature_del() {
+    prepareVcs();
+    myProblems.reportProblem(myPublisher, "Build with feature", null, null, myLogger);
+    then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
+    myBuildType.removeBuildFeature(myBuildType.getBuildFeatures().iterator().next().getId());
+    myListener.buildTypePersisted(myBuildType);
+    Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
+    then(problems).isEmpty();
+  }
+
+  @TestFor(issues = "TW-60688")
+  public void should_clear_problem_when_feature_disabled() {
+    prepareVcs();
+    myProblems.reportProblem(myPublisher, "Build with feature", null, null, myLogger);
+    then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
+    myBuildType.setEnabled(myFeatureDescriptor.getId(), false);
+    myListener.buildTypePersisted(myBuildType);
+    Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
+    then(problems).isEmpty();
+  }
+
+  @TestFor(issues = "TW-60688")
+  public void should_clear_problem_when_xml_configuration_altered() {
+    prepareVcs();
+    myProblems.reportProblem(myPublisher, "Build with feature", null, null, myLogger);
+    then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
+    File configurationFile = myBuildType.getConfigurationFile();
+    FileUtil.processXmlFile(configurationFile, new FileUtil.Processor() {
+      @Override
+      public void process(Element rootElement) {
+        boolean removed = rootElement.getChild(XmlConstants.SETTINGS).removeChild(XmlConstants.BUILD_EXTENSIONS);
+        then(removed).isTrue();
+      }
+    });
+    myFixture.getSingletonService(ProjectsWatcher.class).checkForModifications();
+    SBuildType reloadedBuildType = myProjectManager.findBuildTypeByExternalId(myBuildType.getExternalId());
+    then(reloadedBuildType).isNotNull();
+    Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(reloadedBuildType);
+    then(problems).isEmpty();
+  }
+
+  @TestFor(issues = "TW-60688")
+  public void should_clear_problem_on_default_template_detached() {
+    prepareVcs();
+    SBuildFeatureDescriptor myBuildFeature = myBuildType.getBuildFeatures().iterator().next();
+    myBuildType.removeBuildFeature(myBuildFeature.getId());
+    BuildTypeTemplateEx template = myProject.createBuildTypeTemplate("template");
+    template.addBuildFeature(myBuildFeature);
+    myProject.setDefaultTemplate(template);
+    myProblems.reportProblem(myPublisher, "Build with feature", null, null, myLogger);
+    then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
+    myListener.projectPersisted(myProject.getProjectId());
+    then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
+    myProject.setDefaultTemplate(null);
+    myListener.projectPersisted(myProject.getProjectId());
+    waitForAssert(() -> myProblemNotificationEngine.getProblems(myBuildType).isEmpty(), 2000);
+  }
+
+  @TestFor(issues = "TW-60688")
+  public void should_clear_problem_on_move_to_another_project() {
+    prepareVcs();
+    SBuildFeatureDescriptor myBuildFeature = myBuildType.getBuildFeatures().iterator().next();
+    myBuildType.removeBuildFeature(myBuildFeature.getId());
+    BuildTypeTemplateEx template = myProject.createBuildTypeTemplate("template");
+    template.addBuildFeature(myBuildFeature);
+    myProject.setDefaultTemplate(template);
+    myProblems.reportProblem(myPublisher, "Build with feature", null, null, myLogger);
+    then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
+    SProject anotherProject = myProjectManager.createProject("anotherProject");
+    myBuildType.getVcsRoots().forEach(vcsRoot -> myBuildType.removeVcsRoot(vcsRoot)); // to allow movement to another project
+    myBuildType.moveToProject(anotherProject);
+    then(myProblemNotificationEngine.getProblems(myBuildType)).isEmpty();
+  }
+
+  @TestFor(issues = "TW-60688")
+  public void should_clear_problem_on_competent_execution() {
+    prepareVcs();
+    SBuildFeatureDescriptor myBuildFeature = myBuildType.getBuildFeatures().iterator().next();
+    myBuildType.removeBuildFeature(myBuildFeature.getId());
+    BuildTypeTemplateEx template = myProject.createBuildTypeTemplate("template");
+    template.addBuildFeature(myBuildFeature);
+    myProject.setDefaultTemplate(template);
+    myProblems.reportProblem(myPublisher, "Build with feature", null, null, myLogger);
+    then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
+    myListener.projectPersisted(myProject.getProjectId());
+    then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
+    myProject.setDefaultTemplate(null);
+    // mock situation when two parallel events happened
+    myListener.projectPersisted(myProject.getProjectId());
+    myListener.buildTypeTemplatePersisted(template);
+    then(myProblemNotificationEngine.getProblems(myBuildType)).isEmpty();
   }
 
   private void prepareVcs() {

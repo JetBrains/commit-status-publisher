@@ -18,15 +18,14 @@ package jetbrains.buildServer.commitPublisher;
 
 import com.google.common.util.concurrent.Striped;
 import com.intellij.openapi.diagnostic.Logger;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotification;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemTicket;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.Lock;
 import org.jetbrains.annotations.Nullable;
 
 public class CommitStatusPublisherProblems {
@@ -87,17 +86,24 @@ public class CommitStatusPublisherProblems {
     try {
       String btId = buildType.getInternalId();
       if (myTickets.containsKey(btId)) {
-        Map<String, Set<SystemProblemTicket>> ticketsForPublishers = myTickets.get(btId);
-        if (ticketsForPublishers.containsKey(featureId)) {
-          Set<SystemProblemTicket> tickets = ticketsForPublishers.get(featureId);
-          for (SystemProblemTicket ticket: tickets) {
-              ticket.cancel();
-          }
-          ticketsForPublishers.remove(featureId);
-        }
+        removeFeatureProblem(btId, featureId);
       }
     } finally {
       lock.unlock();
+    }
+  }
+
+  private void removeFeatureProblem(String internalBuildTypeId, String featureId) {
+    Map<String, Set<SystemProblemTicket>> ticketsForPublishers = myTickets.getOrDefault(internalBuildTypeId, Collections.emptyMap());
+    if (ticketsForPublishers.containsKey(featureId)) {
+      Set<SystemProblemTicket> tickets = ticketsForPublishers.get(featureId);
+      for (SystemProblemTicket ticket: tickets) {
+        ticket.cancel();
+      }
+      ticketsForPublishers.remove(featureId);
+      if (ticketsForPublishers.isEmpty()) {
+        myTickets.remove(internalBuildTypeId);
+      }
     }
   }
 
@@ -111,18 +117,16 @@ public class CommitStatusPublisherProblems {
         Set<String> featureIdsToRemove = new HashSet<String>(ticketsForPublishers.keySet());
         featureIdsToRemove.removeAll(currentFeatureIds);
         for (String featureId: featureIdsToRemove) {
-          if (ticketsForPublishers.containsKey(featureId)) {
-            Set<SystemProblemTicket> tickets = ticketsForPublishers.get(featureId);
-            for (SystemProblemTicket ticket: tickets) {
-              ticket.cancel();
-            }
-            ticketsForPublishers.remove(featureId);
-          }
+          removeFeatureProblem(btId, featureId);
         }
       }
     } finally {
       lock.unlock();
     }
+  }
+
+  boolean hasProblems(@NotNull SBuildType buildType) {
+    return myTickets.containsKey(buildType.getInternalId());
   }
 
   private void putTicket(String buildTypeInternalId, String publisherBuildFeatureId, SystemProblemTicket ticket) {
