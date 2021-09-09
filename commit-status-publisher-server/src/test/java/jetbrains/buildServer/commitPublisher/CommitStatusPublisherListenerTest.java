@@ -333,6 +333,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.isFailureReceived()).isFalse();
   }
 
+  @Test
   @TestFor(issues = "TW-47724")
   public void should_not_publish_status_for_personal_builds() throws IOException {
     prepareVcs();
@@ -343,6 +344,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.isSuccessReceived()).isFalse();
   }
 
+  @Test
   @TestFor(issues = "TW-60688")
   public void should_clear_problem_on_feature_del() {
     prepareVcs();
@@ -354,6 +356,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(problems).isEmpty();
   }
 
+  @Test
   @TestFor(issues = "TW-60688")
   public void should_clear_problem_when_feature_disabled() {
     prepareVcs();
@@ -365,6 +368,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(problems).isEmpty();
   }
 
+  @Test(invocationCount = 200)
   @TestFor(issues = "TW-60688")
   public void should_clear_problem_when_xml_configuration_altered() {
     prepareVcs();
@@ -381,8 +385,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myFixture.getSingletonService(ProjectsWatcher.class).checkForModifications();
     SBuildType reloadedBuildType = myProjectManager.findBuildTypeByExternalId(myBuildType.getExternalId());
     then(reloadedBuildType).isNotNull();
-    Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(reloadedBuildType);
-    then(problems).isEmpty();
+    waitForAssert(() -> myProblemNotificationEngine.getProblems(reloadedBuildType).isEmpty(), 2000);
   }
 
   @TestFor(issues = "TW-60688")
