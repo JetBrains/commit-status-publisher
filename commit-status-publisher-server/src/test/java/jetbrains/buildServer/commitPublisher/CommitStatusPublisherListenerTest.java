@@ -434,7 +434,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     // mock situation when two parallel events happened
     myListener.projectPersisted(myProject.getProjectId());
     myListener.buildTypeTemplatePersisted(template);
-    then(myProblemNotificationEngine.getProblems(myBuildType)).isEmpty();
+    waitForAssert(() -> myProblemNotificationEngine.getProblems(myBuildType).isEmpty(), 2000);
   }
 
   private void prepareVcs() {
