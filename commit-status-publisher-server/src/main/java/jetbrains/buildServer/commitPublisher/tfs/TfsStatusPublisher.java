@@ -17,9 +17,16 @@
 package jetbrains.buildServer.commitPublisher.tfs;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
+import java.io.IOException;
 import java.security.KeyStore;
+import java.text.MessageFormat;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -30,12 +37,6 @@ import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.text.MessageFormat;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 
@@ -44,7 +45,7 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
  */
 class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
-  private static final String COMMITS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits?api-version=1.0&$top=1";
+  private static final String COMMITS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits?api-version=1.0&$top={3}";
   private static final String COMMIT_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits/{3}?api-version=1.0";
   private static final String COMMIT_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits/{3}/statuses?api-version=2.1";
   private static final String PULL_REQUEST_ITERATIONS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/pullRequests/{3}/iterations?api-version=3.0";
@@ -52,7 +53,10 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   private static final String PULL_REQUEST_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/pullRequests/{3}/statuses?api-version=3.0-preview";
   private static final String ERROR_AUTHORIZATION = "Check access token value and verify that it has Code (status) and Code (read) scopes";
   private static final String FAILED_TO_TEST_CONNECTION_TO_REPOSITORY = "TFS publisher has failed to test connection to repository ";
-  private static final Gson myGson = new Gson();
+  private static final int COMMITS_TO_LOAD_FROM_TARGET_FOR_SEARCH = 256;
+  private static final Gson myGson = new GsonBuilder()
+                                          .setDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
+                                          .create();
   private final WebLinks myLinks;
 
   // Captures pull request identifier. Example: refs/pull/1/merge
@@ -162,7 +166,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                                          @NotNull final Map<String, String> params,
                                          @Nullable final KeyStore trustStore) throws PublisherException {
     final TfsRepositoryInfo info = getServerAndProject(root, params);
-    final String url = MessageFormat.format(COMMITS_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository());
+    final String url = MessageFormat.format(COMMITS_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository(), 1);
     final String[] commitId = {null};
 
     try {
@@ -255,16 +259,32 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                 return;
               }
 
-              Optional<Iteration> iteration = iterations.value.stream()
-                              .filter(
-                                it -> null != it.sourceRefCommit && null != it.targetRefCommit
-                                      && commits.contains(it.sourceRefCommit.commitId)
-                                      && commits.contains(it.targetRefCommit.commitId)
-                              )
-                              .max((it1, it2) -> it1.id.compareTo(it2.id));
-
-              if (iteration.isPresent())
-                iterationId.set(iteration.get().id);
+              List<Iteration> possibleIterations = iterations.value.stream()
+                                                    .filter(it -> null != it.sourceRefCommit && null != it.targetRefCommit
+                                                                  && commits.contains(it.sourceRefCommit.commitId))
+                                                    .collect(Collectors.toList());
+              Collections.reverse(possibleIterations);  // to have the newest iterations first
+              if (!possibleIterations.isEmpty()) {
+                for (Iteration possibleIteration : possibleIterations) {
+                  if (commits.contains(possibleIteration.targetRefCommit.commitId)) {
+                    iterationId.set(possibleIteration.id);
+                    return;
+                  }
+                }
+                Set<String> targetCommitIds = possibleIterations.stream().map(it -> it.targetRefCommit.commitId).collect(Collectors.toSet());
+                Optional<Commit> commitFromRepo = getNLatestCommits(info, params, trustStore, COMMITS_TO_LOAD_FROM_TARGET_FOR_SEARCH).stream()
+                                                                .filter(commit -> targetCommitIds.contains(commit.commitId))
+                                                                .max((c1, c2) -> c1.author.date.compareTo(c2.author.date));
+                if (commitFromRepo.isPresent()) {
+                  String commitId = commitFromRepo.get().commitId;
+                  for (Iteration possibleIteration : possibleIterations) {
+                    if (commitId.equals(possibleIteration.targetRefCommit.commitId)) {
+                      iterationId.set(possibleIteration.id);
+                      return;
+                    }
+                  }
+                }
+              }
             }
           });
       });
@@ -275,6 +295,28 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     }
 
     return iterationId.get();
+  }
+
+  @NotNull
+  private static List<Commit> getNLatestCommits(TfsRepositoryInfo info, Map<String, String> params, KeyStore trustStore, int nCommitsToLoad)
+    throws HttpPublisherException, IOException {
+    String moreCommitsUrl = MessageFormat.format(COMMITS_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository(), nCommitsToLoad);
+    List<Commit> resultingCommits = new ArrayList<>();
+    HttpHelper.get(moreCommitsUrl, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
+                   Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
+                   trustStore, new DefaultHttpResponseProcessor() {
+        @Override
+        public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+          super.processResponse(response);
+
+          CommitsList commits = processGetResponse(response, CommitsList.class);
+          if (commits == null || commits.value == null || commits.value.size() == 0) {
+            throw new HttpPublisherException("No commits are available in repository %s" + info);
+          }
+          resultingCommits.addAll(commits.value);
+        }
+      });
+    return resultingCommits;
   }
 
   private static <T> T processGetResponse(@NotNull final HttpHelper.HttpResponse response, @NotNull final Class<T> type) throws HttpPublisherException {
@@ -464,6 +506,12 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   private static class Commit {
     private String commitId;
     private List<String> parents;
+    private Author author;
+  }
+
+  private static class Author {
+    private String name;
+    private Date date;
   }
 
   private static class IterationsList {
