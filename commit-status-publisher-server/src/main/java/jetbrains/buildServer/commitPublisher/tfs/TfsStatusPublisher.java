@@ -17,9 +17,17 @@
 package jetbrains.buildServer.commitPublisher.tfs;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
+import java.io.IOException;
 import java.security.KeyStore;
+import java.text.MessageFormat;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -30,12 +38,6 @@ import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.text.MessageFormat;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 
@@ -44,7 +46,7 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
  */
 class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
-  private static final String COMMITS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits?api-version=1.0&$top=1";
+  private static final String COMMITS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits?api-version=1.0&$top={3}";
   private static final String COMMIT_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits/{3}?api-version=1.0";
   private static final String COMMIT_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits/{3}/statuses?api-version=2.1";
   private static final String PULL_REQUEST_ITERATIONS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/pullRequests/{3}/iterations?api-version=3.0";
@@ -52,7 +54,9 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   private static final String PULL_REQUEST_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/pullRequests/{3}/statuses?api-version=3.0-preview";
   private static final String ERROR_AUTHORIZATION = "Check access token value and verify that it has Code (status) and Code (read) scopes";
   private static final String FAILED_TO_TEST_CONNECTION_TO_REPOSITORY = "TFS publisher has failed to test connection to repository ";
-  private static final Gson myGson = new Gson();
+  private static final Gson myGson = new GsonBuilder()
+                                          .setDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
+                                          .create();
   private final WebLinks myLinks;
 
   // Captures pull request identifier. Example: refs/pull/1/merge
@@ -162,32 +166,17 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                                          @NotNull final Map<String, String> params,
                                          @Nullable final KeyStore trustStore) throws PublisherException {
     final TfsRepositoryInfo info = getServerAndProject(root, params);
-    final String url = MessageFormat.format(COMMITS_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository());
-    final String[] commitId = {null};
-
     try {
-      HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
-        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
-                     trustStore, new DefaultHttpResponseProcessor() {
-          @Override
-          public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
-            super.processResponse(response);
-
-            CommitsList commits = processGetResponse(response, CommitsList.class);
-            if (commits == null || commits.value == null || commits.value.size() == 0) {
-              throw new HttpPublisherException("No commits are available in repository %s" + info);
-            }
-
-            commitId[0] = commits.value.get(0).commitId;
-          }
-        });
+      List<Commit> latestCommits = getNLatestCommits(info, params, trustStore, 1);
+      if (!latestCommits.isEmpty()) {
+        return latestCommits.get(0).commitId;
+      }
     } catch (Exception e) {
       final String message = FAILED_TO_TEST_CONNECTION_TO_REPOSITORY + info;
       LOG.debug(message, e);
       throw new PublisherException(message, e);
     }
-
-    return commitId[0];
+    return null;
   }
 
   @NotNull
@@ -232,13 +221,13 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   @Nullable
   private static String getPullRequestIteration(@NotNull final TfsRepositoryInfo info,
                                                 @NotNull final String pullRequestId,
-                                                @NotNull final Set<String> commits,
+                                                @NotNull final Set<String> parentCommits,
                                                 @NotNull final Map<String, String> params,
                                                 @Nullable final KeyStore trustStore) throws PublisherException {
     final String url = MessageFormat.format(PULL_REQUEST_ITERATIONS_URL_FORMAT,
       info.getServer(), info.getProject(), info.getRepository(), pullRequestId);
 
-    final AtomicReference<String> iterationId = new AtomicReference<>();
+    final AtomicReference<String> iterationIdRef = new AtomicReference<>();
 
     try {
       IOGuard.allowNetworkCall(() -> {
@@ -255,16 +244,31 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                 return;
               }
 
-              Optional<Iteration> iteration = iterations.value.stream()
-                              .filter(
-                                it -> null != it.sourceRefCommit && null != it.targetRefCommit
-                                      && commits.contains(it.sourceRefCommit.commitId)
-                                      && commits.contains(it.targetRefCommit.commitId)
-                              )
-                              .max((it1, it2) -> it1.id.compareTo(it2.id));
-
-              if (iteration.isPresent())
-                iterationId.set(iteration.get().id);
+              Map<String, Iteration> targetCommitIdForPossibleIterations = iterations.value.stream()
+                                                    .filter(it -> null != it.sourceRefCommit && null != it.targetRefCommit
+                                                                  && parentCommits.contains(it.sourceRefCommit.commitId))
+                                                    .collect(Collectors.toMap(iteration -> iteration.targetRefCommit.commitId, Function.identity()));
+              if (!targetCommitIdForPossibleIterations.isEmpty()) {
+                for (Map.Entry<String, Iteration> targetCommitToIteration : targetCommitIdForPossibleIterations.entrySet()) {
+                  String targetCommitId = targetCommitToIteration.getKey();
+                  if (parentCommits.contains(targetCommitId)) {
+                    iterationIdRef.set(targetCommitToIteration.getValue().id);
+                    return;
+                  }
+                }
+                LOG.debug("Matching iteration was not found among parents. Loading more commits from repository " + info);
+                int commitsToLoad = numCommitsToLoad();
+                Optional<Commit> commitFromRepo = getNLatestCommits(info, params, trustStore, commitsToLoad).stream()
+                                                                .filter(commit -> targetCommitIdForPossibleIterations.containsKey(commit.commitId))
+                                                                .max(Comparator.comparing(c -> c.author.date));
+                if (commitFromRepo.isPresent()) {
+                  String commitId = commitFromRepo.get().commitId;
+                  Iteration iteration = targetCommitIdForPossibleIterations.get(commitId);
+                  iterationIdRef.set(iteration.id);
+                } else {
+                  LOG.debug("Iteration was not found among " + commitsToLoad + " latest commits from repository " + info);
+                }
+              }
             }
           });
       });
@@ -274,7 +278,33 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
       throw new PublisherException(message, e);
     }
 
-    return iterationId.get();
+    return iterationIdRef.get();
+  }
+
+  private static int numCommitsToLoad() {
+    return TeamCityProperties.getInteger("teamcity.tfs.publisher.targetLookupSize", 128);
+  }
+
+  @NotNull
+  private static List<Commit> getNLatestCommits(TfsRepositoryInfo info, Map<String, String> params, KeyStore trustStore, int nCommitsToLoad)
+    throws HttpPublisherException, IOException {
+    String moreCommitsUrl = MessageFormat.format(COMMITS_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository(), nCommitsToLoad);
+    List<Commit> resultingCommits = new ArrayList<>();
+    HttpHelper.get(moreCommitsUrl, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
+                   Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
+                   trustStore, new DefaultHttpResponseProcessor() {
+        @Override
+        public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+          super.processResponse(response);
+
+          CommitsList commits = processGetResponse(response, CommitsList.class);
+          if (commits == null || commits.value == null || commits.value.size() == 0) {
+            throw new HttpPublisherException("No commits are available in repository %s" + info);
+          }
+          resultingCommits.addAll(commits.value);
+        }
+      });
+    return resultingCommits;
   }
 
   private static <T> T processGetResponse(@NotNull final HttpHelper.HttpResponse response, @NotNull final Class<T> type) throws HttpPublisherException {
@@ -464,6 +494,12 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   private static class Commit {
     private String commitId;
     private List<String> parents;
+    private Author author;
+  }
+
+  private static class Author {
+    private String name;
+    private Date date;
   }
 
   private static class IterationsList {
