@@ -368,7 +368,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(problems).isEmpty();
   }
 
-  @Test(invocationCount = 200)
+  @Test
   @TestFor(issues = "TW-60688")
   public void should_clear_problem_when_xml_configuration_altered() {
     prepareVcs();
