@@ -24,6 +24,7 @@ import java.security.KeyStore;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -166,32 +167,17 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                                          @NotNull final Map<String, String> params,
                                          @Nullable final KeyStore trustStore) throws PublisherException {
     final TfsRepositoryInfo info = getServerAndProject(root, params);
-    final String url = MessageFormat.format(COMMITS_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository(), 1);
-    final String[] commitId = {null};
-
     try {
-      HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
-        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
-                     trustStore, new DefaultHttpResponseProcessor() {
-          @Override
-          public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
-            super.processResponse(response);
-
-            CommitsList commits = processGetResponse(response, CommitsList.class);
-            if (commits == null || commits.value == null || commits.value.size() == 0) {
-              throw new HttpPublisherException("No commits are available in repository %s" + info);
-            }
-
-            commitId[0] = commits.value.get(0).commitId;
-          }
-        });
+      List<Commit> latestCommits = getNLatestCommits(info, params, trustStore, 1);
+      if (!latestCommits.isEmpty()) {
+        return latestCommits.get(0).commitId;
+      }
     } catch (Exception e) {
       final String message = FAILED_TO_TEST_CONNECTION_TO_REPOSITORY + info;
       LOG.debug(message, e);
       throw new PublisherException(message, e);
     }
-
-    return commitId[0];
+    return null;
   }
 
   @NotNull
@@ -236,7 +222,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   @Nullable
   private static String getPullRequestIteration(@NotNull final TfsRepositoryInfo info,
                                                 @NotNull final String pullRequestId,
-                                                @NotNull final Set<String> commits,
+                                                @NotNull final Set<String> parentCommits,
                                                 @NotNull final Map<String, String> params,
                                                 @Nullable final KeyStore trustStore) throws PublisherException {
     final String url = MessageFormat.format(PULL_REQUEST_ITERATIONS_URL_FORMAT,
@@ -259,30 +245,28 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                 return;
               }
 
-              List<Iteration> possibleIterations = iterations.value.stream()
+              Map<String, Iteration> targetCommitIdForPossibleIterations = iterations.value.stream()
                                                     .filter(it -> null != it.sourceRefCommit && null != it.targetRefCommit
-                                                                  && commits.contains(it.sourceRefCommit.commitId))
-                                                    .collect(Collectors.toList());
-              Collections.reverse(possibleIterations);  // to have the newest iterations first
-              if (!possibleIterations.isEmpty()) {
-                for (Iteration possibleIteration : possibleIterations) {
-                  if (commits.contains(possibleIteration.targetRefCommit.commitId)) {
-                    iterationId.set(possibleIteration.id);
+                                                                  && parentCommits.contains(it.sourceRefCommit.commitId))
+                                                    .collect(Collectors.toMap(iteration -> iteration.targetRefCommit.commitId, Function.identity()));
+              if (!targetCommitIdForPossibleIterations.isEmpty()) {
+                for (Map.Entry<String, Iteration> targetCommitToIteration : targetCommitIdForPossibleIterations.entrySet()) {
+                  String targetCommitId = targetCommitToIteration.getKey();
+                  if (parentCommits.contains(targetCommitId)) {
+                    iterationId.set(targetCommitToIteration.getValue().id);
                     return;
                   }
                 }
-                Set<String> targetCommitIds = possibleIterations.stream().map(it -> it.targetRefCommit.commitId).collect(Collectors.toSet());
+                LOG.debug("Matching iteration was not found among parents. Loading more commits from repository " + info);
                 Optional<Commit> commitFromRepo = getNLatestCommits(info, params, trustStore, COMMITS_TO_LOAD_FROM_TARGET_FOR_SEARCH).stream()
-                                                                .filter(commit -> targetCommitIds.contains(commit.commitId))
+                                                                .filter(commit -> targetCommitIdForPossibleIterations.containsKey(commit.commitId))
                                                                 .max((c1, c2) -> c1.author.date.compareTo(c2.author.date));
                 if (commitFromRepo.isPresent()) {
                   String commitId = commitFromRepo.get().commitId;
-                  for (Iteration possibleIteration : possibleIterations) {
-                    if (commitId.equals(possibleIteration.targetRefCommit.commitId)) {
-                      iterationId.set(possibleIteration.id);
-                      return;
-                    }
-                  }
+                  Iteration iteration = targetCommitIdForPossibleIterations.get(commitId);
+                  iterationId.set(iteration.id);
+                } else {
+                  LOG.debug("Iteration was not found among " + COMMITS_TO_LOAD_FROM_TARGET_FOR_SEARCH + " latest commits from repository " + info);
                 }
               }
             }
