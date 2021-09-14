@@ -54,7 +54,6 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   private static final String PULL_REQUEST_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/pullRequests/{3}/statuses?api-version=3.0-preview";
   private static final String ERROR_AUTHORIZATION = "Check access token value and verify that it has Code (status) and Code (read) scopes";
   private static final String FAILED_TO_TEST_CONNECTION_TO_REPOSITORY = "TFS publisher has failed to test connection to repository ";
-  private static final int COMMITS_TO_LOAD_FROM_TARGET_FOR_SEARCH = 256;
   private static final Gson myGson = new GsonBuilder()
                                           .setDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
                                           .create();
@@ -228,7 +227,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     final String url = MessageFormat.format(PULL_REQUEST_ITERATIONS_URL_FORMAT,
       info.getServer(), info.getProject(), info.getRepository(), pullRequestId);
 
-    final AtomicReference<String> iterationId = new AtomicReference<>();
+    final AtomicReference<String> iterationIdRef = new AtomicReference<>();
 
     try {
       IOGuard.allowNetworkCall(() -> {
@@ -253,20 +252,21 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                 for (Map.Entry<String, Iteration> targetCommitToIteration : targetCommitIdForPossibleIterations.entrySet()) {
                   String targetCommitId = targetCommitToIteration.getKey();
                   if (parentCommits.contains(targetCommitId)) {
-                    iterationId.set(targetCommitToIteration.getValue().id);
+                    iterationIdRef.set(targetCommitToIteration.getValue().id);
                     return;
                   }
                 }
                 LOG.debug("Matching iteration was not found among parents. Loading more commits from repository " + info);
-                Optional<Commit> commitFromRepo = getNLatestCommits(info, params, trustStore, COMMITS_TO_LOAD_FROM_TARGET_FOR_SEARCH).stream()
+                int commitsToLoad = numCommitsToLoad();
+                Optional<Commit> commitFromRepo = getNLatestCommits(info, params, trustStore, commitsToLoad).stream()
                                                                 .filter(commit -> targetCommitIdForPossibleIterations.containsKey(commit.commitId))
-                                                                .max((c1, c2) -> c1.author.date.compareTo(c2.author.date));
+                                                                .max(Comparator.comparing(c -> c.author.date));
                 if (commitFromRepo.isPresent()) {
                   String commitId = commitFromRepo.get().commitId;
                   Iteration iteration = targetCommitIdForPossibleIterations.get(commitId);
-                  iterationId.set(iteration.id);
+                  iterationIdRef.set(iteration.id);
                 } else {
-                  LOG.debug("Iteration was not found among " + COMMITS_TO_LOAD_FROM_TARGET_FOR_SEARCH + " latest commits from repository " + info);
+                  LOG.debug("Iteration was not found among " + commitsToLoad + " latest commits from repository " + info);
                 }
               }
             }
@@ -278,7 +278,11 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
       throw new PublisherException(message, e);
     }
 
-    return iterationId.get();
+    return iterationIdRef.get();
+  }
+
+  private static int numCommitsToLoad() {
+    return TeamCityProperties.getInteger("teamcity.tfs.publisher.targetLookupSize", 128);
   }
 
   @NotNull
