@@ -34,16 +34,6 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="module-library">
-      <library name="com.jcraft:jsch:0.1.54" type="repository">
-        <properties maven-id="com.jcraft:jsch:0.1.54" />
-        <CLASSES>
-          <root url="jar://$MAVEN_REPOSITORY$/com/jcraft/jsch/0.1.54/jsch-0.1.54.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
     <orderEntry type="module" module-name="vcs-api" scope="TEST" />
     <orderEntry type="module" module-name="web-openapi" />
     <orderEntry type="module" module-name="common" />
@@ -56,5 +46,6 @@
     <orderEntry type="module" module-name="web-test-core" scope="TEST" />
     <orderEntry type="module" module-name="web" />
     <orderEntry type="module" module-name="oauth-integration" />
+    <orderEntry type="library" name="jsch" level="project" />
   </component>
 </module>
