@@ -25,7 +25,6 @@ import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
 import jetbrains.buildServer.vcs.VcsRootInstance;
-import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
@@ -131,8 +130,8 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
 
   private void publish(@NotNull String payload, @NotNull String buildDescription) {
     String url = HttpHelper.stripTrailingSlash(myParams.get(Constants.UPSOURCE_SERVER_URL)) + "/" + UpsourceSettings.ENDPOINT_BUILD_STATUS;
-    post(url, myParams.get(Constants.UPSOURCE_USERNAME),
-            myParams.get(Constants.UPSOURCE_PASSWORD), payload, ContentType.APPLICATION_JSON, null, buildDescription);
+    postJson(url, myParams.get(Constants.UPSOURCE_USERNAME),
+             myParams.get(Constants.UPSOURCE_PASSWORD), payload, null, buildDescription);
   }
 
   @NotNull

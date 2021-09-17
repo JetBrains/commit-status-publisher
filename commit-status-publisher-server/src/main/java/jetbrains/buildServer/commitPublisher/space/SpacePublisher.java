@@ -143,7 +143,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
     headers.put(HttpHeaders.ACCEPT, ContentType.TEXT_PLAIN.getMimeType());
     token.toHeader(headers);
 
-    post(url, null, null, payload, ContentType.APPLICATION_JSON, headers, buildDescription);
+    postJson(url, null, null, payload, headers, buildDescription);
   }
 
   @NotNull

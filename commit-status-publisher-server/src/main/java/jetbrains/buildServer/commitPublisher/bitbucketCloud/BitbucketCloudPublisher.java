@@ -23,7 +23,6 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.vcs.VcsRootInstance;
-import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.util.Map;
@@ -134,7 +133,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   private void vote(@NotNull String commit, @NotNull String data, @NotNull Repository repository, @NotNull String buildDescription) {
     LOG.debug(getBaseUrl() + " :: " + commit + " :: " + data);
     String url = getBaseUrl() + "2.0/repositories/" + repository.owner() + "/" + repository.repositoryName() + "/commit/" + commit + "/statuses/build";
-    post(url, getUsername(), getPassword(), data, ContentType.APPLICATION_JSON, null, buildDescription);
+    postJson(url, getUsername(), getPassword(), data, null, buildDescription);
   }
 
 

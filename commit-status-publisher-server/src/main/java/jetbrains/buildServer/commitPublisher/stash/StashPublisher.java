@@ -32,7 +32,6 @@ import jetbrains.buildServer.util.VersionComparatorUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsRootInstance;
-import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -396,7 +395,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     public void publishBuildStatus(@NotNull StatusData data, @NotNull String buildDescription) {
       try {
         String url = getBuildEndpointUrl(data);
-        post(url, getUsername(), getPassword(), createBuildStatusMessage(data), ContentType.APPLICATION_JSON, null, buildDescription);
+        postJson(url, getUsername(), getPassword(), createBuildStatusMessage(data), null, buildDescription);
       } catch (PublisherException ex) {
         myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
       }

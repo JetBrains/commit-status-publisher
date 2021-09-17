@@ -366,10 +366,10 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     final String commitId = revision.getRevision();
     final String commitStatusUrl = MessageFormat.format(COMMIT_STATUS_URL_FORMAT,
       info.getServer(), info.getProject(), info.getRepository(), commitId);
-    post(commitStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
-      data, ContentType.APPLICATION_JSON,
-      Collections.singletonMap("Accept", "application/json"),
-      LogUtil.describe(build));
+    postJson(commitStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
+             data,
+             Collections.singletonMap("Accept", "application/json"),
+             LogUtil.describe(build));
 
     // Check whether pull requests status publishing enabled
     final String publishPullRequest = StringUtil.emptyIfNull(myParams.get(TfsConstants.PUBLISH_PULL_REQUESTS)).trim();
@@ -411,10 +411,10 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
         info.getServer(), info.getProject(), info.getRepository(), pullRequestId, iterationId);
     }
 
-    post(pullRequestStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
-      data, ContentType.APPLICATION_JSON,
-      Collections.singletonMap("Accept", "application/json"),
-      LogUtil.describe(build)
+    postJson(pullRequestStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
+             data,
+             Collections.singletonMap("Accept", "application/json"),
+             LogUtil.describe(build)
     );
   }
 

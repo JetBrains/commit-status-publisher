@@ -24,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.Map;
+import org.jetbrains.annotations.Nullable;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
@@ -39,12 +40,14 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
     myHttpResponseProcessor = new DefaultHttpResponseProcessor();
   }
 
-  protected void post(final String url, final String username, final String password,
-                      final String data, final ContentType contentType, final Map<String, String> headers,
-                      final String buildDescription) {
+  protected void postJson(@NotNull final String url,
+                          @Nullable final String username, @Nullable final String password,
+                          @Nullable final String data,
+                          @Nullable final Map<String, String> headers,
+                          @NotNull final String buildDescription) {
     try {
       LoggerUtil.logRequest(getId(), HttpMethod.POST, url, data);
-      IOGuard.allowNetworkCall(() -> HttpHelper.post(url, username, password, data, contentType, headers, getConnectionTimeout(), getSettings().trustStore(), this));
+      IOGuard.allowNetworkCall(() -> HttpHelper.post(url, username, password, data, ContentType.APPLICATION_JSON, headers, getConnectionTimeout(), getSettings().trustStore(), this));
     } catch (Exception ex) {
       myProblems.reportProblem("Commit Status Publisher HTTP request has failed", this, buildDescription, url, ex, LOG);
     }
