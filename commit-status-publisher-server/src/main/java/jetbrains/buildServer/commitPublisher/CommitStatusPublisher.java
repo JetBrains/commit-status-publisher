@@ -16,13 +16,16 @@
 
 package jetbrains.buildServer.commitPublisher;
 
-import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public interface CommitStatusPublisher {
+
+  boolean isEventSupported(Event event);
+
+  boolean isAvailable(@NotNull BuildPromotion buildPromotion);
 
   boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException;
 
@@ -61,8 +64,6 @@ public interface CommitStatusPublisher {
   boolean isPublishingForRevision(@NotNull BuildRevision revision);
 
   void setConnectionTimeout(int timeout);
-
-  boolean isEventSupported(Event event);
 
 
   enum Event {

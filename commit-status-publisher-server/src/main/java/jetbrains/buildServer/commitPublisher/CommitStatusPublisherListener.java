@@ -35,7 +35,6 @@ import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.EventDispatcher;
-import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.SVcsRootEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -95,8 +94,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myMultiNodeTasks.subscribe(Event.STARTED.getName(), new BuildPublisherTaskConsumer (
       build -> new PublishTask() {
         @Override
-        public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
-          return publisher.buildStarted(build, revision);
+        public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
+          publisher.buildStarted(build, revision);
         }
       }
     ));
@@ -104,8 +103,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myMultiNodeTasks.subscribe(Event.FINISHED.getName(), new BuildPublisherTaskConsumer (
        build -> new PublishTask() {
          @Override
-         public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
-           return publisher.buildFinished(build, revision);
+         public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
+           publisher.buildFinished(build, revision);
          }
        }
     ));
@@ -113,8 +112,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myMultiNodeTasks.subscribe(Event.MARKED_AS_SUCCESSFUL.getName(), new BuildPublisherTaskConsumer (
        build -> new PublishTask() {
          @Override
-         public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
-           return publisher.buildMarkedAsSuccessful(build, revision, isBuildInProgress(build));
+         public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
+           publisher.buildMarkedAsSuccessful(build, revision, isBuildInProgress(build));
          }
         }
     ));
@@ -122,11 +121,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myMultiNodeTasks.subscribe(Event.COMMENTED.getName(), new BuildPublisherTaskConsumer (
       build -> new PublishTask() {
         @Override
-        public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
+        public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
           Comment comment = build.getBuildComment();
           if (null == comment)
-            return true;
-          return publisher.buildCommented(build, revision, comment.getUser(), comment.getComment(), isBuildInProgress(build));
+            return;
+          publisher.buildCommented(build, revision, comment.getUser(), comment.getComment(), isBuildInProgress(build));
         }
       }
     ));
@@ -134,8 +133,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myMultiNodeTasks.subscribe(Event.INTERRUPTED.getName(), new BuildPublisherTaskConsumer (
       build -> new PublishTask() {
         @Override
-        public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
-          return publisher.buildInterrupted(build, revision);
+        public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
+          publisher.buildInterrupted(build, revision);
         }
       }
     ));
@@ -143,8 +142,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myMultiNodeTasks.subscribe(Event.FAILURE_DETECTED.getName(), new BuildPublisherTaskConsumer (
       build -> new PublishTask() {
         @Override
-        public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
-          return publisher.buildFailureDetected(build, revision);
+        public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
+          publisher.buildFailureDetected(build, revision);
         }
       }
     ));
@@ -152,8 +151,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myMultiNodeTasks.subscribe(Event.QUEUED.getName(), new QueuedBuildPublisherTaskConsumer(
       build -> new PublishTask() {
         @Override
-        public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
-          return publisher.buildQueued(build, revision);
+        public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
+          publisher.buildQueued(build, revision);
         }
       }
     ));
@@ -161,9 +160,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myMultiNodeTasks.subscribe(Event.REMOVED_FROM_QUEUE.getName(), new QueuedBuildPublisherTaskConsumer(
       build -> new PublishTask() {
         @Override
-        public boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
+        public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
           Comment comment = build.getBuildPromotion().getBuildComment();
-          return publisher.buildRemovedFromQueue(build, revision, comment == null ? null : comment.getUser(), comment == null ? null : comment.getComment());
+          publisher.buildRemovedFromQueue(build, revision, comment == null ? null : comment.getUser(), comment == null ? null : comment.getComment());
         }
       }
     ));
@@ -321,12 +320,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       LOG.debug("Current node is not responsible for build " + LogUtil.describe(build) + ", skip processing event " + event);
       return;
     }
-    if (build.isPersonal()) {
-      for(SVcsModification change: build.getBuildPromotion().getPersonalChanges()) {
-        if (change.isPersonal())
-          return;
-      }
-    }
 
     long buildId = build.getBuildId();
     myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(event.getName(), event.getName() + ":" + buildId, buildId, null, null));
@@ -336,12 +329,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     if  (!myServerResponsibility.canManageBuilds()) {
       LOG.debug("Current node is not responsible for build " + LogUtil.describe(build) + ", skip processing event " + event);
       return;
-    }
-    if (build.isPersonal()) {
-      for(SVcsModification change: build.getBuildPromotion().getPersonalChanges()) {
-        if (change.isPersonal())
-          return;
-      }
     }
     long promotionId = build.getBuildPromotion().getId();
     myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(event.getName(), event.getName() + ":" + promotionId, promotionId, null, null));
@@ -374,7 +361,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private interface PublishTask {
-    boolean run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException;
+    void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException;
   }
 
   private boolean isBuildInProgress(SBuild build) {
@@ -629,6 +616,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
                            @NotNull CommitStatusPublisher publisher,
                            @NotNull BuildRevision revision) {
       try {
+        if (!publisher.isAvailable(promotion)) {
+          return;
+        }
         publishTask.run(publisher, revision);
       } catch (Throwable t) {
         myProblems.reportProblem(String.format("Commit Status Publisher has failed to publish %s status", event.getName()), publisher, buildDescription, null, t, LOG);

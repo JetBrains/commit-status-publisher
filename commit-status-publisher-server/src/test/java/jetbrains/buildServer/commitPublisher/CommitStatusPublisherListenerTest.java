@@ -339,7 +339,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     prepareVcs();
     SRunningBuild runningBuild = myFixture.startPersonalBuild(myUser, myBuildType);
     myFixture.finishBuild(runningBuild, false);
-    assertIfNoTasks(Event.FINISHED);
+    waitForTasksToFinish(Event.FINISHED);
     then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
     then(myPublisher.isSuccessReceived()).isFalse();
   }

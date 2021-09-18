@@ -16,14 +16,14 @@
 
 package jetbrains.buildServer.commitPublisher;
 
+import java.util.Map;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Map;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
@@ -118,6 +118,21 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
 
   public boolean isEventSupported(Event event) {
     return mySettings.isEventSupported(event, myBuildType, myParams);
+  }
+
+  @Override
+  public boolean isAvailable(@NotNull BuildPromotion buildPromotion) {
+    return !isPersonalBuildWithPatch(buildPromotion);
+  }
+
+  private boolean isPersonalBuildWithPatch(@NotNull BuildPromotion buildPromotion) {
+    if (buildPromotion.isPersonal()) {
+      for(SVcsModification change: buildPromotion.getPersonalChanges()) {
+        if (change.isPersonal())
+          return true;
+      }
+    }
+    return false;
   }
 
   @NotNull
