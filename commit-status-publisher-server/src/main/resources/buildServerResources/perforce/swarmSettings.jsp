@@ -42,7 +42,7 @@
 </tr>
 
 <tr>
-  <th><label for="${pwdField}">Password:<l:star/></label></th>
+  <th><label for="${pwdField}">Ticket:<l:star/></label></th>
   <td>
     <props:passwordProperty name="${pwdField}" className="mediumField"/>
     <span class="error" id="error_${pwdField}"></span>
