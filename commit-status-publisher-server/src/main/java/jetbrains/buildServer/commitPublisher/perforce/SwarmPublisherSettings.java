@@ -1,9 +1,6 @@
 package jetbrains.buildServer.commitPublisher.perforce;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import jetbrains.buildServer.commitPublisher.BasePublisherSettings;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
@@ -27,6 +24,15 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
   public static final String PARAM_URL = "swarmUrl";
   public static final String PARAM_USERNAME = "swarmUser";
   public static final String PARAM_PASSWORD = "swarmPassword";
+
+  private static final Set<CommitStatusPublisher.Event> ourSupportedEvents = new HashSet<CommitStatusPublisher.Event>() {{
+    add(CommitStatusPublisher.Event.QUEUED);
+    add(CommitStatusPublisher.Event.STARTED);
+    add(CommitStatusPublisher.Event.FAILURE_DETECTED);
+    add(CommitStatusPublisher.Event.INTERRUPTED);
+    add(CommitStatusPublisher.Event.FINISHED);
+    add(CommitStatusPublisher.Event.MARKED_AS_SUCCESSFUL);
+  }};
 
   public SwarmPublisherSettings(@NotNull PluginDescriptor descriptor,
                                 @NotNull WebLinks links,
@@ -85,5 +91,10 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
         }
       }
     };
+  }
+
+  @Override
+  protected Set<CommitStatusPublisher.Event> getSupportedEvents(SBuildType buildType, Map<String, String> params) {
+    return ourSupportedEvents;
   }
 }
