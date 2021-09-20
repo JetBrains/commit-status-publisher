@@ -53,31 +53,31 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publishIfNeeded(build.getBuildPromotion(), revision, "Build is queued");
+    publishIfNeeded(build.getBuildPromotion(), revision, "build %s is queued");
     return true;
   }
 
   @Override
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publishIfNeeded(build.getBuildPromotion(), revision, "Build has started");
+    publishIfNeeded(build.getBuildPromotion(), revision, "build %s has started");
     return true;
   }
 
   @Override
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publishIfNeeded(build.getBuildPromotion(), revision, "Build has finished: " + build.getStatusDescriptor().getText());
+    publishIfNeeded(build.getBuildPromotion(), revision, "build %s has finished: " + build.getStatusDescriptor().getText());
     return true;
   }
 
   @Override
   public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publishIfNeeded(build.getBuildPromotion(), revision, "Build was interrupted: " + build.getStatusDescriptor().getText());
+    publishIfNeeded(build.getBuildPromotion(), revision, "build %s was interrupted: " + build.getStatusDescriptor().getText());
     return true;
   }
 
   @Override
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publishIfNeeded(build.getBuildPromotion(), revision, "Build failure was detected: " + build.getStatusDescriptor().getText());
+    publishIfNeeded(build.getBuildPromotion(), revision, "failure was detected in build %s: " + build.getStatusDescriptor().getText());
     return true;
   }
 
@@ -88,7 +88,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
     LoggerUtil.LOG.info(message);
   }
 
-  private void publishIfNeeded(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final String comment) throws PublisherException {
+  private void publishIfNeeded(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final String commentTemplate) throws PublisherException {
 
     if (!build.isPersonal()) return;
 
@@ -97,7 +97,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
 
     IOGuard.allowNetworkCall(() -> {
       for (Long reviewId : getReviewIds(build, changelistId)) {
-        addCommentToReview(build, reviewId, comment);
+        addCommentToReview(build, reviewId, commentTemplate);
       }
     });
   }
@@ -119,9 +119,8 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
 
   private void addCommentToReview(BuildPromotion build, @NotNull Long reviewId, @NotNull String comment) throws PublisherException {
 
-    final String fullComment = comment +
-                               "\n\nConfiguration: " + myBuildType.getExtendedFullName() +
-                               "\n\nBuild URL: " + getBuildUrl(build);
+    final String fullComment = "TeamCity: " + String.format(comment, getBuildMarkdownLink(build)) +
+                               "\nConfiguration: " + myBuildType.getExtendedFullName();
 
     final String addCommentUrl = StringUtil.removeTailingSlash(myParams.get(PARAM_URL)) + "/api/v9/comments";
     String data = "topic=reviews/" + reviewId + "&body=" + StringUtil.encodeURLParameter(fullComment);
@@ -134,12 +133,19 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @NotNull
-  private String getBuildUrl(BuildPromotion build) {
+  private String getBuildMarkdownLink(@NotNull BuildPromotion build) {
     SBuild associatedBuild = build.getAssociatedBuild();
     SQueuedBuild queuedBuild = build.getQueuedBuild();
-    return associatedBuild != null ? myLinks.getViewResultsUrl(associatedBuild) :
-           queuedBuild != null ? myLinks.getQueuedBuildUrl(queuedBuild) :
-           myLinks.getRootUrlByProjectExternalId(build.getProjectExternalId()) + "/build/" + build.getId();
+    String url = associatedBuild != null ? myLinks.getViewResultsUrl(associatedBuild) :
+                     queuedBuild != null ? myLinks.getQueuedBuildUrl(queuedBuild) :
+                     myLinks.getRootUrlByProjectExternalId(build.getProjectExternalId()) + "/build/" + build.getId();
+    if (associatedBuild != null) {
+      return String.format("#[%s](%s)", associatedBuild.getBuildNumber(), url);
+    }
+    if (queuedBuild != null) {
+      return String.format("#[%s](%s)", queuedBuild.getOrderNumber(), url);
+    }
+    return String.format("#[%d](%s)", build.getId(), url);
   }
 
   @Nullable
