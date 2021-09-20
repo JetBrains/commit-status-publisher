@@ -10,11 +10,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import jetbrains.buildServer.commitPublisher.*;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.BuildRevision;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SQueuedBuild;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.StringUtil;
+import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,12 +23,16 @@ import static jetbrains.buildServer.commitPublisher.perforce.SwarmPublisherSetti
  */
 class SwarmPublisher extends HttpBasedCommitStatusPublisher {
 
+  private final WebLinks myLinks;
+
   public SwarmPublisher(@NotNull SwarmPublisherSettings swarmPublisherSettings,
                         @NotNull SBuildType buildType,
                         @NotNull String buildFeatureId,
                         @NotNull Map<String, String> params,
-                        @NotNull CommitStatusPublisherProblems problems) {
+                        @NotNull CommitStatusPublisherProblems problems,
+                        @NotNull WebLinks links) {
     super(swarmPublisherSettings, buildType, buildFeatureId, params, problems);
+    myLinks = links;
   }
 
   @NotNull
@@ -51,33 +53,33 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publishIfNeeded(build.getBuildPromotion(), revision);
+    publishIfNeeded(build.getBuildPromotion(), revision, "Build is queued");
     return true;
   }
-  //
-  //@Override
-  //public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-  //  publishIfNeeded(build.getBuildPromotion());
-  //  return true;
-  //}
-  //
-  //@Override
-  //public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-  //  publishIfNeeded(build.getBuildPromotion());
-  //  return true;
-  //}
-  //
-  //@Override
-  //public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-  //  publishIfNeeded(build.getBuildPromotion());
-  //  return true;
-  //}
-  //
-  //@Override
-  //public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-  //  publishIfNeeded(build.getBuildPromotion());
-  //  return true;
-  //}
+
+  @Override
+  public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
+    publishIfNeeded(build.getBuildPromotion(), revision, "Build has started");
+    return true;
+  }
+
+  @Override
+  public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
+    publishIfNeeded(build.getBuildPromotion(), revision, "Build has finished: " + build.getStatusDescriptor().getText());
+    return true;
+  }
+
+  @Override
+  public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
+    publishIfNeeded(build.getBuildPromotion(), revision, "Build was interrupted: " + build.getStatusDescriptor().getText());
+    return true;
+  }
+
+  @Override
+  public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
+    publishIfNeeded(build.getBuildPromotion(), revision, "Build failure was detected: " + build.getStatusDescriptor().getText());
+    return true;
+  }
 
   private void info(String message) {
     LoggerUtil.LOG.info(message);
@@ -86,26 +88,22 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
     LoggerUtil.LOG.info(message);
   }
 
-  private void publishIfNeeded(BuildPromotion build, @NotNull BuildRevision revision) throws PublisherException {
+  private void publishIfNeeded(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final String comment) throws PublisherException {
 
     if (!build.isPersonal()) return;
 
     final String changelistId = getChangelistId(build, revision);
     if (changelistId == null) return;
 
-    List<Long> reviewIds = getReviewIds(build, changelistId);
-
-    //reviewIds.thenAccept((reviews) -> {
-    //  final String addCommentUrl = StringUtil.removeTailingSlash(myParams.get(PARAM_URL)) + "/api/v9/comments";
-    //  HttpHelper.post(addCommentUrl, myParams.get(PARAM_USERNAME), myParams.get(PARAM_PASSWORD),
-    //                 null, getConnectionTimeout(), getSettings().trustStore(), );
-    //
-    //  postJson(StringUtil.removeTailingSlash(myParams.get(PARAM_URL)) + "/");
-    //});
+    IOGuard.allowNetworkCall(() -> {
+      for (Long reviewId : getReviewIds(build, changelistId)) {
+        addCommentToReview(build, reviewId, comment);
+      }
+    });
   }
 
   @NotNull
-  private List<Long> getReviewIds(BuildPromotion build, String changelistId) throws PublisherException {
+  private List<Long> getReviewIds(@NotNull BuildPromotion build, String changelistId) throws PublisherException {
     final String getReviewsUrl = StringUtil.removeTailingSlash(myParams.get(PARAM_URL)) + "/api/v9/reviews?fields=id&change[]=" + changelistId;
     try {
       final ReadReviewsProcessor processor = new ReadReviewsProcessor(build.toString());
@@ -114,8 +112,34 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
 
       return processor.getReviewIds();
     } catch (IOException e) {
-      throw new PublisherException("Trouble getting the list of reviews from " + getReviewsUrl + ":" + e.getMessage(),  e);
+      throw new PublisherException("Cannot get list of reviews from " + getReviewsUrl + ":" + e.getMessage(),  e);
     }
+  }
+
+
+  private void addCommentToReview(BuildPromotion build, @NotNull Long reviewId, @NotNull String comment) throws PublisherException {
+
+    final String fullComment = comment +
+                               "\n\nConfiguration: " + myBuildType.getExtendedFullName() +
+                               "\n\nBuild URL: " + getBuildUrl(build);
+
+    final String addCommentUrl = StringUtil.removeTailingSlash(myParams.get(PARAM_URL)) + "/api/v9/comments";
+    String data = "topic=reviews/" + reviewId + "&body=" + StringUtil.encodeURLParameter(fullComment);
+    try {
+      HttpHelper.post(addCommentUrl, myParams.get(PARAM_USERNAME), myParams.get(PARAM_PASSWORD),
+                      data, ContentType.APPLICATION_FORM_URLENCODED, null, getConnectionTimeout(), getSettings().trustStore(), new DefaultHttpResponseProcessor());
+    } catch (IOException e) {
+      throw new PublisherException("Cannot add comment to review " + reviewId + " at " + addCommentUrl + ":" + e.getMessage(),  e);
+    }
+  }
+
+  @NotNull
+  private String getBuildUrl(BuildPromotion build) {
+    SBuild associatedBuild = build.getAssociatedBuild();
+    SQueuedBuild queuedBuild = build.getQueuedBuild();
+    return associatedBuild != null ? myLinks.getViewResultsUrl(associatedBuild) :
+           queuedBuild != null ? myLinks.getQueuedBuildUrl(queuedBuild) :
+           myLinks.getRootUrlByProjectExternalId(build.getProjectExternalId()) + "/build/" + build.getId();
   }
 
   @Nullable

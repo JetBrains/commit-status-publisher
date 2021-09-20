@@ -69,7 +69,7 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType,
                                                @NotNull String buildFeatureId,
                                                @NotNull Map<String, String> params) {
-    return new SwarmPublisher(this, buildType, buildFeatureId, params, myProblems);
+    return new SwarmPublisher(this, buildType, buildFeatureId, params, myProblems, myLinks);
   }
 
   @Nullable
