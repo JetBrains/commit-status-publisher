@@ -4,12 +4,11 @@ import java.util.*;
 import jetbrains.buildServer.commitPublisher.BasePublisherSettings;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
-import jetbrains.buildServer.serverSide.InvalidProperty;
-import jetbrains.buildServer.serverSide.PropertiesProcessor;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.commitPublisher.PublisherException;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
+import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -96,5 +95,19 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
   @Override
   protected Set<CommitStatusPublisher.Event> getSupportedEvents(SBuildType buildType, Map<String, String> params) {
     return ourSupportedEvents;
+  }
+
+  @Override
+  public boolean isTestConnectionSupported() {
+    return true;
+  }
+
+  @Override
+  public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate,
+                             @NotNull VcsRoot root,
+                             @NotNull Map<String, String> params) throws PublisherException {
+
+    final int testConnectionTimeout = 5000;
+    new SwarmClient(params, testConnectionTimeout, trustStore()).testConnection();
   }
 }
