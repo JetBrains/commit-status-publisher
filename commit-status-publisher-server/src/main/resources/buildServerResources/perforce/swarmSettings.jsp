@@ -49,5 +49,10 @@
   </td>
 </tr>
 
+<script>
+  $j(document).ready(function() {
+    PublisherFeature.showTestConnection("Successfully authenticated at the Perforce Swarm server.");
+  });
+</script>
 
 
