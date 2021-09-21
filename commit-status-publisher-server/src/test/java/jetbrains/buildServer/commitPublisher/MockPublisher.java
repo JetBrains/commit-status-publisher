@@ -18,7 +18,10 @@ package jetbrains.buildServer.commitPublisher;
 
 import java.util.*;
 import jetbrains.buildServer.messages.Status;
-import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.SQueuedBuild;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -49,7 +52,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   boolean isSuccessReceived() { return mySuccessReceived > 0; }
 
   String getLastComment() { return myLastComment; }
-  List<Event> getEventsReceived() { return myEventsReceived; }
+  List<Event> getEventsReceived() { return new ArrayList<>(myEventsReceived); }
 
   MockPublisher(@NotNull CommitStatusPublisherSettings settings,
                 @NotNull String publisherType,

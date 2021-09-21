@@ -51,8 +51,6 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   private SUser myUser;
   private Event myLastEventProcessed;
   private final Consumer<Event> myEventProcessedCallback = event -> myLastEventProcessed = event;
-  private ConfigActionFactory myConfigActions;
-  private ProjectPersistingHandler myProjectPersistingHandler;
 
   @BeforeMethod
   public void setUp() throws Exception {
@@ -70,8 +68,6 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
                                     Collections.emptyMap(), myProblems, myLogger);
     myUser = myFixture.createUserAccount("newuser");
     myPublisherSettings.setPublisher(myPublisher);
-    myProjectPersistingHandler = myFixture.getSingletonService(ProjectPersistingHandler.class);
-    myConfigActions = myFixture.getSingletonService(ConfigActionFactory.class);
   }
 
   public void should_publish_started() {
@@ -385,7 +381,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myFixture.getSingletonService(ProjectsWatcher.class).checkForModifications();
     SBuildType reloadedBuildType = myProjectManager.findBuildTypeByExternalId(myBuildType.getExternalId());
     then(reloadedBuildType).isNotNull();
-    waitForAssert(() -> myProblemNotificationEngine.getProblems(reloadedBuildType).isEmpty(), 2000);
+    waitForAssert(() -> myProblemNotificationEngine.getProblems(reloadedBuildType).isEmpty(), TASK_COMPLETION_TIMEOUT_MS);
   }
 
   @TestFor(issues = "TW-60688")
@@ -402,7 +398,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
     myProject.setDefaultTemplate(null);
     myListener.projectPersisted(myProject.getProjectId());
-    waitForAssert(() -> myProblemNotificationEngine.getProblems(myBuildType).isEmpty(), 2000);
+    waitForAssert(() -> myProblemNotificationEngine.getProblems(myBuildType).isEmpty(), TASK_COMPLETION_TIMEOUT_MS);
   }
 
   @TestFor(issues = "TW-60688")
@@ -437,7 +433,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     // mock situation when two parallel events happened
     myListener.projectPersisted(myProject.getProjectId());
     myListener.buildTypeTemplatePersisted(template);
-    waitForAssert(() -> myProblemNotificationEngine.getProblems(myBuildType).isEmpty(), 2000);
+    waitForAssert(() -> myProblemNotificationEngine.getProblems(myBuildType).isEmpty(), TASK_COMPLETION_TIMEOUT_MS);
   }
 
   private void prepareVcs() {
