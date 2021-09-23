@@ -77,6 +77,12 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
     return true;
   }
 
+  @Override
+  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
+    publishIfNeeded(build.getBuildPromotion(), revision, "build %s was marked as successful: " + build.getStatusDescriptor().getText());
+    return true;
+  }
+
   private void publishIfNeeded(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final String commentTemplate) throws PublisherException {
 
     if (!build.isPersonal()) return;
@@ -84,14 +90,21 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
     final String changelistId = getChangelistId(build, revision);
     if (changelistId == null) return;
 
+    final SBuildType buildType = build.getBuildType();
+    if (buildType == null) return;
+
+    mySwarmClient.setConnectionTimeout(getConnectionTimeout());
+
     IOGuard.allowNetworkCall(() -> {
-      final List<Long> reviewIds = mySwarmClient.getReviewIds(changelistId, "build " + build);
+      final String buildInfo = "build [id=" + build.getId() + "] in " + buildType.getExtendedFullName();
+
+      final List<Long> reviewIds = mySwarmClient.getReviewIds(changelistId, buildInfo);
       for (Long reviewId : reviewIds) {
 
         final String fullComment = "TeamCity: " + String.format(commentTemplate, getBuildMarkdownLink(build)) +
                                    "\nConfiguration: " + myBuildType.getExtendedFullName();
 
-        mySwarmClient.addCommentToReview(reviewId, fullComment, "build " + build);
+        mySwarmClient.addCommentToReview(reviewId, fullComment, buildInfo);
       }
     });
   }

@@ -37,6 +37,7 @@
       <class name="jetbrains.buildServer.commitPublisher.tfs.TfsRepositoryInfoTest" />
       <class name="jetbrains.buildServer.commitPublisher.upsource.UpsourcePublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.space.SpacePublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.perforce.SwarmPublisherTest" />
     </classes>
   </test>
 </suite>

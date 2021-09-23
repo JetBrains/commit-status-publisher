@@ -20,13 +20,11 @@ import java.security.KeyStore;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.messages.Status;
-import jetbrains.buildServer.serverSide.BuildRevision;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.SRunningBuild;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
@@ -146,14 +144,14 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
 
   public void test_buildQueued() throws Exception {
     if (isSkipEvent(EventToTest.QUEUED)) return;
-    myPublisher.buildQueued(myBuildType.addToQueue(""), myRevision);
+    myPublisher.buildQueued(addBuildToQueue(), myRevision);
     then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
                           .matches(myExpectedRegExps.get(EventToTest.QUEUED));
   }
 
   public void test_buildRemovedFromQueue()  throws Exception {
     if (isSkipEvent(EventToTest.REMOVED)) return;
-    myPublisher.buildRemovedFromQueue(myBuildType.addToQueue(""), myRevision, myUser, COMMENT);
+    myPublisher.buildRemovedFromQueue(addBuildToQueue(), myRevision, myUser, COMMENT);
     then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.REMOVED));
   }
 
@@ -277,5 +275,9 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     return null == myBranch ? createBuild(buildType, status) : createBuildInBranch(buildType, myBranch, status);
   }
 
+  @NotNull
+  protected SQueuedBuild addBuildToQueue() {
+    return Objects.requireNonNull(myBuildType.addToQueue(""));
+  }
 
 }

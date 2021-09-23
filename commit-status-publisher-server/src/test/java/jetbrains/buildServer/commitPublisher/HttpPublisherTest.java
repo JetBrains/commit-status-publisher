@@ -53,7 +53,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
   private String myExpectedApiPath = "";
   private String myExpectedEndpointPrefix = "";
   private int myRespondWithRedirectCode;
-  private boolean myDoNotRespond;
+  protected boolean myDoNotRespond;
   private String myLastAgent;
 
   private static final int TIMEOUT = 2000;

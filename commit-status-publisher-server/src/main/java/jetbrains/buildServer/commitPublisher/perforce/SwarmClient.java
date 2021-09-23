@@ -26,7 +26,7 @@ public class SwarmClient {
   private final String mySwarmUrl;
   private final String myUsername;
   private final String myTicket;
-  private final int myConnectionTimeout;
+  private int myConnectionTimeout;
   private final KeyStore myTrustStore;
 
   public SwarmClient(@NotNull Map<String, String> params, int connectionTimeout, @Nullable KeyStore trustStore) {
@@ -36,6 +36,10 @@ public class SwarmClient {
 
     myConnectionTimeout = connectionTimeout;
     myTrustStore = trustStore;
+  }
+
+  public void setConnectionTimeout(int connectionTimeout) {
+    myConnectionTimeout = connectionTimeout;
   }
 
   public void testConnection() throws PublisherException {
@@ -56,7 +60,7 @@ public class SwarmClient {
 
       return processor.getReviewIds();
     } catch (IOException e) {
-      throw new PublisherException("Cannot get list of reviews from " + getReviewsUrl + " for " + debugInfo + ":" + e.getMessage(), e);
+      throw new PublisherException("Cannot get list of reviews from " + getReviewsUrl + " for " + debugInfo + ": " + e, e);
     }
   }
 
@@ -69,7 +73,7 @@ public class SwarmClient {
       HttpHelper.post(addCommentUrl, myUsername, myTicket,
                       data, ContentType.APPLICATION_FORM_URLENCODED, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
     } catch (IOException e) {
-      throw new PublisherException("Cannot get list of reviews from " + addCommentUrl + " for " + debugInfo + ":" + e.getMessage(), e);
+      throw new PublisherException("Cannot get list of reviews from " + addCommentUrl + " for " + debugInfo + ": " + e, e);
     }
   }
 
