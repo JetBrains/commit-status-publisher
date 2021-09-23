@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+import jetbrains.buildServer.agent.AgentRuntimeProperties;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
 import jetbrains.buildServer.serverSide.*;
@@ -133,10 +134,30 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   // There are two ways in Bitbucket Server to report the build status: the older Build API and a new endpoint in the Core API
   // We will be using the former if the Bitbucket Server version is below 7.4 or not retrieved by any reason
   private boolean useBuildAPI() {
-    if (myBuildType instanceof BuildTypeEx && ((BuildTypeEx)myBuildType).getBooleanInternalParameter("commitStatusPublisher.enforceDeprecatedAPI"))
+    if (myBuildType instanceof BuildTypeEx && ((BuildTypeEx)myBuildType).getBooleanInternalParameter("commitStatusPublisher.enforceDeprecatedAPI")) {
+      LOG.debug("Using old build API because of property 'commitStatusPublisher.enforceDeprecatedAPI'");
+      printPropertyInformation((BuildTypeEx) myBuildType, "commitStatusPublisher.enforceDeprecatedAPI");
       return true;
+    }
     // NOTE: compare(null, "7.4") < 0
-    return VersionComparatorUtil.compare(getSettings().getServerVersion(getBaseUrl()), "7.4") < 0;
+    String serverVersion = getSettings().getServerVersion(getBaseUrl());
+    boolean isServerVersionOld = VersionComparatorUtil.compare(serverVersion, "7.4") < 0;
+    LOG.debug("Recieved server version '" + serverVersion + "' is less than '7.4':" + isServerVersionOld);
+    return isServerVersionOld;
+  }
+
+  private void printPropertyInformation(BuildTypeEx buildTypeEx, String propertyName) {
+    if (!LOG.isDebugEnabled()) {
+      return;
+    }
+    String teamcityPropertyName = "teamcity." + propertyName;
+    String teamcityIntenalPropertyName = AgentRuntimeProperties.TEAMCITY_INTERNAL_PARAMETER_PREFIX + propertyName;
+    String teamcityValue = buildTypeEx.getParameterValue(teamcityPropertyName);
+    String teamcityInternalValue = buildTypeEx.getParameterValue(teamcityIntenalPropertyName);
+    String teamcityJVMValue = TeamCityProperties.getPropertyOrNull(teamcityPropertyName);
+    String teamcityInternalJVMValue = TeamCityProperties.getPropertyOrNull(teamcityIntenalPropertyName);
+    LOG.debug(String.format("Teamcity properties values: %s=%s; %s=%s", teamcityPropertyName, teamcityValue, teamcityIntenalPropertyName, teamcityInternalValue));
+    LOG.debug(String.format("JVM/user provide proeprties file values: %s=%s; %s=%s", teamcityPropertyName, teamcityJVMValue, teamcityIntenalPropertyName, teamcityInternalJVMValue));
   }
 
   private void vote(@NotNull SBuild build,
