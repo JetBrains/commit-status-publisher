@@ -64,19 +64,20 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publishIfNeeded(build.getBuildPromotion(), revision, "build %s has started");
+    publishIfNeeded(build.getBuildPromotion(), revision, "build %s **has started**");
     return true;
   }
 
   @Override
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publishIfNeeded(build.getBuildPromotion(), revision, "build %s has finished: " + build.getStatusDescriptor().getText());
+    String result = build.getBuildStatus().isSuccessful() ? "finished successfully" : "failed";
+    publishIfNeeded(build.getBuildPromotion(), revision, "build %s **has " + result + " : " + build.getStatusDescriptor().getText());
     return true;
   }
 
   @Override
   public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publishIfNeeded(build.getBuildPromotion(), revision, "build %s was interrupted: " + build.getStatusDescriptor().getText());
+    publishIfNeeded(build.getBuildPromotion(), revision, "build %s **was interrupted**: " + build.getStatusDescriptor().getText());
     return true;
   }
 
@@ -88,7 +89,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
-    publishIfNeeded(build.getBuildPromotion(), revision, "build %s was marked as successful: " + build.getStatusDescriptor().getText());
+    publishIfNeeded(build.getBuildPromotion(), revision, "build %s was **marked as successful**: " + build.getStatusDescriptor().getText());
     return true;
   }
 

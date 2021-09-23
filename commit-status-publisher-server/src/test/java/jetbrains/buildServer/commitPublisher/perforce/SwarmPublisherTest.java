@@ -35,8 +35,8 @@ public class SwarmPublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*marked%20as%20successful.*");
     myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, myExpectedRegExps.get(EventToTest.MARKED_SUCCESSFUL));
 
-    myExpectedRegExps.put(EventToTest.FAILED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*has%20finished%3A%20.*");
-    myExpectedRegExps.put(EventToTest.FINISHED, myExpectedRegExps.get(EventToTest.FAILED));
+    myExpectedRegExps.put(EventToTest.FAILED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*has%20failed.*");
+    myExpectedRegExps.put(EventToTest.FINISHED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*has%20finished%20successfully.*");
 
     myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*and%20%22");
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, "GET /api/v9/projects\\?fields=id HTTP/1.1");
@@ -66,7 +66,7 @@ public class SwarmPublisherTest extends HttpPublisherTest {
   }
 
   protected SFinishedBuild createBuildInCurrentBranch(SBuildType buildType, Status status) {
-    return theBuild(buildType).finish();
+    return status.isSuccessful() ? theBuild(buildType).finish() : theBuild(buildType).failed().finish();
   }
 
   @NotNull
