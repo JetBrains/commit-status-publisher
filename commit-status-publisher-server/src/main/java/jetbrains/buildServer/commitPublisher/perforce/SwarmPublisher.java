@@ -71,7 +71,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   @Override
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     String result = build.getBuildStatus().isSuccessful() ? "finished successfully" : "failed";
-    publishIfNeeded(build.getBuildPromotion(), revision, "build %s **has " + result + " : " + build.getStatusDescriptor().getText());
+    publishIfNeeded(build.getBuildPromotion(), revision, "build %s **has " + result + "** : " + build.getStatusDescriptor().getText());
     return true;
   }
 
