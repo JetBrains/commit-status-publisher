@@ -142,7 +142,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     // NOTE: compare(null, "7.4") < 0
     String serverVersion = getSettings().getServerVersion(getBaseUrl());
     boolean isServerVersionOld = VersionComparatorUtil.compare(serverVersion, "7.4") < 0;
-    LOG.debug("Recieved server version '" + serverVersion + "' is less than '7.4':" + isServerVersionOld);
+    LOG.debug("Received server version '" + serverVersion + "' is less than '7.4':" + isServerVersionOld);
     return isServerVersionOld;
   }
 
@@ -156,8 +156,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     String teamcityInternalValue = buildTypeEx.getParameterValue(teamcityIntenalPropertyName);
     String teamcityJVMValue = TeamCityProperties.getPropertyOrNull(teamcityPropertyName);
     String teamcityInternalJVMValue = TeamCityProperties.getPropertyOrNull(teamcityIntenalPropertyName);
-    LOG.debug(String.format("Teamcity properties values: %s=%s; %s=%s", teamcityPropertyName, teamcityValue, teamcityIntenalPropertyName, teamcityInternalValue));
-    LOG.debug(String.format("JVM/user provide proeprties file values: %s=%s; %s=%s", teamcityPropertyName, teamcityJVMValue, teamcityIntenalPropertyName, teamcityInternalJVMValue));
+    LOG.debug(String.format("TeamCity property values: %s=%s; %s=%s", teamcityPropertyName, teamcityValue, teamcityIntenalPropertyName, teamcityInternalValue));
+    LOG.debug(String.format("JVM/user provided proeprty values: %s=%s; %s=%s", teamcityPropertyName, teamcityJVMValue, teamcityIntenalPropertyName, teamcityInternalJVMValue));
   }
 
   private void vote(@NotNull SBuild build,
