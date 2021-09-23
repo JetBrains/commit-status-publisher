@@ -22,6 +22,9 @@ import static org.assertj.core.api.BDDAssertions.then;
  */
 public class SwarmPublisherTest extends HttpPublisherTest {
 
+  private static final String CHANGELIST = "1234321";
+  private boolean myCreatePersonal;
+
   public SwarmPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*viewQueued.html.*");
     myExpectedRegExps.put(EventToTest.REMOVED, null); // not to be tested
@@ -49,7 +52,8 @@ public class SwarmPublisherTest extends HttpPublisherTest {
     myPublisher = new SwarmPublisher((SwarmPublisherSettings)myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks);
 
 
-    myBuildType.addParameter(new SimpleParameter("vcsRoot." + myVcsRoot.getExternalId() + ".shelvedChangelist", "1234321"));
+    myBuildType.addParameter(new SimpleParameter("vcsRoot." + myVcsRoot.getExternalId() + ".shelvedChangelist", CHANGELIST));
+    myCreatePersonal = true;
   }
 
   protected SRunningBuild startBuildInCurrentBranch(SBuildType buildType) {
@@ -57,7 +61,8 @@ public class SwarmPublisherTest extends HttpPublisherTest {
   }
 
   private BuildBuilder theBuild(SBuildType buildType) {
-    return build().in(buildType).personalForUser("fedor");
+    final BuildBuilder result = build().in(buildType);
+    return myCreatePersonal ? result.personalForUser("fedor") : result;
   }
 
   protected SFinishedBuild createBuildInCurrentBranch(SBuildType buildType, Status status) {
@@ -85,7 +90,7 @@ public class SwarmPublisherTest extends HttpPublisherTest {
     if (url.contains(testConnectionURL)) {
       return true;
     }
-    if (url.contains("/api/v9/reviews?fields=id&change[]=1234321")) {
+    if (url.contains("/api/v9/reviews?fields=id&change[]=" + CHANGELIST)) {
       httpResponse.setEntity(new StringEntity("{\"lastSeen\":19,\"reviews\":[{\"id\":19}],\"totalCount\":1}", "UTF-8"));
       return true;
     }
@@ -111,6 +116,16 @@ public class SwarmPublisherTest extends HttpPublisherTest {
     } catch (PublisherException e) {
       then(e).hasMessageContaining("timed out").hasMessageContaining(myBuildType.getExtendedFullName());
     }
+  }
+
+  @Test
+  public void should_report_on_non_personal_build_with_ordinary_changelist() throws Exception {
+    myCreatePersonal = false;
+    myBuildType.getParametersCollection().forEach((p) -> myBuildType.removeParameter(p.getName()));
+
+    myRevision = new BuildRevision(myBuildType.getVcsRootInstanceForParent(myVcsRoot), CHANGELIST, "", CHANGELIST);
+    
+    test_buildStarted();
   }
 
 

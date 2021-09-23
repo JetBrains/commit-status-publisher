@@ -44,8 +44,17 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean isAvailable(@NotNull BuildPromotion buildPromotion) {
-    // So far, process only builds with shelved changelists (by default personal builds with patches are ignored)
-    return buildPromotion.isPersonal();
+    // Process both ordinary builds and personal builds with shelved changelists
+    return true;
+  }
+
+  @Nullable
+  private String getChangelistId(@NotNull BuildPromotion promotion, @NotNull BuildRevision revision) {
+    String shelvedChangelistId = promotion.getParameterValue("vcsRoot." + revision.getRoot().getExternalId() + ".shelvedChangelist");
+    if (shelvedChangelistId == null) {
+      shelvedChangelistId = revision.getRevisionDisplayName();
+    }
+    return shelvedChangelistId;
   }
 
   public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException {
@@ -85,8 +94,6 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
 
   private void publishIfNeeded(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final String commentTemplate) throws PublisherException {
 
-    if (!build.isPersonal()) return;
-
     final String changelistId = getChangelistId(build, revision);
     if (changelistId == null) return;
 
@@ -123,11 +130,6 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
       return String.format("#[%s](%s)", queuedBuild.getOrderNumber(), url);
     }
     return String.format("#[%d](%s)", build.getId(), url);
-  }
-
-  @Nullable
-  private String getChangelistId(@NotNull BuildPromotion promotion, @NotNull BuildRevision revision) {
-    return promotion.getParameterValue("vcsRoot." + revision.getRoot().getExternalId() + ".shelvedChangelist");
   }
 
 }
