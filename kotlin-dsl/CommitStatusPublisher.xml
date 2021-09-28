@@ -251,6 +251,27 @@
                     </description>
                 </param>
           </option>
+          <option name="swarm" value="perforceSwarmPublisher">
+            <description>
+              Publish build status to Perforce Helix Swarm
+            </description>
+            <param name="swarmUrl" dslName="serverUrl" mandatory="true">
+              <description>
+                Peforce Helix Swarm Server URL
+              </description>
+            </param>
+            <param name="swarmUser" dslName="username" mandatory="true">
+              <description>
+                Username to access the server.
+              </description>
+            </param>
+            <param name="secure:swarmPassword" dslName="token" mandatory="true">
+              <description>
+                Token or password to access the Perforc Swarm server.
+              </description>
+            </param>
+          </option>
+
         </param>
     </params>
 </dsl-extension>

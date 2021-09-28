@@ -22,7 +22,7 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
 
   public static final String PARAM_URL = "swarmUrl";
   public static final String PARAM_USERNAME = "swarmUser";
-  public static final String PARAM_PASSWORD = "swarmPassword";
+  public static final String PARAM_PASSWORD = "secure:swarmPassword";
 
   private static final Set<CommitStatusPublisher.Event> ourSupportedEvents = new HashSet<CommitStatusPublisher.Event>() {{
     add(CommitStatusPublisher.Event.QUEUED);
@@ -78,15 +78,15 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
       @Override
       public Collection<InvalidProperty> process(Map<String, String> properties) {
         final List<InvalidProperty> result = new ArrayList<>();
-        require(properties, PARAM_URL, result);
-        require(properties, PARAM_USERNAME, result);
-        require(properties, PARAM_PASSWORD, result);
+        require(properties, PARAM_URL, result, "Server URL");
+        require(properties, PARAM_USERNAME, result, "Username");
+        require(properties, PARAM_PASSWORD, result, "Ticket or password");
         return result;
       }
 
-      private void require(@NotNull Map<String, String> properties, @NotNull String parameterName, @NotNull List<InvalidProperty> result) {
+      private void require(@NotNull Map<String, String> properties, @NotNull String parameterName, @NotNull List<InvalidProperty> result, @NotNull String what) {
         if (StringUtil.isEmptyOrSpaces(properties.get(parameterName))) {
-          result.add(new InvalidProperty(parameterName, "is required"));
+          result.add(new InvalidProperty(parameterName, what + " is required"));
         }
       }
     };
