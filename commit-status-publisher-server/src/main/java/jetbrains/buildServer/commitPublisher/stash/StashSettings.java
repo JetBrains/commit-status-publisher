@@ -16,23 +16,24 @@
 
 package jetbrains.buildServer.commitPublisher.stash;
 
+import java.io.IOException;
+import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.stash.data.StashError;
 import jetbrains.buildServer.commitPublisher.stash.data.StashRepoInfo;
 import jetbrains.buildServer.commitPublisher.stash.data.StashServerInfo;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.util.http.HttpMethod;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
-
-import java.io.IOException;
-import java.util.*;
 
 import static jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT;
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 import static jetbrains.buildServer.commitPublisher.stash.StashPublisher.PROP_PUBLISH_QUEUED_BUILD_STATUS;
 
 public class StashSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
@@ -174,8 +175,10 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
   @Override
   protected String retrieveServerVersion(@NotNull String url) throws PublisherException {
     try {
+      final String requestUrl = url + "/rest/api/1.0/application-properties";
       ServerVersionResponseProcessor processor = new ServerVersionResponseProcessor();
-      IOGuard.allowNetworkCall(() -> HttpHelper.get(url + "/rest/api/1.0/application-properties", null, null, null, DEFAULT_CONNECTION_TIMEOUT, null, processor));
+      LoggerUtil.logRequest(getId(), HttpMethod.GET, requestUrl, null);
+      IOGuard.allowNetworkCall(() -> HttpHelper.get(requestUrl, null, null, null, DEFAULT_CONNECTION_TIMEOUT, null, processor));
       return processor.getVersion();
     } catch (Exception e) {
       throw new PublisherException("Failed to obtain Bitbucket Server version", e);
@@ -198,9 +201,11 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
       if (null == json) {
         throw new HttpPublisherException("Bitbucket Server publisher has received no response");
       }
+      LOG.debug("Received response from server for version request: \"" + json + "\"");
       StashServerInfo serverInfo = myGson.fromJson(json, StashServerInfo.class);
       if (null == serverInfo)
         throw new HttpPublisherException("Bitbucket Server publisher has received a malformed response");
+      LOG.debug("Parsed server version is: \"" + serverInfo.version + "\"");
       myVersion = serverInfo.version;
     }
   }

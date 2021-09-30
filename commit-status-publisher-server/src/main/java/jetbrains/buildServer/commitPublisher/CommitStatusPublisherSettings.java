@@ -17,7 +17,9 @@
 package jetbrains.buildServer.commitPublisher;
 
 import java.security.KeyStore;
+import java.util.Map;
 import jetbrains.buildServer.TeamCityExtension;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -27,9 +29,8 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
-import java.util.Map;
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 public interface CommitStatusPublisherSettings extends TeamCityExtension {
 
@@ -79,6 +80,7 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
 
   @Nullable
   default public String getServerVersion(@NotNull String url) {
+    LOG.debug("Used default method for getting server version. \"null\" will be returned");
     return null;
   }
 

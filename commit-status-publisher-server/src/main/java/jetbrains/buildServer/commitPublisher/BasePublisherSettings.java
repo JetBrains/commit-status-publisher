@@ -19,22 +19,24 @@ package jetbrains.buildServer.commitPublisher;
 import com.google.gson.Gson;
 import java.security.KeyStore;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.WebLinks;
-import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import java.util.Map;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
+
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 public abstract class BasePublisherSettings implements CommitStatusPublisherSettings {
 
@@ -123,15 +125,19 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
     TimestampedServerVersion version = myServerVersions.get(url);
     if (version != null && !version.isObsolete())
       return version.get();
+    LOG.debug("Server version for URL \"" + url + "\" " + (version == null ? "was not found" : "is obsolete") + " in cache");
     final String v;
     try {
        v = retrieveServerVersion(url);
     } catch (PublisherException ex) {
+      LOG.debug("Error on retriving server version", ex);
       if (version != null) {
         // if we failed to retrieve the information, just renew the timestamp of the old one for now
         myServerVersions.put(url, new TimestampedServerVersion(version.get()));
+        LOG.debug("Can not retrieve version from server. Old value will be returned: \"" + version.get() + "\"");
         return version.get();
       }
+      LOG.debug("Can not retrieve version from server. No value in cache. \"null\" will be returned");
       return null;
     }
     if (v != null) {
@@ -139,11 +145,13 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
       myServerVersions.put(url, version);
       return v;
     }
+    LOG.debug("\"null\" returned instead of server version");
     return null;
   }
 
   @Nullable
   protected String retrieveServerVersion(@NotNull String url) throws PublisherException {
+    LOG.debug("Using default implementation to retrive server version, \"null\" will be returned");
     return null;
   }
 
