@@ -24,6 +24,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
 import java.util.Collection;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.serverSide.SProject;
@@ -40,6 +41,7 @@ public class GerritClientImpl extends GerritClientBase implements GerritClient {
 
   public GerritClientImpl(@NotNull ExtensionHolder extensionHolder) {
     myExtensionHolder = extensionHolder;
+    initJSchConfig();
   }
 
   public String runCommand(@NotNull GerritConnectionDetails connectionDetails, @NotNull String command) throws JSchException, IOException {
@@ -116,4 +118,18 @@ public class GerritClientImpl extends GerritClientBase implements GerritClient {
     return out.toString().trim();
   }
 
+
+  private void initJSchConfig() {
+    try {
+      Class initializer = Class.forName("jetbrains.buildServer.util.jsch.JSchConfigInitializer");
+      Method initMethod = initializer.getMethod("initJSchConfig", Class.class);
+      initMethod.invoke(null, JSch.class);
+    } catch (ClassNotFoundException e) {
+      LOG.warn("Could not find 'jetbrains.buildServer.util.jsch.JSchConfigInitializer' class in the classpath, skip JSch config initialization");
+    } catch (NoSuchMethodException e) {
+      LOG.warn("Could not find initJSchConfig method in 'jetbrains.buildServer.util.jsch.JSchConfigInitializer' class, skip JSch config initialization, error: " + e.toString());
+    } catch (Throwable e) {
+      LOG.warn("Failed to perform JSch config initialization, error: " + e.toString());
+    }
+  }
 }
