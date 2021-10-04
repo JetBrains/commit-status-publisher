@@ -107,7 +107,9 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
                              @NotNull VcsRoot root,
                              @NotNull Map<String, String> params) throws PublisherException {
 
-    final int testConnectionTimeout = 5000;
-    new SwarmClient(params, testConnectionTimeout, trustStore()).testConnection();
+    IOGuard.allowNetworkCall(() -> {
+      final int testConnectionTimeout = 5000;
+      new SwarmClient(params, testConnectionTimeout, trustStore()).testConnection();
+    });
   }
 }
