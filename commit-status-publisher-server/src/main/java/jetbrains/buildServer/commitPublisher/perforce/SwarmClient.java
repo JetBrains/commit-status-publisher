@@ -97,6 +97,10 @@ public class SwarmClient {
     @Override
     public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
       if (response.getStatusCode() >= 400) {
+        if (response.getStatusCode() == 401 || response.getStatusCode() == 403) {
+          throw new HttpPublisherException(response.getStatusCode(), response.getStatusText(),
+                                           "Cannot access Perforce Swarm Server to add details for " + myDebugInfo);
+        }
         throw new HttpPublisherException(response.getStatusCode(), response.getStatusText(), "Cannot get list of related reviews for " + myDebugInfo);
       }
 
