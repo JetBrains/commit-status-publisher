@@ -1,0 +1,88 @@
+#  status: pass, fail, running
+#  completedTime: msecs
+POST http://kir-linux.labs.intellij.net/api/v10/reviews/101/testruns
+Content-Type: application/json
+Authorization: Basic admin 289EBADDA4D8F8A2AE3C9065E1188274
+
+{
+  "change": 99,
+  "version": 1,
+  "test": "mytest2",
+  "startTime": 1567895432,
+  "status": "running",
+  "messages": [
+    "Mytest running",
+    "another message"
+  ],
+  "url": "http://localhost:8111/bs/build/21553"
+}
+###
+
+
+#{
+#  "error": null,
+#  "messages": [],
+#  "data": {
+#    "testruns": [
+#      {
+#        "id": 41,
+#        "change": 101,
+#        "version": 1,
+#        "test": "mytest",
+#        "startTime": 1567895432,
+#        "completedTime": null,
+#        "status": "running",
+#        "messages": [
+#          "Mytest running",
+#          "another message"
+#        ],
+#        "url": "http:\/\/localhost:8111\/bs\/build\/21553",
+#        "uuid": "FAE4501C-E4BC-73E4-A11A-FF710601BC3F",
+#        "title": "mytest",
+#        "branches": ""
+#      }
+#    ]
+#  }
+#}
+
+# IF ERROR:
+#{
+#  "error": <high level description>,
+#  "messages": [{"code" : "<code string>", "msg" : "<error message>"}],
+#  "data" : null
+#}
+
+###
+
+# curl -X PATCH -H "Content-Type: application/json" -u "username:ticket" -d "@mybodyfilename.txt" "https://myswarm.url/api/v10/reviews/12345/testruns/706"
+PATCH http://kir-linux.labs.intellij.net/api/v10/reviews/101/testruns/42
+Content-Type: application/json
+Authorization: Basic admin 289EBADDA4D8F8A2AE3C9065E1188274
+
+{
+  "completedTime": "1567895562",
+  "status": "pass",
+  "messages": [
+    "Test is OK",
+    "yet another message"
+  ]
+}
+###
+#{
+#  "status": "running",
+#  "messages": [
+#    "Test XXX"
+#  ]
+#}
+###
+#{
+#  "completedTime": "1567895562",
+#  "status": "fail",
+#  "messages": [
+#    "Test has failed",
+#    "yet another message"
+#  ]
+#}
+###
+
+
