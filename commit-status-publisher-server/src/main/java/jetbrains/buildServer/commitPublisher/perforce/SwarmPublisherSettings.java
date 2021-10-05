@@ -26,6 +26,7 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
 
   private static final Set<CommitStatusPublisher.Event> ourSupportedEvents = new HashSet<CommitStatusPublisher.Event>() {{
     add(CommitStatusPublisher.Event.QUEUED);
+    add(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE);
     add(CommitStatusPublisher.Event.STARTED);
     add(CommitStatusPublisher.Event.FAILURE_DETECTED);
     add(CommitStatusPublisher.Event.INTERRUPTED);

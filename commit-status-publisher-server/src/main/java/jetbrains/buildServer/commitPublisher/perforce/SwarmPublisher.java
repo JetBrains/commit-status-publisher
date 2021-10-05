@@ -6,6 +6,7 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.commitPublisher.HttpBasedCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -59,6 +60,22 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
 
   public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publishIfNeeded(build.getBuildPromotion(), revision, "build %s is queued");
+    return true;
+  }
+
+  @Override
+  public boolean buildRemovedFromQueue(@NotNull SQueuedBuild build,
+                                       @NotNull BuildRevision revision,
+                                       @Nullable User user,
+                                       @Nullable String comment) throws PublisherException {
+    if (comment != null && comment.contains("Build started")) {
+      return true;
+    }
+    String commentTemplate = "build %s is removed from queue: " + comment;
+    if (user != null) {
+      commentTemplate += " by " + user.getDescriptiveName();
+    }
+    publishIfNeeded(build.getBuildPromotion(), revision, commentTemplate);
     return true;
   }
 
