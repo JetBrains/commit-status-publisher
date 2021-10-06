@@ -18,10 +18,10 @@ package jetbrains.buildServer.commitPublisher;
 
 import java.util.*;
 import jetbrains.buildServer.messages.Status;
+import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SQueuedBuild;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

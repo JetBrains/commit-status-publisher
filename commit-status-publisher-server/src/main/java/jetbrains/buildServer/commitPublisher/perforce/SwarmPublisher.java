@@ -65,7 +65,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull SQueuedBuild build,
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
                                        @NotNull BuildRevision revision,
                                        @Nullable User user,
                                        @Nullable String comment) throws PublisherException {
@@ -76,7 +76,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
     if (user != null) {
       commentTemplate += " by " + user.getDescriptiveName();
     }
-    publishIfNeeded(build.getBuildPromotion(), revision, commentTemplate);
+    publishIfNeeded(buildPromotion, revision, commentTemplate);
     return true;
   }
 
