@@ -17,7 +17,9 @@
 package jetbrains.buildServer.commitPublisher.gitlab;
 
 import com.google.gson.Gson;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -26,9 +28,6 @@ import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Collections;
-import java.util.Map;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
@@ -72,8 +71,10 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) throws PublisherException {
-    publish(buildPromotion, revision, GitlabBuildStatus.CANCELED, "Build canceled");
-    return true;
+    // commented because it is triggered just before starting build. It's not clear for now is such behaviour is normal
+    /* publish(buildPromotion, revision, GitlabBuildStatus.CANCELED, "Build canceled");
+    return true; */
+    return false;
   }
 
   @Override
