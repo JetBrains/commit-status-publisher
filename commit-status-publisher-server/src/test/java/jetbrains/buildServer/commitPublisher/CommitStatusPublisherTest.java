@@ -144,14 +144,16 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
 
   public void test_buildQueued() throws Exception {
     if (isSkipEvent(EventToTest.QUEUED)) return;
-    myPublisher.buildQueued(addBuildToQueue(), myRevision);
+    SQueuedBuild build = addBuildToQueue();
+    myPublisher.buildQueued(build.getBuildPromotion(), myRevision);
     then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
                           .matches(myExpectedRegExps.get(EventToTest.QUEUED));
   }
 
   public void test_buildRemovedFromQueue()  throws Exception {
     if (isSkipEvent(EventToTest.REMOVED)) return;
-    myPublisher.buildRemovedFromQueue(addBuildToQueue(), myRevision, myUser, COMMENT);
+    SQueuedBuild build = addBuildToQueue();
+    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, myUser, COMMENT);
     then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.REMOVED));
   }
 

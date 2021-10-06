@@ -65,14 +65,14 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publish(build, revision, GitlabBuildStatus.PENDING, "Build queued");
+  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+    publish(buildPromotion, revision, GitlabBuildStatus.PENDING, "Build queued");
     return true;
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) throws PublisherException {
-    publish(build, revision, GitlabBuildStatus.CANCELED, "Build canceled");
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) throws PublisherException {
+    publish(buildPromotion, revision, GitlabBuildStatus.CANCELED, "Build canceled");
     return true;
   }
 
@@ -119,12 +119,17 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     publish(message, revision, LogUtil.describe(build));
   }
 
-  private void publish(@NotNull SQueuedBuild build,
+  private void publish(@NotNull BuildPromotion buildPromotion,
                        @NotNull BuildRevision revision,
                        @NotNull GitlabBuildStatus status,
                        @NotNull String description) throws PublisherException {
-    String message = createMessage(status, build.getBuildType().getName(), revision, myLinks.getQueuedBuildUrl(build), description);
-    publish(message, revision, LogUtil.describe(build));
+    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    SBuildType buildType = buildPromotion.getBuildType();
+    String url = queuedBuild != null ?
+      myLinks.getQueuedBuildUrl(queuedBuild) :
+      myLinks.getConfigurationHomePageUrl(buildType);
+    String message = createMessage(status, buildType.getName(), revision, url, description);
+    publish(message, revision, LogUtil.describe(buildPromotion));
   }
 
   private void publish(@NotNull String message,

@@ -60,11 +60,11 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     }
   }
 
-  public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException {
+  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
     return false;
   }
 
-  public boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) throws PublisherException {
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) throws PublisherException {
     return false;
   }
 

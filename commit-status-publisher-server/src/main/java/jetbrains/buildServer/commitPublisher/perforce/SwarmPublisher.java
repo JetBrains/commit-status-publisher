@@ -58,8 +58,9 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
     return shelvedChangelistId;
   }
 
-  public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publishIfNeeded(build.getBuildPromotion(), revision, "build %s is queued");
+  @Override
+  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+    publishIfNeeded(buildPromotion, revision, "build %s is queued");
     return true;
   }
 

@@ -65,19 +65,19 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildQueued(@NotNull SQueuedBuild build, @NotNull BuildRevision revision) {
-    vote(build, revision, StashBuildStatus.INPROGRESS, "Build queued");
+  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) {
+    vote(buildPromotion, revision, StashBuildStatus.INPROGRESS, "Build queued");
     return true;
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) {
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) {
     StringBuilder description = new StringBuilder("Build removed from queue");
     if (user != null)
       description.append(" by ").append(user.getName());
     if (comment != null)
       description.append(" with comment \"").append(comment).append("\"");
-    vote(build, revision, StashBuildStatus.FAILED, description.toString());
+    vote(buildPromotion, revision, StashBuildStatus.FAILED, description.toString());
     return true;
   }
 
@@ -147,13 +147,13 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     getEndpoint().publishBuildStatus(data, LogUtil.describe(build));
   }
 
-  private void vote(@NotNull SQueuedBuild build,
+  private void vote(@NotNull BuildPromotion buildPromotion,
                     @NotNull BuildRevision revision,
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) {
-    String vcsBranch = getVcsBranch(revision, LogUtil.describe(build));
-    SQueuedBuildData data = new SQueuedBuildData(build, revision, status, comment, vcsBranch);
-    getEndpoint().publishBuildStatus(data, LogUtil.describe(build));
+    String vcsBranch = getVcsBranch(revision, LogUtil.describe(buildPromotion));
+    SBuildPromotionData data = new SBuildPromotionData(buildPromotion, revision, status, comment, vcsBranch);
+    getEndpoint().publishBuildStatus(data, LogUtil.describe(buildPromotion));
   }
 
   @Nullable
@@ -340,31 +340,35 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     }
   }
 
-  private class SQueuedBuildData extends BaseBuildData implements StatusData {
+  private class SBuildPromotionData extends BaseBuildData implements StatusData {
 
-    private final SQueuedBuild myBuild;
+    private final BuildPromotion myBuildPromotion;
 
-    SQueuedBuildData(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @NotNull StashBuildStatus status, @NotNull String description, @Nullable String vcsBranch) {
+    SBuildPromotionData(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull StashBuildStatus status, @NotNull String description, @Nullable String vcsBranch) {
       super(revision, status, description, vcsBranch);
-      myBuild = build;
+      myBuildPromotion = buildPromotion;
     }
 
     @NotNull
     @Override
     public String getKey() {
-      return myBuild.getBuildPromotion().getBuildTypeExternalId();
+      return myBuildPromotion.getBuildTypeExternalId();
     }
 
     @NotNull
     @Override
     public String getName() {
-      return myBuild.getBuildType().getName();
+      return myBuildPromotion.getBuildType().getName();
     }
 
     @NotNull
     @Override
     public String getUrl() {
-      return myLinks.getQueuedBuildUrl(myBuild);
+      SQueuedBuild queuedBuild = myBuildPromotion.getQueuedBuild();
+      if (queuedBuild != null) {
+        return myLinks.getQueuedBuildUrl(queuedBuild);
+      }
+      return myLinks.getConfigurationHomePageUrl(myBuildPromotion.getBuildType());
     }
 
     @NotNull
