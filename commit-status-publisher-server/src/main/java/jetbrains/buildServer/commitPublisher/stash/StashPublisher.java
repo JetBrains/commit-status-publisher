@@ -17,34 +17,28 @@
 package jetbrains.buildServer.commitPublisher.stash;
 
 import com.google.gson.*;
-import java.io.IOException;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.VersionComparatorUtil;
-import jetbrains.buildServer.util.http.HttpMethod;
-import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Map;
+
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 class StashPublisher extends HttpBasedCommitStatusPublisher {
   public static final String PROP_PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
-  private static final Pattern PULL_REQUEST_BRANCH_PATTERN = Pattern.compile("^refs\\/pull\\-requests\\/\\d+\\/from");
 
   private final Gson myGson = new Gson();
   private final WebLinks myLinks;
-  private BitbucketEndpoint myBitbucketEndpoint = null;
+  private BuildStatusEndpoint myBuildStatusEndpoint = null;
 
   StashPublisher(@NotNull CommitStatusPublisherSettings settings,
                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
@@ -143,44 +137,16 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
                     @NotNull BuildRevision revision,
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) {
-    String vcsBranch = getVcsBranch(revision, LogUtil.describe(build));
-    SBuildData data = new SBuildData(build, revision, status, comment, vcsBranch);
-    getEndpoint().publishBuildStatus(data, LogUtil.describe(build));
+    SBuildData data = new SBuildData(build, revision, status, comment);
+    getEndpoint().publish(data, LogUtil.describe(build));
   }
 
   private void vote(@NotNull SQueuedBuild build,
                     @NotNull BuildRevision revision,
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) {
-    String vcsBranch = getVcsBranch(revision, LogUtil.describe(build));
-    SQueuedBuildData data = new SQueuedBuildData(build, revision, status, comment, vcsBranch);
-    getEndpoint().publishBuildStatus(data, LogUtil.describe(build));
-  }
-
-  @Nullable
-  private String getVcsBranch(@NotNull BuildRevision revision, @NotNull String buildDescription) {
-    String revisionVcsBranch = revision.getRepositoryVersion().getVcsBranch();
-    if (revisionVcsBranch == null || !PULL_REQUEST_BRANCH_PATTERN.matcher(revisionVcsBranch).matches()) {
-      return revisionVcsBranch;
-    }
-    PullRequestsList pullRequestsList = getEndpoint().getPullRequests(revision, buildDescription);
-    if (pullRequestsList == null) {
-      return revisionVcsBranch;
-    }
-
-    try {
-      String sourceCommitId = revision.getRepositoryVersion().getVersion();
-      String targetCommitId = revision.getRoot().getCurrentRevision().getVersion();
-      for (PullRequest pullRequest : pullRequestsList.values) {
-        if (sourceCommitId.equals(pullRequest.fromRef.latestCommit) && targetCommitId.equals(pullRequest.toRef.latestCommit)) {
-          return pullRequest.fromRef.id;
-        }
-      }
-      LOG.debug("Can not find pull request for source branch with commit id '" + sourceCommitId + "' and target branch with commit id '" + targetCommitId + "'");
-    } catch (VcsException e) {
-      return revisionVcsBranch;
-    }
-    return revisionVcsBranch;
+    SQueuedBuildData data = new SQueuedBuildData(build, revision, status, comment);
+    getEndpoint().publish(data, LogUtil.describe(build));
   }
 
   @Override
@@ -230,10 +196,10 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     return myParams.get(Constants.STASH_PASSWORD);
   }
 
-  private BitbucketEndpoint getEndpoint() {
-    if (myBitbucketEndpoint == null)
-      myBitbucketEndpoint = useBuildAPI() ? new BuildApiEndpoint() : new CoreApiEndpoint();
-    return myBitbucketEndpoint;
+  private BuildStatusEndpoint getEndpoint() {
+    if (myBuildStatusEndpoint == null)
+      myBuildStatusEndpoint = useBuildAPI() ? new BuildApiEndpoint() : new CoreApiEndpoint();
+    return myBuildStatusEndpoint;
   }
 
   private interface StatusData {
@@ -255,13 +221,11 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     private final BuildRevision myRevision;
     private final StashBuildStatus myStatus;
     private final String myDescription;
-    private final String myVcsBranch;
 
-    BaseBuildData(@NotNull BuildRevision revision, @NotNull StashBuildStatus status, @NotNull String description, @Nullable String vcsBranch) {
+    BaseBuildData(@NotNull BuildRevision revision, @NotNull StashBuildStatus status, @NotNull String description) {
       myRevision = revision;
       myStatus = status;
       myDescription = description;
-      myVcsBranch = vcsBranch;
     }
 
     @NotNull
@@ -291,17 +255,17 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     @Nullable
     @Override
     public String getVcsBranch() {
-      return myVcsBranch;
+      return myRevision.getRepositoryVersion().getVcsBranch();
     }
   }
 
   private class SBuildData extends BaseBuildData implements StatusData {
 
     private final SBuild myBuild;
-    private final BuildStatistics myBuildStatistics;
+    final private BuildStatistics myBuildStatistics;
 
-    SBuildData(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull StashBuildStatus status, @NotNull String description, @Nullable String vcsBranch) {
-      super(revision, status, description, vcsBranch);
+    SBuildData(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull StashBuildStatus status, @NotNull String description) {
+      super(revision, status, description);
       myBuild = build;
       myBuildStatistics = myBuild.getBuildStatistics(BuildStatisticsOptions.ALL_TESTS_NO_DETAILS);
     }
@@ -345,8 +309,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
     private final SQueuedBuild myBuild;
 
-    SQueuedBuildData(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @NotNull StashBuildStatus status, @NotNull String description, @Nullable String vcsBranch) {
-      super(revision, status, description, vcsBranch);
+    SQueuedBuildData(@NotNull SQueuedBuild build, @NotNull BuildRevision revision, @NotNull StashBuildStatus status, @NotNull String description) {
+      super(revision, status, description);
       myBuild = build;
     }
 
@@ -385,77 +349,38 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     }
   }
 
-  private interface BitbucketEndpoint {
-    void publishBuildStatus(@NotNull StatusData data, @NotNull String buildDescription);
-    PullRequestsList getPullRequests(BuildRevision revision, @NotNull String buildDescriptor);
+  private interface BuildStatusEndpoint {
+    void publish(@NotNull StatusData data, @NotNull String buildDescription);
   }
 
-  private abstract class BaseBitbucketEndpoint implements BitbucketEndpoint {
+  private abstract class BaseBuildStatusEndpoint implements BuildStatusEndpoint {
 
     @Override
-    public void publishBuildStatus(@NotNull StatusData data, @NotNull String buildDescription) {
+    public void publish(@NotNull StatusData data, @NotNull String buildDescription) {
       try {
-        String url = getBuildEndpointUrl(data);
-        post(url, getUsername(), getPassword(), createBuildStatusMessage(data), ContentType.APPLICATION_JSON, null, buildDescription);
+        String url = getEndpointUrl(data);
+        post(url, getUsername(), getPassword(), createMessage(data), ContentType.APPLICATION_JSON, null, buildDescription);
       } catch (PublisherException ex) {
         myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
       }
     }
 
-    @Override
-    public PullRequestsList getPullRequests(BuildRevision revision, @NotNull String buildDescriptor) {
-      AtomicReference<PullRequestsList> pullRequestsList = new AtomicReference<>(null);
-      try {
-        String url = getPullRequestEndpointUrl(revision);
-        if (url == null) {
-          LOG.debug("No endpoint URL is provided to get pull requests for revision " + revision.getRevision());
-          return null;
-        }
-        LoggerUtil.logRequest(getId(), HttpMethod.GET, url, null);
-        IOGuard.allowNetworkCall(() -> HttpHelper.get(url, getUsername(), getPassword(), null, DEFAULT_CONNECTION_TIMEOUT, getSettings().trustStore(), new DefaultHttpResponseProcessor() {
-          @Override
-          public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
-            super.processResponse(response);
-            final String json = response.getContent();
-            if (null == json) {
-              throw new HttpPublisherException("Stash publisher has received no response");
-            }
-            PullRequestsList prList = myGson.fromJson(json, PullRequestsList.class);
-            if (null == prList) {
-              throw new HttpPublisherException("Stash publisher has received a malformed response");
-            }
-            pullRequestsList.set(prList);
-          }
-        }));
-      } catch (Exception e) {
-        myProblems.reportProblem("Can not get pull requests", StashPublisher.this, buildDescriptor, null, e, LOG);
-      }
-      return pullRequestsList.get();
-    }
-
-
-    protected abstract String getBuildEndpointUrl(final StatusData data) throws PublisherException;
-    protected abstract String getPullRequestEndpointUrl(final BuildRevision revision) throws PublisherException;
+    protected abstract String getEndpointUrl(final StatusData data) throws PublisherException;
 
     @NotNull
-    protected abstract String createBuildStatusMessage(@NotNull StatusData data);
+    protected abstract String createMessage(@NotNull StatusData data);
   }
 
-  private class BuildApiEndpoint extends BaseBitbucketEndpoint implements BitbucketEndpoint {
+  private class BuildApiEndpoint extends BaseBuildStatusEndpoint implements BuildStatusEndpoint {
 
     @Override
-    protected String getBuildEndpointUrl(final StatusData data) {
+    protected String getEndpointUrl(final StatusData data) {
       return getBaseUrl() + "/rest/build-status/1.0/commits/" + data.getCommit();
     }
 
-    @Override
-    protected String getPullRequestEndpointUrl(BuildRevision revision) {
-      return null;
-    }
-
     @NotNull
     @Override
-    protected String createBuildStatusMessage(@NotNull final StatusData data) {
+    protected String createMessage(@NotNull final StatusData data) {
       Map<String, String> jsonData = new LinkedHashMap<String, String>();
       jsonData.put("state", data.getState());
       jsonData.put("key", data.getKey());
@@ -466,39 +391,25 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     }
   }
 
-  private class CoreApiEndpoint extends BaseBitbucketEndpoint implements BitbucketEndpoint {
+  private class CoreApiEndpoint extends BaseBuildStatusEndpoint implements BuildStatusEndpoint {
 
     @Override
-    protected String getBuildEndpointUrl(final StatusData data) throws PublisherException {
+    protected String getEndpointUrl(final StatusData data) throws PublisherException {
       VcsRootInstance vcs = data.getVcsRootInstance();
-      String commit = data.getCommit();
-      Repository repo = getRepository(vcs, commit);
-      return getBaseUrl() + "/rest/api/1.0/projects/" + repo.owner() + "/repos/" + repo.repositoryName() + "/commits/" + commit + "/builds" ;
-    }
-
-    @Override
-    protected String getPullRequestEndpointUrl(BuildRevision revision) throws PublisherException {
-      VcsRootInstance vcs = revision.getRoot();
-      String commit = revision.getRepositoryVersion().getVersion();
-      Repository repo = getRepository(vcs, commit);
-      return getBaseUrl() + "/rest/api/1.0/projects/" + repo.owner() + "/repos/" + repo.repositoryName() + "/commits/" + commit + "/pull-requests";
-    }
-
-    private Repository getRepository(VcsRootInstance vcs, String commit) throws PublisherException {
       if (vcs == null)
-        throw new PublisherException("No VCS root instance associated with the revision " + commit);
+        throw new PublisherException("No VCS root instance associated with the revision " + data.getCommit());
       String vcsUrl = vcs.getProperty("url");
       if (vcsUrl == null)
-        throw new PublisherException("No VCS root fetch URL provided, revision " + commit);
+        throw new PublisherException("No VCS root fetch URL provided, revision " + data.getCommit());
       Repository repo = StashSettings.VCS_URL_PARSER.parseRepositoryUrl(vcsUrl);
       if (repo == null)
         throw new PublisherException("Failed to parse repoisotry fetch URL " + vcsUrl);
-      return repo;
+      return getBaseUrl() + "/rest/api/1.0/projects/" + repo.owner() + "/repos/" + repo.repositoryName() +  "/commits/" + data.getCommit() + "/builds" ;
     }
 
     @NotNull
     @Override
-    protected String createBuildStatusMessage(@NotNull final StatusData data) {
+    protected String createMessage(@NotNull final StatusData data) {
       JsonStashBuildStatus status = new JsonStashBuildStatus();
       status.buildNumber = data.getBuildNumber();
       status.description = data.getDescription();
@@ -520,19 +431,4 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     }
   }
 
-  private static class PullRequestsList {
-    private int size;
-    private List<PullRequest> values;
-  }
-
-  private static class PullRequest {
-    private long id;
-    private String title;
-    private boolean open, closed;
-    private PullRequestRef fromRef, toRef;
-  }
-
-  private static class PullRequestRef {
-    private String id, displayId, latestCommit;
-  }
 }
