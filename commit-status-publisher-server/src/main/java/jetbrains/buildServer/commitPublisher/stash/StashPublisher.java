@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
@@ -30,7 +31,6 @@ import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.VersionComparatorUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
-import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -39,7 +39,7 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 class StashPublisher extends HttpBasedCommitStatusPublisher {
   public static final String PROP_PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
-  private static final Pattern PULL_REQUEST_BRANCH_PATTERN = Pattern.compile("^refs\\/pull\\-requests\\/\\d+\\/from");
+  private static final Pattern PULL_REQUEST_BRANCH_PATTERN = Pattern.compile("^refs\\/pull\\-requests\\/(\\d+)\\/from");
 
   private final Gson myGson = new Gson();
   private final WebLinks myLinks;
@@ -164,24 +164,11 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     if (revisionVcsBranch == null || !PULL_REQUEST_BRANCH_PATTERN.matcher(revisionVcsBranch).matches()) {
       return revisionVcsBranch;
     }
-    PullRequestsList pullRequestsList = getEndpoint().getPullRequests(revision, buildDescription);
-    if (pullRequestsList == null) {
+    PullRequest pullRequest = getEndpoint().getPullRequest(revision, buildDescription);
+    if (pullRequest == null) {
       return revisionVcsBranch;
     }
-
-    try {
-      String sourceCommitId = revision.getRepositoryVersion().getVersion();
-      String targetCommitId = revision.getRoot().getCurrentRevision().getVersion();
-      for (PullRequest pullRequest : pullRequestsList.values) {
-        if (sourceCommitId.equals(pullRequest.fromRef.latestCommit) && targetCommitId.equals(pullRequest.toRef.latestCommit)) {
-          return pullRequest.fromRef.id;
-        }
-      }
-      LOG.debug("Can not find pull request for source branch with commit id '" + sourceCommitId + "' and target branch with commit id '" + targetCommitId + "'");
-    } catch (VcsException e) {
-      return revisionVcsBranch;
-    }
-    return revisionVcsBranch;
+    return pullRequest.fromRef.id;
   }
 
   @Override
@@ -392,7 +379,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   private interface BitbucketEndpoint {
     void publishBuildStatus(@NotNull StatusData data, @NotNull String buildDescription);
-    PullRequestsList getPullRequests(BuildRevision revision, @NotNull String buildDescriptor);
+    PullRequest getPullRequest(BuildRevision revision, @NotNull String buildDescriptor);
   }
 
   private abstract class BaseBitbucketEndpoint implements BitbucketEndpoint {
@@ -408,8 +395,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     }
 
     @Override
-    public PullRequestsList getPullRequests(BuildRevision revision, @NotNull String buildDescriptor) {
-      AtomicReference<PullRequestsList> pullRequestsList = new AtomicReference<>(null);
+    public PullRequest getPullRequest(BuildRevision revision, @NotNull String buildDescriptor) {
+      AtomicReference<PullRequest> result = new AtomicReference<>(null);
       try {
         String url = getPullRequestEndpointUrl(revision);
         if (url == null) {
@@ -425,19 +412,18 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
             if (null == json) {
               throw new HttpPublisherException("Stash publisher has received no response");
             }
-            PullRequestsList prList = myGson.fromJson(json, PullRequestsList.class);
-            if (null == prList) {
+            PullRequest pullRequest = myGson.fromJson(json, PullRequest.class);
+            if (null == pullRequest) {
               throw new HttpPublisherException("Stash publisher has received a malformed response");
             }
-            pullRequestsList.set(prList);
+            result.set(pullRequest);
           }
         }));
       } catch (Exception e) {
-        myProblems.reportProblem("Can not get pull requests", StashPublisher.this, buildDescriptor, null, e, LOG);
+        myProblems.reportProblem("Can not get pull request", StashPublisher.this, buildDescriptor, null, e, LOG);
       }
-      return pullRequestsList.get();
+      return result.get();
     }
-
 
     protected abstract String getBuildEndpointUrl(final StatusData data) throws PublisherException;
     protected abstract String getPullRequestEndpointUrl(final BuildRevision revision) throws PublisherException;
@@ -486,7 +472,20 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
       VcsRootInstance vcs = revision.getRoot();
       String commit = revision.getRepositoryVersion().getVersion();
       Repository repo = getRepository(vcs, commit);
-      return getBaseUrl() + "/rest/api/1.0/projects/" + repo.owner() + "/repos/" + repo.repositoryName() + "/commits/" + commit + "/pull-requests";
+      String pullRequestId = getPullRequestId(revision);
+      return getBaseUrl() + "/rest/api/1.0/projects/" + repo.owner() + "/repos/" + repo.repositoryName() + "/pull-requests/" + pullRequestId;
+    }
+
+    private String getPullRequestId(BuildRevision revision) throws PublisherException {
+      String revisionVcsBranch = revision.getRepositoryVersion().getVcsBranch();
+      if (revisionVcsBranch == null) {
+        throw new PublisherException("Can not get pull request, because VCS branch is unknown for revision: " + revision);
+      }
+      Matcher pullRequestIdMatcher = PULL_REQUEST_BRANCH_PATTERN.matcher(revisionVcsBranch);
+      if (pullRequestIdMatcher.find()) {
+        return pullRequestIdMatcher.group(1);
+      }
+      throw new PublisherException("Can not get pull request id from branch name: " + revisionVcsBranch);
     }
 
     private Repository getRepository(VcsRootInstance vcs, String commit) throws PublisherException {
