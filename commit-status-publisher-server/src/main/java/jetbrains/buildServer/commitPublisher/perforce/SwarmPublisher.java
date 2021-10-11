@@ -112,6 +112,18 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   private void publishIfNeeded(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final String commentTemplate) throws PublisherException {
+    postForEachReview(build, revision, new ReviewMessagePublisher() {
+      @Override
+      public void publishMessage(@NotNull Long reviewId, @NotNull BuildPromotion build, @NotNull String debugBuildInfo) throws PublisherException {
+        final String fullComment = "TeamCity: " + String.format(commentTemplate, getBuildMarkdownLink(build)) +
+                                   "\nConfiguration: " + myBuildType.getExtendedFullName();
+
+        mySwarmClient.addCommentToReview(reviewId, fullComment, debugBuildInfo);
+      }
+    });
+  }
+
+  private void postForEachReview(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final ReviewMessagePublisher messagePublisher) throws PublisherException {
 
     final String changelistId = getChangelistId(build, revision);
     if (changelistId == null) return;
@@ -122,15 +134,11 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
     mySwarmClient.setConnectionTimeout(getConnectionTimeout());
 
     IOGuard.allowNetworkCall(() -> {
-      final String buildInfo = "build [id=" + build.getId() + "] in " + buildType.getExtendedFullName();
+      final String debugBuildInfo = "build [id=" + build.getId() + "] in " + buildType.getExtendedFullName();
 
-      final List<Long> reviewIds = mySwarmClient.getReviewIds(changelistId, buildInfo);
+      final List<Long> reviewIds = mySwarmClient.getReviewIds(changelistId, debugBuildInfo);
       for (Long reviewId : reviewIds) {
-
-        final String fullComment = "TeamCity: " + String.format(commentTemplate, getBuildMarkdownLink(build)) +
-                                   "\nConfiguration: " + myBuildType.getExtendedFullName();
-
-        mySwarmClient.addCommentToReview(reviewId, fullComment, buildInfo);
+        messagePublisher.publishMessage(reviewId, build, debugBuildInfo);
       }
     });
   }
