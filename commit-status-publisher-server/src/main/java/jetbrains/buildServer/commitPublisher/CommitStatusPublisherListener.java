@@ -184,7 +184,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     ));
   }
 
-  public Pair<String, User> getCommentWithAuthor(BuildPromotion buildPromotion) {
+  private Pair<String, User> getCommentWithAuthor(BuildPromotion buildPromotion) {
     User author = null;
     String comment = null;
 

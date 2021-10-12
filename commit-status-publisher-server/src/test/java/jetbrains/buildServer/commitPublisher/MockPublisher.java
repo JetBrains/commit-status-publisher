@@ -37,6 +37,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   private String myVcsRootId = null;
 
   private String myLastComment = null;
+  private User myLastUser = null;
 
   private boolean myShouldThrowException = false;
   private boolean myShouldReportError = false;
@@ -52,6 +53,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   boolean isSuccessReceived() { return mySuccessReceived > 0; }
 
   String getLastComment() { return myLastComment; }
+  User getLastUser() { return myLastUser; }
   List<Event> getEventsReceived() { return new ArrayList<>(myEventsReceived); }
 
   MockPublisher(@NotNull CommitStatusPublisherSettings settings,
@@ -123,6 +125,8 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   public boolean buildRemovedFromQueue(@NotNull final BuildPromotion buildPromotion, @NotNull final BuildRevision revision, @Nullable final User user, @Nullable final String comment)
     throws PublisherException {
     pretendToHandleEvent(Event.REMOVED_FROM_QUEUE);
+    myLastComment = comment;
+    myLastUser = user;
     return true;
   }
 

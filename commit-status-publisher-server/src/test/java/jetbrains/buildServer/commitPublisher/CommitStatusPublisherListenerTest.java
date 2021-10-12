@@ -437,6 +437,41 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForAssert(() -> myProblemNotificationEngine.getProblems(myBuildType).isEmpty(), TASK_COMPLETION_TIMEOUT_MS);
   }
 
+  public void should_pass_through_comment_and_user() {
+    prepareVcs();
+    SQueuedBuild myBuild = myBuildType.addToQueue(myUser.getUsername());
+    waitForTasksToFinish(Event.QUEUED);
+    final String removeFromQueueComment = "Test comment for remove from queue";
+    myBuild.removeFromQueue(myUser, removeFromQueueComment);
+    waitForTasksToFinish(Event.REMOVED_FROM_QUEUE);
+    List<Event> eventsReceived = myPublisher.getEventsReceived();
+    then(eventsReceived.contains(Event.REMOVED_FROM_QUEUE)).isTrue();
+    then(myPublisher.getLastComment()).isEqualTo(removeFromQueueComment);
+    then(myPublisher.getLastUser()).isEqualTo(myUser);
+  }
+
+  public void should_publish_removed_from_queue_with_comment() {
+    prepareVcs();
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE, Event.STARTED));
+    then(myPublisher.getLastComment()).isEqualTo("Build started");
+    then(myPublisher.getLastUser()).isNull();
+  }
+
+  public void shoudl_pass_through_user_comment_on_build_delete_from_queue() {
+    prepareVcs();
+    SQueuedBuild queuedBuild = myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    final String comment = "Comment, received from AJAX query";
+    myFixture.getBuildQueue().removeQueuedBuilds(Collections.singleton(queuedBuild), myUser, comment);
+    waitForTasksToFinish(Event.REMOVED_FROM_QUEUE);
+    then(myPublisher.getLastComment()).isEqualTo(comment);
+    then(myPublisher.getLastUser()).isEqualTo(myUser);
+  }
+
   private void prepareVcs() {
    prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.EXT_ID);
   }
