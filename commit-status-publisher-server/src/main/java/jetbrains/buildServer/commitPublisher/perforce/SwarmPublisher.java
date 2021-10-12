@@ -17,6 +17,8 @@ import static jetbrains.buildServer.commitPublisher.perforce.SwarmPublisherSetti
  */
 class SwarmPublisher extends HttpBasedCommitStatusPublisher {
 
+  private static final String SWARM_TESTRUNS_SUPPORT_ENABLED = "teamcity.swarm.testruns.enabled";
+  
   private final WebLinks myLinks;
   private final SwarmClient mySwarmClient;
 
@@ -60,7 +62,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
-    publishIfNeeded(buildPromotion, revision, "build %s is queued");
+    publishCommentIfNeeded(buildPromotion, revision, "build %s is queued");
     return true;
   }
 
@@ -72,46 +74,65 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
     if (comment != null && comment.contains("Build started")) {
       return true;
     }
+    if (comment == null) {
+      comment = "<no comment>";
+    }
+
     String commentTemplate = "build %s is removed from queue: " + comment;
     if (user != null) {
       commentTemplate += " by " + user.getDescriptiveName();
     }
-    publishIfNeeded(buildPromotion, revision, commentTemplate);
+
+    publishCommentIfNeeded(buildPromotion, revision, commentTemplate);
     return true;
   }
 
   @Override
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publishIfNeeded(build.getBuildPromotion(), revision, "build %s **has started**");
+    publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **has started**");
+
+    if (TeamCityProperties.getBoolean(SWARM_TESTRUNS_SUPPORT_ENABLED)) {
+      createTestRunsForReviewsOnSwarm(build, revision);
+    }
+
     return true;
+  }
+
+  private void createTestRunsForReviewsOnSwarm(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
+    postForEachReview(build.getBuildPromotion(), revision, new ReviewMessagePublisher() {
+      @Override
+      public void publishMessage(@NotNull Long reviewId, @NotNull BuildPromotion buildPromo, @NotNull String debugBuildInfo) throws PublisherException {
+        mySwarmClient.createSwarmTestRun(reviewId, build, debugBuildInfo);
+      }
+    });
   }
 
   @Override
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     String result = build.getBuildStatus().isSuccessful() ? "finished successfully" : "failed";
-    publishIfNeeded(build.getBuildPromotion(), revision, "build %s **has " + result + "** : " + build.getStatusDescriptor().getText());
+    publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **has " + result + "** : " + build.getStatusDescriptor().getText());
     return true;
   }
 
   @Override
   public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publishIfNeeded(build.getBuildPromotion(), revision, "build %s **was interrupted**: " + build.getStatusDescriptor().getText());
+    publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **was interrupted**: " + build.getStatusDescriptor().getText());
     return true;
   }
 
   @Override
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publishIfNeeded(build.getBuildPromotion(), revision, "failure was detected in build %s: " + build.getStatusDescriptor().getText());
+    publishCommentIfNeeded(build.getBuildPromotion(), revision, "failure was detected in build %s: " + build.getStatusDescriptor().getText());
     return true;
   }
 
   @Override
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
-    publishIfNeeded(build.getBuildPromotion(), revision, "build %s was **marked as successful**: " + build.getStatusDescriptor().getText());
+    publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s was **marked as successful**: " + build.getStatusDescriptor().getText());
     return true;
   }
 
-  private void publishIfNeeded(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final String commentTemplate) throws PublisherException {
+  private void publishCommentIfNeeded(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final String commentTemplate) throws PublisherException {
     postForEachReview(build, revision, new ReviewMessagePublisher() {
       @Override
       public void publishMessage(@NotNull Long reviewId, @NotNull BuildPromotion build, @NotNull String debugBuildInfo) throws PublisherException {

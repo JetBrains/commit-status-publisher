@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.util.StringUtil;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
@@ -76,6 +77,36 @@ public class SwarmClient {
       throw new PublisherException("Cannot get list of reviews from " + addCommentUrl + " for " + debugInfo + ": " + e, e);
     }
   }
+
+
+  // https://www.perforce.com/manuals/swarm/Content/Swarm/swarm-apidoc_endpoint_integration_tests.html#Create_a__testrun_for_a_review_version
+  public void createSwarmTestRun(long reviewId, @NotNull SBuild build, @NotNull String debugBuildInfo) throws PublisherException {
+    final String createTestRunUrl = mySwarmUrl + "/api/v10/reviews/" + reviewId + "/testruns";
+
+    try {
+      HttpHelper.post(createTestRunUrl, myUsername, myTicket,
+                      createTestRunJson(reviewId, build),
+                      ContentType.APPLICATION_JSON, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
+    } catch (IOException e) {
+      throw new PublisherException("Cannot create test run at " + createTestRunUrl + " for " + debugBuildInfo + ": " + e, e);
+    }
+  }
+
+  private static String createTestRunJson(long reviewId, SBuild build) {
+    final String externalId = build.getBuildTypeExternalId();
+
+    return String.format("{\n" +
+                         "  \"change\": %d,\n" +
+                         "  \"version\": 1,\n" +
+                         "  \"test\": \"%s\",\n" +
+                         "  \"startTime\": %d,\n" +
+                         "  \"status\": \"running\",\n" +
+                         "}",
+                         reviewId,
+                         StringUtil.truncateStringValueWithDotsAtCenter(externalId, 30),
+                         build.getServerStartDate().getTime());
+  }
+
 
   private void info(String message) {
     LoggerUtil.LOG.info(message);
