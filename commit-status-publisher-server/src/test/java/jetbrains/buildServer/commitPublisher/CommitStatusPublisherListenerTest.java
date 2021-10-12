@@ -30,6 +30,7 @@ import jetbrains.buildServer.serverSide.impl.xml.XmlConstants;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.TestFor;
@@ -61,7 +62,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     final BuildHistory history = myFixture.getHistory();
     myListener = new CommitStatusPublisherListener(myFixture.getEventDispatcher(), myPublisherManager, history, myBuildsManager, myFixture.getBuildPromotionManager(), myProblems,
                                                    myFixture.getServerResponsibility(), myFixture.getSingletonService(ExecutorServices.class),
-                                                   myFixture.getSingletonService(ProjectManager.class),
+                                                   myFixture.getSingletonService(ProjectManager.class), myFixture.getSingletonService(UserModel.class),
                                                    myMultiNodeTasks);
     myListener.setEventProcessedCallback(myEventProcessedCallback);
     myPublisher = new MockPublisher(myPublisherSettings, MockPublisherSettings.PUBLISHER_ID, myBuildType, myFeatureDescriptor.getId(),
