@@ -111,14 +111,8 @@ public class SwarmClient {
   }
 
   public void updateSwarmTestRuns(long reviewId, @NotNull SBuild build, @NotNull String debugBuildInfo) throws PublisherException {
-
-    final List<Long> testRunIds = collectTestRunIds(reviewId, build, debugBuildInfo);
-
-    for (Long testRunId : testRunIds) {
-      final Long completedTime = build.getFinishDate() != null ? build.getFinishDate().getTime() : null;
-      final String status = build.getBuildStatus().isSuccessful() ? "pass" : "fail";
-
-      changeTestRunStatus(reviewId, testRunId, completedTime, status, debugBuildInfo);
+    for (Long testRunId : collectTestRunIds(reviewId, build, debugBuildInfo)) {
+      changeTestRunStatus(reviewId, testRunId, build, debugBuildInfo);
     }
   }
 
@@ -136,25 +130,32 @@ public class SwarmClient {
   }
 
   // https://www.perforce.com/manuals/swarm/Content/Swarm/swarm-apidoc_endpoint_integration_tests.html#Update_details_for_a_testrun_-_PATCH
-  private void changeTestRunStatus(long reviewId, @NotNull Long testRunId, @Nullable Long completedTime, @NotNull String status, @NotNull String debugBuildInfo)
+  private void changeTestRunStatus(long reviewId,
+                                   @NotNull Long testRunId,
+                                   @NotNull SBuild build,
+                                   @NotNull String debugBuildInfo)
     throws PublisherException {
     final String patchTestRunUrl = mySwarmUrl + "/api/v10/reviews/" + reviewId + "/testruns/" + testRunId;
 
     try {
       HttpHelper.http(HttpMethod.PATCH, patchTestRunUrl, myUsername, myTicket,
-                      buildJsonForUpdate(completedTime, status),
+                      buildJsonForUpdate(build),
                       ContentType.APPLICATION_JSON, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
     } catch (IOException e) {
       throw new PublisherException("Cannot update test run at " + patchTestRunUrl + " for " + debugBuildInfo + ": " + e, e);
     }
   }
 
-  private static String buildJsonForUpdate(@Nullable Long completedTime, String status) {
-    final HashMap<String, String> data = new HashMap<String, String>();
+  private static String buildJsonForUpdate(@NotNull SBuild build) {
+    final Long completedTime = build.getFinishDate() != null ? build.getFinishDate().getTime() : null;
+    final String status = build.getBuildStatus().isSuccessful() ? "pass" : "fail";
+
+    final HashMap<String, Object> data = new HashMap<String, Object>();
     data.put("status", status);
     if (completedTime != null) {
       data.put("completedTime", completedTime.toString());
     }
+    data.put("messages", Collections.singletonList(build.getStatusDescriptor().getText()));
     try {
       return new ObjectMapper().writeValueAsString(data);
     } catch (JsonProcessingException e) {
