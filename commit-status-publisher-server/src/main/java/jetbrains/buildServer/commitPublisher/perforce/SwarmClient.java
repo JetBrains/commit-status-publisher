@@ -282,7 +282,8 @@ public class SwarmClient {
           for (Iterator<JsonNode> it = testruns.elements(); it.hasNext(); ) {
             JsonNode element = it.next();
             // Collect test runs whose test name match external build configuration ID and which are not completed
-            if (myExpectedTestName.equals(element.get("test").textValue()) && element.get("completedTime") == null) {
+            final JsonNode completedTime = element.get("completedTime");
+            if (myExpectedTestName.equals(element.get("test").textValue()) && (completedTime == null || completedTime.isNull())) {
               myTestRunIds.add(element.get("id").longValue());
             }
           }
