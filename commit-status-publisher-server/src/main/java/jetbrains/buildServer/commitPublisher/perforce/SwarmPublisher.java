@@ -111,13 +111,32 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     String result = build.getBuildStatus().isSuccessful() ? "finished successfully" : "failed";
     publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **has " + result + "** : " + build.getStatusDescriptor().getText());
+
+    if (TeamCityProperties.getBoolean(SWARM_TESTRUNS_SUPPORT_ENABLED)) {
+      updateTestRunsForReviewsOnSwarm(build, revision);
+    }
+
     return true;
   }
 
   @Override
   public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **was interrupted**: " + build.getStatusDescriptor().getText());
+
+    if (TeamCityProperties.getBoolean(SWARM_TESTRUNS_SUPPORT_ENABLED)) {
+      updateTestRunsForReviewsOnSwarm(build, revision);
+    }
+
     return true;
+  }
+
+  private void updateTestRunsForReviewsOnSwarm(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
+    postForEachReview(build.getBuildPromotion(), revision, new ReviewMessagePublisher() {
+      @Override
+      public void publishMessage(@NotNull Long reviewId, @NotNull BuildPromotion buildPromo, @NotNull String debugBuildInfo) throws PublisherException {
+        mySwarmClient.updateSwarmTestRuns(reviewId, build, debugBuildInfo);
+      }
+    });
   }
 
   @Override

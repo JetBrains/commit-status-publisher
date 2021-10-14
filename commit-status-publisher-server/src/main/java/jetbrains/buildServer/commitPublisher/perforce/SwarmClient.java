@@ -6,13 +6,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import java.io.IOException;
 import java.security.KeyStore;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.http.HttpMethod;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -74,7 +72,7 @@ public class SwarmClient {
       HttpHelper.post(addCommentUrl, myUsername, myTicket,
                       data, ContentType.APPLICATION_FORM_URLENCODED, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
     } catch (IOException e) {
-      throw new PublisherException("Cannot get list of reviews from " + addCommentUrl + " for " + debugInfo + ": " + e, e);
+      throw new PublisherException("Cannot add a comment for review at " + addCommentUrl + " for " + debugInfo + ": " + e, e);
     }
   }
 
@@ -93,20 +91,76 @@ public class SwarmClient {
   }
 
   private static String createTestRunJson(long reviewId, SBuild build) {
-    final String externalId = build.getBuildTypeExternalId();
 
     return String.format("{\n" +
                          "  \"change\": %d,\n" +
                          "  \"version\": 1,\n" +
                          "  \"test\": \"%s\",\n" +
                          "  \"startTime\": %d,\n" +
-                         "  \"status\": \"running\",\n" +
+                         "  \"status\": \"running\"\n" +
                          "}",
                          reviewId,
-                         StringUtil.truncateStringValueWithDotsAtCenter(externalId, 30),
+                         testNameFrom(build),
                          build.getServerStartDate().getTime());
   }
 
+  @NotNull
+  private static String testNameFrom(SBuild build) {
+    return StringUtil.truncateStringValueWithDotsAtCenter(build.getBuildTypeExternalId(), 32)
+                     .replaceAll("\\.", "_");
+  }
+
+  public void updateSwarmTestRuns(long reviewId, @NotNull SBuild build, @NotNull String debugBuildInfo) throws PublisherException {
+
+    final List<Long> testRunIds = collectTestRunIds(reviewId, build, debugBuildInfo);
+
+    for (Long testRunId : testRunIds) {
+      final Long completedTime = build.getFinishDate() != null ? build.getFinishDate().getTime() : null;
+      final String status = build.getBuildStatus().isSuccessful() ? "pass" : "fail";
+
+      changeTestRunStatus(reviewId, testRunId, completedTime, status, debugBuildInfo);
+    }
+  }
+
+  @NotNull
+  private List<Long> collectTestRunIds(long reviewId, @NotNull SBuild build, @NotNull String debugBuildInfo) throws PublisherException {
+    final String testRunUrl = mySwarmUrl + "/api/v10/reviews/" + reviewId + "/testruns";
+
+    final GetRunningTestRuns processor = new GetRunningTestRuns(testNameFrom(build), debugBuildInfo);
+    try {
+      HttpHelper.get(testRunUrl, myUsername, myTicket, null, myConnectionTimeout, myTrustStore, processor);
+    } catch (IOException e) {
+      throw new PublisherException("Cannot get test run list at " + testRunUrl + " for " + debugBuildInfo + ": " + e, e);
+    }
+    return processor.getTestRunIds();
+  }
+
+  // https://www.perforce.com/manuals/swarm/Content/Swarm/swarm-apidoc_endpoint_integration_tests.html#Update_details_for_a_testrun_-_PATCH
+  private void changeTestRunStatus(long reviewId, @NotNull Long testRunId, @Nullable Long completedTime, @NotNull String status, @NotNull String debugBuildInfo)
+    throws PublisherException {
+    final String patchTestRunUrl = mySwarmUrl + "/api/v10/reviews/" + reviewId + "/testruns/" + testRunId;
+
+    try {
+      HttpHelper.http(HttpMethod.PATCH, patchTestRunUrl, myUsername, myTicket,
+                      buildJsonForUpdate(completedTime, status),
+                      ContentType.APPLICATION_JSON, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
+    } catch (IOException e) {
+      throw new PublisherException("Cannot update test run at " + patchTestRunUrl + " for " + debugBuildInfo + ": " + e, e);
+    }
+  }
+
+  private static String buildJsonForUpdate(@Nullable Long completedTime, String status) {
+    final HashMap<String, String> data = new HashMap<String, String>();
+    data.put("status", status);
+    if (completedTime != null) {
+      data.put("completedTime", completedTime.toString());
+    }
+    try {
+      return new ObjectMapper().writeValueAsString(data);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   private void info(String message) {
     LoggerUtil.LOG.info(message);
@@ -160,6 +214,91 @@ public class SwarmClient {
     @NotNull
     public List<Long> getReviewIds() {
       return myReviewIds;
+    }
+  }
+
+  private class GetRunningTestRuns implements HttpResponseProcessor {
+
+    private final List<Long> myTestRunIds = new ArrayList<>();
+    private final String myDebugInfo;
+    private final String myExpectedTestName;
+
+    private GetRunningTestRuns(@NotNull String expectedTestName, @NotNull String debugInfo) {
+      myExpectedTestName = expectedTestName;
+      myDebugInfo = debugInfo;
+    }
+
+    @Override
+    public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+      if (response.getStatusCode() >= 400) {
+        if (response.getStatusCode() == 401 || response.getStatusCode() == 403) {
+          throw new HttpPublisherException(response.getStatusCode(), response.getStatusText(),
+                                           "Cannot access Perforce Swarm Server at '" + mySwarmUrl + "' to add details for " + myDebugInfo);
+        }
+        throw new HttpPublisherException(response.getStatusCode(), response.getStatusText(), "Cannot get the list of review testruns for " + myDebugInfo);
+      }
+
+      /*
+      {
+  "error": null,
+  "messages": [],
+  "data" : {
+    "testruns" : [
+      {
+        "id": 706,
+        "change": 12345,
+        "version": 2,
+        "test": "global1",
+        "startTime": 1567895432,
+        "completedTime": 1567895562,
+        "status": "pass",
+        "messages": [
+          "Test completed successfully",
+          "another message"
+        ],
+        "url": "http://my.jenkins.com/projectx/main/1224"
+        "uuid": "FAE4501C-E4BC-73E4-A11A-FF710601BC3F"
+      },
+      {
+        <ids for other testruns of the review, formatted as above>
+      }
+    ]
+  }
+}
+       */
+
+      debug("Test runs response for " + myDebugInfo + " = " + response.getContent() + " " + response.getStatusCode() + " " + response.getStatusText());
+
+      try {
+        final JsonNode jsonNode = new ObjectMapper().readTree(response.getContent());
+        final JsonNode dataNode = jsonNode.get("data");
+        if (dataNode == null) {
+          return;
+        }
+
+        final ArrayNode testruns = (ArrayNode)dataNode.get("testruns");
+
+        if (testruns != null) {
+          for (Iterator<JsonNode> it = testruns.elements(); it.hasNext(); ) {
+            JsonNode element = it.next();
+            // Collect test runs whose test name match external build configuration ID and which are not completed
+            if (myExpectedTestName.equals(element.get("test").textValue()) && element.get("completedTime") == null) {
+              myTestRunIds.add(element.get("id").longValue());
+            }
+          }
+        }
+        if (myTestRunIds.size() > 0) {
+          info(String.format("Found Perforce Swarm testruns %s for %s", myTestRunIds, myDebugInfo));
+        }
+
+      } catch (JsonProcessingException e) {
+        throw new HttpPublisherException("Error parsing JSON response from Perforce Swarm: " + e.getMessage(), e);
+      }
+    }
+
+    @NotNull
+    public List<Long> getTestRunIds() {
+      return myTestRunIds;
     }
   }
 

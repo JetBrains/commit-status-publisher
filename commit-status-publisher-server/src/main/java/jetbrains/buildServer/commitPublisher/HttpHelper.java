@@ -112,8 +112,21 @@ public class HttpHelper {
                           @Nullable final String data, @Nullable final ContentType contentType,
                           @Nullable final Map<String, String> headers, int timeout, @Nullable final KeyStore trustStore,
                           @Nullable HttpResponseProcessor processor) throws IOException, HttpPublisherException {
+    http(HttpMethod.POST, url, username, password, data, contentType, headers, timeout, trustStore, processor);
+  }
 
-    call(HttpMethod.POST, url, username, password, headers, timeout, trustStore, processor, new Consumer<HTTPRequestBuilder>() {
+  public static void http(@NotNull HttpMethod httpMethod,
+                          @NotNull String url,
+                          @Nullable String username,
+                          @Nullable String password,
+                          @Nullable final String data,
+                          @Nullable final ContentType contentType,
+                          @Nullable final Map<String, String> headers,
+                          int timeout,
+                          @Nullable final KeyStore trustStore,
+                          @Nullable HttpResponseProcessor processor) throws IOException, HttpPublisherException {
+
+    call(httpMethod, url, username, password, headers, timeout, trustStore, processor, new Consumer<HTTPRequestBuilder>() {
       @Override
       public void accept(final HTTPRequestBuilder builder) {
         if (data != null && contentType != null) {
