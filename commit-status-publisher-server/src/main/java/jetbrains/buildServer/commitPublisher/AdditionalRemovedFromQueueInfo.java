@@ -17,7 +17,7 @@ public class AdditionalRemovedFromQueueInfo extends AdditionalTaskInfo {
   @NotNull
   @Override
   public String compileQueueRelatedMessage() {
-    StringBuilder result = new StringBuilder("TeamCity build removed from queue");
+    StringBuilder result = new StringBuilder(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE);
     if (myCommentAuthor != null) {
       result.append(" by ").append(myCommentAuthor.getDescriptiveName());
     }

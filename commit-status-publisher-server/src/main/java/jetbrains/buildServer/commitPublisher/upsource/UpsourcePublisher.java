@@ -17,6 +17,8 @@
 package jetbrains.buildServer.commitPublisher.upsource;
 
 import com.google.gson.Gson;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
@@ -27,8 +29,6 @@ import jetbrains.buildServer.vcs.VcsModificationHistory;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import java.util.HashMap;
-import java.util.Map;
 
 class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
 
@@ -62,7 +62,7 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publish(build, revision, UpsourceStatus.IN_PROGRESS, "Build started");
+    publish(build, revision, UpsourceStatus.IN_PROGRESS, DefaultStatusMessages.BUILD_STARTED);
     return true;
   }
 

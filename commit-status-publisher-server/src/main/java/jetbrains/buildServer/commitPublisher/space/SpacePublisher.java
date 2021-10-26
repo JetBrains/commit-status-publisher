@@ -17,8 +17,13 @@
 package jetbrains.buildServer.commitPublisher.space;
 
 import com.google.gson.Gson;
+import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.*;
-import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
 import jetbrains.buildServer.vcs.VcsModification;
@@ -26,10 +31,7 @@ import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static jetbrains.buildServer.commitPublisher.LoggerUtil.*;
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 public class SpacePublisher extends HttpBasedCommitStatusPublisher {
 
@@ -62,7 +64,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publish(build, revision, SpaceBuildStatus.RUNNING, "Build started");
+    publish(build, revision, SpaceBuildStatus.RUNNING, DefaultStatusMessages.BUILD_STARTED);
     return true;
   }
 

@@ -85,7 +85,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) {
-    vote(build, revision, StashBuildStatus.INPROGRESS, "Build started");
+    vote(build, revision, StashBuildStatus.INPROGRESS, DefaultStatusMessages.BUILD_STARTED);
     return true;
   }
 

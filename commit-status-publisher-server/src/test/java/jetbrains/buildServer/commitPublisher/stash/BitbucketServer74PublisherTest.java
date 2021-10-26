@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.commitPublisher.stash;
 
+import jetbrains.buildServer.commitPublisher.DefaultStatusMessages;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -26,7 +27,7 @@ public class BitbucketServer74PublisherTest extends BaseStashPublisherTest {
     myServerVersion = "7.4";
     myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.REMOVED, null);  // not to be tested
-    myExpectedRegExps.put(EventToTest.STARTED, String.format(".*projects/owner/repos/project/commits/%s.*ENTITY:.*Build started.*INPROGRESS.*", REVISION));
+    myExpectedRegExps.put(EventToTest.STARTED, String.format(".*projects/owner/repos/project/commits/%s.*ENTITY:.*%s.*INPROGRESS.*", REVISION, DefaultStatusMessages.BUILD_STARTED));
     myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*projects/owner/repos/project/commits/%s.*ENTITY:.*Success.*SUCCESSFUL.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILED, String.format(".*projects/owner/repos/project/commits/%s.*ENTITY:.*Failure.*FAILED.*", REVISION));
     myExpectedRegExps.put(EventToTest.COMMENTED_SUCCESS, String.format(".*projects/owner/repos/project/commits/%s.*ENTITY:.*Success with a comment by %s.*%s.*SUCCESSFUL.*", REVISION, USER.toLowerCase(), COMMENT));

@@ -454,7 +454,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
-    then(myPublisher.getLastComment()).isEqualTo("Build started");
+    then(myPublisher.getLastComment()).isEqualTo(DefaultStatusMessages.BUILD_STARTED);
     then(myPublisher.getLastUser()).isNull();
   }
 

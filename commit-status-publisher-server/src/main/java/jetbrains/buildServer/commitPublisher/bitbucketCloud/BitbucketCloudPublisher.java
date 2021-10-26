@@ -18,14 +18,17 @@ package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
 import com.google.gson.*;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import jetbrains.buildServer.commitPublisher.*;
-import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import java.util.Map;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
@@ -55,7 +58,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    vote(build, revision, BitbucketCloudBuildStatus.INPROGRESS, "Build started");
+    vote(build, revision, BitbucketCloudBuildStatus.INPROGRESS, DefaultStatusMessages.BUILD_STARTED);
     return true;
   }
 

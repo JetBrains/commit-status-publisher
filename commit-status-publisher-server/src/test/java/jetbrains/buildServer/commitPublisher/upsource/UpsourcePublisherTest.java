@@ -19,18 +19,20 @@ package jetbrains.buildServer.commitPublisher.upsource;
 import com.google.gson.Gson;
 import java.nio.charset.Charset;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 import jetbrains.buildServer.commitPublisher.Constants;
+import jetbrains.buildServer.commitPublisher.DefaultStatusMessages;
 import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.upsource.data.UpsourceCurrentUser;
 import jetbrains.buildServer.commitPublisher.upsource.data.UpsourceGetCurrentUserResult;
-import org.apache.http.*;
+import org.apache.http.Header;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author anton.zamolotskikh, 05/10/16.
@@ -41,7 +43,7 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
   public UpsourcePublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.REMOVED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.STARTED, String.format(".*~buildStatus.*ENTITY:.*PRJ1.*Build started.*in_progress.*%s.*", REVISION));
+    myExpectedRegExps.put(EventToTest.STARTED, String.format(".*~buildStatus.*ENTITY:.*PRJ1.*%s.*in_progress.*%s.*", DefaultStatusMessages.BUILD_STARTED, REVISION));
     myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*~buildStatus.*ENTITY:.*PRJ1.*Success.*success.*%s.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILED, String.format(".*~buildStatus.*ENTITY:.*PRJ1.*Failure.*failed.*%s.*", REVISION));
     myExpectedRegExps.put(EventToTest.COMMENTED_SUCCESS, null); // not to be tested

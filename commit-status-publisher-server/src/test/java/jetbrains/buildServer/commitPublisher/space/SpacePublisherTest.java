@@ -19,6 +19,7 @@ package jetbrains.buildServer.commitPublisher.space;
 import com.google.gson.Gson;
 import java.util.HashMap;
 import java.util.Map;
+import jetbrains.buildServer.commitPublisher.DefaultStatusMessages;
 import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConstants;
@@ -47,7 +48,7 @@ public class SpacePublisherTest extends HttpPublisherTest {
   public SpacePublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.REMOVED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.STARTED, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*RUNNING.*Build started.*", REVISION));
+    myExpectedRegExps.put(EventToTest.STARTED, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*RUNNING.*%s.*", REVISION, DefaultStatusMessages.BUILD_STARTED));
     myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*SUCCEEDED.*Success.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILED, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*FAILED.*Failure.*", REVISION));
     myExpectedRegExps.put(EventToTest.COMMENTED_SUCCESS, null); // not to be tested

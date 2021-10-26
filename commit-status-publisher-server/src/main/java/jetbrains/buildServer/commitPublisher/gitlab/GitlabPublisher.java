@@ -64,7 +64,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    publish(buildPromotion, revision, GitlabBuildStatus.PENDING, "Build queued");
+    publish(buildPromotion, revision, GitlabBuildStatus.PENDING, DefaultStatusMessages.BUILD_QUEUED);
     return true;
   }
 
@@ -78,7 +78,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publish(build, revision, GitlabBuildStatus.RUNNING, "Build started");
+    publish(build, revision, GitlabBuildStatus.RUNNING, DefaultStatusMessages.BUILD_STARTED);
     return true;
   }
 

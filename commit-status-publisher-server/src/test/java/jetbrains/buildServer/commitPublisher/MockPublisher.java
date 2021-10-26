@@ -133,7 +133,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   @Override
   public boolean buildStarted(@NotNull final SBuild build, @NotNull final BuildRevision revision) throws PublisherException {
     pretendToHandleEvent(Event.STARTED);
-    myLastComment = "Build started";
+    myLastComment = DefaultStatusMessages.BUILD_STARTED;
     return true;
   }
 

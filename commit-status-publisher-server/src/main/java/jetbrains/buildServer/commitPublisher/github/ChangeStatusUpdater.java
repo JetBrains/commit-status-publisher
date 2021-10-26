@@ -44,7 +44,6 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 public class ChangeStatusUpdater {
   private static final UpdateChangesConstants C = new UpdateChangesConstants();
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
-  private static final String BUILD_QUEUED_MESSAGE = "TeamCity build queued";
 
   private final VcsModificationHistory myModificationHistory;
   @NotNull
@@ -111,7 +110,7 @@ public class ChangeStatusUpdater {
     return new Handler() {
 
       public void changeStarted(@NotNull BuildRevision revision, @NotNull SBuild build) throws PublisherException {
-        doChangeUpdate(revision, build, "TeamCity build started", GitHubChangeState.Pending);
+        doChangeUpdate(revision, build, DefaultStatusMessages.BUILD_STARTED, GitHubChangeState.Pending);
       }
 
       public void changeCompleted(@NotNull BuildRevision revision, @NotNull SBuild build) throws PublisherException {
@@ -125,7 +124,7 @@ public class ChangeStatusUpdater {
 
       @Override
       public boolean changeQueued(@NotNull BuildRevision revision, @NotNull BuildPromotion buildPromotion, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-        additionalTaskInfo.appendCommentTo(BUILD_QUEUED_MESSAGE);
+        additionalTaskInfo.appendCommentTo(DefaultStatusMessages.BUILD_QUEUED);
         return doQueuedChangeUpdate(revision, buildPromotion, additionalTaskInfo);
       }
 
@@ -137,9 +136,9 @@ public class ChangeStatusUpdater {
       @NotNull
       private String getGitHubChangeText(@NotNull SBuild build) {
         if (build.getBuildStatus().isSuccessful()) {
-          return "TeamCity build finished";
+          return DefaultStatusMessages.BUILD_FINISHED;
         } else {
-          return "TeamCity build failed";
+          return DefaultStatusMessages.BUILD_FAILED;
         }
       }
 
