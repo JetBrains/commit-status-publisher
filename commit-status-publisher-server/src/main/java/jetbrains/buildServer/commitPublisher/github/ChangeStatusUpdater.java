@@ -124,7 +124,6 @@ public class ChangeStatusUpdater {
 
       @Override
       public boolean changeQueued(@NotNull BuildRevision revision, @NotNull BuildPromotion buildPromotion, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-        additionalTaskInfo.appendCommentTo(DefaultStatusMessages.BUILD_QUEUED);
         return doQueuedChangeUpdate(revision, buildPromotion, additionalTaskInfo);
       }
 

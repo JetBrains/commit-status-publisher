@@ -80,6 +80,16 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
   }
 
+  public void should_not_publish_remove_from_queue_before_start() {
+    prepareVcs();
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
+    boolean receivedRemovedFromQueueComment = myPublisher.getCommentsReceived().stream()
+                                            .anyMatch(comment -> comment.contains("removed from queue"));
+    then(receivedRemovedFromQueueComment).isFalse();
+  }
 
   public void should_publish_statuses_in_order() throws InterruptedException {
     prepareVcs();
@@ -176,15 +186,13 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.INTERRUPTED));
   }
 
-  // this test fails after being rewritten to use the real event due to promotion manager
-  // not being able to find promotion by id, so REMOVED_FROM_QUEUE event did never work properly
-  @Test(enabled = false)
   public void should_publish_removed_from_queue() {
     prepareVcs();
     myBuildType.addToQueue("");
+    then(myPublisher.getLastComment()).isNull();  // no comment expected when build is added to queue
     myServer.getQueue().removeAllFromQueue();
-    waitForTasksToFinish(Event.REMOVED_FROM_QUEUE);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE));
+    waitFor(() -> myPublisher.getLastComment() != null, TASK_COMPLETION_TIMEOUT_MS);
+    then(myPublisher.getLastComment()).isEqualTo("TeamCity build removed from queue");
   }
 
   public void should_publish_finished_success() {
@@ -443,7 +451,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.QUEUED);
     final String removeFromQueueComment = "Test comment for remove from queue";
     myBuild.removeFromQueue(myUser, removeFromQueueComment);
-    waitForAssert(() -> removeFromQueueComment.equals(myPublisher.getLastComment()), TASK_COMPLETION_TIMEOUT_MS);
+    final String expectedComment = String.format("TeamCity build removed from queue by %s: %s", myUser.getUsername(), removeFromQueueComment);
+    waitForAssert(() -> expectedComment.equals(myPublisher.getLastComment()), TASK_COMPLETION_TIMEOUT_MS);
     then(myPublisher.getLastUser()).isEqualTo(myUser);
   }
 
@@ -464,7 +473,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.QUEUED);
     final String comment = "Comment, received from AJAX query";
     myFixture.getBuildQueue().removeQueuedBuilds(Collections.singleton(queuedBuild), myUser, comment);
-    waitForAssert(() -> comment.equals(myPublisher.getLastComment()), TASK_COMPLETION_TIMEOUT_MS);
+    final String expectedComment = String.format("TeamCity build removed from queue by %s: %s", myUser.getUsername(), comment);
+    waitForAssert(() -> expectedComment.equals(myPublisher.getLastComment()), TASK_COMPLETION_TIMEOUT_MS);
     then(myPublisher.getLastUser()).isEqualTo(myUser);
   }
 

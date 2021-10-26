@@ -146,7 +146,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   public void test_buildQueued() throws Exception {
     if (isSkipEvent(EventToTest.QUEUED)) return;
     SQueuedBuild build = addBuildToQueue();
-    myPublisher.buildQueued(build.getBuildPromotion(), myRevision, new AdditionalQueuedInfo(null, null));
+    myPublisher.buildQueued(build.getBuildPromotion(), myRevision, new AdditionalQueuedInfo(DefaultStatusMessages.BUILD_QUEUED, null));
     then(getRequestAsString()).isNotNull().doesNotMatch(".*removed.*").matches(myExpectedRegExps.get(EventToTest.QUEUED));
   }
 

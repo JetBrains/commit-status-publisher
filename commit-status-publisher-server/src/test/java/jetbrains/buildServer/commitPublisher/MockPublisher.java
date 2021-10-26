@@ -36,7 +36,6 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   private final String myType;
   private String myVcsRootId = null;
 
-  private String myLastComment = null;
   private User myLastUser = null;
 
   private boolean myShouldThrowException = false;
@@ -48,11 +47,22 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   private final PublisherLogger myLogger;
 
   private final List<Event> myEventsReceived = new ArrayList<>();
+  private final LinkedList<String> myCommentsReceived = new LinkedList<>();
 
   boolean isFailureReceived() { return myFailuresReceived > 0; }
   boolean isSuccessReceived() { return mySuccessReceived > 0; }
 
-  String getLastComment() { return myLastComment; }
+  String getLastComment() {
+    if (myCommentsReceived.isEmpty()) {
+      return null;
+    }
+    return myCommentsReceived.getLast();
+  }
+
+  List<String> getCommentsReceived() {
+    return new ArrayList<>(myCommentsReceived);
+  }
+
   User getLastUser() { return myLastUser; }
   List<Event> getEventsReceived() { return new ArrayList<>(myEventsReceived); }
 
@@ -125,7 +135,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull final BuildPromotion buildPromotion, @NotNull final BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) {
-    myLastComment = additionalTaskInfo.getComment();
+    myCommentsReceived.add(additionalTaskInfo.compileQueueRelatedMessage());
     myLastUser = additionalTaskInfo.getCommentAuthor();
     return true;
   }
@@ -133,7 +143,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   @Override
   public boolean buildStarted(@NotNull final SBuild build, @NotNull final BuildRevision revision) throws PublisherException {
     pretendToHandleEvent(Event.STARTED);
-    myLastComment = DefaultStatusMessages.BUILD_STARTED;
+    myCommentsReceived.add(DefaultStatusMessages.BUILD_STARTED);
     return true;
   }
 
@@ -159,7 +169,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
                                 final boolean buildInProgress)
     throws PublisherException {
     pretendToHandleEvent(Event.COMMENTED);
-    myLastComment = comment;
+    myCommentsReceived.add(comment);
     return true;
   }
 

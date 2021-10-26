@@ -269,13 +269,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       return;
     }
     long promotionId = build.getBuildPromotion().getId();
-    myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(Event.QUEUED.getName(), Event.QUEUED.getName() + ":" + promotionId, promotionId, null, null));
+    myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(Event.QUEUED.getName(), Event.QUEUED.getName() + ":" + promotionId, promotionId, null, DefaultStatusMessages.BUILD_QUEUED));
   }
 
   @Override
   public void buildRemovedFromQueue(@NotNull final SQueuedBuild build, final User user, final String comment) {
     SBuildType buildType = getBuildType(Event.REMOVED_FROM_QUEUE, build);
-    if (comment != null && comment.contains(DefaultStatusMessages.BUILD_STARTED)) return;
+    if (comment != null && comment.equals("Build started")) return;
     if (isBuildFeatureAbsent(buildType)) return;
 
     if  (!myServerResponsibility.canManageBuilds()) {
