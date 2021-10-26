@@ -68,10 +68,6 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    if (additionalTaskInfo.commentContains("Build started")) {
-      return true;
-    }
-
     String commentTemplate = "build %s is removed from queue: " + additionalTaskInfo.getCommentOrDefault("<no comment>");
     if (additionalTaskInfo.getCommentAuthor() != null) {
       commentTemplate += " by " + additionalTaskInfo.getCommentAuthor().getDescriptiveName();

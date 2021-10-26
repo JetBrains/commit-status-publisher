@@ -131,9 +131,6 @@ public class ChangeStatusUpdater {
 
       @Override
       public boolean changeRemovedFromQueue(@NotNull BuildRevision revision, @NotNull BuildPromotion buildPromotion, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-        if (additionalTaskInfo.commentContains("Build started")) {
-          return false;
-        }
         return doQueuedChangeUpdate(revision, buildPromotion, additionalTaskInfo);
       }
 

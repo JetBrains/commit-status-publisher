@@ -275,8 +275,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   @Override
   public void buildRemovedFromQueue(@NotNull final SQueuedBuild build, final User user, final String comment) {
     SBuildType buildType = getBuildType(Event.REMOVED_FROM_QUEUE, build);
-    if (isBuildFeatureAbsent(buildType))
-      return;
+    if (comment != null && comment.contains("Build started")) return;
+    if (isBuildFeatureAbsent(buildType)) return;
 
     if  (!myServerResponsibility.canManageBuilds()) {
       LOG.debug("Current node is not responsible for build " + LogUtil.describe(build) + ", skip processing removing from queue");
