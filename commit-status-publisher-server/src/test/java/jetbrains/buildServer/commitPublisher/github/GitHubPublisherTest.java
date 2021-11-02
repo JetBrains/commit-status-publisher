@@ -20,16 +20,14 @@ import com.google.gson.Gson;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
-import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
-import jetbrains.buildServer.commitPublisher.PublisherException;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.impl.GitHubApiFactoryImpl;
 import jetbrains.buildServer.commitPublisher.github.api.impl.HttpClientWrapperImpl;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.Permissions;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.RepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.impl.DummyBuildPromotion;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -52,7 +50,8 @@ public class GitHubPublisherTest extends HttpPublisherTest {
 
   public GitHubPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*description\":\"TeamCity build queued\".*", REVISION));
-    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*Build removed.*by %s: %s.*", REVISION, USER.toLowerCase(), COMMENT));
+    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*build removed.*by %s: %s.*", REVISION, USER.toLowerCase(), COMMENT));
+    myExpectedRegExps.put(EventToTest.MERGED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*build removed.*by %s: %s.*Link leads to the actual build.*", REVISION, USER.toLowerCase(), COMMENT));
     myExpectedRegExps.put(EventToTest.STARTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*build started.*", REVISION));
     myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*success.*build finished.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*build failed.*", REVISION));
@@ -114,6 +113,13 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     } catch (PublisherException ex) {
       then(ex.getMessage()).matches("Cannot parse.*" + myVcsRoot.getName() + ".*");
     }
+  }
+
+  public void test_buildRemovedFromQueue_because_of_merge() throws Exception {
+    SQueuedBuild build = addBuildToQueue();
+    DummyBuildPromotion replacingPromotion = myFixture.getBuildPromotionManager().createDummyPromotion("branch_name", myBuildType);
+    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalRemovedFromQueueInfo(COMMENT, myUser, replacingPromotion));
+    then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.MERGED));
   }
 
 

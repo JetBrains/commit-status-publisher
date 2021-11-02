@@ -2,11 +2,11 @@ package jetbrains.buildServer.commitPublisher.perforce;
 
 import java.util.List;
 import java.util.Map;
+import jetbrains.buildServer.commitPublisher.AdditionalTaskInfo;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.commitPublisher.HttpBasedCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -61,27 +61,20 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     publishCommentIfNeeded(buildPromotion, revision, "build %s is queued");
     return true;
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
-                                       @NotNull BuildRevision revision,
-                                       @Nullable User user,
-                                       @Nullable String comment,
-                                       @Nullable Long replacedPromotionId) throws PublisherException {
-    if (comment != null && comment.contains("Build started")) {
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+    if (additionalTaskInfo.commentContains("Build started")) {
       return true;
     }
-    if (comment == null) {
-      comment = "<no comment>";
-    }
 
-    String commentTemplate = "build %s is removed from queue: " + comment;
-    if (user != null) {
-      commentTemplate += " by " + user.getDescriptiveName();
+    String commentTemplate = "build %s is removed from queue: " + additionalTaskInfo.getCommentOrDefault("<no comment>");
+    if (additionalTaskInfo.getCommentAuthor() != null) {
+      commentTemplate += " by " + additionalTaskInfo.getCommentAuthor().getDescriptiveName();
     }
 
     publishCommentIfNeeded(buildPromotion, revision, commentTemplate);

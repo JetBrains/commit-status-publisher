@@ -23,7 +23,6 @@ import java.util.Map;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
-import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
@@ -64,17 +63,13 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     publish(buildPromotion, revision, GitlabBuildStatus.PENDING, "Build queued");
     return true;
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
-                                       @NotNull BuildRevision revision,
-                                       @Nullable User user,
-                                       @Nullable String comment,
-                                       @Nullable Long replacedPromotionId) throws PublisherException {
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     // commented because it is triggered just before starting build. It's not clear for now is such behaviour is normal
     /* publish(buildPromotion, revision, GitlabBuildStatus.CANCELED, "Build canceled");
     return true; */

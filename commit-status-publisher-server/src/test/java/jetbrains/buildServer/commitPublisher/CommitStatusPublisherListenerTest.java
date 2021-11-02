@@ -77,7 +77,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.QUEUED);
     myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE, Event.STARTED));
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
   }
 
 
@@ -89,7 +89,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
     myFixture.finishBuild(runningBuild, false);
     myPublisher.notifyWaitingEvent(Event.STARTED, 1000);
-    waitFor(() -> myPublisher.getEventsReceived().equals(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE, Event.STARTED, Event.FINISHED)), TASK_COMPLETION_TIMEOUT_MS);
+    waitFor(() -> myPublisher.getEventsReceived().equals(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED)), TASK_COMPLETION_TIMEOUT_MS);
   }
 
   @TestFor(issues = "TW-69618")
@@ -101,7 +101,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myFixture.flushQueueAndWait();
     waitFor(() -> myMultiNodeTasks.findFinishedTasks(Collections.singleton(Event.STARTED.getName()), Dates.ONE_MINUTE).stream().findAny().isPresent(), TASK_COMPLETION_TIMEOUT_MS);
     myPublisher.notifyWaitingEvent(Event.STARTED, 1000);
-    waitFor(() -> myPublisher.getEventsReceived().equals(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE, Event.STARTED)), TASK_COMPLETION_TIMEOUT_MS);
+    waitFor(() -> myPublisher.getEventsReceived().equals(Arrays.asList(Event.QUEUED, Event.STARTED)), TASK_COMPLETION_TIMEOUT_MS);
   }
 
 
@@ -130,7 +130,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.QUEUED);
     myFixture.waitForQueuedBuildToStart(queuedBuild);
     waitForTasksToFinish(Event.STARTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE, Event.STARTED));
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
   }
 
   public void should_publish_commented() {
@@ -141,7 +141,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.STARTED);
     runningBuild.setBuildComment(myUser , "My test comment");
     waitForTasksToFinish(Event.COMMENTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE, Event.STARTED, Event.COMMENTED));
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.COMMENTED));
     then(myPublisher.getLastComment()).isEqualTo("My test comment");
   }
 
@@ -153,7 +153,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.STARTED);
     myListener.buildChangedStatus(runningBuild, Status.NORMAL, Status.FAILURE);
     waitForTasksToFinish(Event.FAILURE_DETECTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE, Event.STARTED, Event.FAILURE_DETECTED));
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FAILURE_DETECTED));
     then(myPublisher.isFailureReceived()).isTrue();
   }
 
@@ -173,7 +173,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     runningBuild.setInterrupted(RunningBuildState.INTERRUPTED_BY_USER, myUser, "My reason");
     finishBuild(false);
     waitForTasksToFinish(Event.INTERRUPTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE, Event.STARTED, Event.INTERRUPTED));
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.INTERRUPTED));
   }
 
   // this test fails after being rewritten to use the real event due to promotion manager
@@ -195,7 +195,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.STARTED);
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE, Event.STARTED, Event.FINISHED));
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
     then(myPublisher.isSuccessReceived()).isTrue();
   }
 
@@ -227,7 +227,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.STARTED);
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE, Event.STARTED, Event.FINISHED));
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
   }
 
   public void should_give_a_priority_to_publishing_disabled_parameter() {
@@ -252,8 +252,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
     // This documents the current behaviour, i.e. only one QUEUED event received for some reason
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE,
-                                                                  Event.STARTED, Event.STARTED, Event.STARTED,
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED,
+                                                                  Event.STARTED, Event.STARTED,
                                                                   Event.FINISHED, Event.FINISHED, Event.FINISHED));
     then(myPublisher.successReceived()).isEqualTo(3);
   }
@@ -326,7 +326,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.STARTED);
     myListener.buildChangedStatus(runningBuild, Status.FAILURE, Status.NORMAL);
     assertIfNoTasks(Event.FAILURE_DETECTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE, Event.STARTED));
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
     then(myPublisher.isFailureReceived()).isFalse();
   }
 
@@ -443,10 +443,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.QUEUED);
     final String removeFromQueueComment = "Test comment for remove from queue";
     myBuild.removeFromQueue(myUser, removeFromQueueComment);
-    waitForTasksToFinish(Event.REMOVED_FROM_QUEUE);
-    List<Event> eventsReceived = myPublisher.getEventsReceived();
-    then(eventsReceived.contains(Event.REMOVED_FROM_QUEUE)).isTrue();
-    then(myPublisher.getLastComment()).isEqualTo(removeFromQueueComment);
+    waitForAssert(() -> removeFromQueueComment.equals(myPublisher.getLastComment()), TASK_COMPLETION_TIMEOUT_MS);
     then(myPublisher.getLastUser()).isEqualTo(myUser);
   }
 
@@ -456,7 +453,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.QUEUED);
     myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.REMOVED_FROM_QUEUE, Event.STARTED));
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
     then(myPublisher.getLastComment()).isEqualTo("Build started");
     then(myPublisher.getLastUser()).isNull();
   }
@@ -467,8 +464,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.QUEUED);
     final String comment = "Comment, received from AJAX query";
     myFixture.getBuildQueue().removeQueuedBuilds(Collections.singleton(queuedBuild), myUser, comment);
-    waitForTasksToFinish(Event.REMOVED_FROM_QUEUE);
-    then(myPublisher.getLastComment()).isEqualTo(comment);
+    waitForAssert(() -> comment.equals(myPublisher.getLastComment()), TASK_COMPLETION_TIMEOUT_MS);
     then(myPublisher.getLastUser()).isEqualTo(myUser);
   }
 

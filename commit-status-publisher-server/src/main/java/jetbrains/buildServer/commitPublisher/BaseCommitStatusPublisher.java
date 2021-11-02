@@ -60,15 +60,11 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     }
   }
 
-  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     return false;
   }
 
-  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
-                                       @NotNull BuildRevision revision,
-                                       @Nullable User user,
-                                       @Nullable String comment,
-                                       @Nullable Long replacedPromotionId) throws PublisherException {
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     return false;
   }
 

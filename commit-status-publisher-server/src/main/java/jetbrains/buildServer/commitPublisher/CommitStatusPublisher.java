@@ -30,13 +30,9 @@ public interface CommitStatusPublisher {
 
   boolean isAvailable(@NotNull BuildPromotion buildPromotion);
 
-  boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException;
+  boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException;
 
-  boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
-                                @NotNull BuildRevision revision,
-                                @Nullable User user,
-                                @Nullable String comment,
-                                @Nullable Long replacedPromotionId) throws PublisherException;
+  boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException;
 
   boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException;
 

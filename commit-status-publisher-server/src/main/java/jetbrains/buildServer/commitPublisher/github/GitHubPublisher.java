@@ -23,7 +23,6 @@ import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,17 +53,13 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
-    return updateQueuedBuildStatus(buildPromotion, revision, null, null, null, true);
+  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+    return updateQueuedBuildStatus(buildPromotion, revision, additionalTaskInfo, true);
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
-                                       @NotNull BuildRevision revision,
-                                       @Nullable User user,
-                                       @Nullable String comment,
-                                       @Nullable Long replacedPromotionId) throws PublisherException {
-    return updateQueuedBuildStatus(buildPromotion, revision, user, comment, replacedPromotionId, false);
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+    return updateQueuedBuildStatus(buildPromotion, revision, additionalTaskInfo, false);
   }
 
   @Override
@@ -117,7 +112,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   private boolean updateQueuedBuildStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision,
-                                          User commentAuthor, String comment, Long replacedPromotionId, boolean addingToQueue) throws PublisherException {
+                                          @NotNull AdditionalTaskInfo additionalTaskInfo, boolean addingToQueue) throws PublisherException {
     final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), getParams(buildPromotion), this);
 
     if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
@@ -126,9 +121,9 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     }
 
     if (addingToQueue) {
-      return h.changeQueued(revision, buildPromotion);
+      return h.changeQueued(revision, buildPromotion, additionalTaskInfo);
     } else {
-      return h.changeRemovedFromQueue(revision, buildPromotion, commentAuthor, comment, replacedPromotionId);
+      return h.changeRemovedFromQueue(revision, buildPromotion, additionalTaskInfo);
     }
   }
 

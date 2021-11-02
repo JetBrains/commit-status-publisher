@@ -116,21 +116,17 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   }
 
   @Override
-  public boolean buildQueued(@NotNull final BuildPromotion buildPromotion, @NotNull final BuildRevision revision) throws PublisherException {
+  public boolean buildQueued(@NotNull final BuildPromotion buildPromotion,
+                             @NotNull final BuildRevision revision,
+                             @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     pretendToHandleEvent(Event.QUEUED);
     return true;
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull final BuildPromotion buildPromotion,
-                                       @NotNull final BuildRevision revision,
-                                       @Nullable final User user,
-                                       @Nullable final String comment,
-                                       @Nullable Long replacedPromotionId)
-    throws PublisherException {
-    pretendToHandleEvent(Event.REMOVED_FROM_QUEUE);
-    myLastComment = comment;
-    myLastUser = user;
+  public boolean buildRemovedFromQueue(@NotNull final BuildPromotion buildPromotion, @NotNull final BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) {
+    myLastComment = additionalTaskInfo.getComment();
+    myLastUser = additionalTaskInfo.getCommentAuthor();
     return true;
   }
 

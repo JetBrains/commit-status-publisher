@@ -45,6 +45,7 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   protected static final String REVISION = "314159";
+  protected static final Long PROMOTION_ID = 1234L;
   protected static final String USER = "MyUser";
   protected static final String COMMENT = "MyComment";
   protected static final String PROBLEM_DESCR = "Problem description";
@@ -69,8 +70,8 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
 
 
   protected enum EventToTest {
-    QUEUED(Event.QUEUED), REMOVED(Event.REMOVED_FROM_QUEUE), STARTED(Event.STARTED),
-    FINISHED(Event.FINISHED), FAILED(Event.FINISHED),
+    QUEUED(Event.QUEUED), REMOVED(Event.REMOVED_FROM_QUEUE), MERGED(Event.REMOVED_FROM_QUEUE),
+    STARTED(Event.STARTED), FINISHED(Event.FINISHED), FAILED(Event.FINISHED),
     COMMENTED_SUCCESS(Event.COMMENTED), COMMENTED_FAILED(Event.COMMENTED),
     COMMENTED_INPROGRESS(Event.COMMENTED), COMMENTED_INPROGRESS_FAILED(Event.COMMENTED),
     INTERRUPTED(Event.INTERRUPTED), FAILURE_DETECTED(Event.FAILURE_DETECTED),
@@ -145,14 +146,14 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   public void test_buildQueued() throws Exception {
     if (isSkipEvent(EventToTest.QUEUED)) return;
     SQueuedBuild build = addBuildToQueue();
-    myPublisher.buildQueued(build.getBuildPromotion(), myRevision);
+    myPublisher.buildQueued(build.getBuildPromotion(), myRevision, new AdditionalQueuedInfo(null, null));
     then(getRequestAsString()).isNotNull().doesNotMatch(".*removed.*").matches(myExpectedRegExps.get(EventToTest.QUEUED));
   }
 
   public void test_buildRemovedFromQueue()  throws Exception {
     if (isSkipEvent(EventToTest.REMOVED)) return;
     SQueuedBuild build = addBuildToQueue();
-    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, myUser, COMMENT, null);
+    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalRemovedFromQueueInfo(COMMENT, myUser, null));
     then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.REMOVED));
   }
 
