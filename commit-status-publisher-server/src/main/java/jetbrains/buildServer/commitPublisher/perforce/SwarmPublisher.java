@@ -70,7 +70,8 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
                                        @NotNull BuildRevision revision,
                                        @Nullable User user,
-                                       @Nullable String comment) throws PublisherException {
+                                       @Nullable String comment,
+                                       @Nullable Long replacedPromotionId) throws PublisherException {
     if (comment != null && comment.contains("Build started")) {
       return true;
     }

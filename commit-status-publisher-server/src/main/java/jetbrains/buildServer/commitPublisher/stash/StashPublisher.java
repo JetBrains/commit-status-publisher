@@ -71,7 +71,11 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) {
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
+                                       @NotNull BuildRevision revision,
+                                       @Nullable User user,
+                                       @Nullable String comment,
+                                       @Nullable Long replacedPromotionId) {
     // commented because it is triggered just before starting build. It's not clear for now is such behaviour is normal
     /* StringBuilder description = new StringBuilder("Build removed from queue");
     if (user != null)

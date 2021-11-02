@@ -18,10 +18,13 @@ package jetbrains.buildServer.commitPublisher.github;
 
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
+import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
+import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
+import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
-import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthToken;
@@ -31,15 +34,12 @@ import jetbrains.buildServer.serverSide.oauth.github.GitHubOAuthProvider;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
-import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
-import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 public class GitHubSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
@@ -53,6 +53,12 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
     add(Event.INTERRUPTED);
     add(Event.MARKED_AS_SUCCESSFUL);
     add(Event.FAILURE_DETECTED);
+  }};
+
+  private static final Set<Event> mySupportedEventsWithQueued = new HashSet<Event>() {{
+    add(Event.QUEUED);
+    add(Event.REMOVED_FROM_QUEUE);
+    addAll(mySupportedEvents);
   }};
 
   public GitHubSettings(@NotNull ChangeStatusUpdater updater,
@@ -216,6 +222,6 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
 
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
-    return mySupportedEvents;
+    return isBuildQueuedSupported(buildType, params) ? mySupportedEventsWithQueued : mySupportedEvents;
   }
 }

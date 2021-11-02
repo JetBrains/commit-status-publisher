@@ -157,7 +157,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myMultiNodeTasks.subscribe(Event.QUEUED.getName(), new QueuedBuildPublisherTaskConsumer(
       buildPromotion -> new PublishQueuedTask() {
         @Override
-        public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision, @Nullable User commentAuthor, @Nullable String comment) throws PublisherException {
+        public void run(@NotNull CommitStatusPublisher publisher,
+                        @NotNull BuildRevision revision,
+                        @Nullable User commentAuthor,
+                        @Nullable String comment,
+                        @Nullable Long replacedPromotionId) throws PublisherException {
           publisher.buildQueued(buildPromotion, revision);
         }
       }
@@ -166,7 +170,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myMultiNodeTasks.subscribe(Event.REMOVED_FROM_QUEUE.getName(), new QueuedBuildPublisherTaskConsumer(
       buildPromotion -> new PublishQueuedTask() {
         @Override
-        public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision, @Nullable User commentAuthor, @Nullable String comment) throws PublisherException {
+        public void run(@NotNull CommitStatusPublisher publisher,
+                        @NotNull BuildRevision revision,
+                        @Nullable User commentAuthor,
+                        @Nullable String comment,
+                        @Nullable Long replacedPromotionId) throws PublisherException {
           String actualComment;
           User actualCommentAuthor;
           if (comment != null) {
@@ -178,7 +186,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
             actualCommentAuthor = commentWithAuthor.getSecond();
           }
 
-          publisher.buildRemovedFromQueue(buildPromotion, revision, actualCommentAuthor, actualComment);
+          publisher.buildRemovedFromQueue(buildPromotion, revision, actualCommentAuthor, actualComment, replacedPromotionId);
         }
       }
     ));
@@ -403,7 +411,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private interface PublishQueuedTask {
-    void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision, @Nullable User commentAuthor, @Nullable String comment) throws PublisherException;
+    void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision,
+             @Nullable User commentAuthor, @Nullable String comment, @Nullable Long replacedPromotionId) throws PublisherException;
   }
 
   private boolean isBuildInProgress(SBuild build) {
@@ -528,7 +537,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     }
 
     @Override
-    void doRunTask(PublishTask task, CommitStatusPublisher publisher, BuildRevision revision, User commentAuthor, String comment) throws PublisherException {
+    void doRunTask(PublishTask task, CommitStatusPublisher publisher, BuildRevision revision, User commentAuthor, String comment, Long replacedPromotionId) throws PublisherException {
       task.run(publisher, revision);
     }
 
@@ -556,7 +565,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         }
         myProblems.clearProblem(publisher);
         for (BuildRevision revision: revisions) {
-          runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision, null, null);
+          runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision, null, null, null);
         }
       }
       myProblems.clearObsoleteProblems(buildType, publishers.keySet());
@@ -581,9 +590,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     public void accept(final PerformingTask task) {
       Event eventType = getEventType(task);
       BuildPromotion promotion = getBuildPromotion(task);
+      BuildPromotion replacementPromotion = promotion == null ? getBuildPromotionReplacement(task) : null;
+      Long replacedPromotionId = promotion == null ? task.getLongArg1() : null;
+
       User commentAuthor = getUser(task);
       String comment = getComment(task);
-      if (eventType == null || promotion == null) {
+      if (eventType == null || (promotion == null && replacementPromotion == null)) {
         task.finished();
         eventProcessed(eventType);
         return;
@@ -591,11 +603,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
       task.finished();
 
+      BuildPromotion actualPromotion = promotion != null ? promotion : replacementPromotion;
       CompletableFuture.runAsync(() -> {
-        Lock lock = myLocks.get(promotion.getBuildTypeId());
+        Lock lock = myLocks.get(actualPromotion.getBuildTypeId());
         lock.lock();
         try {
-          runForEveryPublisher(eventType, promotion, commentAuthor, comment);
+          runForEveryPublisher(eventType, actualPromotion, commentAuthor, comment, replacedPromotionId);
         } finally {
           lock.unlock();
         }
@@ -615,6 +628,15 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     }
 
     @Nullable
+    private BuildPromotion getBuildPromotionReplacement(PerformingTask task) {
+      Long promotionId = task.getLongArg1();
+      if (promotionId == null)
+        return null;
+
+      return myBuildPromotionManager.findPromotionOrReplacement(promotionId);
+    }
+
+    @Nullable
     protected User getUser(PerformingTask task) {
       Long userId = task.getLongArg2();
       return userId == null ? null : myUserModel.findUserById(userId);
@@ -626,11 +648,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     }
 
     @Override
-    void doRunTask(PublishQueuedTask task, CommitStatusPublisher publisher, BuildRevision revision, User commentAuthor, String comment) throws PublisherException {
-      task.run(publisher, revision, commentAuthor, comment);
+    void doRunTask(PublishQueuedTask task, CommitStatusPublisher publisher, BuildRevision revision, User commentAuthor, String comment, Long replacedPromotionId) throws PublisherException {
+      task.run(publisher, revision, commentAuthor, comment, replacedPromotionId);
     }
 
-    private void runForEveryPublisher(@NotNull Event event, @NotNull BuildPromotion buildPromotion, User commentAuthor, String comment) {
+    private void runForEveryPublisher(@NotNull Event event, @NotNull BuildPromotion buildPromotion, User commentAuthor, String comment, Long replacedPromotionId) {
       PublishQueuedTask publishTask = myTaskSupplier.apply(buildPromotion);
       SBuildType buildType = buildPromotion.getBuildType();
 
@@ -651,7 +673,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         }
         myProblems.clearProblem(publisher);
         for (BuildRevision revision: revisions) {
-          runTask(event, buildPromotion, LogUtil.describe(buildPromotion), publishTask, publisher, revision, commentAuthor, comment);
+          runTask(event, buildPromotion, LogUtil.describe(buildPromotion), publishTask, publisher, revision, commentAuthor, comment, replacedPromotionId);
         }
       }
       myProblems.clearObsoleteProblems(buildType, publishers.keySet());
@@ -662,7 +684,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private abstract class PublisherTaskConsumer<T> extends MultiNodeTasks.TaskConsumer {
 
-    abstract void doRunTask(T task, CommitStatusPublisher publisher, BuildRevision revision, User commentAuthor, String comment) throws PublisherException;
+    abstract void doRunTask(T task, CommitStatusPublisher publisher, BuildRevision revision, User commentAuthor, String comment, Long replacedPromotionId) throws PublisherException;
 
     @Nullable
     protected Event getEventType(PerformingTask task) {
@@ -676,12 +698,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
                            @NotNull T publishTask,
                            @NotNull CommitStatusPublisher publisher,
                            @NotNull BuildRevision revision,
-                           User commentAuthor, String comment) {
+                           User commentAuthor, String comment, Long replacedPromotionId) {
       try {
         if (!publisher.isAvailable(promotion)) {
           return;
         }
-        doRunTask(publishTask, publisher, revision, commentAuthor, comment);
+        doRunTask(publishTask, publisher, revision, commentAuthor, comment, replacedPromotionId);
       } catch (Throwable t) {
         myProblems.reportProblem(String.format("Commit Status Publisher has failed to publish %s status", event.getName()), publisher, buildDescription, null, t, LOG);
         if (shouldFailBuild(publisher.getBuildType())) {

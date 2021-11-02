@@ -23,6 +23,7 @@ import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,6 +51,20 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   @Override
   public String getId() {
     return Constants.GITHUB_PUBLISHER_ID;
+  }
+
+  @Override
+  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+    return updateQueuedBuildStatus(buildPromotion, revision, null, null, null, true);
+  }
+
+  @Override
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
+                                       @NotNull BuildRevision revision,
+                                       @Nullable User user,
+                                       @Nullable String comment,
+                                       @Nullable Long replacedPromotionId) throws PublisherException {
+    return updateQueuedBuildStatus(buildPromotion, revision, user, comment, replacedPromotionId, false);
   }
 
   @Override
@@ -101,6 +116,21 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     }
   }
 
+  private boolean updateQueuedBuildStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision,
+                                          User commentAuthor, String comment, Long replacedPromotionId, boolean addingToQueue) throws PublisherException {
+    final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), getParams(buildPromotion), this);
+
+    if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
+      LOG.warn("No revisions were found to update GitHub status. Please check you have Git VCS roots in the build configuration");
+      return false;
+    }
+
+    if (addingToQueue) {
+      return h.changeQueued(revision, buildPromotion);
+    } else {
+      return h.changeRemovedFromQueue(revision, buildPromotion, commentAuthor, comment, replacedPromotionId);
+    }
+  }
 
   @NotNull
   private Map<String, String> getParams(@NotNull BuildPromotion buildPromotion) {

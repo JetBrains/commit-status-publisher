@@ -19,7 +19,9 @@ package jetbrains.buildServer.commitPublisher;
 import com.intellij.openapi.util.io.StreamUtil;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
@@ -49,7 +51,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
   private final static long GRACEFUL_SHUTDOWN_TIMEOUT = 300;
 
   private HttpServer myHttpServer;
-  private String myLastRequest;
+  private List<String> myRequests;
   private String myExpectedApiPath = "";
   private String myExpectedEndpointPrefix = "";
   private int myRespondWithRedirectCode;
@@ -95,7 +97,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
   @Override
   protected void setUp() throws Exception {
 
-    myLastRequest = null;
+    myRequests = new ArrayList<>();
     myLastAgent = null;
     myDoNotRespond = false;
     myRespondWithRedirectCode = 0;
@@ -132,19 +134,21 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
       httpResponse.setStatusCode(500);
       return;
     }
-    myLastRequest = httpRequest.getRequestLine().toString();
+    StringBuilder request = new StringBuilder();
+    request.append(httpRequest.getRequestLine().toString());
     String requestData = null;
     if (httpRequest instanceof HttpEntityEnclosingRequest) {
       HttpEntity entity = ((HttpEntityEnclosingRequest) httpRequest).getEntity();
       InputStream is = entity.getContent();
       requestData = StreamUtil.readText(is);
-      myLastRequest += "\tENTITY: " + requestData;
+      request.append("\tENTITY: ").append(requestData);
       httpResponse.setStatusCode(201);
     } else {
       httpResponse.setStatusCode(200);
     }
+    myRequests.add(request.toString());
     if(!populateResponse(httpRequest, requestData, httpResponse)) {
-      myLastRequest = "HTTP error: " + httpResponse.getStatusLine();
+      myRequests.add("HTTP error: " + httpResponse.getStatusLine());
     }
   }
 
@@ -154,7 +158,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
 
   @Override
   protected String getRequestAsString() {
-    return myLastRequest;
+    return myRequests.isEmpty() ? null : myRequests.get(myRequests.size() - 1);
   }
 
   protected String getServerUrl() {

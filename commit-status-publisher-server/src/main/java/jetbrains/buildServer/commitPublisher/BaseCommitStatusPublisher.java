@@ -64,7 +64,11 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     return false;
   }
 
-  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) throws PublisherException {
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
+                                       @NotNull BuildRevision revision,
+                                       @Nullable User user,
+                                       @Nullable String comment,
+                                       @Nullable Long replacedPromotionId) throws PublisherException {
     return false;
   }
 

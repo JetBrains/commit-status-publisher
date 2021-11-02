@@ -16,7 +16,10 @@
 
 package jetbrains.buildServer.commitPublisher;
 
-import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -29,7 +32,11 @@ public interface CommitStatusPublisher {
 
   boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException;
 
-  boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment) throws PublisherException;
+  boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
+                                @NotNull BuildRevision revision,
+                                @Nullable User user,
+                                @Nullable String comment,
+                                @Nullable Long replacedPromotionId) throws PublisherException;
 
   boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException;
 

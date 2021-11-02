@@ -122,7 +122,11 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull final BuildPromotion buildPromotion, @NotNull final BuildRevision revision, @Nullable final User user, @Nullable final String comment)
+  public boolean buildRemovedFromQueue(@NotNull final BuildPromotion buildPromotion,
+                                       @NotNull final BuildRevision revision,
+                                       @Nullable final User user,
+                                       @Nullable final String comment,
+                                       @Nullable Long replacedPromotionId)
     throws PublisherException {
     pretendToHandleEvent(Event.REMOVED_FROM_QUEUE);
     myLastComment = comment;

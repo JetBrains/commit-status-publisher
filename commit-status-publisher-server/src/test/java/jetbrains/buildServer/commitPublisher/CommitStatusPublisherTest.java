@@ -146,14 +146,13 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     if (isSkipEvent(EventToTest.QUEUED)) return;
     SQueuedBuild build = addBuildToQueue();
     myPublisher.buildQueued(build.getBuildPromotion(), myRevision);
-    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
-                          .matches(myExpectedRegExps.get(EventToTest.QUEUED));
+    then(getRequestAsString()).isNotNull().doesNotMatch(".*removed.*").matches(myExpectedRegExps.get(EventToTest.QUEUED));
   }
 
   public void test_buildRemovedFromQueue()  throws Exception {
     if (isSkipEvent(EventToTest.REMOVED)) return;
     SQueuedBuild build = addBuildToQueue();
-    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, myUser, COMMENT);
+    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, myUser, COMMENT, null);
     then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.REMOVED));
   }
 
@@ -262,7 +261,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     }
 
     then(null == event || toBeTested)
-      .as(String.format("Event '%s' is supported by the publisher, but not tested", eventType.toString()))
+      .as(String.format("Event '%s' is supported by the publisher, but not tested", eventType))
       .isTrue();
     return !toBeTested;
   }
