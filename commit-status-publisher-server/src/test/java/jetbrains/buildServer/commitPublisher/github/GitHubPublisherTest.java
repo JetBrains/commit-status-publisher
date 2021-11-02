@@ -17,6 +17,9 @@
 package jetbrains.buildServer.commitPublisher.github;
 
 import com.google.gson.Gson;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
@@ -39,10 +42,6 @@ import org.apache.http.entity.StringEntity;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.assertj.core.api.BDDAssertions.then;
 
@@ -79,7 +78,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     char[] prjNameCharCodes =  { 0x45, 0x263A,  0x09, 0xd841, 0xdd20 };
     myBuildType.getProject().setName(new String(prjNameCharCodes));
     SBuild build = createBuildInCurrentBranch(myBuildType, Status.NORMAL);
-    String context = ((GitHubPublisher) myPublisher).getDefaultContext(build);
+    String context = ((GitHubPublisher) myPublisher).getDefaultContext(build.getBuildPromotion());
     char[] expectedBTNameCharCodes = { 0x41, 0x42b, 0x20, 0x3042, 0x231a, 0x39};
     char[] expectedPrjNameCharCodes =  { 0x45, 0x263A };
     then(context).isEqualTo(new String(expectedBTNameCharCodes) + " (" + new String(expectedPrjNameCharCodes) + ")");

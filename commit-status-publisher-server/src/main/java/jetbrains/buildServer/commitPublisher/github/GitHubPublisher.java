@@ -19,7 +19,10 @@ package jetbrains.buildServer.commitPublisher.github;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.commitPublisher.*;
-import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.SBuildType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -84,10 +87,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) throws PublisherException {
-    final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), getParams(build), this);
-
-    if (isStarting && !h.shouldReportOnStart()) return;
-    if (!isStarting && !h.shouldReportOnFinish()) return;
+    final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), getParams(build.getBuildPromotion()), this);
 
     if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
       LOG.warn("No revisions were found to update GitHub status. Please check you have Git VCS roots in the build configuration");
@@ -95,26 +95,26 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     }
 
     if (isStarting) {
-      h.scheduleChangeStarted(revision, build);
+      h.changeStarted(revision, build);
     } else {
-      h.scheduleChangeCompleted(revision, build);
+      h.changeCompleted(revision, build);
     }
   }
 
 
   @NotNull
-  private Map<String, String> getParams(@NotNull SBuild build) {
-    String context = getCustomContextFromParameter(build);
+  private Map<String, String> getParams(@NotNull BuildPromotion buildPromotion) {
+    String context = getCustomContextFromParameter(buildPromotion);
     if (context == null)
-      context = getDefaultContext(build);
+      context = getDefaultContext(buildPromotion);
     Map<String, String> result = new HashMap<String, String>(myParams);
     result.put(Constants.GITHUB_CONTEXT, context);
     return result;
   }
 
   @NotNull
-  String getDefaultContext(@NotNull SBuild build) {
-    SBuildType buildType = build.getBuildType();
+  String getDefaultContext(@NotNull BuildPromotion buildPromotion) {
+    SBuildType buildType = buildPromotion.getBuildType();
     if (buildType != null) {
       String btName = removeMultiCharUnicodeAndTrim(buildType.getName());
       String prjName = removeMultiCharUnicodeAndTrim(buildType.getProject().getName());
@@ -136,12 +136,15 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   @Nullable
-  private String getCustomContextFromParameter(@NotNull SBuild build) {
-    String value = build.getParametersProvider().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM);
+  private String getCustomContextFromParameter(@NotNull BuildPromotion buildPromotion) {
+    String value = buildPromotion.getBuildParameters().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM);
     if (value == null) {
       return null;
-    } else {
-      return build.getValueResolver().resolve(value).getResult();
     }
+    SBuild associatedBuild = buildPromotion.getAssociatedBuild();
+    if (associatedBuild == null) {
+      return null;
+    }
+    return associatedBuild.getValueResolver().resolve(value).getResult();
   }
 }

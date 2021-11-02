@@ -16,8 +16,14 @@
 
 package jetbrains.buildServer.commitPublisher.github;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import jetbrains.buildServer.commitPublisher.*;
-import jetbrains.buildServer.commitPublisher.github.api.*;
+import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
+import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
+import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
+import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -26,11 +32,8 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
 import jetbrains.buildServer.vcs.VcsModificationOrder;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
@@ -102,51 +105,21 @@ public class ChangeStatusUpdater {
   @NotNull
   Handler getUpdateHandler(@NotNull VcsRoot root,
                            @NotNull Map<String, String> params,
-                           @NotNull final GitHubPublisher publisher) throws PublisherException {
-
-    final GitHubApi api = getGitHubApi(params);
-
-    Repository repo = parseRepository(root);
-
-    final String repositoryOwner = repo.owner();
-    final String repositoryName = repo.repositoryName();
-    String ctx = params.get(Constants.GITHUB_CONTEXT);
-    final String context = StringUtil.isEmpty(ctx) ? "continuous-integration/teamcity" : ctx;
-    final boolean addComments = false;
-
-    final boolean shouldReportOnStart = true;
-    final boolean shouldReportOnFinish = true;
+                           @NotNull final GitHubPublisher publisher) {
 
     return new Handler() {
-      @NotNull
-      private String getViewResultsUrl(@NotNull final SBuild build) {
-        return myWeb.getViewResultsUrl(build);
+
+      public void changeStarted(@NotNull BuildRevision revision, @NotNull SBuild build) throws PublisherException {
+        doChangeUpdate(revision, build, "TeamCity build started", GitHubChangeState.Pending);
       }
 
-      public boolean shouldReportOnStart() {
-        return shouldReportOnStart;
-      }
-
-      public boolean shouldReportOnFinish() {
-        return shouldReportOnFinish;
-      }
-
-      public void scheduleChangeStarted(@NotNull BuildRevision revision, @NotNull SBuild build) {
-        scheduleChangeUpdate(revision, build, "TeamCity build started", GitHubChangeState.Pending);
-      }
-
-      public void scheduleChangeCompleted(@NotNull BuildRevision revision, @NotNull SBuild build) {
+      public void changeCompleted(@NotNull BuildRevision revision, @NotNull SBuild build) throws PublisherException {
         LOG.debug("Status :" + build.getStatusDescriptor().getStatus().getText());
         LOG.debug("Status Priority:" + build.getStatusDescriptor().getStatus().getPriority());
 
         final GitHubChangeState status = getGitHubChangeState(build);
         final String text = getGitHubChangeText(build);
-        scheduleChangeUpdate(revision, build, text, status);
-      }
-
-      @NotNull
-      GitHubPublisher getPublisher() {
-        return publisher;
+        doChangeUpdate(revision, build, text, status);
       }
 
       @NotNull
@@ -172,164 +145,209 @@ public class ChangeStatusUpdater {
         }
       }
 
-      private void scheduleChangeUpdate(@NotNull final BuildRevision revision,
-                                        @NotNull final SBuild build,
-                                        @NotNull final String message,
-                                        @NotNull final GitHubChangeState status) {
+      private void doChangeUpdate(@NotNull final BuildRevision revision,
+                                  @NotNull final SBuild build,
+                                  @NotNull final String message,
+                                  @NotNull final GitHubChangeState targetStatus) throws PublisherException {
         final RepositoryVersion version = revision.getRepositoryVersion();
         LOG.info("Scheduling GitHub status update for " +
                  "hash: " + version.getVersion() + ", " +
                  "branch: " + version.getVcsBranch() + ", " +
                  "buildId: " + build.getBuildId() + ", " +
-                 "status: " + status);
+                 "status: " + targetStatus);
 
-        final Runnable scheduleUpdater = new Runnable() {
+        Repository repo = parseRepository(root);
 
-          @NotNull
-          private String getFriendlyDuration(final long seconds) {
-            long second = seconds % 60;
-            long minute = (seconds / 60) % 60;
-            long hour = seconds / 60 / 60;
-
-            return String.format("%02d:%02d:%02d", hour, minute, second);
-          }
-
-          @NotNull
-          private String getComment(@NotNull RepositoryVersion version,
-                                    @NotNull SBuild build,
-                                    boolean completed,
-                                    @NotNull String hash) {
-            final StringBuilder comment = new StringBuilder();
-            comment.append("TeamCity ");
-            final SBuildType bt = build.getBuildType();
-            if (bt != null) {
-              comment.append(bt.getFullName());
-            }
-            comment.append(" [Build ");
-            comment.append(build.getBuildNumber());
-            comment.append("](");
-            comment.append(getViewResultsUrl(build));
-            comment.append(") ");
-
-            if (completed) {
-              comment.append("outcome was **").append(build.getStatusDescriptor().getStatus().getText()).append("**");
-            } else {
-              comment.append("is now running");
-            }
-
-            comment.append("\n");
-
-            final String text = build.getStatusDescriptor().getText();
-            if (completed && text != null) {
-              comment.append("Summary: ");
-              comment.append(text);
-              comment.append(" Build time: ");
-              comment.append(getFriendlyDuration(build.getDuration()));
-
-              if (build.getBuildStatus() != Status.NORMAL) {
-
-                BuildStatistics stats = build.getBuildStatistics(BuildStatisticsOptions.ALL_TESTS_NO_DETAILS);
-                final List<STestRun> failedTests = stats.getFailedTests();
-                if (!failedTests.isEmpty()) {
-                  comment.append("\n### Failed tests\n");
-                  comment.append("```\n");
-
-                  for (int i = 0; i < failedTests.size(); i++) {
-                    final STestRun testRun = failedTests.get(i);
-                    comment.append("");
-                    comment.append(testRun.getTest().getName().toString());
-                    comment.append("\n");
-
-                    if (i == 10) {
-                      comment.append("\n##### there are ")
-                              .append(stats.getFailedTestCount() - i)
-                              .append(" more failed tests, see build details\n");
-                      break;
-                    }
-                  }
-                  comment.append("```\n");
-                }
-              }
-            }
-
-            return comment.toString();
-          }
-
-          @NotNull
-          private String resolveCommitHash() {
-            final String vcsBranch = version.getVcsBranch();
-            if (vcsBranch != null && api.isPullRequestMergeBranch(vcsBranch)) {
-              try {
-                final String hash = api.findPullRequestCommit(repositoryOwner, repositoryName, vcsBranch);
-                if (hash == null) {
-                  throw new IOException("Failed to find head hash for commit from " + vcsBranch);
-                }
-                LOG.info("Resolved GitHub change commit for " + vcsBranch + " to point to pull request head for " +
-                         "hash: " + version.getVersion() + ", " +
-                         "newHash: " + hash + ", " +
-                         "branch: " + version.getVcsBranch() + ", " +
-                         "buildId: " + build.getBuildId() + ", " +
-                         "status: " + status);
-                return hash;
-              } catch (Exception e) {
-                LOG.warn("Failed to find status update hash for " + vcsBranch + " for repository " + repositoryName);
-              }
-            }
-            return version.getVersion();
-          }
-
-          public void run() {
-            final String hash = resolveCommitHash();
-            if (!(hash.equals(version.getVersion()) ||
-                  myModificationHistory.getModificationsOrder(revision.getRoot(), hash, version.getVersion())
-                                       .equals(VcsModificationOrder.BEFORE))) {
-              LOG.info("GitHub status for pull request commit has not been updated. The head branch hash: " + hash
-                       + " does not correspond to the merge branch hash " + version.getVersion() + " any longer (buildId: " + build.getBuildId() + ", status: " + status + ")");
-              return;
-            }
-            final GitHubPublisher publisher = getPublisher();
-            final CommitStatusPublisherProblems problems = publisher.getProblems();
-            boolean prMergeBranch = !hash.equals(version.getVersion());
-            String url;
-            try {
-              url = getViewResultsUrl(build);
-              api.setChangeStatus(
-                      repositoryOwner,
-                      repositoryName,
-                      hash,
-                      status,
-                      url,
-                      message,
-                      prMergeBranch ? context + " - merge" : context
-              );
-              LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
-            } catch (IOException e) {
-              problems.reportProblem(String.format("Commit Status Publisher error. GitHub status: '%s'", status.toString()), publisher, LogUtil.describe(build), publisher.getServerUrl(), e, LOG);
-            }
-            if (addComments) {
-              try {
-                api.postComment(
-                        repositoryOwner,
-                        repositoryName,
-                        hash,
-                        getComment(version, build, status != GitHubChangeState.Pending, hash)
-                );
-                LOG.info("Added comment to GitHub commit: " + hash + ", buildId: " + build.getBuildId() + ", status: " + status);
-              } catch (IOException e) {
-                problems.reportProblem("Commit Status Publisher has failed to add a comment", publisher, LogUtil.describe(build), null, e, LOG);
-              }
-            }
-          }
-        };
-        scheduleUpdater.run();
+        GitHubStatusUpdater statusUpdater = new GitHubStatusUpdater(params, publisher, false);
+        statusUpdater.update(revision, build, message, targetStatus, repo);
       }
     };
   }
 
+  private abstract class GitHubCommonStatusUpdater {
+    private static final String DEFAULT_CONTEXT = "continuous-integration/teamcity";
+
+    protected final GitHubPublisher myPublisher;
+    protected final GitHubApi myApi;
+    protected final String myContext;
+    protected final boolean myAddComment;
+
+    GitHubCommonStatusUpdater(Map<String, String> params, GitHubPublisher publisher, boolean addComment) {
+      myPublisher = publisher;
+      myAddComment = addComment;
+      String ctx = params.get(Constants.GITHUB_CONTEXT);
+      myContext = StringUtil.isEmpty(ctx) ? DEFAULT_CONTEXT : ctx;
+      myApi = getGitHubApi(params);
+    }
+
+    @NotNull
+    protected String resolveCommitHash(RepositoryVersion myVersion, Repository repo, Long buildId, GitHubChangeState myTargetStatus) {
+      final String vcsBranch = myVersion.getVcsBranch();
+      if (vcsBranch != null && myApi.isPullRequestMergeBranch(vcsBranch)) {
+        try {
+          final String hash = myApi.findPullRequestCommit(repo.owner(), repo.repositoryName(), vcsBranch);
+          if (hash == null) {
+            throw new IOException("Failed to find head hash for commit from " + vcsBranch);
+          }
+          LOG.info("Resolved GitHub change commit for " + vcsBranch + " to point to pull request head for " +
+                   "hash: " + myVersion.getVersion() + ", " +
+                   "newHash: " + hash + ", " +
+                   "branch: " + myVersion.getVcsBranch() + ", " +
+                   "buildId: " + buildId + ", " +
+                   "status: " + myTargetStatus);
+          return hash;
+        } catch (Exception e) {
+          LOG.warn("Failed to find status update hash for " + vcsBranch + " for repository " + repo.repositoryName());
+        }
+      }
+      return myVersion.getVersion();
+    }
+
+    @NotNull
+    protected String getFriendlyDuration(final long seconds) {
+      long second = seconds % 60;
+      long minute = (seconds / 60) % 60;
+      long hour = seconds / 60 / 60;
+
+      return String.format("%02d:%02d:%02d", hour, minute, second);
+    }
+
+    protected boolean isHashInvalid(@NotNull String hash,
+                                    @NotNull RepositoryVersion version,
+                                    @NotNull VcsRootInstance root,
+                                    Long buildId,
+                                    GitHubChangeState targetStatus) {
+      if (!(hash.equals(version.getVersion()) ||
+            myModificationHistory.getModificationsOrder(root, hash, version.getVersion())
+                                 .equals(VcsModificationOrder.BEFORE))) {
+        LOG.info("GitHub status for pull request commit has not been updated. The head branch hash: " + hash
+                 + " does not correspond to the merge branch hash " + version.getVersion() + " any longer (buildId: " + buildId + ", status: " + targetStatus + ")");
+        return true;
+      }
+      return false;
+    }
+
+    protected void addComment(@NotNull Repository repo, @NotNull String hash, @NotNull String comment, Long buildId, GitHubChangeState targetStatus) throws IOException {
+      myApi.postComment(
+        repo.owner(),
+        repo.repositoryName(),
+        hash,
+        comment
+      );
+      LOG.info("Added comment to GitHub commit: " + hash + ", buildId: " + buildId + ", status: " + targetStatus);
+    }
+  }
+
+  private class GitHubStatusUpdater extends GitHubCommonStatusUpdater {
+
+    GitHubStatusUpdater(Map<String, String> params, GitHubPublisher publisher, boolean addComment) {
+      super(params, publisher, addComment);
+    }
+
+    public void update(BuildRevision revision, SBuild build, String message, GitHubChangeState targetStatus, Repository repo) {
+      final RepositoryVersion version = revision.getRepositoryVersion();
+      final String hash = resolveCommitHash(version, repo, build.getBuildId(), targetStatus);
+      if (isHashInvalid(hash, version, revision.getRoot(), build.getBuildId(), targetStatus)) {
+        return;
+      }
+
+      final CommitStatusPublisherProblems problems = myPublisher.getProblems();
+      try {
+        changeStatus(build, repo, hash, version, message, targetStatus);
+      } catch (IOException e) {
+        problems.reportProblem(String.format("Commit Status Publisher error. GitHub status: '%s'", targetStatus), myPublisher, LogUtil.describe(build), myPublisher.getServerUrl(), e, LOG);
+      }
+
+      if (myAddComment) {
+        String comment = getComment(build, targetStatus != GitHubChangeState.Pending);
+        try {
+          addComment(repo, hash, comment, build.getBuildId(), targetStatus);
+        } catch (IOException e) {
+          problems.reportProblem("Commit Status Publisher has failed to add a comment", myPublisher, LogUtil.describe(build), null, e, LOG);
+        }
+      }
+    }
+
+    private void changeStatus(SBuild build,
+                              Repository repo,
+                              String hash,
+                              RepositoryVersion version,
+                              String message,
+                              GitHubChangeState targetStatus) throws IOException {
+      boolean prMergeBranch = !hash.equals(version.getVersion());
+      String url = myWeb.getViewResultsUrl(build);
+      myApi.setChangeStatus(
+        repo.owner(),
+        repo.repositoryName(),
+        hash,
+        targetStatus,
+        url,
+        message,
+        prMergeBranch ? myContext + " - merge" : myContext
+      );
+      LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + targetStatus);
+    }
+
+    @NotNull
+    private String getComment(@NotNull SBuild build, boolean completed) {
+      final StringBuilder comment = new StringBuilder();
+      comment.append("TeamCity ");
+      final SBuildType bt = build.getBuildType();
+      if (bt != null) {
+        comment.append(bt.getFullName());
+      }
+      comment.append(" [Build ");
+      comment.append(build.getBuildNumber());
+      comment.append("](");
+      comment.append(myWeb.getViewResultsUrl(build));
+      comment.append(") ");
+
+      if (completed) {
+        comment.append("outcome was **").append(build.getStatusDescriptor().getStatus().getText()).append("**");
+      } else {
+        comment.append("is now running");
+      }
+
+      comment.append("\n");
+
+      final String text = build.getStatusDescriptor().getText();
+      if (completed && text != null) {
+        comment.append("Summary: ");
+        comment.append(text);
+        comment.append(" Build time: ");
+        comment.append(getFriendlyDuration(build.getDuration()));
+
+        if (build.getBuildStatus() != Status.NORMAL) {
+
+          BuildStatistics stats = build.getBuildStatistics(BuildStatisticsOptions.ALL_TESTS_NO_DETAILS);
+          final List<STestRun> failedTests = stats.getFailedTests();
+          if (!failedTests.isEmpty()) {
+            comment.append("\n### Failed tests\n");
+            comment.append("```\n");
+
+            for (int i = 0; i < failedTests.size(); i++) {
+              final STestRun testRun = failedTests.get(i);
+              comment.append(testRun.getTest().getName());
+              comment.append("\n");
+
+              if (i == 10) {
+                comment.append("\n##### there are ")
+                       .append(stats.getFailedTestCount() - i)
+                       .append(" more failed tests, see build details\n");
+                break;
+              }
+            }
+            comment.append("```\n");
+          }
+        }
+      }
+
+      return comment.toString();
+    }
+  }
+
   interface Handler {
-    boolean shouldReportOnStart();
-    boolean shouldReportOnFinish();
-    void scheduleChangeStarted(@NotNull final BuildRevision revision, @NotNull final SBuild build);
-    void scheduleChangeCompleted(@NotNull final BuildRevision revision, @NotNull final SBuild build);
+    void changeStarted(@NotNull final BuildRevision revision, @NotNull final SBuild build) throws PublisherException;
+    void changeCompleted(@NotNull final BuildRevision revision, @NotNull final SBuild build) throws PublisherException;
   }
 }
