@@ -275,7 +275,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   @Override
   public void buildRemovedFromQueue(@NotNull final SQueuedBuild build, final User user, final String comment) {
     SBuildType buildType = getBuildType(Event.REMOVED_FROM_QUEUE, build);
-    if (comment != null && comment.equals("Build started")) return;
+    if (build instanceof QueuedBuildEx && ((QueuedBuildEx) build).isStarted()) return;
     if (isBuildFeatureAbsent(buildType)) return;
 
     if  (!myServerResponsibility.canManageBuilds()) {
