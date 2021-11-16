@@ -70,6 +70,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         return size() > MAX_LAST_EVENTS_TO_REMEMBER;
       }
     };
+  private final BuildPromotionsCache myBuildPromotionsCache = new BuildPromotionsCache();
 
   private Consumer<Event> myEventProcessedCallback = null;
 
@@ -372,7 +373,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
           publisher.buildRemovedFromQueue(buildPromotion, revision, additionalTaskInfo);
         } catch (PublisherException e) {
           LOG.warn("Cannot publish removed build status to VCS for " + publisher.getBuildType() + ", commit: " + revision.getRevision(), e);
+          return;
         }
+        myBuildPromotionsCache.remove(revision.getRevision(), buildPromotion.getId());
+        publishPreviousStatusIfRequired(buildPromotion, revision, publisher);
       }
 
       @Override
@@ -381,6 +385,67 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       }
     };
     proccessPublishing(Event.REMOVED_FROM_QUEUE, buildPromotion, publishingProcessor);
+  }
+
+  private void publishPreviousStatusIfRequired(@NotNull BuildPromotion buildPromotion,
+                                               @NotNull BuildRevision buildRevision,
+                                               @NotNull CommitStatusPublisher publisher) {
+    String revision = buildRevision.getRevision();
+    SBuildType buildType = buildPromotion.getBuildType();
+    BuildPromotion previousPromotion = myBuildPromotionsCache.getLast(revision);
+    if (previousPromotion == null) {
+      if (buildType == null) {
+        LOG.warn(String.format("Can not define build type for revision %s. Actual status won't be published to the VCS", revision));
+        return;
+      }
+      previousPromotion = findPreviousPromotion(buildType, revision, publisher);
+      if (previousPromotion != null) {
+        myBuildPromotionsCache.put(revision, previousPromotion);
+      } else {
+        LOG.warn(String.format("No previous promotion was found for revision %s. Actual status won't be published to the VCS", revision));
+        return;
+      }
+    }
+
+    SQueuedBuild queuedBuild = previousPromotion.getQueuedBuild();
+    if (queuedBuild != null) {
+      buildTypeAddedToQueue(queuedBuild);
+      return;
+    }
+    SBuild associatedBuild = previousPromotion.getAssociatedBuild();
+    if (associatedBuild != null) {
+      if (associatedBuild.isFinished()) {
+        buildFinished((SRunningBuild) associatedBuild);
+        return;
+      } else {
+        changesLoaded((SRunningBuild) associatedBuild);
+        return;
+      }
+    }
+    LOG.warn(String.format("Can not find queued, running or finished build for revision %s. Actual status won't be published to the VCS", revision));
+  }
+
+  private BuildPromotion findPreviousPromotion(@NotNull SBuildType buildType, @NotNull String revision, @NotNull CommitStatusPublisher publisher) {
+    Optional<SRunningBuild> runningBuild = buildType.getRunningBuilds().stream()
+                                             .filter(build -> build.getRevisions().stream().anyMatch(buildRevision -> revision.equals(buildRevision.getRevision())))
+                                             .findFirst();
+    if (runningBuild.isPresent()) {
+      return runningBuild.get().getBuildPromotion();
+    }
+    Optional<BuildPromotion> queuedBuildPromotion = buildType.getQueuedBuilds(null).stream()
+                                              .map(SQueuedBuild::getBuildPromotion)
+                                              .filter(buildPromotion -> {
+                                                List<BuildRevision> revisionsForPromotion = getQueuedBuildRevisionForVote(buildType, publisher, buildPromotion);
+                                                return revisionsForPromotion.stream().anyMatch(buildRevision -> revision.equals(buildRevision.getRevision()));
+                                              })
+                                              .findFirst();
+    if (queuedBuildPromotion.isPresent()) {
+      return queuedBuildPromotion.get();
+    }
+    Optional<SFinishedBuild> finishedBuild = buildType.getHistory().stream()
+                                              .filter(build -> build.getRevisions().stream().anyMatch(buildRevision -> revision.equals(buildRevision.getRevision())))
+                                              .findFirst();
+    return finishedBuild.isPresent() ? finishedBuild.get().getBuildPromotion() : null;
   }
 
   private void proccessPublishing(Event event, BuildPromotion buildPromotion, PublishingProcessor publishingProcessor) {
@@ -652,7 +717,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       PublishingProcessor publishingProcessor = new PublishingProcessor() {
         @Override
         public void publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
-          runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision, null);
+          boolean runSucessfully = runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision, null);
+          if (runSucessfully) {
+            myBuildPromotionsCache.put(revision.getRevision(), build.getBuildPromotion());
+          }
         }
 
         @Override
@@ -740,7 +808,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       PublishingProcessor publishingProcessor = new PublishingProcessor() {
         @Override
         public void publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
-          runTask(event, buildPromotion, LogUtil.describe(buildPromotion), publishTask, publisher, revision, additionalTaskInfo);
+          boolean runSucessfully = runTask(event, buildPromotion, LogUtil.describe(buildPromotion), publishTask, publisher, revision, additionalTaskInfo);
+          if (runSucessfully) {
+            myBuildPromotionsCache.put(revision.getRevision(), buildPromotion);
+          }
         }
 
         @Override
@@ -764,7 +835,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       return myEventTypes.get(taskType);
     }
 
-    protected void runTask(@NotNull Event event,
+    protected boolean runTask(@NotNull Event event,
                            @NotNull BuildPromotion promotion,
                            @NotNull String buildDescription,
                            @NotNull T publishTask,
@@ -773,7 +844,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
                            @Nullable I additionalTaskInfo) {
       try {
         if (!publisher.isAvailable(promotion)) {
-          return;
+          return false;
         }
         doRunTask(publishTask, publisher, revision, additionalTaskInfo);
       } catch (Throwable t) {
@@ -784,7 +855,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
           BuildProblemData buildProblem = BuildProblemData.createBuildProblem(problemId, "commitStatusPublisherProblem", problemDescription);
           ((BuildPromotionEx)promotion).addBuildProblem(buildProblem);
         }
+        return false;
       }
+      return true;
     }
   }
 }

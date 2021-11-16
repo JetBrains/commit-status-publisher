@@ -189,9 +189,10 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   public void should_publish_removed_from_queue() {
     prepareVcs();
     myBuildType.addToQueue("");
-    then(myPublisher.getLastComment()).isNull();  // no comment expected when build is added to queue
+    waitForTasksToFinish(Event.QUEUED);
+    then(myPublisher.getLastComment()).isEqualTo(DefaultStatusMessages.BUILD_QUEUED);
     myServer.getQueue().removeAllFromQueue();
-    waitFor(() -> myPublisher.getLastComment() != null, TASK_COMPLETION_TIMEOUT_MS);
+    waitFor(() -> myPublisher.getLastComment() != null && myPublisher.getLastComment().contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE), TASK_COMPLETION_TIMEOUT_MS);
     then(myPublisher.getLastComment()).isEqualTo("TeamCity build removed from queue");
   }
 
@@ -467,7 +468,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getLastUser()).isNull();
   }
 
-  public void shoudl_pass_through_user_comment_on_build_delete_from_queue() {
+  public void should_pass_through_user_comment_on_build_delete_from_queue() {
     prepareVcs();
     SQueuedBuild queuedBuild = myBuildType.addToQueue("");
     waitForTasksToFinish(Event.QUEUED);
@@ -476,6 +477,50 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     final String expectedComment = String.format("TeamCity build removed from queue by %s: %s", myUser.getUsername(), comment);
     waitForAssert(() -> expectedComment.equals(myPublisher.getLastComment()), TASK_COMPLETION_TIMEOUT_MS);
     then(myPublisher.getLastUser()).isEqualTo(myUser);
+  }
+
+  public void should_publish_previous_status_when_build_removed_from_queue() {
+    prepareVcs();
+    SQueuedBuild queuedBuild0 = myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    SQueuedBuild queuedBuild1 = myBuildType.addToQueue(myBuildAgent, "");
+    waitForTasksToFinish(Event.QUEUED);
+    then(myBuildType.getNumberQueued()).isEqualTo(2);
+    myLastEventProcessed = null; // to prevent false-positive passing check for QUEUED event later
+    myFixture.getBuildQueue().removeQueuedBuilds(Collections.singleton(queuedBuild1), myUser, "");
+    final String expectedRemoveFromQueueComment = "TeamCity build removed from queue by " + myUser.getUsername();
+    waitForAssert(() -> myPublisher.getCommentsReceived().contains(expectedRemoveFromQueueComment));
+    waitForTasksToFinish(Event.QUEUED);
+    waitForAssert(() -> DefaultStatusMessages.BUILD_QUEUED.equals(myPublisher.getLastComment()));
+  }
+
+  public void should_publish_finished_status_when_previous_build_finished_on_build_remove_from_queue() {
+    prepareVcs();
+    SQueuedBuild queuedBuild0 = myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    RunningBuildEx runningBuild0 = myFixture.flushQueueAndWait();
+    SQueuedBuild queuedBuild1 = myBuildType.addToQueue(myBuildAgent, "");
+    waitForTasksToFinish(Event.QUEUED);
+    myFixture.finishBuild(runningBuild0, false);
+    waitForTasksToFinish(Event.FINISHED);
+    myFixture.getBuildQueue().removeQueuedBuilds(Collections.singleton(queuedBuild1), myUser, "");
+    final String expectedRemoveFromQueueComment = "TeamCity build removed from queue by " + myUser.getUsername();
+    waitForAssert(() -> myPublisher.getCommentsReceived().contains(expectedRemoveFromQueueComment));
+    waitForTasksToFinish(Event.FINISHED);
+  }
+
+  public void should_publish_started_status_when_previous_build_running_on_build_remove_from_queue() {
+    prepareVcs();
+    SQueuedBuild queuedBuild0 = myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    RunningBuildEx runningBuild0 = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
+    SQueuedBuild queuedBuild1 = myBuildType.addToQueue(myBuildAgent, "");
+    waitForTasksToFinish(Event.QUEUED);
+    myFixture.getBuildQueue().removeQueuedBuilds(Collections.singleton(queuedBuild1), myUser, "");
+    final String expectedRemoveFromQueueComment = DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE + " by " + myUser.getUsername();
+    waitForAssert(() -> myPublisher.getCommentsReceived().contains(expectedRemoveFromQueueComment));
+    waitForTasksToFinish(Event.STARTED);
   }
 
   private void prepareVcs() {
