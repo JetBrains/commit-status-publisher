@@ -46,7 +46,7 @@ public class SwarmClient {
     try {
       HttpHelper.get(projectsUrl, myUsername, myTicket, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
     } catch (IOException e) {
-      throw new PublisherException("Cannot get list of projects from " + projectsUrl + " to test connection:" + e.getMessage(), e);
+      throw new PublisherException("Test connection failed, cannot get list of projects from " + projectsUrl, e);
     }
   }
 
