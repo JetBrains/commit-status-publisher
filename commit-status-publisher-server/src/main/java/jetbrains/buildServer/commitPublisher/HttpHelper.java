@@ -87,7 +87,7 @@ public class HttpHelper {
           }
         });
     } catch (URISyntaxException e) {
-      throw new IllegalArgumentException(String.format("Malformed URL '%s'", url), e);
+      throw new IOException(String.format("Malformed URL '%s'", url), e);
     }
     if (modifier != null) {
       modifier.accept(builder);

@@ -82,6 +82,11 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
         require(properties, PARAM_URL, result, "Server URL");
         require(properties, PARAM_USERNAME, result, "Username");
         require(properties, PARAM_PASSWORD, result, "Ticket or password");
+
+        final String url = properties.get(PARAM_URL);
+        if (StringUtil.isNotEmpty(url) && !url.startsWith("http")) {
+          properties.put(PARAM_URL, "http://" + url);
+        }
         return result;
       }
 
