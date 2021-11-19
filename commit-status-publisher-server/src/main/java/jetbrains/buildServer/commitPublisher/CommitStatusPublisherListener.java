@@ -20,6 +20,7 @@ import com.google.common.util.concurrent.Striped;
 import com.intellij.openapi.util.Pair;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -287,9 +288,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       return;
     }
 
-    CompletableFuture.runAsync(() -> {
+    runAsync(() -> {
       proccessRemovedFromQueueBuild(build, user, comment);
-    }, myExecutorServices.getLowPriorityExecutorService());
+    }, null);
   }
 
   @Override
@@ -494,9 +495,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     if (buildTypes.isEmpty()) {
       return;
     }
-    myExecutorServices.getLowPriorityExecutorService().submit(() -> {
+    runAsync(() -> {
       buildTypes.forEach(this::clearObsoleteProblems);
-    });
+    }, null);
   }
 
   private void clearObsoleteProblems(@NotNull SBuildType buildType) {
@@ -567,6 +568,16 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     Collection<BuildRevision> getRevisions(BuildType buildType, CommitStatusPublisher publisher);
   }
 
+  private void runAsync(@NotNull Runnable action, @Nullable Runnable postAction) {
+    CompletableFuture<Void> future = CompletableFuture.runAsync(action, myExecutorServices.getLowPriorityExecutorService());
+    if (postAction != null) {
+      future.handle((r, t) -> {
+        postAction.run();
+        return r;
+      });
+    }
+  }
+
   private class BuildPublisherTaskConsumer extends PublisherTaskConsumer<PublishTask, AdditionalTaskInfo> {
 
     private final Function<SBuild, PublishTask> myTaskSupplier;
@@ -613,7 +624,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       // One way or another it will be marked as finished (see TW-69618)
       task.finished();
 
-      CompletableFuture.runAsync(() -> {
+      runAsync(() -> {
           Lock lock = myLocks.get(build.getBuildTypeId());
           lock.lock();
           try {
@@ -621,10 +632,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
           } finally {
             lock.unlock();
           }
-        }, myExecutorServices.getLowPriorityExecutorService()).handle((r, t) -> {
-        eventProcessed(eventType);
-        return r;
-      });
+        }, () -> { eventProcessed(eventType); });
     }
 
     @Nullable
@@ -695,7 +703,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       task.finished();
 
       AdditionalQueuedInfo additionalTaskInfo = new AdditionalQueuedInfo(comment, commentAuthor);
-      CompletableFuture.runAsync(() -> {
+
+      runAsync(() -> {
         Lock lock = myLocks.get(promotion.getBuildTypeId());
         lock.lock();
         try {
@@ -703,10 +712,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         } finally {
           lock.unlock();
         }
-      }, myExecutorServices.getLowPriorityExecutorService()).handle((r, t) -> {
-        eventProcessed(eventType);
-        return r;
-      });
+      }, () -> { eventProcessed(eventType); });
     }
 
     @Nullable
