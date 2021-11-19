@@ -386,6 +386,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   private void proccessPublishing(Event event, BuildPromotion buildPromotion, PublishingProcessor publishingProcessor) {
     SBuildType buildType = buildPromotion.getBuildType();
+    if (buildType == null) {
+      LOG.warn("Build status has not been published: build type not found, id: " + buildPromotion.getBuildTypeExternalId());
+      return;
+    }
     Map<String, CommitStatusPublisher> publishers = getPublishers(buildType);
     LOG.debug("Event: " + event.getName() + ", build promotion " + LogUtil.describe(buildPromotion) + ", publishers: " + publishers.values());
     for (CommitStatusPublisher publisher : publishers.values()) {
