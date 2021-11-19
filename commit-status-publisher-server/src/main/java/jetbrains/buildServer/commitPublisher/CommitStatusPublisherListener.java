@@ -20,7 +20,7 @@ import com.google.common.util.concurrent.Striped;
 import com.intellij.openapi.util.Pair;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -569,12 +569,19 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private void runAsync(@NotNull Runnable action, @Nullable Runnable postAction) {
-    CompletableFuture<Void> future = CompletableFuture.runAsync(action, myExecutorServices.getLowPriorityExecutorService());
-    if (postAction != null) {
-      future.handle((r, t) -> {
+    try {
+      CompletableFuture<Void> future = CompletableFuture.runAsync(action, myExecutorServices.getLowPriorityExecutorService());
+      if (postAction != null) {
+        future.handle((r, t) -> {
+          postAction.run();
+          return r;
+        });
+      }
+    } catch (RejectedExecutionException ex) {
+      LOG.warnAndDebugDetails("CommitStatusPublisherListener has failed to run an action asynchronously. Executing in the same thread instead", ex);
+      action.run();
+      if (postAction != null)
         postAction.run();
-        return r;
-      });
     }
   }
 
