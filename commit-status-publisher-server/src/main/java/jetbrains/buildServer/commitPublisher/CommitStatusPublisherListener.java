@@ -41,6 +41,9 @@ import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.EventDispatcher;
 import jetbrains.buildServer.vcs.SVcsRootEx;
+import jetbrains.buildServer.vcs.VcsModification;
+import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcs.impl.VcsModificationEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -234,6 +237,18 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     submitTaskForBuild(Event.INTERRUPTED, build);
   }
 
+  @Override
+  public void changeAdded(@NotNull VcsModification modification, @NotNull VcsRoot root, @Nullable final Collection<SBuildType> buildTypes) {
+    VcsModificationEx modificationEx = (VcsModificationEx)modification;
+    List<String> relatedBuildTypeIds = modificationEx.getRelatedConfigurationIds(false);
+    Collection<SBuildType> relatedBuildTypes = myProjectManager.findBuildTypes(relatedBuildTypeIds);
+    for (SBuildType buildType : relatedBuildTypes) {
+      List<SQueuedBuild> queuedBuildsOfType = buildType.getQueuedBuilds(null);
+      for (SQueuedBuild queuedBuild : queuedBuildsOfType) {
+        buildTypeAddedToQueue(queuedBuild);
+      }
+    }
+  }
 
   @Override
   public void buildChangedStatus(@NotNull final SRunningBuild build, Status oldStatus, Status newStatus) {
