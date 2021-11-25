@@ -100,15 +100,16 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       return null;
     }
     String buildContext = getBuildContext(buildPromotion);
+    CommitStatus latestCommitStatus = commitStatuses.iterator().next();
     Optional<CommitStatus> latestCommitStatusForBuild = commitStatuses.stream()
                                                  .filter(commitStatus -> buildContext.equals(commitStatus.context))
-                                                 .max(Comparator.comparing(commitStatus -> commitStatus.updated_at, Comparator.nullsFirst(Comparator.naturalOrder())));
+                                                 .findFirst();
     if (!latestCommitStatusForBuild.isPresent()) {
       return null;
     }
     CommitStatus commitStatus = latestCommitStatusForBuild.get();
     Event triggeredEvent = getTriggeredEvent(commitStatus);
-    return new RevisionStatus(triggeredEvent, commitStatus.updated_at, commitStatus.description);
+    return new RevisionStatus(triggeredEvent, commitStatus.updated_at, commitStatus.description, latestCommitStatus.equals(commitStatus));
   }
 
   @Nullable

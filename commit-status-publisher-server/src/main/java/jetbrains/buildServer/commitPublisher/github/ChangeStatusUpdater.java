@@ -222,7 +222,7 @@ public class ChangeStatusUpdater {
     }
 
     @NotNull
-    protected String resolveCommitHash(RepositoryVersion myVersion, Repository repo, BuildPromotion buildPromotion) {
+    protected String resolveCommitHash(RepositoryVersion myVersion, Repository repo, BuildPromotion buildPromotion, GitHubChangeState myTargetStatus) {
       final String vcsBranch = myVersion.getVcsBranch();
       if (vcsBranch != null && myApi.isPullRequestMergeBranch(vcsBranch)) {
         try {
@@ -235,6 +235,7 @@ public class ChangeStatusUpdater {
                    "hash: " + myVersion.getVersion() + ", " +
                    "newHash: " + hash + ", " +
                    "branch: " + myVersion.getVcsBranch() + ", " +
+                   "status: " + myTargetStatus + ", " +
                    "buildId: " + buildId);
           return hash;
         } catch (Exception e) {
@@ -282,7 +283,7 @@ public class ChangeStatusUpdater {
     @NotNull
     public Collection<CommitStatus> getStatuses(BuildPromotion buildPromotion, BuildRevision revision, Repository repo) {
       final RepositoryVersion version = revision.getRepositoryVersion();
-      final String hash = resolveCommitHash(version, repo, buildPromotion);
+      final String hash = resolveCommitHash(version, repo, buildPromotion, null);
       if (isHashInvalid(hash, version, revision.getRoot(), buildPromotion)) {
         return Collections.emptyList();
       }
@@ -309,7 +310,7 @@ public class ChangeStatusUpdater {
                           @NotNull Repository repo,
                           @NotNull AdditionalTaskInfo additionalTaskInfo) {
       final RepositoryVersion version = revision.getRepositoryVersion();
-      final String hash = resolveCommitHash(version, repo, buildPromotion);
+      final String hash = resolveCommitHash(version, repo, buildPromotion, targetStatus);
       if (isHashInvalid(hash, version, revision.getRoot(), buildPromotion)) {
         return false;
       }
@@ -361,7 +362,7 @@ public class ChangeStatusUpdater {
     public void update(BuildRevision revision, SBuild build, String message, GitHubChangeState targetStatus, Repository repo) {
       final RepositoryVersion version = revision.getRepositoryVersion();
       BuildPromotion buildPromotion = build.getBuildPromotion();
-      final String hash = resolveCommitHash(version, repo, buildPromotion);
+      final String hash = resolveCommitHash(version, repo, buildPromotion, targetStatus);
       if (isHashInvalid(hash, version, revision.getRoot(), buildPromotion)) {
         return;
       }
