@@ -38,4 +38,13 @@ public enum GitHubChangeState {
   public String getState() {
     return myState;
   }
+
+  public static GitHubChangeState getByState(String state) {
+    for (GitHubChangeState value : values()) {
+      if (value.myState.equals(state)) {
+        return value;
+      }
+    }
+    return null;
+  }
 }

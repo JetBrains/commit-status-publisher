@@ -35,6 +35,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.MultiNodeTasks.PerformingTask;
 import jetbrains.buildServer.serverSide.comments.Comment;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.users.User;
@@ -244,6 +245,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     Collection<SBuildType> relatedBuildTypes = myProjectManager.findBuildTypes(relatedBuildTypeIds);
     for (SBuildType buildType : relatedBuildTypes) {
       List<SQueuedBuild> queuedBuildsOfType = buildType.getQueuedBuilds(null);
+      if (!queuedBuildsOfType.isEmpty() && buildType instanceof BuildTypeImpl) {
+        // to guarantee that publisher will not take wrong promotion from cache and will publish status to actual build
+        ((BuildTypeImpl) buildType).getBuildTypeBranches().cleanupDummyPromotionsCache(false);
+      }
       for (SQueuedBuild queuedBuild : queuedBuildsOfType) {
         buildTypeAddedToQueue(queuedBuild);
       }
@@ -375,6 +380,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(event.getName(), event.getName() + ":" + buildId, buildId, null, null));
   }
 
+  private boolean isCurrentRevisionSuitable(Event event, BuildPromotion buildPromotion, BuildRevision revision, CommitStatusPublisher publisher) throws PublisherException {
+    RevisionStatus revisionStatus = publisher.getRevisionStatus(buildPromotion, revision);
+    return revisionStatus == null || revisionStatus.isEventAllowed(event);
+  }
+
   private void proccessRemovedFromQueueBuild(SQueuedBuild queuedBuild, User user, String comment) {
     BuildPromotion buildPromotion = queuedBuild.getBuildPromotion();
     AdditionalTaskInfo additionalTaskInfo = buildAdditionalRemovedFromQueueInfo(buildPromotion, comment, user);
@@ -385,7 +395,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         if (!publisher.isAvailable(buildPromotion))
           return;
         try {
-          publisher.buildRemovedFromQueue(buildPromotion, revision, additionalTaskInfo);
+          if (isCurrentRevisionSuitable(event, buildPromotion, revision, publisher)) {
+            publisher.buildRemovedFromQueue(buildPromotion, revision, additionalTaskInfo);
+          }
         } catch (PublisherException e) {
           LOG.warn("Cannot publish removed build status to VCS for " + publisher.getBuildType() + ", commit: " + revision.getRevision(), e);
         }
@@ -772,7 +784,22 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       PublishingProcessor publishingProcessor = new PublishingProcessor() {
         @Override
         public void publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
-          runTask(event, buildPromotion, LogUtil.describe(buildPromotion), publishTask, publisher, revision, additionalTaskInfo);
+          runAsync(() -> doPublish(revision, publisher), null);
+        }
+
+        private void doPublish(BuildRevision revision, CommitStatusPublisher publisher) {
+          boolean isEventSuitableForRevision;
+          try {
+            isEventSuitableForRevision = isCurrentRevisionSuitable(event, buildPromotion, revision, publisher);
+          } catch (PublisherException e) {
+            LOG.warn("Can not define if event \"" + event + "\" can be published for current revision state in VCS", e);
+            return;
+          }
+          if (isEventSuitableForRevision) {
+            runTask(event, buildPromotion, LogUtil.describe(buildPromotion), publishTask, publisher, revision, additionalTaskInfo);
+          } else {
+            LOG.debug("Event \"" + event + "\" is not suitable to be published to rooot \"" + publisher.getVcsRootId() + "\" for revision " + revision.getRevision());
+          }
         }
 
         @Override

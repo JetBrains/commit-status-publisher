@@ -16,9 +16,10 @@
 
 package jetbrains.buildServer.commitPublisher.github;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
+import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -92,12 +93,64 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     return true;
   }
 
+  @Override
+  public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+    Collection<CommitStatus> commitStatuses = getCommitStatuses(buildPromotion, revision);
+    if (commitStatuses.isEmpty()) {
+      return null;
+    }
+    String buildContext = getBuildContext(buildPromotion);
+    Optional<CommitStatus> latestCommitStatusForBuild = commitStatuses.stream()
+                                                 .filter(commitStatus -> buildContext.equals(commitStatus.context))
+                                                 .max(Comparator.comparing(commitStatus -> commitStatus.updated_at, Comparator.nullsFirst(Comparator.naturalOrder())));
+    if (!latestCommitStatusForBuild.isPresent()) {
+      return null;
+    }
+    CommitStatus commitStatus = latestCommitStatusForBuild.get();
+    Event triggeredEvent = getTriggeredEvent(commitStatus);
+    return new RevisionStatus(triggeredEvent, commitStatus.updated_at, commitStatus.description);
+  }
+
+  @Nullable
+  private Event getTriggeredEvent(CommitStatus commitStatus) {
+    GitHubChangeState gitHubChangeState = GitHubChangeState.getByState(commitStatus.state);
+    if (gitHubChangeState == null) {
+      LOG.warn("Can not find GitHub state for received state \"" + commitStatus.state + "\". Related event can not be calculated");
+      return null;
+    }
+    switch (gitHubChangeState) {
+      case Success:
+        return Event.FINISHED;
+      case Error:
+      case Failure:
+        return Event.FAILURE_DETECTED;
+      case Pending:
+        String description = commitStatus.description;
+        if (description == null) {
+          LOG.info("Can not define exact event for \"Pending\" GitHub status, because there is no description for status");
+          return null;
+        }
+        if (description.contains(DefaultStatusMessages.BUILD_STARTED)) {
+          return Event.STARTED;
+        } else if (description.contains(DefaultStatusMessages.BUILD_QUEUED)) {
+          return Event.QUEUED;
+        } else if (description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) {
+          return Event.REMOVED_FROM_QUEUE;
+        }
+        LOG.warn("Can not define event for \"Pending\" status and description: \"" + description + "\"");
+        break;
+      default:
+        LOG.warn("No event is assosiated with GitHub status \"" + gitHubChangeState + "\". Related event can not be defined");
+    }
+    return null;
+  }
+
   public String getServerUrl() {
     return myParams.get(Constants.GITHUB_SERVER);
   }
 
   private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) throws PublisherException {
-    final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), getParams(build.getBuildPromotion()), this);
+    final ChangeStatusUpdater.Handler h = myUpdater.getHandler(revision.getRoot(), getParams(build.getBuildPromotion()), this);
 
     if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
       LOG.warn("No revisions were found to update GitHub status. Please check you have Git VCS roots in the build configuration");
@@ -111,9 +164,21 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     }
   }
 
+  @NotNull
+  private Collection<CommitStatus> getCommitStatuses(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+    ChangeStatusUpdater.Handler handler = myUpdater.getHandler(revision.getRoot(), getParams(buildPromotion), this);
+
+    if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
+      LOG.warn("No revisions were found to request GitHub status. Please check you have Git VCS roots in the build configuration");
+      return Collections.emptyList();
+    }
+
+    return handler.getStatuses(revision, buildPromotion);
+  }
+
   private boolean updateQueuedBuildStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision,
                                           @NotNull AdditionalTaskInfo additionalTaskInfo, boolean addingToQueue) throws PublisherException {
-    final ChangeStatusUpdater.Handler h = myUpdater.getUpdateHandler(revision.getRoot(), getParams(buildPromotion), this);
+    final ChangeStatusUpdater.Handler h = myUpdater.getHandler(revision.getRoot(), getParams(buildPromotion), this);
 
     if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
       LOG.warn("No revisions were found to update GitHub status. Please check you have Git VCS roots in the build configuration");
@@ -129,12 +194,16 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
 
   @NotNull
   private Map<String, String> getParams(@NotNull BuildPromotion buildPromotion) {
-    String context = getCustomContextFromParameter(buildPromotion);
-    if (context == null)
-      context = getDefaultContext(buildPromotion);
+    String context = getBuildContext(buildPromotion);
     Map<String, String> result = new HashMap<String, String>(myParams);
     result.put(Constants.GITHUB_CONTEXT, context);
     return result;
+  }
+
+  @NotNull
+  String getBuildContext(@NotNull BuildPromotion buildPromotion) {
+    String context = getCustomContextFromParameter(buildPromotion);
+    return context != null ? context : getDefaultContext(buildPromotion);
   }
 
   @NotNull
