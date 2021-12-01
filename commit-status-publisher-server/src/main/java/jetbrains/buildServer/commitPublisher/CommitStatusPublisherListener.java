@@ -21,6 +21,7 @@ import com.intellij.openapi.util.Pair;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -35,13 +36,15 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.MultiNodeTasks.PerformingTask;
 import jetbrains.buildServer.serverSide.comments.Comment;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
-import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.EventDispatcher;
+import jetbrains.buildServer.util.ExceptionUtil;
+import jetbrains.buildServer.util.TimeIntervalAction;
 import jetbrains.buildServer.vcs.SVcsRootEx;
+import jetbrains.buildServer.vcs.SelectPrevBuildPolicy;
 import jetbrains.buildServer.vcs.VcsModification;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.impl.VcsModificationEx;
@@ -52,7 +55,9 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 public class CommitStatusPublisherListener extends BuildServerAdapter {
 
-  private final static String PUBLISHING_ENABLED_PROPERTY_NAME = "teamcity.commitStatusPublisher.enabled";
+  final static String PUBLISHING_ENABLED_PROPERTY_NAME = "teamcity.commitStatusPublisher.enabled";
+  final static String EXPECTED_PROMOTIONS_CACHE_REFRESH_TIME_PROPERTY_NAME = "teamcity.commitStatusPublisher.promotionsCache.expectedRefreshTime";
+  final static String MODIFICATIONS_PROCESSING_INTERVAL_PROPERTY_NAME = "teamcity.commitStatusPublisher.modificationsProcessing.interval";
   private final static int MAX_LAST_EVENTS_TO_REMEMBER = 1000;
 
   private final PublisherManager myPublisherManager;
@@ -75,6 +80,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         return size() > MAX_LAST_EVENTS_TO_REMEMBER;
       }
     };
+  private final Map<String, VcsModificationEx> myModificationsToProcess = new HashMap<>();
+  private final TimeIntervalAction myModificationsProcessor;
 
   private Consumer<Event> myEventProcessedCallback = null;
 
@@ -107,6 +114,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       build -> new PublishTask() {
         @Override
         public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
+          removeModificationsToProcess(revision.getRevision());
           publisher.buildStarted(build, revision);
         }
       }
@@ -168,6 +176,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         }
       }
     ));
+
+    myModificationsProcessor = new TimeIntervalAction(() -> TeamCityProperties.getIntervalMilliseconds(MODIFICATIONS_PROCESSING_INTERVAL_PROPERTY_NAME, 10_000), () -> processModifications());
+    myExecutorServices.getNormalExecutorService()
+                    .scheduleWithFixedDelay(ExceptionUtil.catchAll("Publishing queued statuses", () -> myModificationsProcessor.execute()), 0,
+                                            TeamCityProperties.getIntervalMilliseconds(MODIFICATIONS_PROCESSING_INTERVAL_PROPERTY_NAME, 10_000),
+                                            TimeUnit.MILLISECONDS);
   }
 
   private Pair<String, User> getCommentWithAuthor(BuildPromotion buildPromotion) {
@@ -241,17 +255,100 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   @Override
   public void changeAdded(@NotNull VcsModification modification, @NotNull VcsRoot root, @Nullable final Collection<SBuildType> buildTypes) {
     VcsModificationEx modificationEx = (VcsModificationEx)modification;
-    List<String> relatedBuildTypeIds = modificationEx.getRelatedConfigurationIds(false);
+    Collection<String> parentRevisions = modificationEx.getParentRevisions();
+    if (parentRevisions.size() == 1) {
+      String parentRevision = parentRevisions.iterator().next();
+      replaceParentModificationWithChild(parentRevision, modificationEx);
+    } else {
+      storeModificationToProcess(modificationEx);
+    }
+  }
+
+  private void replaceParentModificationWithChild(String parentRevision, VcsModificationEx child) {
+    Lock lock = myLocks.get(myModificationsToProcess);
+    lock.lock();
+    try {
+      if (myModificationsToProcess.containsKey(parentRevision)) {
+        myModificationsToProcess.remove(parentRevision);
+      }
+      myModificationsToProcess.put(child.getVersion(), child);
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  private void removeModificationsToProcess(String modificationToRemove) {
+    Lock lock = myLocks.get(myModificationsToProcess);
+    lock.lock();
+    try {
+      myModificationsToProcess.remove(modificationToRemove);
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  private void storeModificationToProcess(VcsModificationEx modification) {
+    Lock lock = myLocks.get(myModificationsToProcess);
+    lock.lock();
+    try {
+      myModificationsToProcess.put(modification.getVersion(), modification);
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  private Collection<VcsModificationEx> getModificationsToProcess() {
+    Lock lock = myLocks.get(myModificationsToProcess);
+    lock.lock();
+    try {
+      if (myModificationsToProcess.isEmpty()) {
+        return Collections.emptySet();
+      }
+      Map<String, VcsModificationEx> toProcess = new HashMap<>(myModificationsToProcess);
+      myModificationsToProcess.clear();
+      return toProcess.values();
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  private void processModifications() {
+    Collection<VcsModificationEx> modificationsToProcess = getModificationsToProcess();
+    if (modificationsToProcess.isEmpty()) {
+      return;
+    }
+    runAsync(() -> waitForDummyPromotionsCacheUpdate(), () -> updateQueuedStatusForModification(modificationsToProcess));
+  }
+
+  private void updateQueuedStatusForModification(Collection<VcsModificationEx> modifications) {
+    Set<String> relatedBuildTypeIds = modifications.stream()
+      .map(modification -> modification.getRelatedConfigurationIds(false))
+      .flatMap(List::stream)
+      .collect(Collectors.toSet());
     Collection<SBuildType> relatedBuildTypes = myProjectManager.findBuildTypes(relatedBuildTypeIds);
     for (SBuildType buildType : relatedBuildTypes) {
       List<SQueuedBuild> queuedBuildsOfType = buildType.getQueuedBuilds(null);
-      if (!queuedBuildsOfType.isEmpty() && buildType instanceof BuildTypeImpl) {
-        // to guarantee that publisher will not take wrong promotion from cache and will publish status to actual build
-        ((BuildTypeImpl) buildType).getBuildTypeBranches().cleanupDummyPromotionsCache(false);
-      }
       for (SQueuedBuild queuedBuild : queuedBuildsOfType) {
-        buildTypeAddedToQueue(queuedBuild);
+        String branchName = getBranchName(queuedBuild.getBuildPromotion());
+        BranchEx branch = ((BuildTypeEx) buildType).getBranch(branchName);
+        Set<Long> detectedChanges = branch.getDetectedChanges(SelectPrevBuildPolicy.SINCE_NULL_BUILD, false).stream()
+                                                                                    .map(changeDescriptor -> ((VcsModificationEx)changeDescriptor).getId())
+                                                                                    .collect(Collectors.toSet());
+        for (VcsModificationEx modification : modifications) {
+          if (detectedChanges.contains(modification.getId())) {
+            buildTypeAddedToQueue(queuedBuild);
+          }
+        }
       }
+    }
+  }
+
+  public void waitForDummyPromotionsCacheUpdate() {
+    try {
+      Thread.sleep(TeamCityProperties.getIntervalMilliseconds(EXPECTED_PROMOTIONS_CACHE_REFRESH_TIME_PROPERTY_NAME, 5_000));
+    } catch (InterruptedException e) {
+      LOG.info("Waiting for dummy promomotions cache to update was interrupted", e);
+      Thread.currentThread().interrupt();
     }
   }
 
@@ -394,6 +491,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       public void publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
         if (!publisher.isAvailable(buildPromotion))
           return;
+        removeModificationsToProcess(revision.getRevision());
         try {
           if (isCurrentRevisionSuitable(event, buildPromotion, revision, publisher)) {
             publisher.buildRemovedFromQueue(buildPromotion, revision, additionalTaskInfo);
