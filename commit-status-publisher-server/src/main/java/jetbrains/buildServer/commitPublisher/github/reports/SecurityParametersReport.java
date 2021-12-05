@@ -104,7 +104,7 @@ public class SecurityParametersReport extends HealthStatusReport {
 
 
   private boolean githubRoot(@NotNull VcsRootInstance root) {
-    String url = root.getProperties().get(Constants.GIT_URL_PARAMETER);
+    String url = root.getProperty(Constants.GIT_URL_PARAMETER);
     return url != null && url.contains("github.com");
   }
 
