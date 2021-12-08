@@ -20,10 +20,7 @@ import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.BuildRevision;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -95,7 +92,8 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
 
   @Override
   public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
-    Collection<CommitStatus> commitStatuses = getCommitStatuses(buildPromotion, revision);
+    String buildIdentificator = getBuildIdentificator(buildPromotion);
+    Collection<CommitStatus> commitStatuses = getCommitStatuses(revision, buildIdentificator);
     if (commitStatuses.isEmpty()) {
       return null;
     }
@@ -166,15 +164,28 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   @NotNull
-  private Collection<CommitStatus> getCommitStatuses(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
-    ChangeStatusUpdater.Handler handler = myUpdater.getHandler(revision.getRoot(), getParams(buildPromotion), this);
+  private Collection<CommitStatus> getCommitStatuses(@NotNull BuildRevision revision, @NotNull String buildIdentificator) throws PublisherException {
+    ChangeStatusUpdater.Handler handler = myUpdater.getHandler(revision.getRoot(), new HashMap<>(myParams), this);
 
     if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
       LOG.warn("No revisions were found to request GitHub status. Please check you have Git VCS roots in the build configuration");
       return Collections.emptyList();
     }
+    return handler.getStatuses(revision, buildIdentificator);
+  }
 
-    return handler.getStatuses(revision, buildPromotion);
+  @NotNull
+  private String getBuildIdentificator(@Nullable BuildPromotion buildPromotion) {
+    if (buildPromotion == null) {
+      return "<unknown build>";
+    }
+    Long associatedBuildId = buildPromotion.getAssociatedBuildId();
+    if (associatedBuildId != null) return "buildId: " + associatedBuildId;
+
+    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    if (queuedBuild != null) return "queuedBuildId: " + queuedBuild.getItemId();
+
+    return "buildPromotionId: " + buildPromotion.getId();
   }
 
   private boolean updateQueuedBuildStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision,
