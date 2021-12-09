@@ -99,15 +99,17 @@ public abstract class GitHubApiImpl implements GitHubApi {
     }
   }
 
-  public Collection<CommitStatus> readChangeStatuses(@NotNull final String repoOwner,
-                                                     @NotNull final String repoName,
-                                                     @NotNull final String hash) throws IOException {
-    final String statusUrl = myUrls.getStatusUrl(repoOwner, repoName, hash);
+  public CombinedCommitStatus readChangeCombinedStatus(@NotNull final String repoOwner,
+                                                       @NotNull final String repoName,
+                                                       @NotNull final String hash,
+                                                       @Nullable final Integer perPage,
+                                                       @Nullable final Integer page) throws IOException {
+    final String statusUrl = myUrls.getCombinedStatusUrl(repoOwner, repoName, hash, perPage, page);
 
     final HttpMethod method = HttpMethod.GET;
     LoggerUtil.logRequest(Constants.GITHUB_PUBLISHER_ID, method, statusUrl, null);
 
-    final Collection<CommitStatus> statuses = new ArrayList<>();
+    final AtomicReference<CombinedCommitStatus> status = new AtomicReference<>();
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     IOGuard.allowNetworkCall(() -> {
       myClient.get(statusUrl, authenticationCredentials(), defaultHeaders(),
@@ -117,11 +119,11 @@ public abstract class GitHubApiImpl implements GitHubApi {
                        logFailedResponse(HttpMethod.GET, statusUrl, null, success);
                        exceptionRef.set(new IOException(getErrorMessage(success, "Empty response.")));
                      } else {
-                       CommitStatus[] commitStatuses = myGson.fromJson(json, CommitStatus[].class);
-                       if (null == commitStatuses) {
+                       CombinedCommitStatus combinedCommitStatus = myGson.fromJson(json, CombinedCommitStatus.class);
+                       if (null == combinedCommitStatus) {
                          exceptionRef.set(new PublisherException("GitHub publisher fails to parse a response"));
                        } else {
-                         Collections.addAll(statuses, commitStatuses);
+                         status.set(combinedCommitStatus);
                        }
                      }
                    },
@@ -141,7 +143,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
       }
     }
 
-    return statuses;
+    return status.get();
   }
 
   private Map<String, String> defaultHeaders() {

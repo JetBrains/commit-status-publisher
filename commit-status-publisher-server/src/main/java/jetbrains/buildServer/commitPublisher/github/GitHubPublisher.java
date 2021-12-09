@@ -16,7 +16,8 @@
 
 package jetbrains.buildServer.commitPublisher.github;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
@@ -92,22 +93,30 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
 
   @Override
   public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
-    String buildIdentificator = getBuildIdentificator(buildPromotion);
-    Collection<CommitStatus> commitStatuses = getCommitStatuses(revision, buildIdentificator);
-    if (commitStatuses.isEmpty()) {
+    CommitStatus commitStatus = getCommitStatus(revision, buildPromotion);
+    if (commitStatus == null) {
       return null;
     }
-    String buildContext = getBuildContext(buildPromotion);
-    CommitStatus latestCommitStatus = commitStatuses.iterator().next();
-    Optional<CommitStatus> latestCommitStatusForBuild = commitStatuses.stream()
-                                                 .filter(commitStatus -> buildContext.equals(commitStatus.context))
-                                                 .findFirst();
-    if (!latestCommitStatusForBuild.isPresent()) {
-      return null;
-    }
-    CommitStatus commitStatus = latestCommitStatusForBuild.get();
     Event triggeredEvent = getTriggeredEvent(commitStatus);
-    return new RevisionStatus(triggeredEvent, commitStatus.updated_at, commitStatus.description, latestCommitStatus.equals(commitStatus));
+    boolean isSameBuild = isSameBuild(buildPromotion, commitStatus);
+    return new RevisionStatus(triggeredEvent, commitStatus.updated_at, commitStatus.description, isSameBuild);
+  }
+
+  private boolean isSameBuild(BuildPromotion buildPromotion, CommitStatus commitStatus) {
+    String buildId;
+    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    if (queuedBuild != null) {
+      buildId = queuedBuild.getItemId();
+    } else {
+      SBuild associatedBuild = buildPromotion.getAssociatedBuild();
+      if (associatedBuild != null) {
+        buildId = String.valueOf(associatedBuild.getBuildId());
+      } else {
+        return false;
+      }
+    }
+    return commitStatus.target_url != null &&
+           commitStatus.target_url.contains("Id=" + buildId);
   }
 
   @Nullable
@@ -163,29 +172,15 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     }
   }
 
-  @NotNull
-  private Collection<CommitStatus> getCommitStatuses(@NotNull BuildRevision revision, @NotNull String buildIdentificator) throws PublisherException {
-    ChangeStatusUpdater.Handler handler = myUpdater.getHandler(revision.getRoot(), new HashMap<>(myParams), this);
+  @Nullable
+  private CommitStatus getCommitStatus(@NotNull BuildRevision revision, @NotNull BuildPromotion buildPromotion) throws PublisherException {
+    ChangeStatusUpdater.Handler handler = myUpdater.getHandler(revision.getRoot(), getParams(buildPromotion), this);
 
     if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
       LOG.warn("No revisions were found to request GitHub status. Please check you have Git VCS roots in the build configuration");
-      return Collections.emptyList();
+      return null;
     }
-    return handler.getStatuses(revision, buildIdentificator);
-  }
-
-  @NotNull
-  private String getBuildIdentificator(@Nullable BuildPromotion buildPromotion) {
-    if (buildPromotion == null) {
-      return "<unknown build>";
-    }
-    Long associatedBuildId = buildPromotion.getAssociatedBuildId();
-    if (associatedBuildId != null) return "buildId: " + associatedBuildId;
-
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) return "queuedBuildId: " + queuedBuild.getItemId();
-
-    return "buildPromotionId: " + buildPromotion.getId();
+    return handler.getStatus(revision);
   }
 
   private boolean updateQueuedBuildStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision,
