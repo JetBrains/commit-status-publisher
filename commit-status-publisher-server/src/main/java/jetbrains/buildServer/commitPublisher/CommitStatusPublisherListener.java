@@ -596,6 +596,16 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       if (!revisions.isEmpty())
         return revisions;
     }
+    String vcsRootId = publisher.getVcsRootId();
+    if (vcsRootId != null && !buildPromotion.getRevisions().isEmpty()) {
+      for (BuildRevision revision : buildPromotion.getRevisions()) {
+        SVcsRootEx root = (SVcsRootEx)revision.getRoot().getParent();
+        if (publisher.isPublishingForRevision(revision) &&
+            (vcsRootId.equals(root.getExternalId()) || root.isAliasExternalId(vcsRootId) || vcsRootId.equals(String.valueOf(root.getId())))) {
+            return Collections.singletonList(revision);
+        }
+      }
+    }
 
     String branchName = getBranchName(buildPromotion);
     BranchEx branch = ((BuildTypeEx) buildType).getBranch(branchName);
