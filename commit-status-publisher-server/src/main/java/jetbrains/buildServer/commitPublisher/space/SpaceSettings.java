@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.commitPublisher.space;
 
+import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.serverSide.*;
@@ -23,6 +24,7 @@ import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
+import jetbrains.buildServer.serverSide.oauth.space.SpaceConstants;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthProvider;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
@@ -34,8 +36,6 @@ import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.*;
 
 import static jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT;
 
@@ -147,7 +147,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
 
   @Override
   public boolean isEnabled() {
-    return TeamCityProperties.getBooleanOrTrue("teamcity.commitStatusPublisher.spaceEnabled");
+    return TeamCityProperties.getBooleanOrTrue(SpaceConstants.COMMIT_STATUS_PUBLISHER_FEATURE_TOGGLE);
   }
 
   @Override
