@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.commitPublisher.github.api.impl.data;
 
-import java.util.Date;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -29,14 +28,12 @@ public class CommitStatus {
   @Nullable public String target_url;
   @Nullable public String description;
   @Nullable public String context;
-  @Nullable public Date updated_at;
 
-  public CommitStatus(@Nullable String state, @Nullable String target_url, @Nullable String description, @Nullable String context, @Nullable Date updated_at) {
+  public CommitStatus(@Nullable String state, @Nullable String target_url, @Nullable String description, @Nullable String context) {
     this.state = state;
     this.target_url = target_url;
     this.description = truncateStringValueWithDotsAtEnd(description, 140);
     this.context = context;
-    this.updated_at = updated_at;
   }
 
   @Nullable

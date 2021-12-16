@@ -1,7 +1,6 @@
 package jetbrains.buildServer.commitPublisher;
 
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.Date;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -12,24 +11,17 @@ public class RevisionStatus {
 
   private final CommitStatusPublisher.Event myTriggeredEvent;
   private final String myDescription;
-  private final Date myUpdated;
   private final boolean myIsLastStatusForRevision;
 
-  public RevisionStatus(@Nullable CommitStatusPublisher.Event triggeredEvent, @Nullable Date updated, @Nullable String description, boolean isLastStatusForRevision) {
+  public RevisionStatus(@Nullable CommitStatusPublisher.Event triggeredEvent, @Nullable String description, boolean isLastStatusForRevision) {
     myTriggeredEvent = triggeredEvent;
     myDescription = description;
-    myUpdated = updated;
     myIsLastStatusForRevision = isLastStatusForRevision;
   }
 
   @Nullable
   public String getDescription() {
     return myDescription;
-  }
-
-  @Nullable
-  public Date getUpdated() {
-    return myUpdated;
   }
 
   public boolean isEventAllowed(@NotNull CommitStatusPublisher.Event event) {

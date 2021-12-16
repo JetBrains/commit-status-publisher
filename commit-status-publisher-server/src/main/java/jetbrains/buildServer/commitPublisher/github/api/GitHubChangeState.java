@@ -16,6 +16,10 @@
 
 package jetbrains.buildServer.commitPublisher.github.api;
 
+import java.util.Arrays;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -26,8 +30,11 @@ public enum GitHubChangeState {
   Pending("pending"),
   Success("success"),
   Error("error"),
-  Failure("failure"),
-  ;
+  Failure("failure");
+
+
+  private static final Map<String, GitHubChangeState> STATE_MAPPING = Arrays.stream(values()).collect(Collectors.toMap(GitHubChangeState::getState, Function.identity()));
+
   private final String myState;
 
   GitHubChangeState(@NotNull final String state) {
@@ -40,11 +47,6 @@ public enum GitHubChangeState {
   }
 
   public static GitHubChangeState getByState(String state) {
-    for (GitHubChangeState value : values()) {
-      if (value.myState.equals(state)) {
-        return value;
-      }
-    }
-    return null;
+    return STATE_MAPPING.get(state);
   }
 }

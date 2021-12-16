@@ -207,7 +207,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     }
     String buildContext = prepareContextName(buildPromotion.getBuildType());
     boolean isLastForRevision = buildContext.equals(myPublishingBuilds.getLast());
-    return new RevisionStatus(myEventsReceived.getLast(), new Date(), getLastComment(), isLastForRevision);
+    return new RevisionStatus(myEventsReceived.getLast(), getLastComment(), isLastForRevision);
   }
 
   private String prepareContextName(SBuildType buildType) {

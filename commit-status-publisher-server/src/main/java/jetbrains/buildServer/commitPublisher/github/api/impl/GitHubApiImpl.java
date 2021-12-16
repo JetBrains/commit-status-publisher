@@ -18,6 +18,7 @@ package jetbrains.buildServer.commitPublisher.github.api.impl;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -118,13 +119,19 @@ public abstract class GitHubApiImpl implements GitHubApi {
                      if (StringUtil.isEmptyOrSpaces(json)) {
                        logFailedResponse(HttpMethod.GET, statusUrl, null, success);
                        exceptionRef.set(new IOException(getErrorMessage(success, "Empty response.")));
+                       return;
+                     }
+                     CombinedCommitStatus combinedCommitStatus;
+                     try {
+                       combinedCommitStatus = myGson.fromJson(json, CombinedCommitStatus.class);
+                     } catch (JsonSyntaxException e) {
+                       exceptionRef.set(new PublisherException("GitHub publisher can not parse malformed json", e));
+                       return;
+                     }
+                     if (null == combinedCommitStatus) {
+                       exceptionRef.set(new PublisherException("GitHub publisher fails to parse a response"));
                      } else {
-                       CombinedCommitStatus combinedCommitStatus = myGson.fromJson(json, CombinedCommitStatus.class);
-                       if (null == combinedCommitStatus) {
-                         exceptionRef.set(new PublisherException("GitHub publisher fails to parse a response"));
-                       } else {
-                         status.set(combinedCommitStatus);
-                       }
+                       status.set(combinedCommitStatus);
                      }
                    },
                    response -> {
@@ -163,7 +170,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
                               @Nullable final String context) throws IOException {
 
     final String url = myUrls.getStatusUrl(repoOwner, repoName, hash);
-    final String entity = myGson.toJson(new CommitStatus(status.getState(), targetUrl, description, context, null));
+    final String entity = myGson.toJson(new CommitStatus(status.getState(), targetUrl, description, context));
 
     final HttpMethod method = HttpMethod.POST;
     LoggerUtil.logRequest(Constants.GITHUB_PUBLISHER_ID, method, url, entity);

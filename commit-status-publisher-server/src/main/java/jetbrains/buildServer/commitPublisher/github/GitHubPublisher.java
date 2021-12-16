@@ -18,6 +18,8 @@ package jetbrains.buildServer.commitPublisher.github;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
@@ -29,6 +31,7 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 class GitHubPublisher extends BaseCommitStatusPublisher {
 
+  private static final Pattern NUMERIC_SUBSTRING_PATTERN = Pattern.compile("([^\\d])(\\d+)([^\\d]|$)");
   private final ChangeStatusUpdater myUpdater;
 
   GitHubPublisher(@NotNull CommitStatusPublisherSettings settings,
@@ -99,10 +102,13 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     }
     Event triggeredEvent = getTriggeredEvent(commitStatus);
     boolean isSameBuild = isSameBuild(buildPromotion, commitStatus);
-    return new RevisionStatus(triggeredEvent, commitStatus.updated_at, commitStatus.description, isSameBuild);
+    return new RevisionStatus(triggeredEvent, commitStatus.description, isSameBuild);
   }
 
   private boolean isSameBuild(BuildPromotion buildPromotion, CommitStatus commitStatus) {
+    if (commitStatus.target_url == null) {
+      return false;
+    }
     String buildId;
     SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
     if (queuedBuild != null) {
@@ -115,8 +121,13 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
         return false;
       }
     }
-    return commitStatus.target_url != null &&
-           commitStatus.target_url.contains("Id=" + buildId);
+    Matcher matcher = NUMERIC_SUBSTRING_PATTERN.matcher(commitStatus.target_url);
+    while (matcher.find()) {
+      if (matcher.group(2).equals(buildId)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Nullable
