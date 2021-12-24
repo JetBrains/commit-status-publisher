@@ -57,6 +57,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   final static String EXPECTED_PROMOTIONS_CACHE_REFRESH_TIME_PROPERTY_NAME = "teamcity.commitStatusPublisher.promotionsCache.expectedRefreshTime";
   final static String MODIFICATIONS_PROCESSING_INTERVAL_PROPERTY_NAME = "teamcity.commitStatusPublisher.modificationsProcessing.interval";
   final static String MODIFICATIONS_PROCESSING_DELAY_PROPERTY_NAME = "teamcity.commitStatusPublisher.modificationsProcessing.delay";
+  final static String MODIFICATIONS_PROCESSING_FATURE_TOGGLE_PROPERTY_NAME = "teamcity.commitStatusPublisher.modificationsProcessing.enabled";
   private final static int MAX_LAST_EVENTS_TO_REMEMBER = 1000;
 
   private final PublisherManager myPublisherManager;
@@ -175,12 +176,17 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       }
     ));
 
-    myModificationsProcessor = new TimeIntervalAction(() -> TeamCityProperties.getIntervalMilliseconds(MODIFICATIONS_PROCESSING_INTERVAL_PROPERTY_NAME, 10_000), () -> processModifications());
-    final long modififcationsProcessingDelay = TeamCityProperties.getIntervalMilliseconds(MODIFICATIONS_PROCESSING_DELAY_PROPERTY_NAME, 10_000);
-    myExecutorServices.getNormalExecutorService().scheduleWithFixedDelay(
-      ExceptionUtil.catchAll("Publishing queued statuses", () -> myModificationsProcessor.execute()),
-      modififcationsProcessingDelay, modififcationsProcessingDelay, TimeUnit.MILLISECONDS
-    );
+    if (TeamCityProperties.getBoolean(MODIFICATIONS_PROCESSING_FATURE_TOGGLE_PROPERTY_NAME)) {
+      myModificationsProcessor =
+        new TimeIntervalAction(() -> TeamCityProperties.getIntervalMilliseconds(MODIFICATIONS_PROCESSING_INTERVAL_PROPERTY_NAME, 10_000), () -> processModifications());
+      final long modificationsProcessingDelay = TeamCityProperties.getIntervalMilliseconds(MODIFICATIONS_PROCESSING_DELAY_PROPERTY_NAME, 10_000);
+      myExecutorServices.getNormalExecutorService().scheduleWithFixedDelay(
+        ExceptionUtil.catchAll("Publishing queued statuses", () -> myModificationsProcessor.execute()),
+        modificationsProcessingDelay, modificationsProcessingDelay, TimeUnit.MILLISECONDS
+      );
+    } else {
+      myModificationsProcessor = null;
+    }
   }
 
   private Pair<String, User> getCommentWithAuthor(BuildPromotion buildPromotion) {
@@ -253,7 +259,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   @Override
   public void changeAdded(@NotNull VcsModification modification, @NotNull VcsRoot root, @Nullable final Collection<SBuildType> buildTypes) {
-    myModificationsToProcess.put(modification.getVersion(), (VcsModificationEx)modification);
+    if (TeamCityProperties.getBoolean(MODIFICATIONS_PROCESSING_FATURE_TOGGLE_PROPERTY_NAME)) {
+      myModificationsToProcess.put(modification.getVersion(), (VcsModificationEx)modification);
+    }
   }
 
   private Collection<VcsModificationEx> getModificationsToProcess() {
@@ -263,6 +271,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private void processModifications() {
+    if (!TeamCityProperties.getBoolean(MODIFICATIONS_PROCESSING_FATURE_TOGGLE_PROPERTY_NAME)) return;
     Collection<VcsModificationEx> modificationsToProcess = getModificationsToProcess();
     if (modificationsToProcess.isEmpty()) {
       return;
