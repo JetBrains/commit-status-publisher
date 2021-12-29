@@ -19,6 +19,7 @@ package jetbrains.buildServer.commitPublisher.tfs;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
+import com.google.gson.annotations.SerializedName;
 import java.io.IOException;
 import java.security.KeyStore;
 import java.text.MessageFormat;
@@ -90,6 +91,20 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
+  public boolean buildQueued(@NotNull BuildPromotion buildPromotion,
+                             @NotNull BuildRevision revision,
+                             @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+    return updateBuildStatus(buildPromotion, revision, additionalTaskInfo);
+  }
+
+  @Override
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
+                                       @NotNull BuildRevision revision,
+                                       @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+    return updateBuildStatus(buildPromotion, revision, additionalTaskInfo);
+  }
+
+  @Override
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     updateBuildStatus(build, revision, true);
     return true;
@@ -118,6 +133,62 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     if (response.getStatusCode() >= 400) {
       processErrorResponse(response);
     }
+  }
+
+  @Override
+  public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+    CommitStatus commitStatus = getCommitStatus(revision, buildPromotion.getBuildType());
+    return getRevisionStatus(buildPromotion, commitStatus);
+  }
+
+  private CommitStatus getCommitStatus(BuildRevision revision, SBuildType buildType) throws PublisherException {
+    final TfsRepositoryInfo info = getServerAndProject(revision.getRoot(), myParams);
+    final String baseUrl = MessageFormat.format(COMMIT_STATUS_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository(), revision.getRevision());
+    final String buildTypeExternalId = buildType.getExternalId();
+    final ResponseEntityProcessor<CommitStatuses> processor = new ResponseEntityProcessor<>(CommitStatuses.class);
+    final int top = 25;
+    int skip = 0;
+
+    CommitStatuses commitStatuses;
+    do {
+      String url = String.format("%s&top=%d&skip=%d", baseUrl, top, skip);
+      commitStatuses = get(url, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN), null, processor);
+      if (commitStatuses == null || commitStatuses.value == null || commitStatuses.value.isEmpty()) return null;
+      Optional<CommitStatus> commitStatusOp = commitStatuses.value.stream()
+                                                         .filter(status -> buildTypeExternalId.equals(status.context.name))
+                                                         .findFirst();
+      if (commitStatusOp.isPresent()) {
+        return commitStatusOp.get();
+      }
+      skip += top;
+    } while (commitStatuses.count >= top);
+    return null;
+  }
+
+  private RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @Nullable CommitStatus commitStatus) throws PublisherException {
+    if (commitStatus == null) return null;
+    Event event = getTriggeredEvent(commitStatus);
+    boolean isSameBuild = isSameBuild(buildPromotion, commitStatus.targetUrl);
+    return new RevisionStatus(event, commitStatus.description, isSameBuild);
+  }
+
+  private Event getTriggeredEvent(CommitStatus commitStatus) {
+    if (commitStatus.state == null) return null;
+    switch (commitStatus.state) {
+      case Pending:
+        if (commitStatus.description == null) return null;
+        return commitStatus.description.contains(DefaultStatusMessages.BUILD_QUEUED) ? Event.QUEUED :
+               commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE) ? Event.REMOVED_FROM_QUEUE : null;
+      case Error:
+        return Event.FINISHED;
+      case Succeeded:
+        return Event.FINISHED;
+      case Failed:
+        return Event.FAILURE_DETECTED;
+      default:
+        LOG.warn("No event is assosiated with TFS status \"" + commitStatus.state + "\". Related event can not be defined");
+    }
+    return null;
   }
 
   public static void testConnection(@NotNull final VcsRoot root,
@@ -352,42 +423,67 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     throw new HttpPublisherException(status, response.getStatusText(), message);
   }
 
-  private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) throws PublisherException {
+  private boolean updateBuildStatus(@NotNull BuildPromotion buildPromotion,
+                                    @NotNull BuildRevision revision,
+                                    @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+    final TfsRepositoryInfo info = getReposioryInfo(revision);
+    if (info == null) {
+      return false;
+    }
+    final CommitStatus status = getCommitStatus(buildPromotion, additionalTaskInfo);
+    final String description = LogUtil.describe(buildPromotion);
+    final String data = myGson.toJson(status);
+    final String commitId = revision.getRevision();
+    boolean isPublished = publishCommitStatus(info, data, commitId, description);
+    if (!isPublished) {
+      return false;
+    }
+    return publishPullRequestStatus(info, revision, data, commitId, description);
+  }
+
+  private TfsRepositoryInfo getReposioryInfo(BuildRevision revision) throws PublisherException {
     final VcsRoot root = revision.getRoot();
     if (!TfsConstants.GIT_VCS_ROOT.equals(root.getVcsName())) {
       LOG.warn("No revisions were found to update TFS Git commit status. Please check you have Git VCS roots in the build configuration");
-      return;
+      return null;
     }
 
-    final TfsRepositoryInfo info = getServerAndProject(root, myParams);
-    final CommitStatus status = getCommitStatus(build, isStarting);
-    final String data = myGson.toJson(status);
+    return getServerAndProject(root, myParams);
+  }
 
-    final String commitId = revision.getRevision();
+  private boolean publishCommitStatus(TfsRepositoryInfo info, String data, String commitId, String description) {
     final String commitStatusUrl = MessageFormat.format(COMMIT_STATUS_URL_FORMAT,
-      info.getServer(), info.getProject(), info.getRepository(), commitId);
+                                                        info.getServer(), info.getProject(), info.getRepository(), commitId);
     postJson(commitStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
              data,
              Collections.singletonMap("Accept", "application/json"),
-             LogUtil.describe(build));
+             description
+    );
+    return true;
+  }
 
+  private boolean publishPullRequestStatus(@NotNull TfsRepositoryInfo info,
+                                           @NotNull BuildRevision revision,
+                                           @NotNull String data,
+                                           @NotNull String commitId,
+                                           @NotNull String description) throws PublisherException {
     // Check whether pull requests status publishing enabled
     final String publishPullRequest = StringUtil.emptyIfNull(myParams.get(TfsConstants.PUBLISH_PULL_REQUESTS)).trim();
-    if (!Boolean.valueOf(publishPullRequest)) {
-      return;
+    if (!Boolean.parseBoolean(publishPullRequest)) {
+      return true;
     }
 
     // Get branch and try to find pull request id
     final String branch = revision.getRepositoryVersion().getVcsBranch();
     if (StringUtil.isEmptyOrSpaces(branch)) {
       LOG.debug(String.format("Branch was not specified for commit %s, pull request status would not be published", commitId));
-      return;
+      return true;
     }
 
     final Matcher matcher = TFS_GIT_PULL_REQUEST_PATTERN.matcher(branch);
     if (!matcher.find()) {
       LOG.debug(String.format("Branch %s for commit %s does not contain info about pull request, status would not be published", branch, commitId));
-      return;
+      return true;
     }
 
     final String pullRequestId = matcher.group(1);
@@ -404,18 +500,52 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     if (StringUtil.isEmptyOrSpaces(iterationId)) {
       // Publish status for pull request
       pullRequestStatusUrl = MessageFormat.format(PULL_REQUEST_STATUS_URL_FORMAT,
-        info.getServer(), info.getProject(), info.getRepository(), pullRequestId);
+                                                  info.getServer(), info.getProject(), info.getRepository(), pullRequestId);
     } else {
       // Publish status for pull request iteration
       pullRequestStatusUrl = MessageFormat.format(PULL_REQUEST_ITERATION_STATUS_URL_FORMAT,
-        info.getServer(), info.getProject(), info.getRepository(), pullRequestId, iterationId);
+                                                  info.getServer(), info.getProject(), info.getRepository(), pullRequestId, iterationId);
     }
 
     postJson(pullRequestStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
              data,
              Collections.singletonMap("Accept", "application/json"),
-             LogUtil.describe(build)
+             description
     );
+    return true;
+  }
+
+  private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) throws PublisherException {
+    final TfsRepositoryInfo info = getReposioryInfo(revision);
+    if (info == null) {
+      return;
+    }
+    final CommitStatus status = getCommitStatus(build, isStarting);
+    final String description = LogUtil.describe(build);
+    final String data = myGson.toJson(status);
+    final String commitId = revision.getRevision();
+
+    boolean isPublished = publishCommitStatus(info, data, commitId, description);
+    if (!isPublished) {
+      return;
+    }
+    publishPullRequestStatus(info, revision, data, commitId, description);
+  }
+
+  @NotNull
+  private CommitStatus getCommitStatus(@NotNull BuildPromotion buildPromotion, @NotNull AdditionalTaskInfo additionalTaskInfo) {
+    final CommitStatus status = new CommitStatus();
+    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    status.state = StatusState.Pending;
+    status.description = additionalTaskInfo.compileQueueRelatedMessage();
+    status.targetUrl = queuedBuild != null ? myLinks.getQueuedBuildUrl(queuedBuild) : myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType());
+
+    final StatusContext context = new StatusContext();
+    context.name = buildPromotion.getBuildTypeExternalId();
+    context.genre = "TeamCity";
+    status.context = context;
+
+    return status;
   }
 
   @NotNull
@@ -427,7 +557,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     status.description = String.format("The build %s %s %s %s",
       build.getFullName(), build.getBuildNumber(),
       isStarting ? "is" : "has", state.toString().toLowerCase());
-    status.targetURL = myLinks.getViewResultsUrl(build);
+    status.targetUrl = myLinks.getViewResultsUrl(build);
 
     final StatusContext context = new StatusContext();
     context.name = build.getBuildTypeExternalId();
@@ -474,12 +604,27 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   private static class CommitStatus {
     private StatusState state;
     private String description;
-    private String targetURL;
+    private String targetUrl;
     private StatusContext context;
   }
 
+  private static class CommitStatuses {
+    private int count;
+    private List<CommitStatus> value;
+  }
+
   private static enum StatusState {
-    Pending, Succeeded, Failed, Error
+    @SerializedName("pending")
+    Pending,
+
+    @SerializedName("succeeded")
+    Succeeded,
+
+    @SerializedName("failed")
+    Failed,
+
+    @SerializedName("error")
+    Error;
   }
 
   private static class StatusContext {

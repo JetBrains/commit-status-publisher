@@ -16,21 +16,22 @@
 
 package jetbrains.buildServer.commitPublisher.tfs;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import jetbrains.buildServer.commitPublisher.DefaultStatusMessages;
 import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import org.testng.annotations.Test;
 
 import static org.assertj.core.api.BDDAssertions.then;
@@ -44,20 +45,20 @@ import static org.assertj.core.api.BDDAssertions.then;
 public class TfsPublisherTest extends HttpPublisherTest {
 
   TfsPublisherTest() {
-    myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.REMOVED, null);  // not to be tested
-    myExpectedRegExps.put(EventToTest.STARTED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Pending.*is pending.*", REVISION));
-    myExpectedRegExps.put(EventToTest.FINISHED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Succeeded.*has succeeded.*", REVISION));
-    myExpectedRegExps.put(EventToTest.FAILED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Failed.*has failed.*", REVISION));
+    myExpectedRegExps.put(EventToTest.QUEUED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
+    myExpectedRegExps.put(EventToTest.REMOVED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*pending.*%s by %s.*%s.*", REVISION, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, USER.toLowerCase(), COMMENT));
+    myExpectedRegExps.put(EventToTest.STARTED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*pending.*is pending.*", REVISION));
+    myExpectedRegExps.put(EventToTest.FINISHED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*succeeded.*has succeeded.*", REVISION));
+    myExpectedRegExps.put(EventToTest.FAILED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*failed.*has failed.*", REVISION));
     myExpectedRegExps.put(EventToTest.COMMENTED_SUCCESS, null); // not to be tested
     myExpectedRegExps.put(EventToTest.COMMENTED_FAILED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS, null); // not to be tested
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Failed.*has failed.*", REVISION));
+    myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*failed.*has failed.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Succeeded.*has succeeded.*", REVISION));
-    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Pending.*is pending.*", REVISION));
-    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*Failed.*%s.*has failed.*", REVISION, BT_NAME_ESCAPED_REGEXP));
+    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*succeeded.*has succeeded.*", REVISION));
+    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*pending.*is pending.*", REVISION));
+    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*failed.*%s.*has failed.*", REVISION, BT_NAME_ESCAPED_REGEXP));
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, null); // not to be tested
   }
 
@@ -74,9 +75,10 @@ public class TfsPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", myVcsURL));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
+    myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }
 
-  public void should_fail_with_error_on_wrong_vcs_url() throws InterruptedException {
+  public void should_fail_with_error_on_wrong_vcs_url() {
     myVcsRoot.setProperties(Collections.singletonMap("url", "wrong://url.com"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     BuildRevision revision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
