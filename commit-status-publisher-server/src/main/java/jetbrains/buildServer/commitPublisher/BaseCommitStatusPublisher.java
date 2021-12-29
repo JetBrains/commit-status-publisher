@@ -17,6 +17,8 @@
 package jetbrains.buildServer.commitPublisher;
 
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
@@ -29,6 +31,7 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher {
 
+  private static final Pattern NUMERIC_SUBSTRING_PATTERN = Pattern.compile("([^\\d])(\\d+)([^\\d]|$)");
   public static final int DEFAULT_CONNECTION_TIMEOUT = 10000;
   public static final String CONNECTION_TIMEOUT_PARAM = "commitStatusPublisher.connectionTimeout";
   protected final Map<String, String> myParams;
@@ -146,5 +149,30 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   @Override
   public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
     return null;
+  }
+
+  protected boolean isSameBuild(@NotNull BuildPromotion buildPromotion, @Nullable String targetUrl) {
+    if (targetUrl == null) {
+      return false;
+    }
+    String buildId;
+    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    if (queuedBuild != null) {
+      buildId = queuedBuild.getItemId();
+    } else {
+      SBuild associatedBuild = buildPromotion.getAssociatedBuild();
+      if (associatedBuild != null) {
+        buildId = String.valueOf(associatedBuild.getBuildId());
+      } else {
+        return false;
+      }
+    }
+    Matcher matcher = NUMERIC_SUBSTRING_PATTERN.matcher(targetUrl);
+    while (matcher.find()) {
+      if (matcher.group(2).equals(buildId)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

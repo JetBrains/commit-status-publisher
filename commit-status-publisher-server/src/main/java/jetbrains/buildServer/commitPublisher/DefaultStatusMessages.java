@@ -6,4 +6,5 @@ public interface DefaultStatusMessages {
   public final String BUILD_STARTED = "TeamCity build started";
   public final String BUILD_FINISHED = "TeamCity build finished";
   public final String BUILD_FAILED = "TeamCity build failed";
+  public final String BUILD_MARKED_SUCCESSFULL = "TeamCity build marked as successful";
 }
