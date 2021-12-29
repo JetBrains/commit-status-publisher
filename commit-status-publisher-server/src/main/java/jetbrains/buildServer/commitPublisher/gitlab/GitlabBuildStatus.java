@@ -35,4 +35,13 @@ public enum GitlabBuildStatus {
   public String getName() {
     return myName;
   }
+
+  public static GitlabBuildStatus getByName(String name) {
+    for (GitlabBuildStatus value : values()) {
+      if (value.getName().equals(name)) {
+        return value;
+      }
+    }
+    return null;
+  }
 }

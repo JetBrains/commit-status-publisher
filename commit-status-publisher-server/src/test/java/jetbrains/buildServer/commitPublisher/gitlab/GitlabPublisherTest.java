@@ -26,6 +26,7 @@ import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabPermissions;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -44,8 +45,8 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   private static final String GROUP_REPO = "group_repo";
 
   public GitlabPublisherTest() {
-    myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.REMOVED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
+    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*canceled.*%s by %s.*%s.*", REVISION, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, USER.toLowerCase(), COMMENT));
     myExpectedRegExps.put(EventToTest.STARTED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*running.*%s.*", REVISION, DefaultStatusMessages.BUILD_STARTED));
     myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*failed.*Failure.*", REVISION));
@@ -55,8 +56,8 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*canceled.*%s.*", REVISION, PROBLEM_DESCR));
     myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*failed.*%s.*", REVISION, PROBLEM_DESCR));
-    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*success.*marked as successful.*", REVISION));
-    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*running.*Build marked as successful.*", REVISION));
+    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*success.*%s.*", REVISION, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL));
+    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*running.*%s.*", REVISION, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL));
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, ".*/projects/owner%2Fproject .*");
     myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*failed.*%s.*Failure.*", REVISION, BT_NAME_ESCAPED_REGEXP));
   }
@@ -134,6 +135,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     myPublisherSettings = new GitlabSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
     Map<String, String> params = getPublisherParams();
     myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }
 
   @Override

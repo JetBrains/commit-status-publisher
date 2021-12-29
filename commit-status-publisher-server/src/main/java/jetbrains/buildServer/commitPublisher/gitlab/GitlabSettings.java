@@ -16,10 +16,13 @@
 
 package jetbrains.buildServer.commitPublisher.gitlab;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.*;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabUserInfo;
 import jetbrains.buildServer.serverSide.*;
@@ -29,10 +32,6 @@ import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
-
-import java.io.IOException;
-import java.util.*;
 
 public class GitlabSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
