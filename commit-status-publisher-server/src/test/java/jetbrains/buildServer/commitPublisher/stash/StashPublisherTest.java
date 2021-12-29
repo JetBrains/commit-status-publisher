@@ -25,8 +25,8 @@ public class StashPublisherTest extends BaseStashPublisherTest {
 
   public StashPublisherTest() {
     myServerVersion = "6.0";
-    myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.REMOVED, null);  // not to be tested
+    myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*build-status/.*/commits/%s.*ENTITY:.*INPROGRESS.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
+    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*build-status/.*/commits/%s.*ENTITY:.*INPROGRESS.*%s by %s.*%s.*", REVISION, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, USER.toLowerCase(), COMMENT));
     myExpectedRegExps.put(EventToTest.STARTED, String.format(".*build-status/.*/commits/%s.*ENTITY:.*INPROGRESS.*%s.*", REVISION, DefaultStatusMessages.BUILD_STARTED));
     myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*build-status/.*/commits/%s.*ENTITY:.*SUCCESSFUL.*Success.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILED, String.format(".*build-status/.*/commits/%s.*ENTITY:.*FAILED.*Failure.*", REVISION));
@@ -36,8 +36,8 @@ public class StashPublisherTest extends BaseStashPublisherTest {
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED, String.format(".*build-status/.*/commits/%s.*ENTITY:.*FAILED.*%s.*with a comment by %s.*%s.*", REVISION, PROBLEM_DESCR, USER.toLowerCase(), COMMENT));
     myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format(".*build-status/.*/commits/%s.*ENTITY:.*FAILED.*%s.*", REVISION, PROBLEM_DESCR));
     myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, String.format(".*build-status/.*/commits/%s.*ENTITY:.*FAILED.*%s.*", REVISION, PROBLEM_DESCR));
-    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*build-status/.*/commits/%s.*ENTITY:.*SUCCESSFUL.*marked as successful.*", REVISION));
-    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*build-status/.*/commits/%s.*ENTITY:.*INPROGRESS.*Build marked as successful.*", REVISION));
+    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*build-status/.*/commits/%s.*ENTITY:.*SUCCESSFUL.*%s.*", REVISION, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL));
+    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*build-status/.*/commits/%s.*ENTITY:.*INPROGRESS.*%s.*", REVISION, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL));
     myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format(".*build-status/.*/commits/%s.*ENTITY:.*FAILED.*%s.*Failure.*", REVISION, BT_NAME_ESCAPED_REGEXP));
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, ".*api/.*/owner/repos/project.*");
   }

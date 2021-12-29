@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.commitPublisher.stash;
+package jetbrains.buildServer.commitPublisher.stash.data;
 
 public enum StashBuildStatus {
   SUCCESSFUL, FAILED, INPROGRESS

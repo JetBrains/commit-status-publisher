@@ -26,6 +26,7 @@ import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.stash.data.StashRepoInfo;
 import jetbrains.buildServer.commitPublisher.stash.data.StashServerInfo;
 import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -43,6 +44,7 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
     Map<String, String> params = getPublisherParams();
     myPublisherSettings = new StashSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
     myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }
 
   @Override
