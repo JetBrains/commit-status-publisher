@@ -22,6 +22,7 @@ import java.util.Map;
 import jetbrains.buildServer.commitPublisher.DefaultStatusMessages;
 import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
+import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.serverSide.oauth.OAuthConstants;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthKeys;
@@ -46,8 +47,8 @@ public class SpacePublisherTest extends HttpPublisherTest {
   private Gson myGson;
 
   public SpacePublisherTest() {
-    myExpectedRegExps.put(EventToTest.QUEUED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.REMOVED, null); // not to be tested
+    myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*SCHEDULED.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
+    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*SCHEDULED.*%s by %s.*%s.*", REVISION, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, USER.toLowerCase(), COMMENT));
     myExpectedRegExps.put(EventToTest.STARTED, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*RUNNING.*%s.*", REVISION, DefaultStatusMessages.BUILD_STARTED));
     myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*SUCCEEDED.*Success.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILED, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*FAILED.*Failure.*", REVISION));
@@ -57,8 +58,8 @@ public class SpacePublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*TERMINATED.*%s.*", REVISION, PROBLEM_DESCR));
     myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*FAILING.*%s.*", REVISION, PROBLEM_DESCR));
-    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*SUCCEEDED.*marked as successful.*", REVISION));
-    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*RUNNING.*Build marked as successful.*", REVISION));
+    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*SUCCEEDED.*%s.*", REVISION, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL));
+    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*RUNNING.*%s.*", REVISION, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL));
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, ".*/projects/key:owner/commit-statuses/check-service.*");
     myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*FAILED.*Failure.*%s.*", REVISION, BT_NAME_ESCAPED_REGEXP));
   }
@@ -79,6 +80,7 @@ public class SpacePublisherTest extends HttpPublisherTest {
     Map<String, String> params = getPublisherParams();
     SpaceConnectDescriber connector = SpaceUtils.getConnectionData(params, myOAuthConnectionsManager, myBuildType.getProject());
     myPublisher = new SpacePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, connector);
+    myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }
 
   /*

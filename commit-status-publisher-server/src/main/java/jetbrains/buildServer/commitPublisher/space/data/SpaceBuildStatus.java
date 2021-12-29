@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
-package jetbrains.buildServer.commitPublisher.space;
+package jetbrains.buildServer.commitPublisher.space.data;
 
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * CommitExecutionStatus
+ */
 public enum SpaceBuildStatus {
+  SCHEDULED("SCHEDULED"),
   RUNNING("RUNNING"),
   FAILING("FAILING"),
   SUCCEEDED("SUCCEEDED"),

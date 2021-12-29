@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.commitPublisher.space;
 
+import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.serverSide.*;
@@ -34,8 +35,6 @@ import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.*;
 
 import static jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT;
 
@@ -59,6 +58,12 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     add(Event.MARKED_AS_SUCCESSFUL);
     add(Event.INTERRUPTED);
     add(Event.FAILURE_DETECTED);
+  }};
+
+  private static final Set<Event> mySupportedEventsWithQueued = new HashSet<Event>() {{
+    add(Event.QUEUED);
+    add(Event.REMOVED_FROM_QUEUE);
+    addAll(mySupportedEvents);
   }};
 
   public SpaceSettings(@NotNull PluginDescriptor descriptor,
@@ -208,7 +213,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
 
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
-    return mySupportedEvents;
+    return isBuildQueuedSupported(buildType, params) ? mySupportedEventsWithQueued : mySupportedEvents;
   }
 
   @NotNull
