@@ -20,10 +20,8 @@ import com.google.gson.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import jetbrains.buildServer.commitPublisher.*;
-import jetbrains.buildServer.serverSide.BuildRevision;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitBucketCloudCommitBuildStatus;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -55,6 +53,20 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   @NotNull
   public String getId() {
     return Constants.BITBUCKET_PUBLISHER_ID;
+  }
+
+  @Override
+  public boolean buildQueued(@NotNull BuildPromotion buildPromotion,
+                             @NotNull BuildRevision revision,
+                             @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+    return vote(buildPromotion, revision, BitbucketCloudBuildStatus.INPROGRESS, additionalTaskInfo.compileQueueRelatedMessage());
+  }
+
+  @Override
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
+                                       @NotNull BuildRevision revision,
+                                       @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+    return vote(buildPromotion, revision, BitbucketCloudBuildStatus.INPROGRESS, additionalTaskInfo.compileQueueRelatedMessage());
   }
 
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
@@ -89,7 +101,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
-    vote(build, revision, buildInProgress ? BitbucketCloudBuildStatus.INPROGRESS : BitbucketCloudBuildStatus.SUCCESSFUL, "Build marked as successful");
+    vote(build, revision, buildInProgress ? BitbucketCloudBuildStatus.INPROGRESS : BitbucketCloudBuildStatus.SUCCESSFUL, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL);
     return true;
   }
 
@@ -103,6 +115,96 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     vote(build, revision, BitbucketCloudBuildStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
+  }
+
+  @Override
+  public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+      BitBucketCloudCommitBuildStatus buildStatus = getCommitStatus(revision, buildPromotion.getBuildTypeId());
+      return getRevisionStatus(buildPromotion, buildStatus);
+  }
+
+  @Nullable
+  private BitBucketCloudCommitBuildStatus getCommitStatus(@NotNull BuildRevision revision, @NotNull String buildTypeId) throws PublisherException {
+    VcsRootInstance root = revision.getRoot();
+    Repository repository = BitbucketCloudSettings.VCS_PROPERTIES_PARSER.parseRepository(root);
+    if (repository == null) {
+      throw new PublisherException("Can not define repository for BitBucket Cloud root" + root.getName());
+    }
+    String url = String.format("%s2.0/repositories/%s/%s/commit/%s/statuses/build/%s",
+                               getBaseUrl(), repository.owner(), repository.repositoryName(), revision.getRevision(), buildTypeId);
+    // to parse dates required to parse format "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx" analog for Gson
+    ResponseEntityProcessor<BitBucketCloudCommitBuildStatus> processor = new ResponseEntityProcessor<BitBucketCloudCommitBuildStatus>(BitBucketCloudCommitBuildStatus.class) {
+      @Override
+      protected boolean handleError(@NotNull HttpHelper.HttpResponse response) throws HttpPublisherException {
+        int statusCode = response.getStatusCode();
+        if (statusCode >= 400) {
+          if (statusCode == 404) return false;
+          throw new HttpPublisherException(statusCode, response.getStatusText(), "HTTP response error");
+        }
+        return true;
+      }
+    };
+    return get(url, getUsername(), getPassword(), null, processor);
+  }
+
+  @Nullable
+  public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @Nullable BitBucketCloudCommitBuildStatus commitStatus) {
+    if (commitStatus == null) {
+      return null;
+    }
+    Event event = getTriggeredEvent(commitStatus);
+    boolean isSameBuild = isSameBuild(buildPromotion, commitStatus.url);
+    return new RevisionStatus(event, commitStatus.description, isSameBuild);
+  }
+
+  @Nullable
+  private Event getTriggeredEvent(@NotNull BitBucketCloudCommitBuildStatus buildStatus) {
+    if (buildStatus.state == null) {
+      LOG.warn("No status received. Related event can not be calculated");
+      return null;
+    }
+    switch (buildStatus.state) {
+      case STOPPED:
+        return Event.INTERRUPTED;
+      case FAILED:
+        if (buildStatus.description == null) return Event.FINISHED;
+        return buildStatus.description.equals("Failure") ? Event.FINISHED : Event.FAILURE_DETECTED;
+      case SUCCESSFUL:
+        if (buildStatus.description == null) return Event.FINISHED;
+        return buildStatus.description.contains(DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL) ? Event.MARKED_AS_SUCCESSFUL : Event.FINISHED;
+      case INPROGRESS:
+        if (buildStatus.description == null) return Event.STARTED;
+        return buildStatus.description.contains(DefaultStatusMessages.BUILD_STARTED) ? Event.STARTED :
+               buildStatus.description.contains(DefaultStatusMessages.BUILD_QUEUED) ? Event.QUEUED : Event.REMOVED_FROM_QUEUE;
+      default:
+        LOG.warn("No event is assosiated with BitBucket Cloud status \"" + buildStatus.state + "\". Related event can not be defined");
+    }
+    return null;
+  }
+
+  private boolean vote(BuildPromotion buildPromotion, BuildRevision revision, BitbucketCloudBuildStatus status, String comment) throws PublisherException {
+    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    final String url = queuedBuild != null ? myLinks.getQueuedBuildUrl(queuedBuild) : myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType());
+    String message = createMessage(status, buildPromotion.getBuildTypeId(), getBuildName(buildPromotion), url, comment);
+    final VcsRootInstance root = revision.getRoot();
+    Repository repository = BitbucketCloudSettings.VCS_PROPERTIES_PARSER.parseRepository(root);
+    if (repository == null) {
+      throw new PublisherException(String.format("Bitbucket publisher has failed to parse repository URL from VCS root '%s'", root.getName()));
+    }
+    vote(revision.getRevision(), message, repository, LogUtil.describe(buildPromotion));
+    return true;
+  }
+
+  private String getBuildName(BuildPromotion buildPromotion) {
+    StringBuilder sb = new StringBuilder();
+    if (buildPromotion.getBuildType() != null) {
+      sb.append(buildPromotion.getBuildType().getFullName());
+    }
+    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    if (queuedBuild != null) {
+      sb.append(" #").append(queuedBuild.getOrderNumber());
+    }
+    return sb.toString();
   }
 
   private void vote(@NotNull SBuild build,
@@ -138,7 +240,6 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
     String url = getBaseUrl() + "2.0/repositories/" + repository.owner() + "/" + repository.repositoryName() + "/commit/" + commit + "/statuses/build";
     postJson(url, getUsername(), getPassword(), data, null, buildDescription);
   }
-
 
   @Override
   public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException {

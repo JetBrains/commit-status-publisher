@@ -19,15 +19,15 @@ package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 import java.io.IOException;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudRepoInfo;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 public class BitbucketCloudSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
   final static String DEFAULT_API_URL = "https://api.bitbucket.org/";
@@ -42,6 +42,12 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
     add(Event.MARKED_AS_SUCCESSFUL);
     add(Event.INTERRUPTED);
     add(Event.FAILURE_DETECTED);
+  }};
+
+  private static final Set<Event> mySupportedEventsWithQueued = new HashSet<Event>() {{
+    add(Event.QUEUED);
+    add(Event.REMOVED_FROM_QUEUE);
+    addAll(mySupportedEvents);
   }};
 
   public BitbucketCloudSettings(@NotNull PluginDescriptor descriptor,
@@ -147,6 +153,6 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
 
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
-    return mySupportedEvents;
+    return isBuildQueuedSupported(buildType, params) ? mySupportedEventsWithQueued : mySupportedEvents;
   }
 }
