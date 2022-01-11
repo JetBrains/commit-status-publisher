@@ -39,6 +39,7 @@ import org.jdom.Element;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static jetbrains.buildServer.commitPublisher.CommitStatusPublisherListener.MODIFICATIONS_PROCESSING_FEATURE_TOGGLE;
 import static org.assertj.core.api.BDDAssertions.then;
 
 @Test
@@ -61,6 +62,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     setInternalProperty(CommitStatusPublisherListener.EXPECTED_PROMOTIONS_CACHE_REFRESH_TIME_PROPERTY_NAME, "150");
     setInternalProperty(CommitStatusPublisherListener.MODIFICATIONS_PROCESSING_INTERVAL_PROPERTY_NAME, "300");
     setInternalProperty(CommitStatusPublisherListener.MODIFICATIONS_PROCESSING_DELAY_PROPERTY_NAME, "300");
+    setInternalProperty(MODIFICATIONS_PROCESSING_FEATURE_TOGGLE, "true");
     myLastEventProcessed = null;
     myLogger = new PublisherLogger();
     myPublisherManager = new PublisherManager(myServer);
