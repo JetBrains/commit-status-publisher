@@ -16,13 +16,13 @@
 
 package jetbrains.buildServer.commitPublisher.github.api;
 
-import jetbrains.buildServer.commitPublisher.PublisherException;
-import jetbrains.buildServer.commitPublisher.Repository;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.io.IOException;
 import java.util.Collection;
+import jetbrains.buildServer.commitPublisher.PublisherException;
+import jetbrains.buildServer.commitPublisher.Repository;
+import jetbrains.buildServer.commitPublisher.github.api.impl.data.CombinedCommitStatus;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Created by Eugene Petrenko (eugene.petrenko@gmail.com)
@@ -32,9 +32,11 @@ public interface GitHubApi {
 
   void testConnection(@NotNull Repository repo) throws PublisherException;
 
-  String readChangeStatus(@NotNull String repoOwner,
-                          @NotNull String repositoryName,
-                          @NotNull String hash) throws IOException;
+  CombinedCommitStatus readChangeCombinedStatus(@NotNull String repoOwner,
+                                                @NotNull String repositoryName,
+                                                @NotNull String hash,
+                                                @Nullable final Integer perPage,
+                                                @Nullable final Integer page) throws IOException;
 
   void setChangeStatus(@NotNull String repoOwner,
                        @NotNull String repositoryName,

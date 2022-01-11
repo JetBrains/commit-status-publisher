@@ -19,11 +19,14 @@ package jetbrains.buildServer.commitPublisher.github;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
+import jetbrains.buildServer.commitPublisher.github.api.impl.data.CombinedCommitStatus;
+import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -34,6 +37,7 @@ import jetbrains.buildServer.vcs.VcsModificationOrder;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
@@ -103,9 +107,9 @@ public class ChangeStatusUpdater {
   }
 
   @NotNull
-  Handler getUpdateHandler(@NotNull VcsRoot root,
-                           @NotNull Map<String, String> params,
-                           @NotNull final GitHubPublisher publisher) {
+  Handler getHandler(@NotNull VcsRoot root,
+                     @NotNull Map<String, String> params,
+                     @NotNull final GitHubPublisher publisher) {
 
     return new Handler() {
 
@@ -155,6 +159,26 @@ public class ChangeStatusUpdater {
         }
       }
 
+      @Override
+      public CommitStatus getStatus(@NotNull BuildRevision revision) throws PublisherException {
+        RepositoryVersion version = revision.getRepositoryVersion();
+        String buildContext = params.get(Constants.GITHUB_CONTEXT);
+        LOG.debug("Requesting statuses for " +
+                  "hash: " + version.getVersion() + ", " +
+                  "branch: " + version.getVcsBranch() + ", " +
+                  "build: " + buildContext);
+
+        Repository repo = parseRepository(root);
+        GitHubStatusClient statusClient = new GitHubStatusClient(params, publisher);
+        try {
+          return statusClient.getStatus(revision, repo);
+        } catch (IOException e) {
+          publisher.getProblems().reportProblem(String.format("Commit Status Publisher error. Can not receive status for revision: %s", revision.getRevision()), publisher,
+                                                buildContext, publisher.getServerUrl(), e, LOG);
+        }
+        return null;
+      }
+
       private void doChangeUpdate(@NotNull final BuildRevision revision,
                                   @NotNull final SBuild build,
                                   @NotNull final String message,
@@ -168,8 +192,8 @@ public class ChangeStatusUpdater {
 
         Repository repo = parseRepository(root);
 
-        GitHubStatusUpdater statusUpdater = new GitHubStatusUpdater(params, publisher);
-        statusUpdater.update(revision, build, message, targetStatus, repo);
+        GitHubStatusClient statusClient = new GitHubStatusClient(params, publisher);
+        statusClient.update(revision, build, message, targetStatus, repo);
       }
 
       private boolean doQueuedChangeUpdate(@NotNull BuildRevision revision,
@@ -180,25 +204,25 @@ public class ChangeStatusUpdater {
         LOG.info("Scheduling GitHub status update for " +
                  "hash: " + version.getVersion() + ", " +
                  "branch: " + version.getVcsBranch() + ", " +
-                 "buildId: " + buildPromotion.getAssociatedBuildId() + ", " +
+                 "buildId: " + buildPromotion.getId() + ", " +
                  "status: " + targetStatus);
 
         Repository repo = parseRepository(root);
 
-        GitHubQueuedStatusUpdater statusUpdater = new GitHubQueuedStatusUpdater(params, publisher);
-        return statusUpdater.update(revision, buildPromotion, targetStatus, repo, additionalTaskInfo);
+        GitHubQueuedStatusClient statusClient = new GitHubQueuedStatusClient(params, publisher);
+        return statusClient.update(revision, buildPromotion, targetStatus, repo, additionalTaskInfo);
       }
     };
   }
 
-  private abstract class GitHubCommonStatusUpdater {
+  private abstract class GitHubCommonStatusClient {
     private static final String DEFAULT_CONTEXT = "continuous-integration/teamcity";
 
     protected final GitHubPublisher myPublisher;
     protected final GitHubApi myApi;
     protected final String myContext;
 
-    GitHubCommonStatusUpdater(Map<String, String> params, GitHubPublisher publisher) {
+    GitHubCommonStatusClient(Map<String, String> params, GitHubPublisher publisher) {
       myPublisher = publisher;
       String ctx = params.get(Constants.GITHUB_CONTEXT);
       myContext = StringUtil.isEmpty(ctx) ? DEFAULT_CONTEXT : ctx;
@@ -206,7 +230,7 @@ public class ChangeStatusUpdater {
     }
 
     @NotNull
-    protected String resolveCommitHash(RepositoryVersion myVersion, Repository repo, BuildPromotion buildPromotion, GitHubChangeState myTargetStatus) {
+    protected String resolveCommitHash(RepositoryVersion myVersion, Repository repo, GitHubChangeState myTargetStatus, String buildIdentificator) {
       final String vcsBranch = myVersion.getVcsBranch();
       if (vcsBranch != null && myApi.isPullRequestMergeBranch(vcsBranch)) {
         try {
@@ -214,30 +238,18 @@ public class ChangeStatusUpdater {
           if (hash == null) {
             throw new IOException("Failed to find head hash for commit from " + vcsBranch);
           }
-          String buildId = getBuildIdentificator(buildPromotion);
           LOG.info("Resolved GitHub change commit for " + vcsBranch + " to point to pull request head for " +
                    "hash: " + myVersion.getVersion() + ", " +
                    "newHash: " + hash + ", " +
                    "branch: " + myVersion.getVcsBranch() + ", " +
-                   buildId +
-                   "status: " + myTargetStatus);
+                   "status: " + myTargetStatus + ", " +
+                   buildIdentificator);
           return hash;
         } catch (Exception e) {
           LOG.warn("Failed to find status update hash for " + vcsBranch + " for repository " + repo.repositoryName());
         }
       }
       return myVersion.getVersion();
-    }
-
-    @NotNull
-    private String getBuildIdentificator(@NotNull BuildPromotion buildPromotion) {
-      Long associatedBuildId = buildPromotion.getAssociatedBuildId();
-      if (associatedBuildId != null) return "buildId: " + associatedBuildId + ", ";
-
-      SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-      if (queuedBuild != null) return "queuedBuildOrderNumber: " + queuedBuild.getOrderNumber() + ", ";
-
-      return "buildPromotionId: " + buildPromotion.getId() + ", ";
     }
 
     @NotNull
@@ -252,23 +264,48 @@ public class ChangeStatusUpdater {
     protected boolean isHashInvalid(@NotNull String hash,
                                     @NotNull RepositoryVersion version,
                                     @NotNull VcsRootInstance root,
-                                    @NotNull BuildPromotion buildPromotion,
-                                    GitHubChangeState targetStatus) {
+                                    @NotNull String buildIdentificator) {
       if (!(hash.equals(version.getVersion()) ||
             myModificationHistory.getModificationsOrder(root, hash, version.getVersion())
                                  .equals(VcsModificationOrder.BEFORE))) {
-        String buildId = getBuildIdentificator(buildPromotion);
         LOG.info("GitHub status for pull request commit has not been updated. The head branch hash: " + hash
-                 + " does not correspond to the merge branch hash " + version.getVersion() + " any longer (" + buildId + " status: " + targetStatus + ")");
+                 + " does not correspond to the merge branch hash " + version.getVersion() + " any longer (" + buildIdentificator + ")");
         return true;
       }
       return false;
     }
+
+    @Nullable
+    public CommitStatus getStatus(@NotNull BuildRevision revision, @NotNull Repository repo) throws IOException {
+      final RepositoryVersion version = revision.getRepositoryVersion();
+      final String hash = resolveCommitHash(version, repo, null, myContext);
+      if (isHashInvalid(hash, version, revision.getRoot(), myContext)) {
+        return null;
+      }
+      final int perPage = 30;
+      int page = 0;
+      int totalStatuses;
+
+      do {
+        page++;
+        CombinedCommitStatus combinedCommitStatus = myApi.readChangeCombinedStatus(repo.owner(), repo.repositoryName(), hash, perPage, page);
+        if (combinedCommitStatus.statuses == null || combinedCommitStatus.statuses.isEmpty()) {
+          LOG.debug(String.format("No statuses received from GitHub for repository \"%s/%s\" hash %s", repo.owner(), repo.repositoryName(), hash));
+          break;
+        }
+        Optional<CommitStatus> requiredStatus = combinedCommitStatus.statuses.stream().filter(status -> myContext.equals(status.context)).findAny();
+        if (requiredStatus.isPresent()) {
+          return requiredStatus.get();
+        }
+        totalStatuses = combinedCommitStatus.total_count != null ? combinedCommitStatus.total_count : 0;
+      } while (totalStatuses > page * perPage);
+      return null;
+    }
   }
 
-  private class GitHubQueuedStatusUpdater extends GitHubCommonStatusUpdater {
+  private class GitHubQueuedStatusClient extends GitHubCommonStatusClient {
 
-    GitHubQueuedStatusUpdater(Map<String, String> params, GitHubPublisher publisher) {
+    GitHubQueuedStatusClient(Map<String, String> params, GitHubPublisher publisher) {
       super(params, publisher);
     }
 
@@ -278,8 +315,10 @@ public class ChangeStatusUpdater {
                           @NotNull Repository repo,
                           @NotNull AdditionalTaskInfo additionalTaskInfo) {
       final RepositoryVersion version = revision.getRepositoryVersion();
-      final String hash = resolveCommitHash(version, repo, buildPromotion, targetStatus);
-      if (isHashInvalid(hash, version, revision.getRoot(), buildPromotion, targetStatus)) {
+      SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+      String buildIdentificator = queuedBuild != null ? "queuedBuildId: " + queuedBuild.getItemId() : "buildPromotionId: " + buildPromotion.getId();
+      final String hash = resolveCommitHash(version, repo, targetStatus, buildIdentificator);
+      if (isHashInvalid(hash, version, revision.getRoot(), buildIdentificator)) {
         return false;
       }
 
@@ -320,18 +359,18 @@ public class ChangeStatusUpdater {
     }
   }
 
-  private class GitHubStatusUpdater extends GitHubCommonStatusUpdater {
+  private class GitHubStatusClient extends GitHubCommonStatusClient {
     private final boolean myAddComment = false;
 
-    GitHubStatusUpdater(Map<String, String> params, GitHubPublisher publisher) {
+    GitHubStatusClient(Map<String, String> params, GitHubPublisher publisher) {
       super(params, publisher);
     }
 
     public void update(BuildRevision revision, SBuild build, String message, GitHubChangeState targetStatus, Repository repo) {
       final RepositoryVersion version = revision.getRepositoryVersion();
-      BuildPromotion buildPromotion = build.getBuildPromotion();
-      final String hash = resolveCommitHash(version, repo, buildPromotion, targetStatus);
-      if (isHashInvalid(hash, version, revision.getRoot(), buildPromotion, targetStatus)) {
+      String buildIdentififcator = "buildId: " + build.getBuildId();
+      final String hash = resolveCommitHash(version, repo, targetStatus, buildIdentififcator);
+      if (isHashInvalid(hash, version, revision.getRoot(), buildIdentififcator)) {
         return;
       }
 
@@ -445,5 +484,6 @@ public class ChangeStatusUpdater {
     void changeCompleted(@NotNull final BuildRevision revision, @NotNull final SBuild build) throws PublisherException;
     boolean changeQueued(@NotNull final BuildRevision revision, @NotNull final BuildPromotion build, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException;
     boolean changeRemovedFromQueue(@NotNull final BuildRevision revision, @NotNull final BuildPromotion build, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException;
+    CommitStatus getStatus(@NotNull final BuildRevision revision) throws PublisherException;
   }
 }

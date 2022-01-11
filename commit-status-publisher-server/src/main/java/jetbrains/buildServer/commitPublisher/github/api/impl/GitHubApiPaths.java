@@ -18,6 +18,7 @@ package jetbrains.buildServer.commitPublisher.github.api.impl;
 
 import jetbrains.buildServer.commitPublisher.HttpHelper;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Created by Eugene Petrenko (eugene.petrenko@gmail.com)
@@ -43,6 +44,24 @@ public class GitHubApiPaths {
                               @NotNull final String hash) {
     // /repos/:owner/:repo/git/commits/:sha
     return myUrl + "/repos/" + repoOwner + "/" + repoName + "/git/commits/" + hash;
+  }
+
+  @NotNull
+  public String getCombinedStatusUrl(@NotNull final String ownerName,
+                                     @NotNull final String repoName,
+                                     @NotNull final String hash,
+                                     @Nullable final Integer perPage,
+                                     @Nullable final Integer page) {
+    StringBuilder url = new StringBuilder(String.format("%s/repos/%s/%s/commits/%s/status", myUrl, ownerName, repoName, hash));
+    boolean paramAdded = false;
+    if (perPage != null) {
+      url.append("?per_page=").append(perPage);
+      paramAdded = true;
+    }
+    if (page != null) {
+      url.append(paramAdded ? "&" : "?").append("page=").append(page);
+    }
+    return url.toString();
   }
 
   @NotNull

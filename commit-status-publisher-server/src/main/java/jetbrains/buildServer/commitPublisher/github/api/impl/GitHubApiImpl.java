@@ -17,8 +17,13 @@
 package jetbrains.buildServer.commitPublisher.github.api.impl;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.LoggerUtil;
 import jetbrains.buildServer.commitPublisher.PublisherException;
@@ -31,18 +36,14 @@ import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
-import org.apache.http.*;
+import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.apache.http.message.BasicStatusLine;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static org.apache.http.HttpVersion.HTTP_1_1;
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
+import static org.apache.http.HttpVersion.HTTP_1_1;
 
 /**
  * @author Eugene Petrenko (eugene.petrenko@gmail.com)
@@ -55,13 +56,14 @@ public abstract class GitHubApiImpl implements GitHubApi {
 
   private final HttpClientWrapper myClient;
   private final GitHubApiPaths myUrls;
-  private final Gson myGson = new Gson();
+  private final Gson myGson;
 
   public GitHubApiImpl(@NotNull final HttpClientWrapper client,
                        @NotNull final GitHubApiPaths urls
   ) {
     myClient = client;
     myUrls = urls;
+    myGson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").create();
   }
 
   @Nullable
@@ -98,18 +100,39 @@ public abstract class GitHubApiImpl implements GitHubApi {
     }
   }
 
-  public String readChangeStatus(@NotNull final String repoOwner,
-                                 @NotNull final String repoName,
-                                 @NotNull final String hash) throws IOException {
-    final String statusUrl = myUrls.getStatusUrl(repoOwner, repoName, hash);
+  public CombinedCommitStatus readChangeCombinedStatus(@NotNull final String repoOwner,
+                                                       @NotNull final String repoName,
+                                                       @NotNull final String hash,
+                                                       @Nullable final Integer perPage,
+                                                       @Nullable final Integer page) throws IOException {
+    final String statusUrl = myUrls.getCombinedStatusUrl(repoOwner, repoName, hash, perPage, page);
 
     final HttpMethod method = HttpMethod.GET;
     LoggerUtil.logRequest(Constants.GITHUB_PUBLISHER_ID, method, statusUrl, null);
 
+    final AtomicReference<CombinedCommitStatus> status = new AtomicReference<>();
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     IOGuard.allowNetworkCall(() -> {
       myClient.get(statusUrl, authenticationCredentials(), defaultHeaders(),
-                   response -> {
+                   success -> {
+                     String json = success.getBodyAsString();
+                     if (StringUtil.isEmptyOrSpaces(json)) {
+                       logFailedResponse(HttpMethod.GET, statusUrl, null, success);
+                       exceptionRef.set(new IOException(getErrorMessage(success, "Empty response.")));
+                       return;
+                     }
+                     CombinedCommitStatus combinedCommitStatus;
+                     try {
+                       combinedCommitStatus = myGson.fromJson(json, CombinedCommitStatus.class);
+                     } catch (JsonSyntaxException e) {
+                       exceptionRef.set(new PublisherException("GitHub publisher can not parse malformed json", e));
+                       return;
+                     }
+                     if (null == combinedCommitStatus) {
+                       exceptionRef.set(new PublisherException("GitHub publisher fails to parse a response"));
+                     } else {
+                       status.set(combinedCommitStatus);
+                     }
                    },
                    response -> {
                      logFailedResponse(method, statusUrl, null, response);
@@ -127,7 +150,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
       }
     }
 
-    return "TBD";
+    return status.get();
   }
 
   private Map<String, String> defaultHeaders() {
