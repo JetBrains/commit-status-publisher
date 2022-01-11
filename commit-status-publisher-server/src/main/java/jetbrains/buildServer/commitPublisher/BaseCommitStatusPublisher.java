@@ -142,4 +142,9 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   public String getBuildFeatureId() { return myBuildFeatureId; }
 
   public CommitStatusPublisherProblems getProblems() {return myProblems; }
+
+  @Override
+  public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+    return null;
+  }
 }

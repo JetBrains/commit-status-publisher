@@ -129,6 +129,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   public boolean buildQueued(@NotNull final BuildPromotion buildPromotion,
                              @NotNull final BuildRevision revision,
                              @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+    myCommentsReceived.add(additionalTaskInfo.compileQueueRelatedMessage());
     pretendToHandleEvent(Event.QUEUED);
     return true;
   }

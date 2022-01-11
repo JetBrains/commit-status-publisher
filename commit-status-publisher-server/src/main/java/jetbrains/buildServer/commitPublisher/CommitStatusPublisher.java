@@ -46,6 +46,8 @@ public interface CommitStatusPublisher {
 
   boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException;
 
+  RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException;
+
   @NotNull
   String getBuildFeatureId();
 

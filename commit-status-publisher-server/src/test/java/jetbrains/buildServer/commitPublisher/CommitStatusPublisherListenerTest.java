@@ -49,6 +49,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   private CommitStatusPublisherListener myListener;
   private MockPublisher myPublisher;
   private PublisherLogger myLogger;
+  private PublisherManager myPublisherManager;
+  private BuildHistory myHistory;
   private SUser myUser;
   private Event myLastEventProcessed;
   private final Consumer<Event> myEventProcessedCallback = event -> myLastEventProcessed = event;
@@ -56,11 +58,14 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
+    setInternalProperty(CommitStatusPublisherListener.EXPECTED_PROMOTIONS_CACHE_REFRESH_TIME_PROPERTY_NAME, "150");
+    setInternalProperty(CommitStatusPublisherListener.MODIFICATIONS_PROCESSING_INTERVAL_PROPERTY_NAME, "300");
+    setInternalProperty(CommitStatusPublisherListener.MODIFICATIONS_PROCESSING_DELAY_PROPERTY_NAME, "300");
     myLastEventProcessed = null;
     myLogger = new PublisherLogger();
-    final PublisherManager myPublisherManager = new PublisherManager(myServer);
-    final BuildHistory history = myFixture.getHistory();
-    myListener = new CommitStatusPublisherListener(myFixture.getEventDispatcher(), myPublisherManager, history, myBuildsManager, myFixture.getBuildPromotionManager(), myProblems,
+    myPublisherManager = new PublisherManager(myServer);
+    myHistory = myFixture.getHistory();
+    myListener = new CommitStatusPublisherListener(myFixture.getEventDispatcher(), myPublisherManager, myHistory, myBuildsManager, myFixture.getBuildPromotionManager(), myProblems,
                                                    myFixture.getServerResponsibility(), myFixture.getSingletonService(ExecutorServices.class),
                                                    myFixture.getSingletonService(ProjectManager.class), myFixture.getSingletonService(UserModel.class),
                                                    myMultiNodeTasks);
@@ -189,9 +194,10 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   public void should_publish_removed_from_queue() {
     prepareVcs();
     myBuildType.addToQueue("");
-    then(myPublisher.getLastComment()).isNull();  // no comment expected when build is added to queue
+    waitForTasksToFinish(Event.QUEUED);
+    then(myPublisher.getLastComment()).isEqualTo(DefaultStatusMessages.BUILD_QUEUED);
     myServer.getQueue().removeAllFromQueue();
-    waitFor(() -> myPublisher.getLastComment() != null, TASK_COMPLETION_TIMEOUT_MS);
+    waitFor(() -> myPublisher.getLastComment() != null && myPublisher.getLastComment().equals(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE), TASK_COMPLETION_TIMEOUT_MS);
     then(myPublisher.getLastComment()).isEqualTo("TeamCity build removed from queue");
   }
 
@@ -209,7 +215,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_obey_publishing_disabled_property() {
     prepareVcs();
-    setInternalProperty("teamcity.commitStatusPublisher.enabled", "false");
+    setInternalProperty(CommitStatusPublisherListener.PUBLISHING_ENABLED_PROPERTY_NAME, "false");
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
@@ -218,7 +224,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_obey_publishing_disabled_parameter() {
     prepareVcs();
-    myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.enabled", "false"));
+    myBuildType.getProject().addParameter(new SimpleParameter(CommitStatusPublisherListener.PUBLISHING_ENABLED_PROPERTY_NAME, "false"));
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
@@ -227,8 +233,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_give_a_priority_to_publishing_enabled_parameter() {
     prepareVcs();
-    setInternalProperty("teamcity.commitStatusPublisher.enabled", "false");
-    myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.enabled", "true"));
+    setInternalProperty(CommitStatusPublisherListener.PUBLISHING_ENABLED_PROPERTY_NAME, "false");
+    myBuildType.getProject().addParameter(new SimpleParameter(CommitStatusPublisherListener.PUBLISHING_ENABLED_PROPERTY_NAME, "true"));
     myBuildType.addToQueue("");
     waitForTasksToFinish(Event.QUEUED);
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
@@ -240,8 +246,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_give_a_priority_to_publishing_disabled_parameter() {
     prepareVcs();
-    setInternalProperty("teamcity.commitStatusPublisher.enabled", "true");
-    myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.enabled", "false"));
+    setInternalProperty(CommitStatusPublisherListener.PUBLISHING_ENABLED_PROPERTY_NAME, "true");
+    myBuildType.getProject().addParameter(new SimpleParameter(CommitStatusPublisherListener.PUBLISHING_ENABLED_PROPERTY_NAME, "false"));
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     myFixture.finishBuild(runningBuild, false);
     myListener.buildFinished(runningBuild);
@@ -456,18 +462,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getLastUser()).isEqualTo(myUser);
   }
 
-  public void should_publish_removed_from_queue_with_comment() {
-    prepareVcs();
-    myBuildType.addToQueue("");
-    waitForTasksToFinish(Event.QUEUED);
-    myFixture.flushQueueAndWait();
-    waitForTasksToFinish(Event.STARTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
-    then(myPublisher.getLastComment()).isEqualTo(DefaultStatusMessages.BUILD_STARTED);
-    then(myPublisher.getLastUser()).isNull();
-  }
-
-  public void shoudl_pass_through_user_comment_on_build_delete_from_queue() {
+  public void should_pass_through_user_comment_on_build_delete_from_queue() {
     prepareVcs();
     SQueuedBuild queuedBuild = myBuildType.addToQueue("");
     waitForTasksToFinish(Event.QUEUED);
