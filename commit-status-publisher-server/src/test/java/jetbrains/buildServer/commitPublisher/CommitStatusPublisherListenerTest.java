@@ -475,6 +475,56 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getLastUser()).isEqualTo(myUser);
   }
 
+  public void should_publish_queued_status_for_new_commit_for_queued_build() {
+    prepareVcs();
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    assertEquals(1, myPublisher.getCommentsReceived().size());
+
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
+    SVcsModification modification = myFixture.addModification(new ModificationData(new Date(),
+                                                                                       Collections.singletonList(
+                                                                                         new VcsChange(VcsChangeInfo.Type.CHANGED, "changed", "file", "file", "2", "3")),
+                                                                                       "descr", "user", vcsRootInstance, "rev1_3", "rev1_3"));
+    myListener.changeAdded(modification, myBuildType.getVcsRoots().iterator().next(), Collections.singleton(myBuildType));
+    waitFor(() -> myPublisher.getCommentsReceived().size() == 2, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(DefaultStatusMessages.BUILD_QUEUED, myPublisher.getLastComment());
+  }
+
+  public void should_not_publish_queued_after_consiquent_event() {
+    prepareVcs();
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    RunningBuildEx runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
+    myFixture.finishBuild(runningBuild, false);
+    waitForTasksToFinish(Event.FINISHED);
+    assertTrue(myBuildType.getQueuedBuilds().isEmpty());
+
+    myBuildType.addToQueue("");
+    assertEquals(1, myBuildType.getQueuedBuilds().size());
+    runningBuild.setBuildComment(myUser , "My test comment"); // to check, that one more Event.QUEUED was not published
+    waitForTasksToFinish(Event.COMMENTED);
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED, Event.COMMENTED));
+  }
+
+  public void should_not_publish_removed_from_queue_after_build_was_strted() {
+    prepareVcs();
+    build().in(myBuildType).parameter("mock", "val").addToQueue();
+    SQueuedBuild secondQueuedBuild = myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    RunningBuildEx runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
+    assertEquals(3, myPublisher.getCommentsReceived().size());
+    secondQueuedBuild.removeFromQueue(myUser, "test");
+    myFixture.finishBuild(runningBuild, false);
+    waitForTasksToFinish(Event.FINISHED);
+    assertEquals(4, myPublisher.getCommentsReceived().size());
+    assertEquals(DefaultStatusMessages.BUILD_FINISHED, myPublisher.getLastComment());
+    assertFalse(myPublisher.getCommentsReceived().stream().anyMatch(comment -> comment.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)));
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.QUEUED, Event.STARTED, Event.FINISHED));
+  }
+
   private void prepareVcs() {
    prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.EXT_ID);
   }

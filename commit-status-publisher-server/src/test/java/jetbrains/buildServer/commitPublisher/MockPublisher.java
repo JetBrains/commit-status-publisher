@@ -46,7 +46,8 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
 
   private final PublisherLogger myLogger;
 
-  private final List<Event> myEventsReceived = new ArrayList<>();
+  private final LinkedList<Event> myEventsReceived = new LinkedList<>();
+  private final LinkedList<String> myPublishingBuilds = new LinkedList<>();
   private final LinkedList<String> myCommentsReceived = new LinkedList<>();
 
   boolean isFailureReceived() { return myFailuresReceived > 0; }
@@ -129,14 +130,16 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   public boolean buildQueued(@NotNull final BuildPromotion buildPromotion,
                              @NotNull final BuildRevision revision,
                              @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    myCommentsReceived.add(additionalTaskInfo.compileQueueRelatedMessage());
     pretendToHandleEvent(Event.QUEUED);
+    myCommentsReceived.add(additionalTaskInfo.compileQueueRelatedMessage());
+    myPublishingBuilds.add(prepareContextName(buildPromotion.getBuildType()));
     return true;
   }
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull final BuildPromotion buildPromotion, @NotNull final BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) {
     myCommentsReceived.add(additionalTaskInfo.compileQueueRelatedMessage());
+    myPublishingBuilds.add(prepareContextName(buildPromotion.getBuildType()));
     myLastUser = additionalTaskInfo.getCommentAuthor();
     return true;
   }
@@ -145,12 +148,15 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   public boolean buildStarted(@NotNull final SBuild build, @NotNull final BuildRevision revision) throws PublisherException {
     pretendToHandleEvent(Event.STARTED);
     myCommentsReceived.add(DefaultStatusMessages.BUILD_STARTED);
+    myPublishingBuilds.add(prepareContextName(build.getBuildType()));
     return true;
   }
 
   @Override
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     pretendToHandleEvent(Event.FINISHED);
+    myCommentsReceived.add(DefaultStatusMessages.BUILD_FINISHED);
+    myPublishingBuilds.add(prepareContextName(build.getBuildType()));
     Status s = build.getBuildStatus();
     if (s.equals(Status.NORMAL)) mySuccessReceived++;
     if (s.equals(Status.FAILURE)) myFailuresReceived++;
@@ -171,6 +177,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     throws PublisherException {
     pretendToHandleEvent(Event.COMMENTED);
     myCommentsReceived.add(comment);
+    myPublishingBuilds.add(prepareContextName(build.getBuildType()));
     return true;
   }
 
@@ -191,5 +198,19 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
     pretendToHandleEvent(Event.MARKED_AS_SUCCESSFUL);
     return super.buildMarkedAsSuccessful(build, revision, buildInProgress);
+  }
+
+  @Override
+  public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) {
+    if (myEventsReceived.isEmpty()) {
+      return null;
+    }
+    String buildContext = prepareContextName(buildPromotion.getBuildType());
+    boolean isLastForRevision = buildContext.equals(myPublishingBuilds.getLast());
+    return new RevisionStatus(myEventsReceived.getLast(), getLastComment(), isLastForRevision);
+  }
+
+  private String prepareContextName(SBuildType buildType) {
+    return String.format("%s (%s)", buildType.getName(), buildType.getProject().getName());
   }
 }
