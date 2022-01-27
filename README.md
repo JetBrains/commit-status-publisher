@@ -17,27 +17,43 @@ Get plugin from the latest build corresponding to your TeamCity version:
 
 Found a bug? File [an issue](https://youtrack.jetbrains.com/newIssue?project=TW&clearDraft=true&c=Assignee+neverov&c=Subsystem+plugins%3A+other&c=tag+plugin_statusPublisher).
 
-## Local plugin build
-
-To build the plugin locally if it is located within a subdirectory of TeamCity project, run the
-```
-mvn package
-```
-command in the plugin project root directory.
-
-If TeamCity project sources are located elsewhere, please use the following command:
-```
-mvn package -Dteamcity.path.testlib=TEAMCITY_PROJECT/.idea_artifacts/dist_openapi_integration/tests -Dteamcity.path.lib=TEAMCITY_PROJECT/.idea_artifacts/web-deployment/WEB-INF/lib
-```
-Where TEAMCITY_PROJECT must be replaced with an absolute path to the TeamCity project directory.
-
+## Build
+### Local plugin build
 In the absence of the TeamCity project, you can build the plugin locally using libraries from the TeamCity distribution by running the following command:
 ```
-mvn package -Dteamcity.path.testlib=TEAMCITY_DISTR/devPackage/tests -Dteamcity.path.lib=TEAMCITY_DISTR/webapps/ROOT/WEB-INF/lib
+gradle clean build -PTeamCityTestLibs=TEAMCITY_DISTR/devPackage/tests -PTeamCityLibs=TEAMCITY_DISTR/webapps/ROOT/WEB-INF/lib -PTeamCityVersion=DIST_VERSION
 ```
-Where TEAMCITY_DISTR must be replaced with an absolute path to the TeamCity distribution directory.
+Where TEAMCITY_DISTR must be replaced with an absolute path to the TeamCity distribution directory. And DIST_VERSION must be replaced with actual version of distribution.
+
+### Local plugin build from the scratch
+For this build you require full bundle of TeamCity sources. Before building the plugin locally, you should build required artifacts using IntelliJ IDEA. To do it open in
+IntelliJ IDEA `Build | Build artifacts` menu and build artifacts: `dist-openapi-integration` and `web-deployment`.
+
+To build the plugin locally if it is located within a subdirectory run the command in the plugin project root directory:
+```
+gradle clean build -PTeamCityVersion=TEAMCITY_VERSION
+```
+Parameter TEAMCITY_VERSION is optional (default value: SNAPSHOT), it describes which version of TeamCity libraries should be used from remote maven repository (or local cache).
+
+### Local plugin build using separate TeamCity sources
+If TeamCity project sources are located elsewhere, not as plugin parent directory, please use the following command:
+```
+gradle clean build -PTeamCityTestLibs=TEAMCITY_PROJECT/.idea_artifacts/dist_openapi_integration/tests -PTeamCityLibs=TEAMCITY_PROJECT/.idea_artifacts/web-deployment/WEB-INF/lib -PTeamCityVersion=DIST_VERSION
+```
+Where TEAMCITY_PROJECT must be replaced with an absolute path to the TeamCity project directory. DIST_VERSION is optional, by default will be used SNAPSHOT value
+and will be used prebuilt version of TeamCity Open API from local maven cache, or you can pass actual version of TeamCity to get Open API from remote maven repository.
+
+### Build result
 
 The target directory of the project root will contain the
 `commit-status-publisher.zip` file, which is ready [to be installed](https://www.jetbrains.com/help/teamcity/?Installing+Additional+Plugins).
 
 Once the plugin is installed, add the Commit Status Publisher  [build feature](https://www.jetbrains.com/help/teamcity/?Adding+Build+Features) to your build configuration.
+
+## Publishing TeamCity Open API to local maven cache
+If you have TeamCity sources, and you want to use locally built version of TeamCity Open API you can prebuild it with IntelliJ IDEA, using menu `Build | Build artifacts`
+and selecting there artifact `dist-openapi`. After successfull build you should execute command to publish built artefact to maven cache:
+```
+mvn -f install_teamcity_api_pom.xml package -DTeamCityVersion=DIST_VERSION
+```
+Where DIST_VERSION must be replaced by SNAPSHOT by default, or any version, that you want than to pass as TeamCityVersion parametr to the gradle script.
