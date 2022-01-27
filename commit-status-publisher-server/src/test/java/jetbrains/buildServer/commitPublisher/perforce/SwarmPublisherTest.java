@@ -90,7 +90,7 @@ public class SwarmPublisherTest extends HttpPublisherTest {
     if (url.contains(testConnectionURL)) {
       return true;
     }
-    if (url.contains("/api/v9/reviews?fields=id&change[]=" + CHANGELIST)) {
+    if (url.contains("/api/v9/reviews?fields=id&change[]=" + CHANGELIST) && url.contains("needsReview")) {
       httpResponse.setEntity(new StringEntity("{\"lastSeen\":19,\"reviews\":[{\"id\":19}],\"totalCount\":1}", "UTF-8"));
       return true;
     }
@@ -126,6 +126,18 @@ public class SwarmPublisherTest extends HttpPublisherTest {
     myRevision = new BuildRevision(myBuildType.getVcsRootInstanceForParent(myVcsRoot), CHANGELIST, "", CHANGELIST);
     
     test_buildStarted();
+  }
+
+  @Test
+  public void should_not_report_on_personal_build_with_ordinary_changelist_without_shelve_param() throws Exception {
+    myCreatePersonal = true;
+    myBuildType.getParametersCollection().forEach((p) -> myBuildType.removeParameter(p.getName()));
+
+    myRevision = new BuildRevision(myBuildType.getVcsRootInstanceForParent(myVcsRoot), CHANGELIST, "", CHANGELIST);
+
+    myPublisher.buildStarted(startBuildInCurrentBranch(myBuildType), myRevision);
+
+    then(getRequestAsString()).isNull();
   }
 
 

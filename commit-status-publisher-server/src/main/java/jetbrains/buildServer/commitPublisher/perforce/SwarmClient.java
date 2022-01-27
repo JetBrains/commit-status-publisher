@@ -9,6 +9,7 @@ import java.security.KeyStore;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
 import org.apache.http.entity.ContentType;
@@ -52,7 +53,8 @@ public class SwarmClient {
 
   @NotNull
   public List<Long> getReviewIds(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
-    final String getReviewsUrl = mySwarmUrl + "/api/v9/reviews?fields=id&change[]=" + changelistId;
+    String getReviewsUrl = mySwarmUrl + "/api/v9/reviews?fields=id&change[]=" + changelistId;
+    getReviewsUrl += addParamsToLimitReviewStatuses();
     try {
       final ReadReviewsProcessor processor = new ReadReviewsProcessor(debugInfo);
       HttpHelper.get(getReviewsUrl, myUsername, myTicket, null, myConnectionTimeout, myTrustStore, processor);
@@ -61,6 +63,14 @@ public class SwarmClient {
     } catch (IOException e) {
       throw new PublisherException("Cannot get list of reviews from " + getReviewsUrl + " for " + debugInfo + ": " + e, e);
     }
+  }
+
+  private String addParamsToLimitReviewStatuses() {
+    String extraParams = TeamCityProperties.getProperty("teamcity.swarm.reviewsExtra.params", "");
+    if (StringUtil.isNotEmpty(extraParams) && !extraParams.startsWith("&")) {
+      extraParams = "&" + extraParams;
+    }
+    return "state[]=needsReview&state[]=needsRevision" + extraParams;
   }
 
   public void addCommentToReview(@NotNull Long reviewId, @NotNull String fullComment, @NotNull String debugInfo) throws PublisherException {

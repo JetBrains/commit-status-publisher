@@ -54,7 +54,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   @Nullable
   private String getChangelistId(@NotNull BuildPromotion promotion, @NotNull BuildRevision revision) {
     String shelvedChangelistId = promotion.getParameterValue("vcsRoot." + revision.getRoot().getExternalId() + ".shelvedChangelist");
-    if (shelvedChangelistId == null) {
+    if (shelvedChangelistId == null && !promotion.isPersonal()) {
       shelvedChangelistId = revision.getRevisionDisplayName();
     }
     return shelvedChangelistId;
