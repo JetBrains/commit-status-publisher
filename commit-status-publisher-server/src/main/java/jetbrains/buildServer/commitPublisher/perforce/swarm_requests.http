@@ -1,3 +1,13 @@
+
+# approved, archived
+GET http://kir-linux.labs.intellij.net/api/v9/reviews?fields=id,changes,state&change[]=143&state[]=needsReview&state[]=needsRevision&state[]=rejected
+Content-Type: application/json
+Authorization: Basic admin 87CC0AAE1D25AFA3771450244793E446
+
+###
+
+
+
 #  status: pass, fail, running
 #  completedTime: msecs
 POST http://kir-linux.labs.intellij.net/api/v10/reviews/101/testruns
