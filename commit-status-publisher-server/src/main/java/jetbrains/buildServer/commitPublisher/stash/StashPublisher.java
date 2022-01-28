@@ -384,6 +384,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
       Map<String, String> jsonData = new LinkedHashMap<String, String>();
       jsonData.put("state", data.getState());
       jsonData.put("key", data.getKey());
+      jsonData.put("parent", data.getKey());
       jsonData.put("name", data.getName());
       jsonData.put("url", data.getUrl());
       jsonData.put("description", data.getDescription());
@@ -415,6 +416,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
       status.description = data.getDescription();
       status.duration = data.getBuildDurationMs();
       status.key = data.getKey();
+      status.parent = data.getKey();
       status.name = data.getName();
       status.ref = data.getVcsBranch();
       status.state = data.getState();
