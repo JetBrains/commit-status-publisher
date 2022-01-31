@@ -7,6 +7,7 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.commitPublisher.HttpBasedCommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,6 +22,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   
   private final WebLinks myLinks;
   private final SwarmClient mySwarmClient;
+  private final boolean myCreateTestRuns;
 
   public SwarmPublisher(@NotNull SwarmPublisherSettings swarmPublisherSettings,
                         @NotNull SBuildType buildType,
@@ -30,6 +32,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
                         @NotNull WebLinks links) {
     super(swarmPublisherSettings, buildType, buildFeatureId, params, problems);
     myLinks = links;
+    myCreateTestRuns = StringUtil.isTrue(SwarmPublisherSettings.PARAM_CREATE_SWARM_TEST);
 
     mySwarmClient = new SwarmClient(params, getConnectionTimeout(), swarmPublisherSettings.trustStore());
   }
@@ -81,7 +84,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **has started**");
 
-    if (TeamCityProperties.getBoolean(SWARM_TESTRUNS_SUPPORT_ENABLED)) {
+    if (hasSwarmTestRunSupport()) {
       createTestRunsForReviewsOnSwarm(build, revision);
     }
 
@@ -102,18 +105,22 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
     String result = build.getBuildStatus().isSuccessful() ? "finished successfully" : "failed";
     publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **has " + result + "** : " + build.getStatusDescriptor().getText());
 
-    if (TeamCityProperties.getBoolean(SWARM_TESTRUNS_SUPPORT_ENABLED)) {
+    if (hasSwarmTestRunSupport()) {
       updateTestRunsForReviewsOnSwarm(build, revision);
     }
 
     return true;
   }
 
+  private boolean hasSwarmTestRunSupport() {
+    return myCreateTestRuns || TeamCityProperties.getBoolean(SWARM_TESTRUNS_SUPPORT_ENABLED);
+  }
+
   @Override
   public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **was interrupted**: " + build.getStatusDescriptor().getText());
 
-    if (TeamCityProperties.getBoolean(SWARM_TESTRUNS_SUPPORT_ENABLED)) {
+    if (hasSwarmTestRunSupport()) {
       updateTestRunsForReviewsOnSwarm(build, revision);
     }
 

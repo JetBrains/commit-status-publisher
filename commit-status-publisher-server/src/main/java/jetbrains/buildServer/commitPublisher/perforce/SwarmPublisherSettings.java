@@ -23,6 +23,7 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
   public static final String PARAM_URL = "swarmUrl";
   public static final String PARAM_USERNAME = "swarmUser";
   public static final String PARAM_PASSWORD = "secure:swarmPassword";
+  public static final String PARAM_CREATE_SWARM_TEST = "createSwarmTest";
 
   private static final Set<CommitStatusPublisher.Event> ourSupportedEvents = new HashSet<CommitStatusPublisher.Event>() {{
     add(CommitStatusPublisher.Event.QUEUED);

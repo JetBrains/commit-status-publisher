@@ -24,6 +24,7 @@
 <c:set var="urlField" value="<%= SwarmPublisherSettings.PARAM_URL%>"/>
 <c:set var="userField" value="<%= SwarmPublisherSettings.PARAM_USERNAME%>"/>
 <c:set var="pwdField" value="<%= SwarmPublisherSettings.PARAM_PASSWORD%>"/>
+<c:set var="createSwarmTestField" value="<%= SwarmPublisherSettings.PARAM_CREATE_SWARM_TEST%>"/>
 
 <tr>
   <th><label for="${urlField}">Perforce Swarm URL:<l:star/></label></th>
@@ -46,6 +47,15 @@
   <td>
     <props:passwordProperty name="${pwdField}" className="mediumField"/>
     <span class="error" id="error_${pwdField}"></span>
+  </td>
+</tr>
+
+<tr>
+  <th><label for="${createSwarmTestField}">Create Swarm Test</label></th>
+  <td>
+    <props:checkboxProperty name="${createSwarmTestField}" />
+    <span class="error" id="error_${createSwarmTestField}"></span>
+    <span class="note">To use this, credentials above require admin-level access to Swarm server.</span>
   </td>
 </tr>
 

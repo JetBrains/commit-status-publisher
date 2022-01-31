@@ -24,6 +24,8 @@ public class SwarmPublisherTest extends HttpPublisherTest {
 
   private static final String CHANGELIST = "1234321";
   private boolean myCreatePersonal;
+  private boolean myNonAdmin;
+  private boolean myCreateSwarmTestRun;
 
   public SwarmPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*viewQueued.html.*");
@@ -39,7 +41,7 @@ public class SwarmPublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.FINISHED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*has%20finished%20successfully.*");
 
     myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*and%20%22");
-    myExpectedRegExps.put(EventToTest.TEST_CONNECTION, "GET /api/v9/projects\\?fields=id HTTP/1.1");
+    myExpectedRegExps.put(EventToTest.TEST_CONNECTION, "POST /api/v9/login HTTP/1.1.*");
   }
 
   @BeforeMethod
@@ -77,11 +79,34 @@ public class SwarmPublisherTest extends HttpPublisherTest {
 
   @Override
   protected Map<String, String> getPublisherParams() {
-    return new HashMap<String, String>() {{
+    HashMap<String, String> result = new HashMap<String, String>() {{
       put(SwarmPublisherSettings.PARAM_URL, getServerUrl());
-      put(SwarmPublisherSettings.PARAM_USERNAME, "admin");
-      put(SwarmPublisherSettings.PARAM_PASSWORD, "admin");
+      put(SwarmPublisherSettings.PARAM_USERNAME, myNonAdmin ? "user" : "admin");
+      put(SwarmPublisherSettings.PARAM_PASSWORD, myNonAdmin ? "user" : "admin");
     }};
+    if (myCreateSwarmTestRun) {
+      result.put(SwarmPublisherSettings.PARAM_CREATE_SWARM_TEST, "true");
+    }
+    return result;
+  }
+
+  public void test_testConnection_OK_NonAdmin() throws Exception {
+    myNonAdmin = true;
+    myCreateSwarmTestRun = false;
+    super.test_testConnection();
+  }
+
+  public void test_testConnection_Fail_NonAdmin_WhenRequired() throws Exception {
+    myNonAdmin = true;
+    myCreateSwarmTestRun = true;
+
+    try {
+      myPublisherSettings.testConnection(myBuildType, myVcsRoot, getPublisherParams());
+      fail("Connection testing failure must throw PublishError exception");
+    } catch (PublisherException ex) {
+      // success
+      then(ex).hasMessageContaining("lack admin permissions");
+    }
   }
 
   @Override
@@ -99,6 +124,18 @@ public class SwarmPublisherTest extends HttpPublisherTest {
 
   @Override
   protected boolean respondToPost(String url, String requestData, HttpRequest httpRequest, HttpResponse httpResponse) {
+    if (url.contains("/api/v9/login")) {
+      if (requestData.contains("username=admin&password=admin")) {
+        // Admin login
+        httpResponse.setEntity(new StringEntity("{\"user\":{\"isAdmin\":true}}", "UTF-8"));
+      }
+      else if (requestData.contains("username=user&password=user")) {
+        // Non-admin login
+        httpResponse.setEntity(new StringEntity("{\"user\":{\"isAdmin\":false}}", "UTF-8"));
+      }
+      return true;
+    }
+
     if (url.contains("/api/v9/comments") && requestData.contains("topic=reviews/19")) {
       httpResponse.setEntity(new StringEntity("{}", "UTF-8"));
       return true;

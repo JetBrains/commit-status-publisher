@@ -26,6 +26,7 @@ public class SwarmClient {
   private final String mySwarmUrl;
   private final String myUsername;
   private final String myTicket;
+  private final boolean myAdminRequired;
   private int myConnectionTimeout;
   private final KeyStore myTrustStore;
 
@@ -33,6 +34,7 @@ public class SwarmClient {
     myUsername = params.get(PARAM_USERNAME);
     myTicket = params.get(PARAM_PASSWORD);
     mySwarmUrl = StringUtil.removeTailingSlash(params.get(PARAM_URL));
+    myAdminRequired = StringUtil.isTrue(params.get(PARAM_CREATE_SWARM_TEST));
 
     myConnectionTimeout = connectionTimeout;
     myTrustStore = trustStore;
@@ -43,12 +45,32 @@ public class SwarmClient {
   }
 
   public void testConnection() throws PublisherException {
-    final String projectsUrl = mySwarmUrl + "/api/v9/projects?fields=id";
+    final String loginUrl = mySwarmUrl + "/api/v9/login";
     try {
-      HttpHelper.get(projectsUrl, myUsername, myTicket, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
+      final String data = "username=" + StringUtil.encodeURLParameter(myUsername) + "&password=" + StringUtil.encodeURLParameter(myTicket);
+      HttpHelper.post(loginUrl, null, null,
+                      data, ContentType.APPLICATION_FORM_URLENCODED, null, myConnectionTimeout, myTrustStore, createLoginProcessor());
     } catch (IOException e) {
-      throw new PublisherException("Test connection failed, cannot get list of projects from " + projectsUrl, e);
+      throw new PublisherException("Test connection failed for " + loginUrl, e);
     }
+  }
+
+  @NotNull
+  private DefaultHttpResponseProcessor createLoginProcessor() {
+    return new DefaultHttpResponseProcessor() {
+      @Override
+      public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+        super.processResponse(response);
+        
+        if (myAdminRequired) {
+          final JsonNode jsonNode = new ObjectMapper().readTree(response.getContent());
+          boolean userIsAdmin = jsonNode.get("user").get("isAdmin").asBoolean();
+          if (!userIsAdmin) {
+            throw new HttpPublisherException("Provided credentials lack admin permissions, which are required to create Swarm test runs.");
+          }
+        }
+      }
+    };
   }
 
   @NotNull
