@@ -92,7 +92,7 @@ public class SwarmClient {
     if (StringUtil.isNotEmpty(extraParams) && !extraParams.startsWith("&")) {
       extraParams = "&" + extraParams;
     }
-    return "state[]=needsReview&state[]=needsRevision" + extraParams;
+    return "&state[]=needsReview&state[]=needsRevision" + extraParams;
   }
 
   public void addCommentToReview(@NotNull Long reviewId, @NotNull String fullComment, @NotNull String debugInfo) throws PublisherException {

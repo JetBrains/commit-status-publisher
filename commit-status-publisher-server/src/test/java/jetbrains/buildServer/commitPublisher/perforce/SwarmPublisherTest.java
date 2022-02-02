@@ -115,7 +115,7 @@ public class SwarmPublisherTest extends HttpPublisherTest {
     if (url.contains(testConnectionURL)) {
       return true;
     }
-    if (url.contains("/api/v9/reviews?fields=id&change[]=" + CHANGELIST) && url.contains("needsReview")) {
+    if (url.contains("/api/v9/reviews?fields=id&change[]=" + CHANGELIST + "&state[]=needsReview")) {
       httpResponse.setEntity(new StringEntity("{\"lastSeen\":19,\"reviews\":[{\"id\":19}],\"totalCount\":1}", "UTF-8"));
       return true;
     }
