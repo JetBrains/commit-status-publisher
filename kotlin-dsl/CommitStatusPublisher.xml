@@ -270,6 +270,12 @@
                 Token or password to access the Perforc Swarm server.
               </description>
             </param>
+            <param name="createSwarmTest" dslName="createSwarmTest" type="boolean" trueValue="true" falseValue="">
+              <description>
+                If set, TeamCity will create a test run on the Helix Swarm server and update its status according to
+                the build status in TeamCity.
+              </description>
+            </param>
           </option>
 
         </param>
