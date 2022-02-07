@@ -1,11 +1,7 @@
 package jetbrains.buildServer.commitPublisher.perforce;
 
-import java.util.List;
 import java.util.Map;
-import jetbrains.buildServer.commitPublisher.AdditionalTaskInfo;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
-import jetbrains.buildServer.commitPublisher.HttpBasedCommitStatusPublisher;
-import jetbrains.buildServer.commitPublisher.PublisherException;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -19,7 +15,8 @@ import static jetbrains.buildServer.commitPublisher.perforce.SwarmPublisherSetti
 class SwarmPublisher extends HttpBasedCommitStatusPublisher {
 
   private static final String SWARM_TESTRUNS_SUPPORT_ENABLED = "teamcity.swarm.testruns.enabled";
-  
+  private static final String SWARM_PUBLISH_COMMENTS_ENABLED = "teamcity.internal.swarm.publishComments.enabled";
+
   private final WebLinks myLinks;
   private final SwarmClient mySwarmClient;
   private final boolean myCreateTestRuns;
@@ -105,9 +102,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
     String result = build.getBuildStatus().isSuccessful() ? "finished successfully" : "failed";
     publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **has " + result + "** : " + build.getStatusDescriptor().getText());
 
-    if (hasSwarmTestRunSupport()) {
-      updateTestRunsForReviewsOnSwarm(build, revision);
-    }
+    updateTestRunsForReviewsOnSwarm(build, revision);
 
     return true;
   }
@@ -120,14 +115,17 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **was interrupted**: " + build.getStatusDescriptor().getText());
 
-    if (hasSwarmTestRunSupport()) {
-      updateTestRunsForReviewsOnSwarm(build, revision);
-    }
+    updateTestRunsForReviewsOnSwarm(build, revision);
 
     return true;
   }
 
   private void updateTestRunsForReviewsOnSwarm(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
+
+    if (!hasSwarmTestRunSupport()) {
+      return;
+    }
+
     postForEachReview(build.getBuildPromotion(), revision, new ReviewMessagePublisher() {
       @Override
       public void publishMessage(@NotNull Long reviewId, @NotNull BuildPromotion buildPromo, @NotNull String debugBuildInfo) throws PublisherException {
@@ -139,16 +137,24 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   @Override
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publishCommentIfNeeded(build.getBuildPromotion(), revision, "failure was detected in build %s: " + build.getStatusDescriptor().getText());
+    updateTestRunsForReviewsOnSwarm(build, revision);
     return true;
   }
 
   @Override
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
     publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s was **marked as successful**: " + build.getStatusDescriptor().getText());
+    updateTestRunsForReviewsOnSwarm(build, revision);
     return true;
   }
 
   private void publishCommentIfNeeded(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final String commentTemplate) throws PublisherException {
+    if (!((BuildPromotionEx)build).getBooleanInternalParameterOrTrue(SWARM_PUBLISH_COMMENTS_ENABLED)) {
+      LoggerUtil.LOG.debug(String.format("Skip publishing comment to Helix Swarm for %s due to %s=false",
+                                         build, SWARM_PUBLISH_COMMENTS_ENABLED));
+      return;
+    }
+
     postForEachReview(build, revision, new ReviewMessagePublisher() {
       @Override
       public void publishMessage(@NotNull Long reviewId, @NotNull BuildPromotion build, @NotNull String debugBuildInfo) throws PublisherException {
@@ -173,8 +179,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
     IOGuard.allowNetworkCall(() -> {
       final String debugBuildInfo = "build [id=" + build.getId() + "] in " + buildType.getExtendedFullName();
 
-      final List<Long> reviewIds = mySwarmClient.getReviewIds(changelistId, debugBuildInfo);
-      for (Long reviewId : reviewIds) {
+      for (Long reviewId : mySwarmClient.getReviewIds(changelistId, debugBuildInfo)) {
         messagePublisher.publishMessage(reviewId, build, debugBuildInfo);
       }
     });
