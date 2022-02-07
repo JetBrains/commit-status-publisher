@@ -63,8 +63,17 @@ public class SwarmClient {
         super.processResponse(response);
         
         if (myAdminRequired) {
-          final JsonNode jsonNode = new ObjectMapper().readTree(response.getContent());
-          boolean userIsAdmin = jsonNode.get("user").get("isAdmin").asBoolean();
+          final JsonNode jsonResponse = new ObjectMapper().readTree(response.getContent());
+          if (jsonResponse == null) {
+            throw new HttpPublisherException("Could not parse Swarm server response as JSON: " + response.getContent());
+          }
+
+          JsonNode user = jsonResponse.get("user");
+          if (user == null) {
+            throw new HttpPublisherException("Could not find user data in Swarm server response: " + response.getContent());
+          }
+
+          boolean userIsAdmin = user.get("isAdmin") != null && user.get("isAdmin").asBoolean();
           if (!userIsAdmin) {
             throw new HttpPublisherException("Provided credentials lack admin permissions, which are required to create Swarm test runs.");
           }
