@@ -26,6 +26,17 @@
 <c:set var="pwdField" value="<%= SwarmPublisherSettings.PARAM_PASSWORD%>"/>
 <c:set var="createSwarmTestField" value="<%= SwarmPublisherSettings.PARAM_CREATE_SWARM_TEST%>"/>
 
+<style>
+  .flexCheckbox {
+    display: flex;
+    gap: 5px;
+    align-items: flex-start;
+  }
+  #createSwarmTest {
+    margin-top: 3px;
+  }
+</style>
+
 <tr>
   <th><label for="${urlField}">Perforce Swarm URL:<l:star/></label></th>
   <td>
@@ -53,9 +64,14 @@
 <tr>
   <th><label for="${createSwarmTestField}">Create Swarm Test</label></th>
   <td>
-    <props:checkboxProperty name="${createSwarmTestField}" />
-    <span class="error" id="error_${createSwarmTestField}"></span>
-    <span class="note">To use this, credentials above require admin-level access to Swarm server.</span>
+    <div class="flexCheckbox">
+      <props:checkboxProperty name="${createSwarmTestField}" />
+      <span class="error" id="error_${createSwarmTestField}"></span>
+      <span class="note">
+      If set, TeamCity will create a test run on the Swarm server and update its status according to
+                the build status in TeamCity. Requires an admin-level access for the credentials above.
+    </span>
+    </div>
   </td>
 </tr>
 
