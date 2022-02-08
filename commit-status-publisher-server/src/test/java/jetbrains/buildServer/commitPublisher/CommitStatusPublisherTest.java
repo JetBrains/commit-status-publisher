@@ -114,8 +114,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   public void test_testConnection() throws Exception {
     if (!myPublisherSettings.isTestConnectionSupported()) return;
     myPublisherSettings.testConnection(myBuildType, myVcsRoot, getPublisherParams());
-    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
-                          .matches(myExpectedRegExps.get(EventToTest.TEST_CONNECTION));
+    checkRequestMatch(".*error.*", EventToTest.TEST_CONNECTION);
   }
 
   public void test_testConnection_fails_on_readonly() throws InterruptedException {
@@ -147,56 +146,50 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     if (isSkipEvent(EventToTest.QUEUED)) return;
     SQueuedBuild build = addBuildToQueue();
     myPublisher.buildQueued(build.getBuildPromotion(), myRevision, new AdditionalQueuedInfo(DefaultStatusMessages.BUILD_QUEUED, null));
-    then(getRequestAsString()).isNotNull().doesNotMatch(".*removed.*").matches(myExpectedRegExps.get(EventToTest.QUEUED));
+    checkRequestMatch(".*removed.*", EventToTest.QUEUED);
   }
 
   public void test_buildRemovedFromQueue()  throws Exception {
     if (isSkipEvent(EventToTest.REMOVED)) return;
     SQueuedBuild build = addBuildToQueue();
     myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalRemovedFromQueueInfo(COMMENT, myUser, null));
-    then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.REMOVED));
+    checkRequestMatch(".*error.*", EventToTest.REMOVED);
   }
 
   public void test_buildStarted() throws Exception {
     if (isSkipEvent(EventToTest.STARTED)) return;
     myPublisher.buildStarted(startBuildInCurrentBranch(myBuildType), myRevision);
-    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
-                          .matches(myExpectedRegExps.get(EventToTest.STARTED));
+    checkRequestMatch(".*error.*", EventToTest.STARTED);
   }
 
   public void test_buildFinished_Successfully() throws Exception {
     if (isSkipEvent(EventToTest.FINISHED)) return;
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
-    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
-                          .matches(myExpectedRegExps.get(EventToTest.FINISHED));
+    checkRequestMatch(".*error.*", EventToTest.FINISHED);
   }
 
   public void test_buildFinished_Failed() throws Exception {
     if (isSkipEvent(EventToTest.FAILED)) return;
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.FAILURE), myRevision);
-    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
-                          .matches(myExpectedRegExps.get(EventToTest.FAILED));
+    checkRequestMatch(".*error.*", EventToTest.FAILED);
   }
 
   public void test_buildCommented_Success() throws Exception {
     if (isSkipEvent(EventToTest.COMMENTED_SUCCESS)) return;
     myPublisher.buildCommented(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision, myUser, COMMENT, false);
-    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
-                          .matches(myExpectedRegExps.get(EventToTest.COMMENTED_SUCCESS));
+    checkRequestMatch(".*error.*", EventToTest.COMMENTED_SUCCESS);
   }
 
   public void test_buildCommented_Failed() throws Exception {
     if (isSkipEvent(EventToTest.COMMENTED_FAILED)) return;
     myPublisher.buildCommented(createBuildInCurrentBranch(myBuildType, Status.FAILURE), myRevision, myUser, COMMENT, false);
-    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
-                          .matches(myExpectedRegExps.get(EventToTest.COMMENTED_FAILED));
+    checkRequestMatch(".*error.*", EventToTest.COMMENTED_FAILED);
   }
 
   public void test_buildCommented_InProgress() throws Exception {
     if (isSkipEvent(EventToTest.COMMENTED_INPROGRESS)) return;
     myPublisher.buildCommented(startBuildInCurrentBranch(myBuildType), myRevision, myUser, COMMENT, true);
-    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
-                          .matches(myExpectedRegExps.get(EventToTest.COMMENTED_INPROGRESS));
+    checkRequestMatch(".*error.*", EventToTest.COMMENTED_INPROGRESS);
   }
 
   public void test_buildCommented_InProgress_Failed() throws Exception {
@@ -204,8 +197,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     SRunningBuild runningBuild = startBuildInCurrentBranch(myBuildType);
     runningBuild.addBuildProblem(BuildProblemData.createBuildProblem("problem", "type", PROBLEM_DESCR));
     myPublisher.buildCommented(runningBuild, myRevision, myUser, COMMENT, true);
-    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
-                          .matches(myExpectedRegExps.get(EventToTest.COMMENTED_INPROGRESS_FAILED));
+    checkRequestMatch(".*error.*", EventToTest.COMMENTED_INPROGRESS_FAILED);
   }
 
 
@@ -214,8 +206,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     SFinishedBuild finishedBuild = createBuildInCurrentBranch(myBuildType, Status.NORMAL);
     finishedBuild.addBuildProblem(BuildProblemData.createBuildProblem("problem", "type", PROBLEM_DESCR));
     myPublisher.buildInterrupted(finishedBuild, myRevision);
-    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
-                          .matches(myExpectedRegExps.get(EventToTest.INTERRUPTED));
+    checkRequestMatch(".*error.*", EventToTest.INTERRUPTED);
   }
 
   public void test_buildFailureDetected() throws Exception {
@@ -223,8 +214,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     SRunningBuild runningBuild = startBuildInCurrentBranch(myBuildType);
     runningBuild.addBuildProblem(BuildProblemData.createBuildProblem("problem", "type", PROBLEM_DESCR));
     myPublisher.buildFailureDetected(runningBuild, myRevision);
-    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
-                          .matches(myExpectedRegExps.get(EventToTest.FAILURE_DETECTED));
+    checkRequestMatch(".*error.*", EventToTest.FAILURE_DETECTED);
   }
 
   public void test_buildMarkedAsSuccessful() throws Exception {
@@ -232,23 +222,24 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.FAILURE), myRevision);
     getRequestAsString();
     myPublisher.buildMarkedAsSuccessful(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision, false);
-    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
-                          .matches(myExpectedRegExps.get(EventToTest.MARKED_SUCCESSFUL));
+    checkRequestMatch(".*error.*", EventToTest.MARKED_SUCCESSFUL);
   }
 
   public void test_buildMarkedAsSuccessful_WhileRunning() throws Exception {
     if (isSkipEvent(EventToTest.MARKED_RUNNING_SUCCESSFUL)) return;
     myPublisher.buildMarkedAsSuccessful(startBuildInCurrentBranch(myBuildType), myRevision, true);
-    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
-                          .matches(myExpectedRegExps.get(EventToTest.MARKED_RUNNING_SUCCESSFUL));
+    checkRequestMatch(".*error.*", EventToTest.MARKED_RUNNING_SUCCESSFUL);
   }
 
   public void ensure_payload_escaped() throws Exception {
     if (isSkipEvent(EventToTest.PAYLOAD_ESCAPED)) return;
     myBuildType.setName(BT_NAME_2BE_ESCAPED);
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.FAILURE), myRevision);
-    then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
-                          .matches(myExpectedRegExps.get(EventToTest.PAYLOAD_ESCAPED));
+    checkRequestMatch(".*error.*", EventToTest.PAYLOAD_ESCAPED);
+  }
+
+  private void checkRequestMatch(String errRegex, EventToTest eventToTest) {
+    then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(eventToTest)).doesNotMatch(errRegex);
   }
 
   private boolean isSkipEvent(@NotNull EventToTest eventType) {
