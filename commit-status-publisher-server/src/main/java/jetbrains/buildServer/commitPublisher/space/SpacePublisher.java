@@ -126,7 +126,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
     }
     Event event = getTriggeredEvent(buildStatus);
     boolean isSameBuild = StringUtil.areEqual(myLinks.getQueuedBuildUrl(removedBuild), buildStatus.url);
-    return new RevisionStatus(event, buildStatus.description, isSameBuild);
+    return new RevisionStatus(event, isSameBuild);
   }
 
   @Override
@@ -164,7 +164,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
     }
     Event event = getTriggeredEvent(commitStatus);
     boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), commitStatus.url);
-    return new RevisionStatus(event, commitStatus.description, isSameBuild);
+    return new RevisionStatus(event, isSameBuild);
   }
 
   private Event getTriggeredEvent(SpaceBuildStatusInfo commitStatus) {

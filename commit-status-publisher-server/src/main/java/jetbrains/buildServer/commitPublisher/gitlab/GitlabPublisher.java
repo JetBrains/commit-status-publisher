@@ -124,7 +124,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     }
     Event event = getTriggeredEvent(commitStatus);
     boolean isSameBuild = StringUtil.areEqual(myLinks.getQueuedBuildUrl(removedBuild), commitStatus.target_url);
-    return new RevisionStatus(event, commitStatus.description, isSameBuild);
+    return new RevisionStatus(event, isSameBuild);
   }
 
   @Override
@@ -150,7 +150,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     }
     Event event = getTriggeredEvent(commitStatus);
     boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), commitStatus.target_url);
-    return new RevisionStatus(event, commitStatus.description, isSameBuild);
+    return new RevisionStatus(event, isSameBuild);
   }
 
   private String buildRevisionStatusesUrl(@NotNull BuildRevision revision, @Nullable BuildType buildType) throws PublisherException {

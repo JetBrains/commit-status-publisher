@@ -10,23 +10,16 @@ public class RevisionStatus {
   public static final Logger LOG = Logger.getInstance(LOG_CATEGORY);
 
   private final CommitStatusPublisher.Event myTriggeredEvent;
-  private final String myDescription;
   private final boolean myIsLastStatusForRevision;
 
-  public RevisionStatus(@Nullable CommitStatusPublisher.Event triggeredEvent, @Nullable String description, boolean isLastStatusForRevision) {
+  public RevisionStatus(@Nullable CommitStatusPublisher.Event triggeredEvent, boolean isLastStatusForRevision) {
     myTriggeredEvent = triggeredEvent;
-    myDescription = description;
     myIsLastStatusForRevision = isLastStatusForRevision;
   }
 
   @Nullable
   public CommitStatusPublisher.Event getTriggeredEvent() {
     return myTriggeredEvent;
-  }
-
-  @Nullable
-  public String getDescription() {
-    return myDescription;
   }
 
   public boolean isEventAllowed(@NotNull CommitStatusPublisher.Event event) {

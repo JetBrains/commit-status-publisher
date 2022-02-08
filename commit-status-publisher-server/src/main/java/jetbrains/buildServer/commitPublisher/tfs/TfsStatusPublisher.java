@@ -145,7 +145,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     if (commitStatus == null) return null;
     Event event = getTriggeredEvent(commitStatus);
     boolean isSameBuild = StringUtil.areEqual(myLinks.getQueuedBuildUrl(removedBuild), commitStatus.targetUrl);
-    return new RevisionStatus(event, commitStatus.description, isSameBuild);
+    return new RevisionStatus(event, isSameBuild);
   }
 
   @Override
@@ -183,7 +183,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     if (commitStatus == null) return null;
     Event event = getTriggeredEvent(commitStatus);
     boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), commitStatus.targetUrl);
-    return new RevisionStatus(event, commitStatus.description, isSameBuild);
+    return new RevisionStatus(event, isSameBuild);
   }
 
   private Event getTriggeredEvent(CommitStatus commitStatus) {

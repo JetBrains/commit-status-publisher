@@ -101,6 +101,11 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     myConnectionTimeout = timeout;
   }
 
+  @Override
+  public boolean publish(BuildRevision revision, CommonBuildStatus status) throws PublisherException {
+    return false;
+  }
+
   @Nullable
   public String getVcsRootId() {
     return myParams.get(Constants.VCS_ROOT_ID_PARAM);
@@ -145,6 +150,11 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
 
   @Override
   public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+    return null;
+  }
+
+  @Override
+  public CommonBuildStatus getLatestStatusForAnotherBuild(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
     return null;
   }
 

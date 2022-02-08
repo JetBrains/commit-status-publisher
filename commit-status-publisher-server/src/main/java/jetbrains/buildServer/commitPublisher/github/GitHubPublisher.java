@@ -108,7 +108,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     }
     Event triggeredEvent = getTriggeredEvent(commitStatus);
     boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), commitStatus.target_url);
-    return new RevisionStatus(triggeredEvent, commitStatus.description, isSameBuild);
+    return new RevisionStatus(triggeredEvent, isSameBuild);
   }
 
   @Override
@@ -123,7 +123,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     }
     Event triggeredEvent = getTriggeredEvent(commitStatus);
     boolean isSameBuild = StringUtil.areEqual(myWebLinks.getQueuedBuildUrl(removedBuild), commitStatus.target_url);
-    return new RevisionStatus(triggeredEvent, commitStatus.description, isSameBuild);
+    return new RevisionStatus(triggeredEvent, isSameBuild);
   }
 
   @Nullable

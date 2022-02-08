@@ -143,7 +143,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     }
     Event event = getTriggeredEvent(buildStatus);
     boolean isSameBuild = StringUtil.areEqual(myLinks.getQueuedBuildUrl(removedBuild), buildStatus.url);
-    return new RevisionStatus(event, buildStatus.description, isSameBuild);
+    return new RevisionStatus(event, isSameBuild);
   }
 
   @Override
@@ -160,7 +160,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     }
     Event event = getTriggeredEvent(buildStatus);
     boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), buildStatus.url);
-    return new RevisionStatus(event, buildStatus.description, isSameBuild);
+    return new RevisionStatus(event, isSameBuild);
   }
 
   private String getViewUrl(BuildPromotion buildPromotion) {
