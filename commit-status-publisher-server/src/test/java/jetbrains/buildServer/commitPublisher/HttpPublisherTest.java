@@ -148,7 +148,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
     }
     myRequests.add(request.toString());
     if(!populateResponse(httpRequest, requestData, httpResponse)) {
-      myRequests.add("HTTP error: " + httpResponse.getStatusLine());
+      myRequests.add("HTTP error: " + httpResponse.getStatusLine() + " for request " + request);
     }
   }
 
@@ -179,6 +179,8 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
       return respondToGet(url, httpResponse);
     } else if (method.equals("POST")) {
       return respondToPost(url, requestData, httpRequest, httpResponse);
+    } else if (method.equals("PATCH")) {
+      return respondToPatch(url, requestData, httpRequest, httpResponse);
     }
 
     respondWithError(httpResponse, 405, String.format("Wrong method '%s'", method));
@@ -188,6 +190,10 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
   protected abstract boolean respondToGet(String url, HttpResponse httpResponse);
 
   protected abstract boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse);
+
+  protected boolean respondToPatch(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    return false;
+  }
 
   protected boolean isUrlExpected(String url, HttpResponse httpResponse) {
     String expected = getExpectedApiPath() + getExpectedEndpointPrefix();
