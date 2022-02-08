@@ -163,6 +163,37 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     return null;
   }
 
+  @Override
+  public CommonBuildStatus getLatestStatusForAnotherBuild(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+    CommitStatus commitStatus = getLatestInformativeCommitStatus(revision, buildPromotion);
+    return getCommonBuildStatus(commitStatus);
+  }
+
+  @Nullable
+  private CommonBuildStatus getCommonBuildStatus(@Nullable CommitStatus commitStatus) {
+    if (commitStatus == null) {
+      return null;
+    }
+    return new CommonBuildStatus(commitStatus.context, commitStatus.state, commitStatus.description, commitStatus.target_url, null);
+  }
+
+  @Override
+  public boolean publish(@NotNull BuildRevision revision, @Nullable CommonBuildStatus status) throws PublisherException {
+    if (status == null || status.getState() == null) {
+      return false;
+    }
+    Map<String, String> handlerParameters = new HashMap<>(myParams);
+    handlerParameters.put(Constants.GITHUB_CONTEXT, status.getBuild());
+    ChangeStatusUpdater.Handler handler = myUpdater.getHandler(revision.getRoot(), handlerParameters, this);
+
+    if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
+      LOG.warn("No revisions were found to request GitHub status. Please check you have Git VCS roots in the build configuration");
+      return false;
+    }
+    handler.changeRawStatus(revision, status);
+    return true;
+  }
+
   public String getServerUrl() {
     return myParams.get(Constants.GITHUB_SERVER);
   }
@@ -191,7 +222,18 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       LOG.warn("No revisions were found to request GitHub status. Please check you have Git VCS roots in the build configuration");
       return null;
     }
-    return handler.getStatus(revision);
+    return handler.getLatestStatusForContext(revision);
+  }
+
+  @Nullable
+  private CommitStatus getLatestInformativeCommitStatus(@NotNull BuildRevision revision, @NotNull BuildPromotion buildPromotion) throws PublisherException {
+    ChangeStatusUpdater.Handler handler = myUpdater.getHandler(revision.getRoot(), getParams(buildPromotion), this);
+
+    if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
+      LOG.warn("No revisions were found to request GitHub status. Please check you have Git VCS roots in the build configuration");
+      return null;
+    }
+    return handler.getLatestInformativeStatus(revision);
   }
 
   private boolean updateQueuedBuildStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision,

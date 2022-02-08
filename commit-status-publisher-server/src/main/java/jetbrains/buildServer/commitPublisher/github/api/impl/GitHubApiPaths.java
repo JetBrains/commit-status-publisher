@@ -47,12 +47,12 @@ public class GitHubApiPaths {
   }
 
   @NotNull
-  public String getCombinedStatusUrl(@NotNull final String ownerName,
-                                     @NotNull final String repoName,
-                                     @NotNull final String hash,
-                                     @Nullable final Integer perPage,
-                                     @Nullable final Integer page) {
-    StringBuilder url = new StringBuilder(String.format("%s/repos/%s/%s/commits/%s/status", myUrl, ownerName, repoName, hash));
+  public String getStatusesUrl(@NotNull final String ownerName,
+                               @NotNull final String repoName,
+                               @NotNull final String hash,
+                               @Nullable final Integer perPage,
+                               @Nullable final Integer page) {
+    StringBuilder url = new StringBuilder(String.format("%s/repos/%s/%s/commits/%s/statuses", myUrl, ownerName, repoName, hash));
     boolean paramAdded = false;
     if (perPage != null) {
       url.append("?per_page=").append(perPage);

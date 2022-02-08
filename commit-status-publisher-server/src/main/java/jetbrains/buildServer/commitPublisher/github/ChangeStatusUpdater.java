@@ -17,15 +17,16 @@
 package jetbrains.buildServer.commitPublisher.github;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
-import jetbrains.buildServer.commitPublisher.github.api.impl.data.CombinedCommitStatus;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.messages.Status;
@@ -46,6 +47,7 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
  * Date: 06.09.12 3:29
  */
 public class ChangeStatusUpdater {
+  private static final String MAX_STATUSES_TO_LOAD_PROPERTY_NAME = "teamcity.commitStatusPublisher.gihub.statuses.maxToLoad";
   private static final UpdateChangesConstants C = new UpdateChangesConstants();
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
@@ -159,7 +161,7 @@ public class ChangeStatusUpdater {
       }
 
       @Override
-      public CommitStatus getStatus(@NotNull BuildRevision revision) throws PublisherException {
+      public CommitStatus getLatestStatusForContext(@NotNull BuildRevision revision) throws PublisherException {
         RepositoryVersion version = revision.getRepositoryVersion();
         String buildContext = params.get(Constants.GITHUB_CONTEXT);
         LOG.debug("Requesting statuses for " +
@@ -170,7 +172,35 @@ public class ChangeStatusUpdater {
         Repository repo = parseRepository(root);
         GitHubStatusClient statusClient = new GitHubStatusClient(params, publisher);
         try {
-          return statusClient.getStatus(revision, repo);
+          return statusClient.getStatus(revision, repo, status -> buildContext.equals(status.context));
+        } catch (IOException e) {
+          publisher.getProblems().reportProblem(String.format("Commit Status Publisher error. Can not receive status for revision: %s", revision.getRevision()), publisher,
+                                                buildContext, publisher.getServerUrl(), e, LOG);
+        }
+        return null;
+      }
+
+      @Override
+      public boolean changeRawStatus(@NotNull BuildRevision revision, @NotNull CommonBuildStatus status) throws PublisherException {
+        GitHubStatusClient statusClient = new GitHubStatusClient(params, publisher);
+        Repository repo = parseRepository(root);
+        return statusClient.update(revision, status, repo);
+      }
+
+      @Override
+      public CommitStatus getLatestInformativeStatus(@NotNull BuildRevision revision) throws PublisherException {
+        RepositoryVersion version = revision.getRepositoryVersion();
+        String buildContext = params.get(Constants.GITHUB_CONTEXT);
+        LOG.debug("Requesting statuses for " +
+                  "hash: " + version.getVersion() + ", " +
+                  "branch: " + version.getVcsBranch() + ", " +
+                  "not build: " + buildContext);
+
+        Repository repo = parseRepository(root);
+        GitHubStatusClient statusClient = new GitHubStatusClient(params, publisher);
+        try {
+          return statusClient.getStatus(revision, repo, status -> (status.description == null || !status.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) &&
+                                                                  (!GitHubChangeState.Pending.getState().equalsIgnoreCase(status.state) || !buildContext.equals(status.context)));
         } catch (IOException e) {
           publisher.getProblems().reportProblem(String.format("Commit Status Publisher error. Can not receive status for revision: %s", revision.getRevision()), publisher,
                                                 buildContext, publisher.getServerUrl(), e, LOG);
@@ -278,7 +308,7 @@ public class ChangeStatusUpdater {
     }
 
     @Nullable
-    public CommitStatus getStatus(@NotNull BuildRevision revision, @NotNull Repository repo) throws IOException {
+    public CommitStatus getStatus(@NotNull BuildRevision revision, @NotNull Repository repo, @NotNull Predicate<CommitStatus> statusFilter) throws IOException {
       final RepositoryVersion version = revision.getRepositoryVersion();
       final String hash = resolveCommitHash(version, repo, null, myContext);
       if (isHashInvalid(hash, version, revision.getRoot(), myContext)) {
@@ -286,21 +316,21 @@ public class ChangeStatusUpdater {
       }
       final int perPage = 30;
       int page = 0;
-      int totalStatuses;
+      int totalStatuses = 0;
 
       do {
         page++;
-        CombinedCommitStatus combinedCommitStatus = myApi.readChangeCombinedStatus(repo.owner(), repo.repositoryName(), hash, perPage, page);
-        if (combinedCommitStatus.statuses == null || combinedCommitStatus.statuses.isEmpty()) {
+        Collection<CommitStatus> commitStatuses = myApi.readChangeCombinedStatus(repo.owner(), repo.repositoryName(), hash, perPage, page);
+        if (commitStatuses == null || commitStatuses.isEmpty()) {
           LOG.debug(String.format("No statuses received from GitHub for repository \"%s/%s\" hash %s", repo.owner(), repo.repositoryName(), hash));
           break;
         }
-        Optional<CommitStatus> requiredStatus = combinedCommitStatus.statuses.stream().filter(status -> myContext.equals(status.context)).findAny();
+        Optional<CommitStatus> requiredStatus = commitStatuses.stream().filter(statusFilter).findAny();
         if (requiredStatus.isPresent()) {
           return requiredStatus.get();
         }
-        totalStatuses = combinedCommitStatus.total_count != null ? combinedCommitStatus.total_count : 0;
-      } while (totalStatuses > page * perPage);
+        totalStatuses += commitStatuses.size();
+      } while (totalStatuses < TeamCityProperties.getInteger(MAX_STATUSES_TO_LOAD_PROPERTY_NAME, 300));
       return null;
     }
   }
@@ -363,7 +393,8 @@ public class ChangeStatusUpdater {
 
       final CommitStatusPublisherProblems problems = myPublisher.getProblems();
       try {
-        changeStatus(build, repo, hash, version, message, targetStatus, viewUrl);
+        changeStatus(repo, hash, version, message, targetStatus, viewUrl);
+        LOG.info("Updated GitHub status for hash: " + hash + ", " + buildIdentififcator + ", status: " + targetStatus);
       } catch (IOException e) {
         problems.reportProblem(String.format("Commit Status Publisher error. GitHub status: '%s'", targetStatus), myPublisher, LogUtil.describe(build), myPublisher.getServerUrl(), e, LOG);
       }
@@ -378,8 +409,29 @@ public class ChangeStatusUpdater {
       }
     }
 
-    private void changeStatus(SBuild build,
-                              Repository repo,
+    public boolean update(BuildRevision revision, CommonBuildStatus commonBuildStatus, Repository repo) {
+      final GitHubChangeState targetStatus = GitHubChangeState.getByState(commonBuildStatus.getState());
+      if (targetStatus == null) {
+        LOG.warn(String.format("Unknonw GitHub status: \"%s\". Can not publish it", commonBuildStatus.getState()));
+        return false;
+      }
+      String buildIdentififcator = "buildName: " + commonBuildStatus.getBuild();
+      final RepositoryVersion version = revision.getRepositoryVersion();
+      final String hash = resolveCommitHash(version, repo, targetStatus, buildIdentififcator);
+      if (isHashInvalid(hash, version, revision.getRoot(), buildIdentififcator)) {
+        return false;
+      }
+      try {
+        changeStatus(repo, hash, version, commonBuildStatus.getDescription(), targetStatus, commonBuildStatus.getUrl());
+      } catch (IOException e) {
+        myPublisher.getProblems().reportProblem(String.format("Can not publish \"%s\" status to GitHub", commonBuildStatus.getState()), myPublisher,
+                                                commonBuildStatus.getDescription(), myPublisher.getServerUrl(), e, LOG);
+        return false;
+      }
+      return true;
+    }
+
+    private void changeStatus(Repository repo,
                               String hash,
                               RepositoryVersion version,
                               String message,
@@ -395,7 +447,6 @@ public class ChangeStatusUpdater {
         message,
         prMergeBranch ? myContext + " - merge" : myContext
       );
-      LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + targetStatus);
     }
 
     @NotNull
@@ -471,6 +522,8 @@ public class ChangeStatusUpdater {
     void changeCompleted(@NotNull final BuildRevision revision, @NotNull final SBuild build, @NotNull String viewUrl) throws PublisherException;
     boolean changeQueued(@NotNull final BuildRevision revision, @NotNull final BuildPromotion build, @NotNull AdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException;
     boolean changeRemovedFromQueue(@NotNull final BuildRevision revision, @NotNull final BuildPromotion build, @NotNull AdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException;
-    CommitStatus getStatus(@NotNull final BuildRevision revision) throws PublisherException;
+    boolean changeRawStatus(@NotNull final BuildRevision revision, @NotNull final CommonBuildStatus status) throws PublisherException;
+    CommitStatus getLatestStatusForContext(@NotNull final BuildRevision revision) throws PublisherException;
+    CommitStatus getLatestInformativeStatus(@NotNull final BuildRevision revision) throws PublisherException;
   }
 }
