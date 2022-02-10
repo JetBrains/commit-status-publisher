@@ -4,9 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import java.io.IOException;
 import java.security.KeyStore;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.log.LogInitializer;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -31,6 +35,8 @@ public class SwarmClient {
   private int myConnectionTimeout;
   private final KeyStore myTrustStore;
 
+  private final Cache<String, List<Long>> myChangelist2ReviewsCache;
+
   public SwarmClient(@NotNull Map<String, String> params, int connectionTimeout, @Nullable KeyStore trustStore) {
     myUsername = params.get(PARAM_USERNAME);
     myTicket = params.get(PARAM_PASSWORD);
@@ -39,6 +45,11 @@ public class SwarmClient {
 
     myConnectionTimeout = connectionTimeout;
     myTrustStore = trustStore;
+
+    myChangelist2ReviewsCache = CacheBuilder.newBuilder()
+                                            .maximumSize(1000)
+                                            .expireAfterWrite(10, TimeUnit.SECONDS)
+                                            .build();
   }
 
   public void setConnectionTimeout(int connectionTimeout) {
@@ -85,6 +96,20 @@ public class SwarmClient {
 
   @NotNull
   public List<Long> getReviewIds(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
+    try {
+      return myChangelist2ReviewsCache.get(changelistId, () -> {
+        return doGetReviewsIds(changelistId, debugInfo);
+      });
+    } catch (ExecutionException e) {
+      if (e.getCause() instanceof PublisherException) {
+        throw (PublisherException)e.getCause();
+      }
+      throw new RuntimeException("Some unexpetected problem while getting review IDs from Perforce Swarm server for " + debugInfo + ": " + e.getCause(), e);
+    }
+  }
+
+  @NotNull
+  private List<Long> doGetReviewsIds(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
     String getReviewsUrl = mySwarmUrl + "/api/v9/reviews?fields=id&change[]=" + changelistId;
     getReviewsUrl += addParamsToLimitReviewStatuses();
     try {
