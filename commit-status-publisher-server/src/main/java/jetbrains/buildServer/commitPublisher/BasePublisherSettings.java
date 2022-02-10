@@ -19,26 +19,23 @@ package jetbrains.buildServer.commitPublisher;
 import com.google.gson.Gson;
 import java.security.KeyStore;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import jetbrains.buildServer.serverSide.BuildTypeIdentity;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
-import jetbrains.buildServer.serverSide.WebLinks;
-import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import java.util.Map;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 public abstract class BasePublisherSettings implements CommitStatusPublisherSettings {
 
-  private static final String PARAM_PUBLISH_BUILD_QUEUED_STATUS = "teamcity.commitStatusPublisher.publishQueuedBuildStatus";
+  private static final String PARAM_PUBLISH_BUILD_QUEUED_STATUS = "commitStatusPublisher.publishQueuedBuildStatus";
 
   protected final PluginDescriptor myDescriptor;
   protected final WebLinks myLinks;
@@ -114,7 +111,10 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
   }
 
   protected boolean isBuildQueuedSupported(final SBuildType buildType, final Map<String, String> params) {
-    return "true".equalsIgnoreCase(buildType.getParameterValue(PARAM_PUBLISH_BUILD_QUEUED_STATUS));
+    if (buildType instanceof BuildTypeEx) {
+      return ((BuildTypeEx) buildType).getBooleanInternalParameter(PARAM_PUBLISH_BUILD_QUEUED_STATUS);
+    }
+    throw new IllegalStateException("Unexpected build type implementation: can not determine if queued build statuses publishing is enabled");
   }
 
   @Override
