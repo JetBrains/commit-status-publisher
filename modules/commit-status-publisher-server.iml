@@ -8,6 +8,7 @@
       <sourceFolder url="file://$MODULE_DIR$/../commit-status-publisher-server/src/test/java" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/../commit-status-publisher-server/src/test/resources" type="java-test-resource" />
       <sourceFolder url="file://$MODULE_DIR$/../commit-status-publisher-server/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../commit-status-publisher-server/src/test/testData" type="java-test-resource" />
       <excludeFolder url="file://$MODULE_DIR$/../commit-status-publisher-server/target" />
     </content>
     <orderEntry type="inheritedJdk" />

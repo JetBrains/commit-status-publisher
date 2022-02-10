@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.security.KeyStore;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.log.LogInitializer;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
@@ -179,7 +180,10 @@ public class SwarmClient {
     final String patchTestRunUrl = mySwarmUrl + "/api/v10/reviews/" + reviewId + "/testruns/" + testRunId;
 
     try {
-      HttpHelper.http(HttpMethod.PATCH, patchTestRunUrl, myUsername, myTicket,
+      // Because PATCH is not supported by ServerBootstrap
+      HttpMethod patch = LogInitializer.isUnitTest() ? HttpMethod.POST : HttpMethod.PATCH;
+
+      HttpHelper.http(patch, patchTestRunUrl, myUsername, myTicket,
                       buildJsonForUpdate(build),
                       ContentType.APPLICATION_JSON, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
     } catch (IOException e) {
@@ -189,7 +193,7 @@ public class SwarmClient {
 
   private static String buildJsonForUpdate(@NotNull SBuild build) {
     final Long completedTime = build.getFinishDate() != null ? build.getFinishDate().getTime() : null;
-    final String status = build.getBuildStatus().isSuccessful() ? "pass" : "fail";
+    final String status = completedTime == null ? "running" : build.getBuildStatus().isSuccessful() ? "pass" : "fail";
 
     final HashMap<String, Object> data = new HashMap<String, Object>();
     data.put("status", status);
@@ -325,7 +329,8 @@ public class SwarmClient {
             JsonNode element = it.next();
             // Collect test runs whose test name match external build configuration ID and which are not completed
             final JsonNode completedTime = element.get("completedTime");
-            if (myExpectedTestName.equals(element.get("test").textValue()) && (completedTime == null || completedTime.isNull())) {
+            final JsonNode test = element.get("test");
+            if (test != null && myExpectedTestName.equals(test.textValue()) && (completedTime == null || completedTime.isNull())) {
               myTestRunIds.add(element.get("id").longValue());
             }
           }

@@ -38,6 +38,7 @@
       <class name="jetbrains.buildServer.commitPublisher.upsource.UpsourcePublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.space.SpacePublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.perforce.SwarmPublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.perforce.SwarmPublisherWithNativeSwarmTest" />
     </classes>
   </test>
 </suite>
