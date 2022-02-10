@@ -26,7 +26,7 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
   private boolean myCreatePersonal;
 
   public SwarmPublisherWithNativeSwarmTest() {
-    System.setProperty("teamcity.dev.test.retry.count", "0");
+    //System.setProperty("teamcity.dev.test.retry.count", "0");
     
     myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, "POST /api/v10/reviews/19/testruns/706 HTTP/1.1\tENTITY: \\{\"completedTime\":\".*\",\"messages\":\\[\"Failure\"\\],\"status\":\"fail\"}");
     myExpectedRegExps.put(EventToTest.STARTED, "POST /api/v10/reviews/19/testruns HTTP/1.1\tENTITY:[\\s\\S]+");

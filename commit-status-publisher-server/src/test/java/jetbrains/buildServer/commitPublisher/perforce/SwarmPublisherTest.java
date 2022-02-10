@@ -177,23 +177,19 @@ public class SwarmPublisherTest extends HttpPublisherTest {
     then(getRequestAsString()).isNull();
   }
 
+  protected void test_testConnection_failure(String repoURL, Map <String, String> params) throws InterruptedException {
+    params.put(SwarmPublisherSettings.PARAM_URL, repoURL);
+    try {
+      myPublisherSettings.testConnection(myBuildType, myVcsRoot, params);
+      fail("Connection testing failure must throw PublishError exception");
+    } catch (PublisherException ex) {
+      // success
+    }
+  }
 
-  @Override
   @Test(enabled = false)
+  @Override
   public void test_testConnection_fails_on_readonly() throws InterruptedException {
     super.test_testConnection_fails_on_readonly();
   }
-
-  @Override
-  @Test(enabled = false)
-  public void test_testConnection_fails_on_bad_repo_url() throws InterruptedException {
-    super.test_testConnection_fails_on_bad_repo_url();
-  }
-
-  @Override
-  @Test(enabled = false)
-  public void test_testConnection_fails_on_missing_target() throws InterruptedException {
-    super.test_testConnection_fails_on_missing_target();
-  }
-
 }
