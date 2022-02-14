@@ -545,8 +545,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         try {
           if (isCurrentRevisionSuitableForRemovedBuild(event, queuedBuild, revision, publisher)) {
             publisher.buildRemovedFromQueue(buildPromotion, revision, additionalTaskInfo);
-            CommonBuildStatus status = publisher.getLatestStatusForAnotherBuild(buildPromotion, revision);
+            CommonBuildStatus status = publisher.getLatestInformativeBuildStatusForPromotion(buildPromotion, revision);
             if (status != null) {
+              status.setDescription(status.getDescription() + " (status restored)");
               publisher.publish(revision, status);
             }
           }

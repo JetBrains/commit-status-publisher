@@ -17,10 +17,7 @@
 package jetbrains.buildServer.commitPublisher.github;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Predicate;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
@@ -188,7 +185,7 @@ public class ChangeStatusUpdater {
       }
 
       @Override
-      public CommitStatus getLatestInformativeStatus(@NotNull BuildRevision revision) throws PublisherException {
+      public CommitStatus getLatestInformativeStatus(@NotNull BuildRevision revision, @NotNull Set<String> possibleBuildUrls) throws PublisherException {
         RepositoryVersion version = revision.getRepositoryVersion();
         String buildContext = params.get(Constants.GITHUB_CONTEXT);
         LOG.debug("Requesting statuses for " +
@@ -199,8 +196,7 @@ public class ChangeStatusUpdater {
         Repository repo = parseRepository(root);
         GitHubStatusClient statusClient = new GitHubStatusClient(params, publisher);
         try {
-          return statusClient.getStatus(revision, repo, status -> (status.description == null || !status.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) &&
-                                                                  (!GitHubChangeState.Pending.getState().equalsIgnoreCase(status.state) || !buildContext.equals(status.context)));
+          return statusClient.getStatus(revision, repo, new InformativeCommitStatusFilter(buildContext, possibleBuildUrls));
         } catch (IOException e) {
           publisher.getProblems().reportProblem(String.format("Commit Status Publisher error. Can not receive status for revision: %s", revision.getRevision()), publisher,
                                                 buildContext, publisher.getServerUrl(), e, LOG);
@@ -517,6 +513,59 @@ public class ChangeStatusUpdater {
     }
   }
 
+  private class InformativeCommitStatusFilter implements Predicate<CommitStatus> {
+    private final String myBuildContext;
+    private final Set<String> myPossibleBuildUrls;
+    private final Set<String> myQueuedUrlsForRemovedBuilds = new HashSet<>();
+
+    public InformativeCommitStatusFilter(String buildContext, Set<String> possibleBuildUrls) {
+      myBuildContext = buildContext;
+      myPossibleBuildUrls = possibleBuildUrls;
+
+    }
+
+    @Override
+    public boolean test(@NotNull CommitStatus status) {
+      if (!myBuildContext.equals(status.context) || myPossibleBuildUrls.contains(status.target_url)) {  // should not be from other context and should not be same build
+        return false;
+      }
+      if (myQueuedUrlsForRemovedBuilds.contains(status.target_url)) { // build should not be removed from queue already
+        return false;
+      }
+      if (status.description == null) {
+        return true;
+      }
+      if (status.description.endsWith("(status restored)")) {
+        return false;
+      }
+      if (status.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) {  // should not be removed from queue
+        String expectedQueuedStatusUrl = buildQueuedUrl(status);
+        if (expectedQueuedStatusUrl != null) {
+          myQueuedUrlsForRemovedBuilds.add(expectedQueuedStatusUrl);
+        }
+        return false;
+      }
+      return true;
+    }
+
+    private String buildQueuedUrl(@NotNull CommitStatus status) {
+      if (status.target_url == null) return null;
+      int endOfBaseUrl = status.target_url.indexOf("viewLog.html?");
+      if (endOfBaseUrl < 0) {
+        return null;
+      }
+      final String baseUrl = status.target_url.substring(0, endOfBaseUrl - 1);
+      int buildIdStart = status.target_url.indexOf("buildId=");
+      if (buildIdStart < 0) {
+        return null;
+      }
+      buildIdStart+="buildId=".length();
+      int buildIdEnd = status.target_url.indexOf('&', buildIdStart);
+      final String buildId = status.target_url.substring(buildIdStart, buildIdEnd < 0 ? status.target_url.length() : buildIdEnd);
+      return baseUrl + "/viewQueued.html?itemId=" +  buildId;
+    }
+  }
+
   interface Handler {
     void changeStarted(@NotNull final BuildRevision revision, @NotNull final SBuild build, @NotNull String viewUrl) throws PublisherException;
     void changeCompleted(@NotNull final BuildRevision revision, @NotNull final SBuild build, @NotNull String viewUrl) throws PublisherException;
@@ -524,6 +573,6 @@ public class ChangeStatusUpdater {
     boolean changeRemovedFromQueue(@NotNull final BuildRevision revision, @NotNull final BuildPromotion build, @NotNull AdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException;
     boolean changeRawStatus(@NotNull final BuildRevision revision, @NotNull final CommonBuildStatus status) throws PublisherException;
     CommitStatus getLatestStatusForContext(@NotNull final BuildRevision revision) throws PublisherException;
-    CommitStatus getLatestInformativeStatus(@NotNull final BuildRevision revision) throws PublisherException;
+    CommitStatus getLatestInformativeStatus(@NotNull final BuildRevision revision, @NotNull Set<String> possibleBuildUrls) throws PublisherException;
   }
 }

@@ -154,7 +154,7 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   }
 
   @Override
-  public CommonBuildStatus getLatestStatusForAnotherBuild(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+  public CommonBuildStatus getLatestInformativeBuildStatusForPromotion(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
     return null;
   }
 
