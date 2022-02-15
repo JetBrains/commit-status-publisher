@@ -27,6 +27,14 @@ dependencies {
     testCompile 'org.testng:testng:6.8'
 }
 
+sourceSets {
+  test {
+    resources {
+      srcDirs = ['testData']
+    }
+  }
+}
+
 test {
   useTestNG() {
     useDefaultListeners = true
