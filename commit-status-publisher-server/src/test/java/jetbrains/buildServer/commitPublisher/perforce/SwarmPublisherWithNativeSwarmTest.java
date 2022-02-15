@@ -8,6 +8,7 @@ import java.util.Map;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
+import jetbrains.buildServer.log.LogInitializer;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import org.apache.http.HttpRequest;
@@ -47,6 +48,8 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
+
+    LogInitializer.setUnitTest(true);
 
     myPublisherSettings = new SwarmPublisherSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
     Map<String, String> params = getPublisherParams();
