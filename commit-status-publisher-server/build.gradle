@@ -30,7 +30,7 @@ dependencies {
 sourceSets {
   test {
     resources {
-      srcDirs = ['testData']
+      srcDirs = ['src/test/testData']
     }
   }
 }
