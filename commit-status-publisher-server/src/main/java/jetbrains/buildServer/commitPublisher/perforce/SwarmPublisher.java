@@ -31,7 +31,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
     myLinks = links;
     myCreateTestRuns = StringUtil.isTrue(params.get(SwarmPublisherSettings.PARAM_CREATE_SWARM_TEST));
 
-    mySwarmClient = new SwarmClient(params, getConnectionTimeout(), swarmPublisherSettings.trustStore());
+    mySwarmClient = new SwarmClient(links, params, getConnectionTimeout(), swarmPublisherSettings.trustStore());
   }
 
   @NotNull

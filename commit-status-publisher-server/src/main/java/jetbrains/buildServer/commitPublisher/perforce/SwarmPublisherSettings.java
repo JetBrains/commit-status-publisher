@@ -116,7 +116,7 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
 
     IOGuard.allowNetworkCall(() -> {
       final int testConnectionTimeout = 5000;
-      new SwarmClient(params, testConnectionTimeout, trustStore()).testConnection();
+      new SwarmClient(myLinks, params, testConnectionTimeout, trustStore()).testConnection();
     });
   }
 }

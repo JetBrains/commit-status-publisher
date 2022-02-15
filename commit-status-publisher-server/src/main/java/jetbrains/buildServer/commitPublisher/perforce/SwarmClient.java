@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.log.LogInitializer;
+import jetbrains.buildServer.serverSide.RelativeWebLinks;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
@@ -34,10 +35,12 @@ public class SwarmClient {
   private final boolean myAdminRequired;
   private int myConnectionTimeout;
   private final KeyStore myTrustStore;
+  private final RelativeWebLinks myWebLinks;
 
   private final Cache<String, List<Long>> myChangelist2ReviewsCache;
 
-  public SwarmClient(@NotNull Map<String, String> params, int connectionTimeout, @Nullable KeyStore trustStore) {
+  public SwarmClient(@NotNull RelativeWebLinks webLinks, @NotNull Map<String, String> params, int connectionTimeout, @Nullable KeyStore trustStore) {
+    myWebLinks = webLinks;
     myUsername = params.get(PARAM_USERNAME);
     myTicket = params.get(PARAM_PASSWORD);
     mySwarmUrl = StringUtil.removeTailingSlash(params.get(PARAM_URL));
@@ -157,14 +160,15 @@ public class SwarmClient {
     }
   }
 
-  private static String createTestRunJson(long reviewId, SBuild build) {
+  private String createTestRunJson(long reviewId, @NotNull SBuild build) {
 
     return String.format("{\n" +
                          "  \"change\": %d,\n" +
                          "  \"version\": 1,\n" +
                          "  \"test\": \"%s\",\n" +
                          "  \"startTime\": %d,\n" +
-                         "  \"status\": \"running\"\n" +
+                         "  \"status\": \"running\",\n" +
+                         "  \"url\": \"" + myWebLinks.getViewResultsUrl(build) + "\"\n" +
                          "}",
                          reviewId,
                          testNameFrom(build),
