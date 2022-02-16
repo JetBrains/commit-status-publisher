@@ -439,6 +439,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(event.getName(), event.getName() + ":" + buildId, buildId, null, null));
   }
 
+  private boolean isCurrentRevisionSuitableForRemovedBuild(Event event, SQueuedBuild removedBuild, BuildRevision revision, CommitStatusPublisher publisher) throws PublisherException {
+    RevisionStatus revisionStatus = publisher.getRevisionStatusForRemovedBuild(removedBuild, revision);
+    return revisionStatus == null || revisionStatus.isEventAllowed(event);
+  }
+
   private boolean isCurrentRevisionSuitable(Event event, BuildPromotion buildPromotion, BuildRevision revision, CommitStatusPublisher publisher) throws PublisherException {
     RevisionStatus revisionStatus = publisher.getRevisionStatus(buildPromotion, revision);
     return revisionStatus == null || revisionStatus.isEventAllowed(event);
@@ -454,7 +459,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         if (!publisher.isAvailable(buildPromotion))
           return;
         try {
-          if (isCurrentRevisionSuitable(event, buildPromotion, revision, publisher)) {
+          if (isCurrentRevisionSuitableForRemovedBuild(event, queuedBuild, revision, publisher)) {
             publisher.buildRemovedFromQueue(buildPromotion, revision, additionalTaskInfo);
           }
         } catch (PublisherException e) {

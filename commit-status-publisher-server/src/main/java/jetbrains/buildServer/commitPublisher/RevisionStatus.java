@@ -20,6 +20,11 @@ public class RevisionStatus {
   }
 
   @Nullable
+  public CommitStatusPublisher.Event getTriggeredEvent() {
+    return myTriggeredEvent;
+  }
+
+  @Nullable
   public String getDescription() {
     return myDescription;
   }
@@ -34,14 +39,12 @@ public class RevisionStatus {
       case REMOVED_FROM_QUEUE:
         return myIsLastStatusForRevision && CommitStatusPublisher.Event.QUEUED == myTriggeredEvent;
       case STARTED:
-        return CommitStatusPublisher.Event.QUEUED == myTriggeredEvent;
       case FINISHED:
       case INTERRUPTED:
       case FAILURE_DETECTED:
-        return true;
       case COMMENTED:
       case MARKED_AS_SUCCESSFUL:
-        break;
+        return true;
       default:
         LOG.info("Unknown Comit Status Publisher event received: \"" + event + "\". It will be allowed to be processed");
     }

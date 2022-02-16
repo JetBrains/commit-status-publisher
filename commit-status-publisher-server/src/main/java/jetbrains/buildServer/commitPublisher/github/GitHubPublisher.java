@@ -18,12 +18,11 @@ package jetbrains.buildServer.commitPublisher.github;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,16 +30,18 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 class GitHubPublisher extends BaseCommitStatusPublisher {
 
-  private static final Pattern NUMERIC_SUBSTRING_PATTERN = Pattern.compile("([^\\d])(\\d+)([^\\d]|$)");
   private final ChangeStatusUpdater myUpdater;
+  private final WebLinks myWebLinks;
 
   GitHubPublisher(@NotNull CommitStatusPublisherSettings settings,
                   @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                   @NotNull ChangeStatusUpdater updater,
                   @NotNull Map<String, String> params,
-                  @NotNull CommitStatusPublisherProblems problems) {
+                  @NotNull CommitStatusPublisherProblems problems,
+                  @NotNull WebLinks webLinks) {
     super(settings, buildType, buildFeatureId, params, problems);
     myUpdater = updater;
+    myWebLinks = webLinks;
   }
 
   @NotNull
@@ -97,69 +98,67 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   @Override
   public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
     CommitStatus commitStatus = getCommitStatus(revision, buildPromotion);
+    return getRevisionStatus(buildPromotion, commitStatus);
+  }
+
+  @Nullable
+  RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @Nullable CommitStatus commitStatus) {
     if (commitStatus == null) {
       return null;
     }
     Event triggeredEvent = getTriggeredEvent(commitStatus);
-    boolean isSameBuild = isSameBuild(buildPromotion, commitStatus);
+    boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), commitStatus.target_url);
     return new RevisionStatus(triggeredEvent, commitStatus.description, isSameBuild);
   }
 
-  private boolean isSameBuild(BuildPromotion buildPromotion, CommitStatus commitStatus) {
-    if (commitStatus.target_url == null) {
-      return false;
+  @Override
+  public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
+    CommitStatus commitStatus = getCommitStatus(revision, removedBuild.getBuildPromotion());
+    return getRevisionStatusForRemovedBuild(removedBuild, commitStatus);
+  }
+
+  RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @Nullable CommitStatus commitStatus) {
+    if (commitStatus == null) {
+      return null;
     }
-    String buildId;
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      buildId = queuedBuild.getItemId();
-    } else {
-      SBuild associatedBuild = buildPromotion.getAssociatedBuild();
-      if (associatedBuild != null) {
-        buildId = String.valueOf(associatedBuild.getBuildId());
-      } else {
-        return false;
-      }
-    }
-    Matcher matcher = NUMERIC_SUBSTRING_PATTERN.matcher(commitStatus.target_url);
-    while (matcher.find()) {
-      if (matcher.group(2).equals(buildId)) {
-        return true;
-      }
-    }
-    return false;
+    Event triggeredEvent = getTriggeredEvent(commitStatus);
+    boolean isSameBuild = StringUtil.areEqual(myWebLinks.getQueuedBuildUrl(removedBuild), commitStatus.target_url);
+    return new RevisionStatus(triggeredEvent, commitStatus.description, isSameBuild);
   }
 
   @Nullable
   private Event getTriggeredEvent(CommitStatus commitStatus) {
+    if (commitStatus.state == null) {
+      LOG.warn("No GitHub build status is provided. Related event can not be calculated");
+      return null;
+    }
     GitHubChangeState gitHubChangeState = GitHubChangeState.getByState(commitStatus.state);
     if (gitHubChangeState == null) {
-      LOG.warn("Can not find GitHub state for received state \"" + commitStatus.state + "\". Related event can not be calculated");
+      LOG.warn("Unknown GitHub build status \"" + commitStatus.state + "\". Related event can not be calculated");
       return null;
     }
     switch (gitHubChangeState) {
-      case Success:
-        return Event.FINISHED;
-      case Error:
-      case Failure:
-        return Event.FAILURE_DETECTED;
       case Pending:
         String description = commitStatus.description;
         if (description == null) {
-          LOG.info("Can not define exact event for \"Pending\" GitHub status, because there is no description for status");
+          LOG.info("Can not define exact event for \"Pending\" GitHub build status, because there is no description for status");
           return null;
         }
         if (description.contains(DefaultStatusMessages.BUILD_STARTED)) {
-          return Event.STARTED;
+          return null;
         } else if (description.contains(DefaultStatusMessages.BUILD_QUEUED)) {
           return Event.QUEUED;
         } else if (description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) {
           return Event.REMOVED_FROM_QUEUE;
         }
-        LOG.warn("Can not define event for \"Pending\" status and description: \"" + description + "\"");
+        LOG.warn("Can not define event for \"Pending\" Github build status and description: \"" + description + "\"");
         break;
+      case Success:
+      case Error:
+      case Failure:
+        return null;  // these statuses do not affect on further behaviour
       default:
-        LOG.warn("No event is assosiated with GitHub status \"" + gitHubChangeState + "\". Related event can not be defined");
+        LOG.warn("No event is assosiated with GitHub build status \"" + gitHubChangeState + "\". Related event can not be defined");
     }
     return null;
   }
@@ -176,10 +175,11 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       return;
     }
 
+    String viewUrl = getViewUrl(build.getBuildPromotion());
     if (isStarting) {
-      h.changeStarted(revision, build);
+      h.changeStarted(revision, build, viewUrl);
     } else {
-      h.changeCompleted(revision, build);
+      h.changeCompleted(revision, build, viewUrl);
     }
   }
 
@@ -202,12 +202,27 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       LOG.warn("No revisions were found to update GitHub status. Please check you have Git VCS roots in the build configuration");
       return false;
     }
-
+    String viewUrl = getViewUrl(additionalTaskInfo.isPromotionReplaced() ? additionalTaskInfo.getReplacingPromotion() : buildPromotion);
     if (addingToQueue) {
-      return h.changeQueued(revision, buildPromotion, additionalTaskInfo);
+      return h.changeQueued(revision, buildPromotion, additionalTaskInfo, viewUrl);
     } else {
-      return h.changeRemovedFromQueue(revision, buildPromotion, additionalTaskInfo);
+      return h.changeRemovedFromQueue(revision, buildPromotion, additionalTaskInfo, viewUrl);
     }
+  }
+
+  @NotNull
+  private String getViewUrl(BuildPromotion buildPromotion) {
+    SBuild associatedBuild = buildPromotion.getAssociatedBuild();
+    if (associatedBuild != null) {
+      return myWebLinks.getViewResultsUrl(associatedBuild);
+    }
+    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    if (queuedBuild != null) {
+      return myWebLinks.getQueuedBuildUrl(queuedBuild);
+    }
+    return buildPromotion.getBuildType() != null ?
+           myWebLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
+           myWebLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
   }
 
   @NotNull

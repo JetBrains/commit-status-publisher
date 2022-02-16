@@ -16,14 +16,16 @@
 
 package jetbrains.buildServer.commitPublisher;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.util.http.HttpMethod;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
-
-import java.io.IOException;
-import java.util.Map;
 import org.jetbrains.annotations.Nullable;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
@@ -53,7 +55,30 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
     }
   }
 
+  @Nullable
+  protected <T> T get(@NotNull final String url,
+                     @Nullable final String username, @Nullable final String password,
+                     @Nullable final Map<String, String> headers,
+                     @NotNull final ResponseEntityProcessor<T> responseProcessor) throws PublisherException {
+    try {
+      LoggerUtil.logRequest(getId(), HttpMethod.GET, url, null);
+      IOGuard.allowNetworkCall(() -> HttpHelper.get(url, username, password, headers, getConnectionTimeout(), getSettings().trustStore(), responseProcessor));
+      return responseProcessor.getProcessingResult();
+    } catch (Exception ex) {
+      throw new PublisherException("Commit Status Publisher HTTP request has failed", ex);
+    }
+  }
+
   public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
     myHttpResponseProcessor.processResponse(response);
+  }
+
+  protected static String encodeParameter(@NotNull String key, @NotNull String value) {
+    try {
+      return key + "=" + URLEncoder.encode(value, StandardCharsets.UTF_8.name());
+    } catch (UnsupportedEncodingException e) {
+      LOG.warn(String.format("Failed to encode URL parameter \"%s\" value: \"%s\"", key, value), e);
+      return key + "=" + value;
+    }
   }
 }

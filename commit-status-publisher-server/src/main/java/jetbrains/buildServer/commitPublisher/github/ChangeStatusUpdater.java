@@ -52,13 +52,10 @@ public class ChangeStatusUpdater {
   private final VcsModificationHistory myModificationHistory;
   @NotNull
   private final GitHubApiFactory myFactory;
-  private final WebLinks myWeb;
 
   public ChangeStatusUpdater(@NotNull final GitHubApiFactory factory,
-                             @NotNull final WebLinks web,
                              @NotNull final VcsModificationHistory vcsModificationHistory) {
     myFactory = factory;
-    myWeb = web;
     myModificationHistory = vcsModificationHistory;
   }
 
@@ -113,27 +110,29 @@ public class ChangeStatusUpdater {
 
     return new Handler() {
 
-      public void changeStarted(@NotNull BuildRevision revision, @NotNull SBuild build) throws PublisherException {
-        doChangeUpdate(revision, build, DefaultStatusMessages.BUILD_STARTED, GitHubChangeState.Pending);
+      public void changeStarted(@NotNull BuildRevision revision, @NotNull SBuild build, @NotNull String viewUrl) throws PublisherException {
+        doChangeUpdate(revision, build, DefaultStatusMessages.BUILD_STARTED, GitHubChangeState.Pending, viewUrl);
       }
 
-      public void changeCompleted(@NotNull BuildRevision revision, @NotNull SBuild build) throws PublisherException {
+      public void changeCompleted(@NotNull BuildRevision revision, @NotNull SBuild build, @NotNull String viewUrl) throws PublisherException {
         LOG.debug("Status :" + build.getStatusDescriptor().getStatus().getText());
         LOG.debug("Status Priority:" + build.getStatusDescriptor().getStatus().getPriority());
 
         final GitHubChangeState status = getGitHubChangeState(build);
         final String text = getGitHubChangeText(build);
-        doChangeUpdate(revision, build, text, status);
+        doChangeUpdate(revision, build, text, status, viewUrl);
       }
 
       @Override
-      public boolean changeQueued(@NotNull BuildRevision revision, @NotNull BuildPromotion buildPromotion, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-        return doQueuedChangeUpdate(revision, buildPromotion, additionalTaskInfo);
+      public boolean changeQueued(@NotNull BuildRevision revision, @NotNull BuildPromotion buildPromotion,
+                                  @NotNull AdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException {
+        return doQueuedChangeUpdate(revision, buildPromotion, additionalTaskInfo, viewUrl);
       }
 
       @Override
-      public boolean changeRemovedFromQueue(@NotNull BuildRevision revision, @NotNull BuildPromotion buildPromotion, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-        return doQueuedChangeUpdate(revision, buildPromotion, additionalTaskInfo);
+      public boolean changeRemovedFromQueue(@NotNull BuildRevision revision, @NotNull BuildPromotion buildPromotion,
+                                            @NotNull AdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException {
+        return doQueuedChangeUpdate(revision, buildPromotion, additionalTaskInfo, viewUrl);
       }
 
       @NotNull
@@ -182,7 +181,8 @@ public class ChangeStatusUpdater {
       private void doChangeUpdate(@NotNull final BuildRevision revision,
                                   @NotNull final SBuild build,
                                   @NotNull final String message,
-                                  @NotNull final GitHubChangeState targetStatus) throws PublisherException {
+                                  @NotNull final GitHubChangeState targetStatus,
+                                  @NotNull String viewUrl) throws PublisherException {
         final RepositoryVersion version = revision.getRepositoryVersion();
         LOG.info("Scheduling GitHub status update for " +
                  "hash: " + version.getVersion() + ", " +
@@ -193,12 +193,13 @@ public class ChangeStatusUpdater {
         Repository repo = parseRepository(root);
 
         GitHubStatusClient statusClient = new GitHubStatusClient(params, publisher);
-        statusClient.update(revision, build, message, targetStatus, repo);
+        statusClient.update(revision, build, message, targetStatus, repo, viewUrl);
       }
 
       private boolean doQueuedChangeUpdate(@NotNull BuildRevision revision,
                                            @NotNull BuildPromotion buildPromotion,
-                                           @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+                                           @NotNull AdditionalTaskInfo additionalTaskInfo,
+                                           @NotNull String viewUrl) throws PublisherException {
         final RepositoryVersion version = revision.getRepositoryVersion();
         final GitHubChangeState targetStatus = GitHubChangeState.Pending;
         LOG.info("Scheduling GitHub status update for " +
@@ -210,7 +211,7 @@ public class ChangeStatusUpdater {
         Repository repo = parseRepository(root);
 
         GitHubQueuedStatusClient statusClient = new GitHubQueuedStatusClient(params, publisher);
-        return statusClient.update(revision, buildPromotion, targetStatus, repo, additionalTaskInfo);
+        return statusClient.update(revision, buildPromotion, targetStatus, repo, additionalTaskInfo, viewUrl);
       }
     };
   }
@@ -313,7 +314,8 @@ public class ChangeStatusUpdater {
                           @NotNull BuildPromotion buildPromotion,
                           @NotNull GitHubChangeState targetStatus,
                           @NotNull Repository repo,
-                          @NotNull AdditionalTaskInfo additionalTaskInfo) {
+                          @NotNull AdditionalTaskInfo additionalTaskInfo,
+                          @NotNull String viewUrl) {
       final RepositoryVersion version = revision.getRepositoryVersion();
       SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
       String buildIdentificator = queuedBuild != null ? "queuedBuildId: " + queuedBuild.getItemId() : "buildPromotionId: " + buildPromotion.getId();
@@ -323,7 +325,6 @@ public class ChangeStatusUpdater {
       }
 
       String compiledMessage = additionalTaskInfo.compileQueueRelatedMessage();
-      String url = getViewUrl(additionalTaskInfo.isPromotionReplaced() ? additionalTaskInfo.getReplacingPromotion() : buildPromotion);
       boolean prMergeBranch = !hash.equals(version.getVersion());
       try {
         myApi.setChangeStatus(
@@ -331,7 +332,7 @@ public class ChangeStatusUpdater {
           repo.repositoryName(),
           hash,
           targetStatus,
-          url,
+          viewUrl,
           compiledMessage,
           prMergeBranch ? myContext + " - merge" : myContext
         );
@@ -342,21 +343,6 @@ public class ChangeStatusUpdater {
       }
       return true;
     }
-
-    @NotNull
-    private String getViewUrl(BuildPromotion buildPromotion) {
-      SBuild associatedBuild = buildPromotion.getAssociatedBuild();
-      if (associatedBuild != null) {
-        return myWeb.getViewResultsUrl(associatedBuild);
-      }
-      SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-      if (queuedBuild != null) {
-        return myWeb.getQueuedBuildUrl(queuedBuild);
-      }
-      return buildPromotion.getBuildType() != null ?
-             myWeb.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-             myWeb.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
-    }
   }
 
   private class GitHubStatusClient extends GitHubCommonStatusClient {
@@ -366,7 +352,7 @@ public class ChangeStatusUpdater {
       super(params, publisher);
     }
 
-    public void update(BuildRevision revision, SBuild build, String message, GitHubChangeState targetStatus, Repository repo) {
+    public void update(BuildRevision revision, SBuild build, String message, GitHubChangeState targetStatus, Repository repo, String viewUrl) {
       final RepositoryVersion version = revision.getRepositoryVersion();
       String buildIdentififcator = "buildId: " + build.getBuildId();
       final String hash = resolveCommitHash(version, repo, targetStatus, buildIdentififcator);
@@ -376,13 +362,13 @@ public class ChangeStatusUpdater {
 
       final CommitStatusPublisherProblems problems = myPublisher.getProblems();
       try {
-        changeStatus(build, repo, hash, version, message, targetStatus);
+        changeStatus(build, repo, hash, version, message, targetStatus, viewUrl);
       } catch (IOException e) {
         problems.reportProblem(String.format("Commit Status Publisher error. GitHub status: '%s'", targetStatus), myPublisher, LogUtil.describe(build), myPublisher.getServerUrl(), e, LOG);
       }
 
       if (myAddComment) {
-        String comment = getComment(build, targetStatus != GitHubChangeState.Pending);
+        String comment = getComment(build, targetStatus != GitHubChangeState.Pending, viewUrl);
         try {
           addComment(repo, hash, comment, build.getBuildId(), targetStatus);
         } catch (IOException e) {
@@ -396,15 +382,15 @@ public class ChangeStatusUpdater {
                               String hash,
                               RepositoryVersion version,
                               String message,
-                              GitHubChangeState targetStatus) throws IOException {
+                              GitHubChangeState targetStatus,
+                              String viewUrl) throws IOException {
       boolean prMergeBranch = !hash.equals(version.getVersion());
-      String url = myWeb.getViewResultsUrl(build);
       myApi.setChangeStatus(
         repo.owner(),
         repo.repositoryName(),
         hash,
         targetStatus,
-        url,
+        viewUrl,
         message,
         prMergeBranch ? myContext + " - merge" : myContext
       );
@@ -412,7 +398,7 @@ public class ChangeStatusUpdater {
     }
 
     @NotNull
-    private String getComment(@NotNull SBuild build, boolean completed) {
+    private String getComment(@NotNull SBuild build, boolean completed, String viewUrl) {
       final StringBuilder comment = new StringBuilder();
       comment.append("TeamCity ");
       final SBuildType bt = build.getBuildType();
@@ -422,7 +408,7 @@ public class ChangeStatusUpdater {
       comment.append(" [Build ");
       comment.append(build.getBuildNumber());
       comment.append("](");
-      comment.append(myWeb.getViewResultsUrl(build));
+      comment.append(viewUrl);
       comment.append(") ");
 
       if (completed) {
@@ -480,10 +466,10 @@ public class ChangeStatusUpdater {
   }
 
   interface Handler {
-    void changeStarted(@NotNull final BuildRevision revision, @NotNull final SBuild build) throws PublisherException;
-    void changeCompleted(@NotNull final BuildRevision revision, @NotNull final SBuild build) throws PublisherException;
-    boolean changeQueued(@NotNull final BuildRevision revision, @NotNull final BuildPromotion build, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException;
-    boolean changeRemovedFromQueue(@NotNull final BuildRevision revision, @NotNull final BuildPromotion build, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException;
+    void changeStarted(@NotNull final BuildRevision revision, @NotNull final SBuild build, @NotNull String viewUrl) throws PublisherException;
+    void changeCompleted(@NotNull final BuildRevision revision, @NotNull final SBuild build, @NotNull String viewUrl) throws PublisherException;
+    boolean changeQueued(@NotNull final BuildRevision revision, @NotNull final BuildPromotion build, @NotNull AdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException;
+    boolean changeRemovedFromQueue(@NotNull final BuildRevision revision, @NotNull final BuildPromotion build, @NotNull AdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException;
     CommitStatus getStatus(@NotNull final BuildRevision revision) throws PublisherException;
   }
 }

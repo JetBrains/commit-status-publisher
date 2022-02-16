@@ -20,9 +20,12 @@ import com.google.gson.Gson;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import jetbrains.buildServer.MockBuildPromotion;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.GitHubApiFactoryImpl;
 import jetbrains.buildServer.commitPublisher.github.api.impl.HttpClientWrapperImpl;
+import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.Permissions;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.RepoInfo;
 import jetbrains.buildServer.messages.Status;
@@ -87,7 +90,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems);
+    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks);
     test_buildFinished_Successfully();
   }
 
@@ -98,7 +101,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems);
+    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks);
     test_buildFinished_Successfully();
   }
 
@@ -122,6 +125,30 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.MERGED));
   }
 
+  public void shoudld_calculate_correct_revision_status() {
+    BuildPromotion promotion = new MockBuildPromotion();
+    GitHubPublisher publisher = (GitHubPublisher)myPublisher;
+    assertNull(publisher.getRevisionStatus(promotion, (CommitStatus)null));
+    assertNull(publisher.getRevisionStatus(promotion, new CommitStatus(null, null, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new CommitStatus("nonsense", null, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Error.getState(), null, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Success.getState(), null, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Failure.getState(), null, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, "nonsense", null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, DefaultStatusMessages.BUILD_STARTED, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, DefaultStatusMessages.BUILD_QUEUED, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null)).getTriggeredEvent());
+  }
+
+  public void should_define_correctly_if_event_allowed() {
+    MockQueuedBuild removedBuild = new MockQueuedBuild();
+    removedBuild.setBuildTypeId("buildType");
+    removedBuild.setItemId("123");
+    GitHubPublisher publisher = (GitHubPublisher)myPublisher;
+    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost/viewQueued.html?itemId=123", DefaultStatusMessages.BUILD_QUEUED, null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost/viewQueued.html?itemId=321", DefaultStatusMessages.BUILD_QUEUED, null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+  }
 
   @BeforeMethod
   @Override
@@ -133,13 +160,12 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     Map<String, String> params = getPublisherParams();
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
 
-    myChangeStatusUpdater = new ChangeStatusUpdater(new GitHubApiFactoryImpl(new HttpClientWrapperImpl(new HTTPRequestBuilder.ApacheClient43RequestHandler(), () -> null)),
-                                                    myWebLinks, myFixture.getVcsHistory());
+    myChangeStatusUpdater = new ChangeStatusUpdater(new GitHubApiFactoryImpl(new HttpClientWrapperImpl(new HTTPRequestBuilder.ApacheClient43RequestHandler(), () -> null)), myFixture.getVcsHistory());
 
     myPublisherSettings = new GitHubSettings(myChangeStatusUpdater, new MockPluginDescriptor(), myWebLinks, myProblems,
                                              myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext(),
                                              myTrustStoreProvider);
-    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems);
+    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks);
   }
 
   @Override

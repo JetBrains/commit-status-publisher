@@ -20,9 +20,12 @@ import com.google.gson.Gson;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabCommitStatus;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
@@ -64,16 +67,14 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    publish(buildPromotion, revision, GitlabBuildStatus.PENDING, DefaultStatusMessages.BUILD_QUEUED);
+    publish(buildPromotion, revision, GitlabBuildStatus.PENDING, additionalTaskInfo);
     return true;
   }
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    // commented because it is triggered just before starting build. It's not clear for now is such behaviour is normal
-    /* publish(buildPromotion, revision, GitlabBuildStatus.CANCELED, "Build canceled");
-    return true; */
-    return false;
+    publish(buildPromotion, revision, GitlabBuildStatus.CANCELED, additionalTaskInfo);
+    return true;
   }
 
   @Override
@@ -99,7 +100,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
-    publish(build, revision, buildInProgress ? GitlabBuildStatus.RUNNING : GitlabBuildStatus.SUCCESS, "Build marked as successful");
+    publish(build, revision, buildInProgress ? GitlabBuildStatus.RUNNING : GitlabBuildStatus.SUCCESS, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL);
     return true;
   }
 
@@ -108,6 +109,92 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publish(build, revision, GitlabBuildStatus.CANCELED, build.getStatusDescriptor().getText());
     return true;
+  }
+
+  @Override
+  public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
+    GitLabCommitStatus commitStatus = getLatestCommitStatusForBuild(revision, removedBuild.getBuildType());
+    return getRevisionStatusForRemovedBuild(removedBuild, commitStatus);
+  }
+
+  RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @Nullable GitLabCommitStatus commitStatus) {
+    if(commitStatus == null) {
+      return null;
+    }
+    Event event = getTriggeredEvent(commitStatus);
+    boolean isSameBuild = StringUtil.areEqual(myLinks.getQueuedBuildUrl(removedBuild), commitStatus.target_url);
+    return new RevisionStatus(event, commitStatus.description, isSameBuild);
+  }
+
+  @Override
+  public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+    GitLabCommitStatus commitStatus = getLatestCommitStatusForBuild(revision, buildPromotion.getBuildType());
+    return getRevisionStatus(buildPromotion, commitStatus);
+  }
+
+  private GitLabCommitStatus getLatestCommitStatusForBuild(@NotNull BuildRevision revision, @Nullable SBuildType buildType) throws PublisherException {
+    String url = buildRevisionStatusesUrl(revision, buildType);
+    ResponseEntityProcessor<GitLabCommitStatus[]> processor = new ResponseEntityProcessor<>(GitLabCommitStatus[].class);
+    GitLabCommitStatus[] commitStatuses = get(url, null, null, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), processor);
+    if (commitStatuses == null || commitStatuses.length == 0) {
+      return null;
+    }
+    return commitStatuses[0];
+  }
+
+  @Nullable
+  RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @Nullable GitLabCommitStatus commitStatus) {
+    if(commitStatus == null) {
+      return null;
+    }
+    Event event = getTriggeredEvent(commitStatus);
+    boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), commitStatus.target_url);
+    return new RevisionStatus(event, commitStatus.description, isSameBuild);
+  }
+
+  private String buildRevisionStatusesUrl(@NotNull BuildRevision revision, @Nullable BuildType buildType) throws PublisherException {
+    VcsRootInstance root = revision.getRoot();
+    String apiUrl = getApiUrl();
+    if (null == apiUrl || apiUrl.length() == 0)
+      throw new PublisherException("Missing GitLab API URL parameter");
+    String pathPrefix = GitlabSettings.getPathPrefix(apiUrl);
+    Repository repository = parseRepository(root, pathPrefix);
+    if (repository == null)
+      throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
+    String statusesUrl = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/repository/commits/" + revision.getRevision() + "/statuses";
+    if (buildType != null) {
+      statusesUrl += ("?" + encodeParameter("name", buildType.getName()));
+    }
+    return statusesUrl;
+  }
+
+  private Event getTriggeredEvent(GitLabCommitStatus commitStatus) {
+    if (commitStatus.status == null) {
+      LOG.warn("No GitLab build status is provided. Related event can not be calculated");
+      return null;
+    }
+    GitlabBuildStatus status = GitlabBuildStatus.getByName(commitStatus.status);
+    if (status == null) {
+      LOG.warn("Unknown GitLab build status \"" + commitStatus.status + "\". Related event can not be calculated");
+      return null;
+    }
+
+    switch (status) {
+      case CANCELED:
+        if (commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) {
+          return Event.REMOVED_FROM_QUEUE;
+        }
+        return null;
+      case PENDING:
+        return Event.QUEUED;
+      case RUNNING:
+      case SUCCESS:
+      case FAILED:
+        return null;
+      default:
+        LOG.warn("No event is assosiated with GitLab build status \"" + status + "\". Related event can not be defined");
+    }
+    return null;
   }
 
 
@@ -122,14 +209,24 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   private void publish(@NotNull BuildPromotion buildPromotion,
                        @NotNull BuildRevision revision,
                        @NotNull GitlabBuildStatus status,
-                       @NotNull String description) throws PublisherException {
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    SBuildType buildType = buildPromotion.getBuildType();
-    String url = queuedBuild != null ?
-      myLinks.getQueuedBuildUrl(queuedBuild) :
-      myLinks.getConfigurationHomePageUrl(buildType);
-    String message = createMessage(status, buildType.getName(), revision, url, description);
+                       @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+    String url = getViewUrl(buildPromotion);
+    String description = additionalTaskInfo.compileQueueRelatedMessage();
+    String message = createMessage(status, buildPromotion.getBuildType().getName(), revision, url, description);
     publish(message, revision, LogUtil.describe(buildPromotion));
+  }
+
+  private String getViewUrl(BuildPromotion buildPromotion) {
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build != null) {
+      return myLinks.getViewResultsUrl(build);
+    }
+    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    if (queuedBuild != null) {
+      return myLinks.getQueuedBuildUrl(queuedBuild);
+    }
+    return buildPromotion.getBuildType() != null ? myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
+                                                   myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
   }
 
   private void publish(@NotNull String message,

@@ -61,6 +61,12 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     add(Event.FAILURE_DETECTED);
   }};
 
+  private static final Set<Event> mySupportedEventsWithQueued = new HashSet<Event>() {{
+    add(Event.QUEUED);
+    add(Event.REMOVED_FROM_QUEUE);
+    addAll(mySupportedEvents);
+  }};
+
   public SpaceSettings(@NotNull PluginDescriptor descriptor,
                        @NotNull WebLinks links,
                        @NotNull CommitStatusPublisherProblems problems,
@@ -208,7 +214,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
 
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
-    return mySupportedEvents;
+    return isBuildQueuedSupported(buildType, params) ? mySupportedEventsWithQueued : mySupportedEvents;
   }
 
   @NotNull

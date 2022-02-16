@@ -19,16 +19,18 @@ package jetbrains.buildServer.commitPublisher.stash;
 import com.google.gson.*;
 import java.io.IOException;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.stash.data.DeprecatedJsonStashBuildStatuses;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.VersionComparatorUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -40,6 +42,8 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 class StashPublisher extends HttpBasedCommitStatusPublisher {
   public static final String PROP_PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
   private static final Pattern PULL_REQUEST_BRANCH_PATTERN = Pattern.compile("^refs\\/pull\\-requests\\/(\\d+)\\/from");
+  private static final String SERVER_VERSION_BUILD_SERVER_HWM = "7.4";
+  private static final String SERVER_VERSION_EXTENDED_SERVER_LWM = "7.14.0";
 
   private final Gson myGson = new Gson();
   private final WebLinks myLinks;
@@ -66,21 +70,14 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) {
-    vote(buildPromotion, revision, StashBuildStatus.INPROGRESS, "Build queued");
+    vote(buildPromotion, revision, StashBuildStatus.INPROGRESS, additionalTaskInfo.compileQueueRelatedMessage());
     return true;
   }
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) {
-    // commented because it is triggered just before starting build. It's not clear for now is such behaviour is normal
-    /* StringBuilder description = new StringBuilder("Build removed from queue");
-    if (user != null)
-      description.append(" by ").append(user.getName());
-    if (comment != null)
-      description.append(" with comment \"").append(comment).append("\"");
-    vote(buildPromotion, revision, StashBuildStatus.FAILED, description.toString());
-    return true; */
-    return false;
+    vote(buildPromotion, revision, StashBuildStatus.INPROGRESS, additionalTaskInfo.compileQueueRelatedMessage());
+    return true;
   }
 
   @Override
@@ -115,7 +112,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) {
-    vote(build, revision, buildInProgress ? StashBuildStatus.INPROGRESS : StashBuildStatus.SUCCESSFUL, "Build marked as successful");
+    vote(build, revision, buildInProgress ? StashBuildStatus.INPROGRESS : StashBuildStatus.SUCCESSFUL, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL);
     return true;
   }
 
@@ -129,6 +126,78 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) {
     vote(build, revision, StashBuildStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
+  }
+
+  @Override
+  public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) {
+    BuildPromotion buildPromotion = removedBuild.getBuildPromotion();
+    StatusRequestData data = new SBuildPromotionRequestData(buildPromotion, revision);
+    JsonStashBuildStatus buildStatus = getEndpoint().getCommitBuildStatus(data, LogUtil.describe(buildPromotion));
+    return getRevisionStatusForRemovedBuild(removedBuild, buildStatus);
+  }
+
+  RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @Nullable JsonStashBuildStatus buildStatus) {
+    if (buildStatus == null) {
+      return null;
+    }
+    Event event = getTriggeredEvent(buildStatus);
+    boolean isSameBuild = StringUtil.areEqual(myLinks.getQueuedBuildUrl(removedBuild), buildStatus.url);
+    return new RevisionStatus(event, buildStatus.description, isSameBuild);
+  }
+
+  @Override
+  public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+    StatusRequestData data = new SBuildPromotionRequestData(buildPromotion, revision);
+    JsonStashBuildStatus buildStatus = getEndpoint().getCommitBuildStatus(data, LogUtil.describe(buildPromotion));
+    return getRevisionStatus(buildPromotion, buildStatus);
+  }
+
+  @Nullable
+  RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @Nullable JsonStashBuildStatus buildStatus) {
+    if (buildStatus == null) {
+      return null;
+    }
+    Event event = getTriggeredEvent(buildStatus);
+    boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), buildStatus.url);
+    return new RevisionStatus(event, buildStatus.description, isSameBuild);
+  }
+
+  private String getViewUrl(BuildPromotion buildPromotion) {
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build != null) {
+      return myLinks.getViewResultsUrl(build);
+    }
+    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    if (queuedBuild != null) {
+      return myLinks.getQueuedBuildUrl(queuedBuild);
+    }
+    return buildPromotion.getBuildType() != null ? myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
+                                                   myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
+  }
+
+  private Event getTriggeredEvent(JsonStashBuildStatus buildStatus) {
+    if (buildStatus.state == null) {
+      LOG.warn("No Bitbucket build status is provided. Related event can not be defined");
+      return null;
+    }
+    StashBuildStatus status = StashBuildStatus.getByName(buildStatus.state);
+    if (status == null) {
+      LOG.warn(String.format("Unknown Bitbucket build status: \"%s\". Related event can not be defined", buildStatus.state));
+      return null;
+    }
+    switch (status) {
+      case INPROGRESS:
+        if (buildStatus.description == null) return null;
+        return buildStatus.description.contains(DefaultStatusMessages.BUILD_QUEUED) ? Event.QUEUED :
+               buildStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE) ? Event.REMOVED_FROM_QUEUE : null;
+
+      case FAILED:
+      case SUCCESSFUL:
+        return null;  // these statuses do not affect on further behaviour
+      default:
+        LOG.warn("No event is assosiated with Bitbucket build status \"" + buildStatus.state + "\". Related event can not be defined");
+    }
+    return null;
   }
 
   // There are two ways in Bitbucket Server to report the build status: the older Build API and a new endpoint in the Core API
@@ -219,20 +288,62 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   private BitbucketEndpoint getEndpoint() {
-    if (myBitbucketEndpoint == null)
-      myBitbucketEndpoint = useBuildAPI() ? new BuildApiEndpoint() : new CoreApiEndpoint();
+    if (myBitbucketEndpoint != null) return myBitbucketEndpoint;
+    if (myBuildType instanceof BuildTypeEx && ((BuildTypeEx)myBuildType).getBooleanInternalParameter("commitStatusPublisher.enforceDeprecatedAPI")) {
+      myBitbucketEndpoint = new BuildApiEndpoint();
+      return myBitbucketEndpoint;
+    }
+    String serverVersion = getSettings().getServerVersion(getBaseUrl());
+    if (VersionComparatorUtil.compare(serverVersion, SERVER_VERSION_BUILD_SERVER_HWM) < 0) {
+      myBitbucketEndpoint = new BuildApiEndpoint();
+    } else if (VersionComparatorUtil.compare(serverVersion, SERVER_VERSION_EXTENDED_SERVER_LWM) >= 0) {
+      myBitbucketEndpoint = new ExtendedApiEndpoint();
+    } else {
+      myBitbucketEndpoint = new CoreApiEndpoint();
+    }
     return myBitbucketEndpoint;
   }
 
-  private interface StatusData {
+  private interface StatusRequestData {
     @NotNull String getCommit();
-    @NotNull String getState();
     @NotNull String getKey();
+    @Nullable VcsRootInstance getVcsRootInstance();
+  }
+
+  private class SBuildPromotionRequestData implements StatusRequestData {
+    private final BuildPromotion myBuildPromotion;
+    private final BuildRevision myRevision;
+
+    public SBuildPromotionRequestData(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) {
+      myBuildPromotion = buildPromotion;
+      myRevision = revision;
+    }
+
+    @NotNull
+    @Override
+    public String getCommit() {
+      return myRevision.getRevision();
+    }
+
+    @NotNull
+    @Override
+    public String getKey() {
+      return myBuildPromotion.getBuildTypeExternalId();
+    }
+
+    @Nullable
+    @Override
+    public VcsRootInstance getVcsRootInstance() {
+      return myRevision.getRoot();
+    }
+  }
+
+  private interface StatusData extends StatusRequestData {
+    @NotNull StashBuildStatus getState();
     @NotNull String getName();
     @NotNull String getUrl();
     @NotNull String getDescription();
     @NotNull String getBuildNumber();
-    @Nullable VcsRootInstance getVcsRootInstance();
     long getBuildDurationMs();
     @Nullable String getVcsBranch();
 
@@ -260,8 +371,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
     @NotNull
     @Override
-    public String getState() {
-      return myStatus.toString();
+    public StashBuildStatus getState() {
+      return myStatus;
     }
 
     @NotNull
@@ -379,7 +490,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   private interface BitbucketEndpoint {
     void publishBuildStatus(@NotNull StatusData data, @NotNull String buildDescription);
-    PullRequest getPullRequest(BuildRevision revision, @NotNull String buildDescriptor);
+    PullRequest getPullRequest(@NotNull BuildRevision revision, @NotNull String buildDescriptor);
+    JsonStashBuildStatus getCommitBuildStatus(@NotNull StatusRequestData data, @NotNull String buildDescription);
   }
 
   private abstract class BaseBitbucketEndpoint implements BitbucketEndpoint {
@@ -425,7 +537,46 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
       return result.get();
     }
 
-    protected abstract String getBuildEndpointUrl(final StatusData data) throws PublisherException;
+    @Override
+    public JsonStashBuildStatus getCommitBuildStatus(@NotNull StatusRequestData data, @NotNull String buildDescription) {
+      final String baseEndpointUrl = getBaseUrl() + "/rest/build-status/1.0/commits/" + data.getCommit();
+      final ResponseEntityProcessor<DeprecatedJsonStashBuildStatuses> processor = new ResponseEntityProcessor<>(DeprecatedJsonStashBuildStatuses.class);
+      int size = 25;
+      int start = 0;
+      DeprecatedJsonStashBuildStatuses statuses;
+      do {
+        statuses = doLoadStatuses(baseEndpointUrl, processor, start, size, buildDescription);
+        if (statuses == null || statuses.values == null || statuses.values.isEmpty()) return null;
+        Optional<DeprecatedJsonStashBuildStatuses.Status> desiredStatusOp = statuses.values.stream()
+                                                                                           .filter(status -> data.getKey().equals(status.key))
+                                                                                           .findFirst();
+        if (desiredStatusOp.isPresent()) {
+          return convertToActualStatus(desiredStatusOp.get());
+        }
+        start = statuses.nextPageStart != null ? statuses.nextPageStart : start + size;
+      } while (!statuses.isLastPage);
+
+      return null;
+    }
+
+    private DeprecatedJsonStashBuildStatuses doLoadStatuses(String baseUrl, ResponseEntityProcessor<DeprecatedJsonStashBuildStatuses> processor, int start, int size, String buildDescription) {
+      String endpointUrl = String.format("%s?size=%d&start=%d", baseUrl, size, start);
+      try {
+        return get(endpointUrl, getUsername(), getPassword(), null, processor);
+      } catch (PublisherException ex) {
+        myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
+        return null;
+      }
+    }
+
+    private JsonStashBuildStatus convertToActualStatus(@Nullable DeprecatedJsonStashBuildStatuses.Status status) {
+      if (status == null) {
+        return null;
+      }
+      return new JsonStashBuildStatus(status);
+    }
+
+    protected abstract String getBuildEndpointUrl(final StatusRequestData data) throws PublisherException;
     protected abstract String getPullRequestEndpointUrl(final BuildRevision revision) throws PublisherException;
 
     @NotNull
@@ -435,7 +586,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   private class BuildApiEndpoint extends BaseBitbucketEndpoint implements BitbucketEndpoint {
 
     @Override
-    protected String getBuildEndpointUrl(final StatusData data) {
+    protected String getBuildEndpointUrl(final StatusRequestData data) {
       return getBaseUrl() + "/rest/build-status/1.0/commits/" + data.getCommit();
     }
 
@@ -448,7 +599,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     @Override
     protected String createBuildStatusMessage(@NotNull final StatusData data) {
       Map<String, String> jsonData = new LinkedHashMap<String, String>();
-      jsonData.put("state", data.getState());
+      jsonData.put("state", data.getState().toString());
       jsonData.put("key", data.getKey());
       jsonData.put("parent", data.getKey());
       jsonData.put("name", data.getName());
@@ -461,7 +612,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   private class CoreApiEndpoint extends BaseBitbucketEndpoint implements BitbucketEndpoint {
 
     @Override
-    protected String getBuildEndpointUrl(final StatusData data) throws PublisherException {
+    protected String getBuildEndpointUrl(final StatusRequestData data) throws PublisherException {
       VcsRootInstance vcs = data.getVcsRootInstance();
       String commit = data.getCommit();
       Repository repo = getRepository(vcs, commit);
@@ -504,31 +655,52 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     @NotNull
     @Override
     protected String createBuildStatusMessage(@NotNull final StatusData data) {
-      JsonStashBuildStatus status = new JsonStashBuildStatus();
-      status.buildNumber = data.getBuildNumber();
-      status.description = data.getDescription();
-      status.duration = data.getBuildDurationMs();
-      status.key = data.getKey();
-      status.parent = data.getKey();
-      status.name = data.getName();
-      status.ref = data.getVcsBranch();
-      status.state = data.getState();
-      status.url = data.getUrl();
       BuildStatistics stats = data.getBuildStatistics();
+      JsonStashBuildStatus.StashTestStatistics testResults;
       if (stats != null) {
-        status.testResults = new JsonStashBuildStatus.StashTestStatistics();
+        testResults = new JsonStashBuildStatus.StashTestStatistics();
 
-        status.testResults.failed = stats.getFailedTestCount();
-        status.testResults.skipped = stats.getMutedTestsCount() + stats.getIgnoredTestCount();
-        status.testResults.successful = stats.getPassedTestCount();
+        testResults.failed = stats.getFailedTestCount();
+        testResults.skipped = stats.getMutedTestsCount() + stats.getIgnoredTestCount();
+        testResults.successful = stats.getPassedTestCount();
+      } else {
+        testResults = null;
       }
+      JsonStashBuildStatus status = new JsonStashBuildStatus(data.getBuildNumber(), data.getDescription(), data.getKey(), data.getKey(), data.getName(), data.getVcsBranch(),
+                                                             data.getUrl(), data.getState().name(), data.getBuildDurationMs(), testResults);
       return myGson.toJson(status);
     }
   }
 
-  private static class PullRequestsList {
-    private int size;
-    private List<PullRequest> values;
+  private class ExtendedApiEndpoint extends CoreApiEndpoint {
+
+    @Override
+    public JsonStashBuildStatus getCommitBuildStatus(@NotNull StatusRequestData data, @NotNull String buildDescription) {
+      try {
+        String buildEndpointUrl = getBuildWithKeyEndpointUrl(data);
+        ResponseEntityProcessor<JsonStashBuildStatus> processor = new ResponseEntityProcessor<JsonStashBuildStatus>(JsonStashBuildStatus.class) {
+          @Override
+          protected boolean handleError(@NotNull HttpHelper.HttpResponse response) throws HttpPublisherException {
+            int statusCode = response.getStatusCode();
+            if (statusCode >= 400) {
+              if (statusCode == 404) return false;
+              throw new HttpPublisherException(statusCode, response.getStatusText(), "HTTP response error");
+            }
+            return true;
+          }
+        };
+        return get(buildEndpointUrl, getUsername(), getPassword(), null, processor);
+      } catch (PublisherException ex) {
+        myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
+      }
+      return null;
+    }
+
+    protected String getBuildWithKeyEndpointUrl(StatusRequestData data) throws PublisherException {
+      String buildEndpointUrl = getBuildEndpointUrl(data);
+      return buildEndpointUrl + "?key=" + data.getKey();
+    }
+
   }
 
   private static class PullRequest {

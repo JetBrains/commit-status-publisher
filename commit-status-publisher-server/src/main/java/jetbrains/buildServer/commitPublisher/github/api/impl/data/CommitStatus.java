@@ -24,10 +24,10 @@ import org.jetbrains.annotations.Nullable;
 */
 @SuppressWarnings("UnusedDeclaration")
 public class CommitStatus {
-  @Nullable public String state;
-  @Nullable public String target_url;
-  @Nullable public String description;
-  @Nullable public String context;
+  @Nullable public final String state;
+  @Nullable public final String target_url;
+  @Nullable public final String description;
+  @Nullable public final String context;
 
   public CommitStatus(@Nullable String state, @Nullable String target_url, @Nullable String description, @Nullable String context) {
     this.state = state;
