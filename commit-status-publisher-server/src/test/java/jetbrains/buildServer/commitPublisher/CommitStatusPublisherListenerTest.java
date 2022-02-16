@@ -555,6 +555,21 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.QUEUED, Event.STARTED, Event.FINISHED));
   }
 
+  public void should_restore_status_on_remove_from_queue() throws PublisherException {
+    prepareVcs();
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+    RunningBuildEx runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
+    myFixture.finishBuild(runningBuild, false);
+    waitForTasksToFinish(Event.FINISHED);
+
+    SQueuedBuild queuedBuild = myBuildType.addToQueue("");
+    waitFor(() -> myPublisher.getLastComment().contains(DefaultStatusMessages.BUILD_QUEUED));
+    queuedBuild.removeFromQueue(myUser, null);
+    waitFor(() -> myPublisher.getLastComment().equals(DefaultStatusMessages.BUILD_FINISHED + " (status restored)"));
+  }
+
   private void prepareVcs() {
    prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.EXT_ID);
   }

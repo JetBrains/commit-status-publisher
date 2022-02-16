@@ -17,6 +17,7 @@
 package jetbrains.buildServer.commitPublisher;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
@@ -62,7 +63,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   }
 
   User getLastUser() { return myLastUser; }
-  List<Event> getEventsReceived() { return new ArrayList<>(myEventsReceived); }
+  List<Event> getEventsReceived() { return myEventsReceived.stream().filter(Objects::nonNull).collect(Collectors.toList()); }
 
   MockPublisher(@NotNull CommitStatusPublisherSettings settings,
                 @NotNull String publisherType,
@@ -137,6 +138,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   public boolean buildRemovedFromQueue(@NotNull final BuildPromotion buildPromotion, @NotNull final BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) {
     myCommentsReceived.add(additionalTaskInfo.compileQueueRelatedMessage());
     myPublishingBuilds.add(prepareContextName(buildPromotion.getBuildType()));
+    myEventsReceived.add(null);
     myLastUser = additionalTaskInfo.getCommentAuthor();
     return true;
   }
@@ -204,13 +206,44 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     }
     String buildContext = prepareContextName(buildPromotion.getBuildType());
     boolean isLastForRevision = buildContext.equals(myPublishingBuilds.getLast());
-    return new RevisionStatus(myEventsReceived.getLast(), isLastForRevision);
+    Event last = myEventsReceived.getLast();
+    if (last != Event.QUEUED && last != Event.REMOVED_FROM_QUEUE && last != Event.STARTED && last != null) {  // only checked events are important for futher processing
+      last = null;
+    }
+    return new RevisionStatus(last, isLastForRevision);
   }
 
   @Override
   public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild,
                                                          @NotNull BuildRevision revision) throws PublisherException {
-    return this.getRevisionStatus(removedBuild.getBuildPromotion(), revision);
+    return getRevisionStatus(removedBuild.getBuildPromotion(), revision);
+  }
+
+  @Override
+  public CommonBuildStatus getLatestInformativeBuildStatusForPromotion(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+    if (myEventsReceived == null) {
+      return null;
+    }
+    for (int i = myEventsReceived.size() - 1; i >= 0; i--) {
+      Event event = myEventsReceived.get(i);
+      if (event == Event.REMOVED_FROM_QUEUE || event == null) continue;
+      String comment = myCommentsReceived.get(i);
+      if (comment.endsWith("(status restored)")) continue;
+      String context = myPublishingBuilds.get(i);
+      String contextName = prepareContextName(buildPromotion.getBuildType());
+      if (context.equals(contextName) && event == Event.QUEUED) continue;
+      return new CommonBuildStatus(contextName, event.name(), comment, "url", Collections.emptyMap());
+    }
+    return null;
+  }
+
+  @Override
+  public boolean publish(BuildRevision revision, CommonBuildStatus status) throws PublisherException {
+    Event event = Event.valueOf(status.getState());
+    myEventsReceived.add(event);
+    myCommentsReceived.add(status.getDescription());
+    myPublishingBuilds.add(status.getBuild());
+    return true;
   }
 
   private String prepareContextName(SBuildType buildType) {
