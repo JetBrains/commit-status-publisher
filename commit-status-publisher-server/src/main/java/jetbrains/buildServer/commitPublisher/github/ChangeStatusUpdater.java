@@ -321,7 +321,7 @@ public class ChangeStatusUpdater {
           LOG.debug(String.format("No statuses received from GitHub for repository \"%s/%s\" hash %s", repo.owner(), repo.repositoryName(), hash));
           break;
         }
-        Optional<CommitStatus> requiredStatus = commitStatuses.stream().filter(statusFilter).findAny();
+        Optional<CommitStatus> requiredStatus = commitStatuses.stream().filter(statusFilter).findFirst();
         if (requiredStatus.isPresent()) {
           return requiredStatus.get();
         }
@@ -534,9 +534,6 @@ public class ChangeStatusUpdater {
       }
       if (status.description == null) {
         return true;
-      }
-      if (status.description.endsWith("(status restored)")) {
-        return false;
       }
       if (status.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) {  // should not be removed from queue
         String expectedQueuedStatusUrl = buildQueuedUrl(status);

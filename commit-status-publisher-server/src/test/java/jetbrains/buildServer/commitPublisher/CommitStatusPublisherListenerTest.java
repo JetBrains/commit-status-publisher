@@ -567,7 +567,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     SQueuedBuild queuedBuild = myBuildType.addToQueue("");
     waitFor(() -> myPublisher.getLastComment().contains(DefaultStatusMessages.BUILD_QUEUED));
     queuedBuild.removeFromQueue(myUser, null);
-    waitFor(() -> myPublisher.getLastComment().equals(DefaultStatusMessages.BUILD_FINISHED + " (status restored)"));
+    waitFor(() -> myPublisher.getLastComment().equals(DefaultStatusMessages.BUILD_FINISHED));
   }
 
   private void prepareVcs() {

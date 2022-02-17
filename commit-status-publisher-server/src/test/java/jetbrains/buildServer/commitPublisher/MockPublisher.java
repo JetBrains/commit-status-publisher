@@ -227,12 +227,11 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     for (int i = myEventsReceived.size() - 1; i >= 0; i--) {
       Event event = myEventsReceived.get(i);
       if (event == Event.REMOVED_FROM_QUEUE || event == null) continue;
-      String comment = myCommentsReceived.get(i);
-      if (comment.endsWith("(status restored)")) continue;
       String context = myPublishingBuilds.get(i);
       String contextName = prepareContextName(buildPromotion.getBuildType());
       if (context.equals(contextName) && event == Event.QUEUED) continue;
-      return new CommonBuildStatus(contextName, event.name(), comment, "url", Collections.emptyMap());
+      String comment = myCommentsReceived.get(i);
+      return new CommonBuildStatus(contextName, event.name(), comment, "url");
     }
     return null;
   }

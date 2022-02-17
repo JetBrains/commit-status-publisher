@@ -546,10 +546,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
           if (isCurrentRevisionSuitableForRemovedBuild(event, queuedBuild, revision, publisher)) {
             publisher.buildRemovedFromQueue(buildPromotion, revision, additionalTaskInfo);
             CommonBuildStatus status = publisher.getLatestInformativeBuildStatusForPromotion(buildPromotion, revision);
-            if (status != null) {
-              status.setDescription(status.getDescription() + " (status restored)");
-              publisher.publish(revision, status);
-            }
+            publisher.publish(revision, status);
           }
         } catch (PublisherException e) {
           LOG.warn("Cannot publish removed build status to VCS for " + publisher.getBuildType() + ", commit: " + revision.getRevision(), e);

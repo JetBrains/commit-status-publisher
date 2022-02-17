@@ -176,7 +176,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     if (commitStatus == null) {
       return null;
     }
-    return new CommonBuildStatus(commitStatus.context, commitStatus.state, commitStatus.description, commitStatus.target_url, null);
+    return new CommonBuildStatus(commitStatus.context, commitStatus.state, commitStatus.description, commitStatus.target_url);
   }
 
   @Override
