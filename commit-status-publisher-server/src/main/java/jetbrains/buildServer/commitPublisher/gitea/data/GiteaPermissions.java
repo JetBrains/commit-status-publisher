@@ -20,6 +20,5 @@ package jetbrains.buildServer.commitPublisher.gitea.data;
  * @author Felix Heim, 21/02/22.
  */
 public class GiteaPermissions {
-  public GiteaAccessLevel project_access;
-  public GiteaAccessLevel group_access;
+  public boolean push;
 }
