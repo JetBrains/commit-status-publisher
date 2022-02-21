@@ -21,7 +21,7 @@ package jetbrains.buildServer.commitPublisher.gitea.data;
  */
 public class GiteaUserInfo {
   public String id;
-  public String name;
-  public String username;
+  public String full_name;
+  public String login;
   public boolean is_admin;
 }

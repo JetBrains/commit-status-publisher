@@ -19,8 +19,6 @@ package jetbrains.buildServer.commitPublisher.gitea;
 import com.google.gson.Gson;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.commitPublisher.*;
-import jetbrains.buildServer.commitPublisher.gitea.GiteaBuildStatus;
-import jetbrains.buildServer.commitPublisher.gitea.GiteaSettings;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaCommitStatus;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -30,7 +28,6 @@ import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -38,8 +35,6 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 class GiteaPublisher extends HttpBasedCommitStatusPublisher {
 
-  private static final String REFS_HEADS = "refs/heads/";
-  private static final String REFS_TAGS = "refs/tags/";
   private final Gson myGson = new Gson();
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
@@ -76,20 +71,20 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    publish(buildPromotion, revision, GiteaBuildStatus.CANCELED, additionalTaskInfo);
+    publish(buildPromotion, revision, GiteaBuildStatus.PENDING, additionalTaskInfo);
     return true;
   }
 
   @Override
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publish(build, revision, GiteaBuildStatus.RUNNING, DefaultStatusMessages.BUILD_STARTED);
+    publish(build, revision, GiteaBuildStatus.PENDING, DefaultStatusMessages.BUILD_STARTED);
     return true;
   }
 
 
   @Override
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    GiteaBuildStatus status = build.getBuildStatus().isSuccessful() ? GiteaBuildStatus.SUCCESS : GiteaBuildStatus.FAILED;
+    GiteaBuildStatus status = build.getBuildStatus().isSuccessful() ? GiteaBuildStatus.SUCCESS : GiteaBuildStatus.FAILURE;
     publish(build, revision, status, build.getStatusDescriptor().getText());
     return true;
   }
@@ -97,20 +92,20 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publish(build, revision, GiteaBuildStatus.FAILED, build.getStatusDescriptor().getText());
+    publish(build, revision, GiteaBuildStatus.FAILURE, build.getStatusDescriptor().getText());
     return true;
   }
 
   @Override
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
-    publish(build, revision, buildInProgress ? GiteaBuildStatus.RUNNING : GiteaBuildStatus.SUCCESS, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL);
+    publish(build, revision, buildInProgress ? GiteaBuildStatus.PENDING : GiteaBuildStatus.SUCCESS, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL);
     return true;
   }
 
 
   @Override
   public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publish(build, revision, GiteaBuildStatus.CANCELED, build.getStatusDescriptor().getText());
+    publish(build, revision, GiteaBuildStatus.WARNING, build.getStatusDescriptor().getText());
     return true;
   }
 
@@ -137,8 +132,9 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
 
   private GiteaCommitStatus getLatestCommitStatusForBuild(@NotNull BuildRevision revision, @Nullable SBuildType buildType) throws PublisherException {
     String url = buildRevisionStatusesUrl(revision, buildType);
+    url += "?access_token=" + getPrivateToken();
     ResponseEntityProcessor<GiteaCommitStatus[]> processor = new ResponseEntityProcessor<>(GiteaCommitStatus[].class);
-    GiteaCommitStatus[] commitStatuses = get(url, null, null, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), processor);
+    GiteaCommitStatus[] commitStatuses = get(url, null, null, null, processor);
     if (commitStatuses == null || commitStatuses.length == 0) {
       return null;
     }
@@ -164,11 +160,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
     Repository repository = parseRepository(root, pathPrefix);
     if (repository == null)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
-    String statusesUrl = GiteaSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/repository/commits/" + revision.getRevision() + "/statuses";
-    if (buildType != null) {
-      statusesUrl += ("?" + encodeParameter("name", buildType.getName()));
-    }
-    return statusesUrl;
+    return GiteaSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/statuses/" + revision.getRevision();
   }
 
   private Event getTriggeredEvent(GiteaCommitStatus commitStatus) {
@@ -183,16 +175,18 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
     }
 
     switch (status) {
-      case CANCELED:
+      case WARNING:
+        return Event.INTERRUPTED;
+      case PENDING:
         if (commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) {
           return Event.REMOVED_FROM_QUEUE;
         }
-        return null;
-      case PENDING:
-        return Event.QUEUED;
-      case RUNNING:
+        if (commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_QUEUED)) {
+          return Event.QUEUED;
+        }
       case SUCCESS:
-      case FAILED:
+      case FAILURE:
+      case ERROR:
         return null;
       default:
         LOG.warn("No event is assosiated with Gitea build status \"" + status + "\". Related event can not be defined");
@@ -255,7 +249,8 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
   private void publish(@NotNull String commit, @NotNull String data, @NotNull Repository repository, @NotNull String buildDescription) {
     String url = GiteaSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/statuses/" + commit;
     LOG.debug("Request url: " + url + ", message: " + data);
-    postJson(url, null, null, data, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), buildDescription);
+    url += "?access_token=" + getPrivateToken();
+    postJson(url, null, null, data, null, buildDescription);
   }
 
   @Override
@@ -279,25 +274,11 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
                                @NotNull String url,
                                @NotNull String description) {
 
-    RepositoryVersion repositoryVersion = revision.getRepositoryVersion();
-    String ref = repositoryVersion.getVcsBranch();
-    if (ref != null) {
-      if (ref.startsWith(REFS_HEADS)) {
-        ref = ref.substring(REFS_HEADS.length());
-      } else if (ref.startsWith(REFS_TAGS)) {
-        ref = ref.substring(REFS_TAGS.length());
-      } else {
-        ref = null;
-      }
-    }
-
     final Map<String, String> data = new LinkedHashMap<String, String>();
     data.put("state", status.getName());
-    data.put("name", name);
-    data.put("target_url", url);
+    data.put("context", name);
     data.put("description", description);
-    if (ref != null)
-      data.put("ref", ref);
+    data.put("target_url", url);
     return myGson.toJson(data);
   }
 
