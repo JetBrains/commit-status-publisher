@@ -15,7 +15,7 @@ import static jetbrains.buildServer.commitPublisher.perforce.SwarmPublisherSetti
 class SwarmPublisher extends HttpBasedCommitStatusPublisher {
 
   private static final String SWARM_TESTRUNS_SUPPORT_ENABLED = "teamcity.swarm.testruns.enabled";
-  private static final String SWARM_PUBLISH_COMMENTS_ENABLED = "teamcity.internal.swarm.publishComments.enabled";
+  private static final String SWARM_COMMENTS_NOTIFICATIONS_ENABLED = "teamcity.internal.swarm.commentsNotifications.enabled";
 
   private final WebLinks myLinks;
   private final SwarmClient mySwarmClient;
@@ -149,11 +149,8 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   private void publishCommentIfNeeded(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final String commentTemplate) throws PublisherException {
-    if (!((BuildPromotionEx)build).getBooleanInternalParameterOrTrue(SWARM_PUBLISH_COMMENTS_ENABLED)) {
-      LoggerUtil.LOG.debug(String.format("Skip publishing comment to Helix Swarm for %s due to %s=false",
-                                         build, SWARM_PUBLISH_COMMENTS_ENABLED));
-      return;
-    }
+
+    boolean commentsNotificationsEnabled = ((BuildPromotionEx)build).getBooleanInternalParameterOrTrue(SWARM_COMMENTS_NOTIFICATIONS_ENABLED);
 
     postForEachReview(build, revision, new ReviewMessagePublisher() {
       @Override
@@ -161,7 +158,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
         final String fullComment = "TeamCity: " + String.format(commentTemplate, getBuildMarkdownLink(build)) +
                                    "\nConfiguration: " + myBuildType.getExtendedFullName();
 
-        mySwarmClient.addCommentToReview(reviewId, fullComment, debugBuildInfo);
+        mySwarmClient.addCommentToReview(reviewId, fullComment, debugBuildInfo, !commentsNotificationsEnabled);
       }
     });
   }

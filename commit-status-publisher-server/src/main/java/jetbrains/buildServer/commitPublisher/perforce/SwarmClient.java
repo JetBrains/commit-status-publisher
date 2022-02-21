@@ -133,11 +133,15 @@ public class SwarmClient {
     return "&state[]=needsReview&state[]=needsRevision" + extraParams;
   }
 
-  public void addCommentToReview(@NotNull Long reviewId, @NotNull String fullComment, @NotNull String debugInfo) throws PublisherException {
+  public void addCommentToReview(@NotNull Long reviewId, @NotNull String fullComment, @NotNull String debugInfo, boolean silenceNotification) throws PublisherException {
 
     final String addCommentUrl = mySwarmUrl + "/api/v9/comments";
 
     String data = "topic=reviews/" + reviewId + "&body=" + StringUtil.encodeURLParameter(fullComment);
+    if (silenceNotification) {
+      data += "&silenceNotification=true";
+    }
+
     try {
       HttpHelper.post(addCommentUrl, myUsername, myTicket,
                       data, ContentType.APPLICATION_FORM_URLENCODED, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
