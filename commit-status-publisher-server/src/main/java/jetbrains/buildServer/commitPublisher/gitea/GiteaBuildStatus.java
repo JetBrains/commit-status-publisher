@@ -26,10 +26,10 @@ import java.util.stream.Collectors;
 
 public enum GiteaBuildStatus {
   PENDING("pending"),
-  RUNNING("running"),
   SUCCESS("success"),
-  FAILED("failed"),
-  CANCELED("canceled");
+  ERROR("error"),
+  FAILURE("failure"),
+  WARNING("warning");
 
   private static final Map<String, GiteaBuildStatus> INDEX = Arrays.stream(values()).collect(Collectors.toMap(GiteaBuildStatus::getName, Function.identity()));
 

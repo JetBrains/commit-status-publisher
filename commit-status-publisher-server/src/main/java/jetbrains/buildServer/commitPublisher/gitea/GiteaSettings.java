@@ -18,7 +18,6 @@ package jetbrains.buildServer.commitPublisher.gitea;
 
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
-import jetbrains.buildServer.commitPublisher.gitea.GiteaPublisher;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaRepoInfo;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaUserInfo;
 import jetbrains.buildServer.serverSide.*;
@@ -104,12 +103,15 @@ public class GiteaSettings extends BasePublisherSettings implements CommitStatus
       try {
         IOGuard.allowNetworkCall(() -> {
           ProjectInfoResponseProcessor processorPrj = new ProjectInfoResponseProcessor();
-          HttpHelper.get(getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName()),
-                         null, null, Collections.singletonMap("PRIVATE-TOKEN", token),
+          String url = getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName());
+          url += "?access_token=" + token;
+          HttpHelper.get(url, null, null, null,
                          BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorPrj);
-          if (processorPrj.getAccessLevel() < 30) {
+          if (!processorPrj.hasPushAccess()) {
             UserInfoResponseProcessor processorUser = new UserInfoResponseProcessor();
-            HttpHelper.get(getUserUrl(apiUrl), null, null, Collections.singletonMap("PRIVATE-TOKEN", token),
+            url = getUserUrl(apiUrl);
+            url += "?access_token=" + token;
+            HttpHelper.get(url, null, null, null,
                            BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorUser);
             if (!processorUser.isAdmin()) {
               throw new HttpPublisherException("Gitea does not grant enough permissions to publish a commit status");
@@ -160,7 +162,7 @@ public class GiteaSettings extends BasePublisherSettings implements CommitStatus
 
   @NotNull
   public static String getProjectsUrl(@NotNull String apiUrl, @NotNull String owner, @NotNull String repo) {
-    return apiUrl + "/projects/" + owner.replace(".", "%2E").replace("/", "%2F") + "%2F" + repo.replace(".", "%2E");
+    return apiUrl + "/repos/" + owner.replace(".", "%2E").replace("/", "%2F") + "/" + repo.replace(".", "%2E");
   }
 
   @NotNull
@@ -206,28 +208,25 @@ public class GiteaSettings extends BasePublisherSettings implements CommitStatus
 
   private class ProjectInfoResponseProcessor extends JsonResponseProcessor<GiteaRepoInfo> {
 
-    private int myAccessLevel;
+    private boolean myHasPushAccess;
 
     ProjectInfoResponseProcessor() {
       super(GiteaRepoInfo.class);
     }
 
-    int getAccessLevel() {
-      return myAccessLevel;
+    boolean hasPushAccess() {
+      return myHasPushAccess;
     }
 
     @Override
     public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
-      myAccessLevel = 0;
+      myHasPushAccess = false;
       super.processResponse(response);
       GiteaRepoInfo repoInfo = getInfo();
       if (null == repoInfo || null == repoInfo.id || null == repoInfo.permissions) {
         throw new HttpPublisherException("Gitea publisher has received a malformed response");
       }
-      if (null != repoInfo.permissions.project_access)
-        myAccessLevel = repoInfo.permissions.project_access.access_level;
-      if (null != repoInfo.permissions.group_access && myAccessLevel < repoInfo.permissions.group_access.access_level)
-        myAccessLevel = repoInfo.permissions.group_access.access_level;
+      myHasPushAccess = repoInfo.permissions.push;
     }
   }
 
