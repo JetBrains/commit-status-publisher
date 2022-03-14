@@ -558,7 +558,9 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     context.name = buildPromotion.getBuildTypeExternalId();
     context.genre = "TeamCity";
 
-    return new CommitStatus(StatusState.Pending.getName(), additionalTaskInfo.compileQueueRelatedMessage(), getViewUrl(buildPromotion), context);
+    String targetStatus = (additionalTaskInfo.isPromotionReplaced() || !buildPromotion.isCanceled()) ?
+                          StatusState.Pending.getName() : StatusState.Error.getName();
+    return new CommitStatus(targetStatus, additionalTaskInfo.compileQueueRelatedMessage(), getViewUrl(buildPromotion), context);
   }
 
   private String getViewUrl(BuildPromotion buildPromotion) {

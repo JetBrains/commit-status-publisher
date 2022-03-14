@@ -29,7 +29,8 @@ public class SwarmPublisherTest extends HttpPublisherTest {
 
   public SwarmPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*viewQueued.html.*");
-    myExpectedRegExps.put(EventToTest.REMOVED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*viewQueued.html.*" + COMMENT + ".*");
+    myExpectedRegExps.put(EventToTest.MERGED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*viewQueued.html.*" + COMMENT + ".*");
+    myExpectedRegExps.put(EventToTest.REMOVED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*viewLog.html%3F.*removed.*" + COMMENT + ".*");
     myExpectedRegExps.put(EventToTest.STARTED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*viewLog.html%3F.*started.*");
 
     myExpectedRegExps.put(EventToTest.INTERRUPTED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*interrupted.*");

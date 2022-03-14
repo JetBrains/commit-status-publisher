@@ -76,7 +76,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) {
-    vote(buildPromotion, revision, StashBuildStatus.INPROGRESS, additionalTaskInfo.compileQueueRelatedMessage());
+    StashBuildStatus targetStatus = additionalTaskInfo.isPromotionReplaced() ? StashBuildStatus.INPROGRESS : StashBuildStatus.FAILED;
+    vote(buildPromotion, revision, targetStatus, additionalTaskInfo.compileQueueRelatedMessage());
     return true;
   }
 

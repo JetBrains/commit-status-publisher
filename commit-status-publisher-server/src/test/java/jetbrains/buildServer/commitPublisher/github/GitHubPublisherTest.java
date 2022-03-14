@@ -53,8 +53,8 @@ public class GitHubPublisherTest extends HttpPublisherTest {
 
   public GitHubPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*description\":\"%s\".*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
-    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*build removed.*by %s: %s.*", REVISION, USER.toLowerCase(), COMMENT));
-    myExpectedRegExps.put(EventToTest.MERGED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*build removed.*by %s: %s.*Link leads to the actual build.*", REVISION, USER.toLowerCase(), COMMENT));
+    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*error.*build removed.*by %s: %s.*", REVISION, USER.toLowerCase(), COMMENT));
+    myExpectedRegExps.put(EventToTest.MERGED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*build removed.*by %s: %s.*Link leads to the actual build.*", REVISION, USER.toLowerCase(), COMMENT));
     myExpectedRegExps.put(EventToTest.STARTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_STARTED));
     myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*success.*%s.*", REVISION, DefaultStatusMessages.BUILD_FINISHED));
     myExpectedRegExps.put(EventToTest.FAILED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*%s.*", REVISION, DefaultStatusMessages.BUILD_FAILED));

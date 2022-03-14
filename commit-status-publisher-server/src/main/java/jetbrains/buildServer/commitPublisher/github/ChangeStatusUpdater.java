@@ -201,7 +201,8 @@ public class ChangeStatusUpdater {
                                            @NotNull AdditionalTaskInfo additionalTaskInfo,
                                            @NotNull String viewUrl) throws PublisherException {
         final RepositoryVersion version = revision.getRepositoryVersion();
-        final GitHubChangeState targetStatus = GitHubChangeState.Pending;
+        final GitHubChangeState targetStatus = (additionalTaskInfo.isPromotionReplaced() || !buildPromotion.isCanceled()) ?
+                                               GitHubChangeState.Pending : GitHubChangeState.Error;
         LOG.info("Scheduling GitHub status update for " +
                  "hash: " + version.getVersion() + ", " +
                  "branch: " + version.getVcsBranch() + ", " +

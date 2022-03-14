@@ -79,7 +79,8 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
     if (additionalTaskInfo.commentContains(DefaultStatusMessages.BUILD_STARTED)) {
       return false;
     }
-    return publishQueued(buildPromotion, revision, SpaceBuildStatus.SCHEDULED, additionalTaskInfo);
+    SpaceBuildStatus targetStatus = additionalTaskInfo.isPromotionReplaced() ? SpaceBuildStatus.SCHEDULED : SpaceBuildStatus.TERMINATED;
+    return publishQueued(buildPromotion, revision, targetStatus, additionalTaskInfo);
   }
 
   @Override

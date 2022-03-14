@@ -73,7 +73,8 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    publish(buildPromotion, revision, GitlabBuildStatus.CANCELED, additionalTaskInfo);
+    GitlabBuildStatus targetStatus = additionalTaskInfo.isPromotionReplaced() ? GitlabBuildStatus.PENDING : GitlabBuildStatus.CANCELED;
+    publish(buildPromotion, revision, targetStatus, additionalTaskInfo);
     return true;
   }
 
