@@ -16,7 +16,9 @@
 
 package jetbrains.buildServer.commitPublisher;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
@@ -161,5 +163,41 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   @Override
   public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
     return null;
+  }
+
+  @NotNull
+  protected Set<String> getPossibleViewUrls(@NotNull BuildPromotion buildPromotion, @NotNull WebLinks webLinks) {
+    Set<String> result = new HashSet<>();
+    SBuild build = ((BuildPromotionEx)buildPromotion).getRealOrDummyBuild();
+    result.add(webLinks.getViewResultsUrl(build));
+    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    String rootUrl = webLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
+    result.add(rootUrl);
+    if (queuedBuild != null) {
+      result.add(webLinks.getQueuedBuildUrl(queuedBuild));
+    } else {
+      result.add((rootUrl.endsWith("/") ? rootUrl.substring(0, rootUrl.length()-1) : rootUrl) + "/viewQueued.html?itemId=" + buildPromotion.getId());  // preferable to mock QueuedBuild class and call myWebLinks.getQueuedBuildUrl(...) method
+    }
+    if (buildPromotion.getBuildType() != null) {
+      result.add(webLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()));
+    }
+    return result;
+  }
+
+  @Nullable
+  protected String buildQueuedUrlForCurrentUrl(@NotNull String url) {
+    int endOfBaseUrl = url.indexOf("viewLog.html?");
+    if (endOfBaseUrl < 0) {
+      return null;
+    }
+    final String baseUrl = url.substring(0, endOfBaseUrl - 1);
+    int buildIdStart = url.indexOf("buildId=");
+    if (buildIdStart < 0) {
+      return null;
+    }
+    buildIdStart+="buildId=".length();
+    int buildIdEnd = url.indexOf('&', buildIdStart);
+    final String buildId = url.substring(buildIdStart, buildIdEnd < 0 ? url.length() : buildIdEnd);
+    return baseUrl + "/viewQueued.html?itemId=" +  buildId;
   }
 }

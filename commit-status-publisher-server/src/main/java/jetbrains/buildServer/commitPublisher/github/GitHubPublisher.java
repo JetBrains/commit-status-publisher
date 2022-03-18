@@ -17,9 +17,7 @@
 package jetbrains.buildServer.commitPublisher.github;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
@@ -235,7 +233,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       LOG.warn("No revisions were found to request GitHub status. Please check you have Git VCS roots in the build configuration");
       return null;
     }
-    return handler.getLatestInformativeStatus(revision, getPossibleViewUrls(buildPromotion));
+    return handler.getLatestInformativeStatus(revision, getPossibleViewUrls(buildPromotion, myWebLinks));
   }
 
   private boolean updateQueuedBuildStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision,
@@ -267,25 +265,6 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     return buildPromotion.getBuildType() != null ?
            myWebLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
            myWebLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
-  }
-
-  @NotNull
-  private Set<String> getPossibleViewUrls(BuildPromotion buildPromotion) {
-    Set<String> result = new HashSet<>();
-    SBuild build = ((BuildPromotionEx)buildPromotion).getRealOrDummyBuild();
-    result.add(myWebLinks.getViewResultsUrl(build));
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    String rootUrl = myWebLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
-    result.add(rootUrl);
-    if (queuedBuild != null) {
-      result.add(myWebLinks.getQueuedBuildUrl(queuedBuild));
-    } else {
-      result.add((rootUrl.endsWith("/") ? rootUrl.substring(0, rootUrl.length()-1) : rootUrl) + "/viewQueued.html?itemId=" + buildPromotion.getId());  // preferable to mock QueuedBuild class and call myWebLinks.getQueuedBuildUrl(...) method
-    }
-    if (buildPromotion.getBuildType() != null) {
-      result.add(myWebLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()));
-    }
-    return result;
   }
 
   @NotNull

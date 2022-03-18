@@ -28,4 +28,14 @@ public class CommonBuildStatus {
   public String getUrl() {
     return myUrl;
   }
+
+  @Override
+  public String toString() {
+    return "CommonBuildStatus{" +
+           "myBuild='" + myBuild + '\'' +
+           ", myState='" + myState + '\'' +
+           ", myDescription='" + myDescription + '\'' +
+           ", myUrl='" + myUrl +
+           '}';
+  }
 }
