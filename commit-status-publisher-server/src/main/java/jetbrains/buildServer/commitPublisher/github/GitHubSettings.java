@@ -115,7 +115,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
 
   @NotNull
   @Override
-  public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(final SProject project, final SUser user) {
+  public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(final @NotNull SProject project, final @NotNull SUser user) {
     List<OAuthConnectionDescriptor> validConnections = new ArrayList<OAuthConnectionDescriptor>();
     List<OAuthConnectionDescriptor> githubConnections = myOauthConnectionsManager.getAvailableConnectionsOfType(project, GitHubOAuthProvider.TYPE);
     if (!githubConnections.isEmpty()) {

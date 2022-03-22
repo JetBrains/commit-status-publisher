@@ -219,7 +219,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
 
   @NotNull
   @Override
-  public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(SProject project, SUser user) {
+  public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(@NotNull SProject project, @NotNull SUser user) {
     final Map<OAuthConnectionDescriptor, Boolean> connections = new HashMap<>();
     final List<OAuthConnectionDescriptor> spaceConnections = myOAuthConnectionManager.getAvailableConnectionsOfType(project, SpaceOAuthProvider.TYPE);
 

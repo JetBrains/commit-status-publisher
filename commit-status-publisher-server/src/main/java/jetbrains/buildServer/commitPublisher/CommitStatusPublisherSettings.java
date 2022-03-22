@@ -63,7 +63,7 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
   PropertiesProcessor getParametersProcessor();
 
   @NotNull
-  Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(final SProject project, final SUser user);
+  Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(@NotNull final SProject project, @NotNull final SUser user);
 
   boolean isEnabled();
 

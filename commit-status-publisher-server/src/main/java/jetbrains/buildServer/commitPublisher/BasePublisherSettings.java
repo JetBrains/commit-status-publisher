@@ -74,7 +74,7 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
 
   @NotNull
   @Override
-  public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(final SProject project, final SUser user) {
+  public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(final @NotNull SProject project, final @NotNull SUser user) {
     return Collections.emptyMap();
   }
 
