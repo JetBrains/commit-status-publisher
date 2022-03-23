@@ -17,7 +17,8 @@
 package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
 import com.google.gson.*;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Predicate;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudCommitBuildStatus;
 import jetbrains.buildServer.serverSide.*;
@@ -31,16 +32,29 @@ import org.jetbrains.annotations.Nullable;
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
+  private static final ResponseEntityProcessor<BitbucketCloudCommitBuildStatus> STATUS_PROCESSOR = new ResponseEntityProcessor<BitbucketCloudCommitBuildStatus>(BitbucketCloudCommitBuildStatus.class) {
+    @Override
+    protected boolean handleError(@NotNull HttpHelper.HttpResponse response) throws HttpPublisherException {
+      int statusCode = response.getStatusCode();
+      if (statusCode >= 400) {
+        if (statusCode == 404) return false;
+        throw new HttpPublisherException(statusCode, response.getStatusText(), "HTTP response error");
+      }
+      return true;
+    }
+  };
+
   private String myBaseUrl = BitbucketCloudSettings.DEFAULT_API_URL;
-  private final WebLinks myLinks;
   private final Gson myGson = new Gson();
+  private final CustomDataStorageManager myCustomDataStorageManager;
 
   BitbucketCloudPublisher(@NotNull CommitStatusPublisherSettings settings,
                           @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                           @NotNull WebLinks links,
                           @NotNull Map<String, String> params,
-                          @NotNull CommitStatusPublisherProblems problems) {
+                          @NotNull CommitStatusPublisherProblems problems, CustomDataStorageManager customDataStorageManager) {
     super(settings, buildType, buildFeatureId, params, problems, links);
+    myCustomDataStorageManager = customDataStorageManager;
   }
 
   @NotNull
@@ -118,6 +132,34 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
+  public boolean publish(BuildRevision revision, CommonBuildStatus status) throws PublisherException {
+    VcsRootInstance root = revision.getRoot();
+    Repository repository = BitbucketCloudSettings.VCS_PROPERTIES_PARSER.parseRepository(root);
+    if (repository == null) {
+      throw new PublisherException(String.format("Bitbucket publisher has failed to parse repository URL from VCS root '%s'", root.getName()));
+    }
+    BitbucketCloudCommitBuildStatus buildStatus =
+      new BitbucketCloudCommitBuildStatus(status.getAttribute("key"), status.getState(), status.getBuild(), status.getDescription(), status.getUrl());
+    vote(revision.getRevision(), buildStatus, repository, status.toString());
+    return true;
+  }
+
+  @Override
+  public CommonBuildStatus getLatestInformativeBuildStatusForPromotion(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) {
+    Set<String> possibleViewUrls = getPossibleViewUrls(buildPromotion);
+    Optional<BitbucketCloudCommitBuildStatus> buildStatus = getBuildStatusFromStorage(getBuildName(buildPromotion), revision,
+                                                                                      str -> myGson.fromJson(str, BitbucketCloudCommitBuildStatus.class),
+                                                                                      new InformativeCommitStatusFilter(possibleViewUrls));
+    if (buildStatus.isPresent()) {
+      BitbucketCloudCommitBuildStatus bitbucketCloudCommitBuildStatus = buildStatus.get();
+      Map<String, String> attributes = new HashMap<>();
+      attributes.put("key", bitbucketCloudCommitBuildStatus.key);
+      return new CommonBuildStatus(bitbucketCloudCommitBuildStatus.name, bitbucketCloudCommitBuildStatus.state, bitbucketCloudCommitBuildStatus.description, bitbucketCloudCommitBuildStatus.url, attributes);
+    }
+    return null;
+  }
+
+  @Override
   public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
     BitbucketCloudCommitBuildStatus buildStatus = getCommitStatus(revision, removedBuild.getBuildTypeId());
     return getRevisionStatusForRemovedBuild(removedBuild, buildStatus);
@@ -147,18 +189,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
     }
     String url = String.format("%s2.0/repositories/%s/%s/commit/%s/statuses/build/%s",
                                getBaseUrl(), repository.owner(), repository.repositoryName(), revision.getRevision(), buildTypeId);
-    ResponseEntityProcessor<BitbucketCloudCommitBuildStatus> processor = new ResponseEntityProcessor<BitbucketCloudCommitBuildStatus>(BitbucketCloudCommitBuildStatus.class) {
-      @Override
-      protected boolean handleError(@NotNull HttpHelper.HttpResponse response) throws HttpPublisherException {
-        int statusCode = response.getStatusCode();
-        if (statusCode >= 400) {
-          if (statusCode == 404) return false;
-          throw new HttpPublisherException(statusCode, response.getStatusText(), "HTTP response error");
-        }
-        return true;
-      }
-    };
-    return get(url, getUsername(), getPassword(), null, processor);
+    return get(url, getUsername(), getPassword(), null, STATUS_PROCESSOR);
   }
 
   @Nullable
@@ -222,16 +253,17 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
                                                    myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
   }
 
+  @NotNull
   private String getBuildName(BuildPromotion buildPromotion) {
-    StringBuilder sb = new StringBuilder();
     if (buildPromotion.getBuildType() != null) {
-      sb.append(buildPromotion.getBuildType().getFullName());
+      return buildPromotion.getBuildType().getFullName();
     }
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      sb.append(" #").append(queuedBuild.getOrderNumber());
-    }
-    return sb.toString();
+    return buildPromotion.getBuildTypeExternalId();
+  }
+
+  @NotNull
+  private String getBuildName(@NotNull SBuild build) {
+    return build.getFullName();
   }
 
   private void vote(@NotNull SBuild build,
@@ -254,6 +286,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
     LOG.debug(getBaseUrl() + " :: " + commit + " :: " + data);
     String url = getBaseUrl() + "2.0/repositories/" + repository.owner() + "/" + repository.repositoryName() + "/commit/" + commit + "/statuses/build";
     postJson(url, getUsername(), getPassword(), data, null, buildDescription);
+    storeStatusInHistory(status.name, commit, data);
   }
 
   @Override
@@ -298,12 +331,12 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
     }
   }
 
-  @NotNull
-  private String getBuildName(@NotNull SBuild build) {
-    return build.getFullName() + " #" + build.getBuildNumber();
-  }
-
   private String getBaseUrl() { return myBaseUrl;  }
+
+  @Override
+  protected CustomDataStorage getStatusHistoryDataStorage() {
+    return myCustomDataStorageManager.getCustomDataStorage(getClass());
+  }
 
   /**
    * Used for testing only at the moments
@@ -317,6 +350,32 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
 
   private String getPassword() {
     return myParams.get(Constants.BITBUCKET_CLOUD_PASSWORD);
+  }
+
+  private class InformativeCommitStatusFilter implements Predicate<BitbucketCloudCommitBuildStatus> {
+    private final Set<String> myPossibleBuildUrls;
+    private final Set<String> myQueuedUrlsForRemovedBuilds = new HashSet<>();
+
+    private InformativeCommitStatusFilter(Set<String> possibleBuildUrls) {
+      myPossibleBuildUrls = possibleBuildUrls;
+    }
+
+    @Override
+    public boolean test(BitbucketCloudCommitBuildStatus status) {
+      if (myPossibleBuildUrls.contains(status.url)) return false;  // not same build
+      if (myQueuedUrlsForRemovedBuilds.contains(status.url)) return false;  // not removed from queue before
+      if (status.description == null) {
+        return true;
+      }
+      if (status.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) {  // not removed from quque
+        String expectedRemovedBuildUrl = buildQueuedUrlForCurrentUrl(status.url);
+        if (expectedRemovedBuildUrl != null) {
+          myQueuedUrlsForRemovedBuilds.add(expectedRemovedBuildUrl);
+        }
+        return false;
+      }
+      return true;
+    }
   }
 
 }

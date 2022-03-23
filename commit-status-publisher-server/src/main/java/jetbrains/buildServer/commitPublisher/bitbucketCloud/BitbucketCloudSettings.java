@@ -33,8 +33,6 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
   final static String DEFAULT_API_URL = "https://api.bitbucket.org/";
   static final BitbucketCloudRepositoryParser VCS_PROPERTIES_PARSER = new BitbucketCloudRepositoryParser();
 
-
-  private String myDefaultApiUrl = DEFAULT_API_URL;
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     add(Event.STARTED);
     add(Event.FINISHED);
@@ -50,11 +48,15 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
     addAll(mySupportedEvents);
   }};
 
+  private String myDefaultApiUrl = DEFAULT_API_URL;
+  private final CustomDataStorageManager myCustomDataStorageManager;
+
   public BitbucketCloudSettings(@NotNull PluginDescriptor descriptor,
                                 @NotNull WebLinks links,
                                 @NotNull CommitStatusPublisherProblems problems,
-                                @NotNull SSLTrustStoreProvider trustStoreProvider) {
+                                @NotNull SSLTrustStoreProvider trustStoreProvider, CustomDataStorageManager customDataStorageManager) {
     super(descriptor, links, problems, trustStoreProvider);
+    myCustomDataStorageManager = customDataStorageManager;
   }
 
   void setDefaultApiUrl(@NotNull String url) {
@@ -79,7 +81,7 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new BitbucketCloudPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems);
+    return new BitbucketCloudPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myCustomDataStorageManager);
   }
 
   @Nullable
