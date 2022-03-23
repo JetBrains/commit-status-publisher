@@ -23,8 +23,8 @@ import java.util.Map;
 import jetbrains.buildServer.MockBuildPromotion;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabAccessLevel;
-import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabCommitStatus;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabPermissions;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabReceiveCommitStatus;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BuildPromotion;
@@ -73,7 +73,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, myCustomDataStorageManager);
     test_buildFinished_Successfully();
   }
 
@@ -84,7 +84,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, myCustomDataStorageManager);
     test_buildFinished_Successfully();
   }
 
@@ -133,19 +133,19 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   public void shoudld_calculate_correct_revision_status() {
     BuildPromotion promotion = new MockBuildPromotion();
     GitlabPublisher publisher = (GitlabPublisher)myPublisher;
-    assertNull(publisher.getRevisionStatus(promotion, (GitLabCommitStatus)null));
-    assertNull(publisher.getRevisionStatus(promotion, new GitLabCommitStatus(null, null, null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new GitLabCommitStatus(null, "nonsense", null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new GitLabCommitStatus(null, GitlabBuildStatus.SUCCESS.getName(), null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new GitLabCommitStatus(null, GitlabBuildStatus.FAILED.getName(), null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new GitLabCommitStatus(null, GitlabBuildStatus.RUNNING.getName(), DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new GitLabCommitStatus(null, GitlabBuildStatus.CANCELED.getName(), null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new GitLabCommitStatus(null, GitlabBuildStatus.CANCELED.getName(), "nonsense", null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new GitLabCommitStatus(null, GitlabBuildStatus.RUNNING.getName(), null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new GitLabCommitStatus(null, GitlabBuildStatus.RUNNING.getName(), DefaultStatusMessages.BUILD_STARTED, null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new GitLabCommitStatus(null, GitlabBuildStatus.CANCELED.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new GitLabCommitStatus(null, GitlabBuildStatus.PENDING.getName(), "", null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new GitLabCommitStatus(null, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, (GitLabReceiveCommitStatus)null));
+    assertNull(publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, null, null, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, "nonsense", null, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.SUCCESS.getName(), null, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.FAILED.getName(), null, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.RUNNING.getName(), DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.CANCELED.getName(), null, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.CANCELED.getName(), "nonsense", null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.RUNNING.getName(), null, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.RUNNING.getName(), DefaultStatusMessages.BUILD_STARTED, null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.CANCELED.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.PENDING.getName(), "", null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, null, null)).getTriggeredEvent());
   }
 
   public void should_define_correctly_if_event_allowed() {
@@ -153,8 +153,8 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     removedBuild.setBuildTypeId("buildType");
     removedBuild.setItemId("123");
     GitlabPublisher publisher = (GitlabPublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new GitLabCommitStatus(null, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, null, "http://localhost/viewQueued.html?itemId=123")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new GitLabCommitStatus(null, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, null, "http://localhost/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, null, "http://localhost/viewQueued.html?itemId=123")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, null, "http://localhost/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
   }
 
   @BeforeMethod
@@ -163,9 +163,9 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     setExpectedApiPath("/api/v4");
     setExpectedEndpointPrefix("/projects/" + OWNER + "%2F" + CORRECT_REPO);
     super.setUp();
-    myPublisherSettings = new GitlabSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
+    myPublisherSettings = new GitlabSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myCustomDataStorageManager);
     Map<String, String> params = getPublisherParams();
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, myCustomDataStorageManager);
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }
 

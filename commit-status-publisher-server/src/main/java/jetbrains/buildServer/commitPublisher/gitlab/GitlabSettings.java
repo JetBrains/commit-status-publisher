@@ -51,11 +51,15 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     addAll(mySupportedEvents);
   }};
 
+  private final CustomDataStorageManager myCustomDataStorageManager;
+
   public GitlabSettings(@NotNull PluginDescriptor descriptor,
                         @NotNull WebLinks links,
                         @NotNull CommitStatusPublisherProblems problems,
-                        @NotNull SSLTrustStoreProvider trustStoreProvider) {
+                        @NotNull SSLTrustStoreProvider trustStoreProvider,
+                        @NotNull CustomDataStorageManager customDataStorageManager) {
     super(descriptor, links, problems, trustStoreProvider);
+    myCustomDataStorageManager = customDataStorageManager;
   }
 
   @NotNull
@@ -79,7 +83,7 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
   @NotNull
   @Override
   public GitlabPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new GitlabPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems);
+    return new GitlabPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myCustomDataStorageManager);
   }
 
   @Override

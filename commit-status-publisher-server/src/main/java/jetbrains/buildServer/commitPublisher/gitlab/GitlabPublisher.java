@@ -17,12 +17,13 @@
 package jetbrains.buildServer.commitPublisher.gitlab;
 
 import com.google.gson.Gson;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Predicate;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabCommitStatus;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabPublishCommitStatus;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabReceiveCommitStatus;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.StringUtil;
@@ -39,15 +40,16 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   private static final String REFS_TAGS = "refs/tags/";
   private final Gson myGson = new Gson();
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
-
-  private final WebLinks myLinks;
+  private final CustomDataStorageManager myDataStorageManager;
 
   GitlabPublisher(@NotNull CommitStatusPublisherSettings settings,
                   @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                   @NotNull WebLinks links,
                   @NotNull Map<String, String> params,
-                  @NotNull CommitStatusPublisherProblems problems) {
+                  @NotNull CommitStatusPublisherProblems problems,
+                  @NotNull CustomDataStorageManager dataStorageManager) {
     super(settings, buildType, buildFeatureId, params, problems, links);
+    myDataStorageManager = dataStorageManager;
   }
 
 
@@ -113,11 +115,37 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
-    GitLabCommitStatus commitStatus = getLatestCommitStatusForBuild(revision, removedBuild.getBuildType());
+    GitLabReceiveCommitStatus commitStatus = getLatestCommitStatusForBuildFromStorage(removedBuild.getBuildType(), revision);
+    if (commitStatus == null) {
+      commitStatus = getLatestCommitStatusForBuildFromVcs(revision, removedBuild.getBuildType());
+    }
     return getRevisionStatusForRemovedBuild(removedBuild, commitStatus);
   }
 
-  RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @Nullable GitLabCommitStatus commitStatus) {
+  @Nullable
+  private GitLabReceiveCommitStatus getLatestCommitStatusForBuildFromStorage(@NotNull SBuildType buildType, @NotNull BuildRevision revision) {
+    CustomDataStorage statusHistoryDataStorage = getStatusHistoryDataStorage();
+    Map<String, String> statuses = statusHistoryDataStorage.getValues();
+    if (statuses != null) {
+      final String keyPrefix = getStorageKeyPrefix(buildType.getName(), revision.getRevision());
+      Optional<String> latestSatusOpt = statuses.entrySet().stream()
+                                                .filter(entry -> entry.getKey().startsWith(keyPrefix))
+                                                .sorted(Comparator.comparing(this::getDateFromStorageKey).reversed())
+                                                .map(Map.Entry::getValue)
+                                                .findFirst();
+      if (latestSatusOpt.isPresent()) {
+        GitLabPublishCommitStatus latestStatus = myGson.fromJson(latestSatusOpt.get(), GitLabPublishCommitStatus.class);
+        return convertToReceiveStatus(latestStatus);
+      }
+    }
+    return null;
+  }
+
+  private GitLabReceiveCommitStatus convertToReceiveStatus(GitLabPublishCommitStatus status) {
+    return new GitLabReceiveCommitStatus(null, status.state, status.description, status.name, status.target_url);
+  }
+
+  RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @Nullable GitLabReceiveCommitStatus commitStatus) {
     if(commitStatus == null) {
       return null;
     }
@@ -128,14 +156,44 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
-    GitLabCommitStatus commitStatus = getLatestCommitStatusForBuild(revision, buildPromotion.getBuildType());
+    GitLabReceiveCommitStatus commitStatus = buildPromotion.getBuildType() != null ? getLatestCommitStatusForBuildFromStorage(buildPromotion.getBuildType(), revision) : null;
+    if (commitStatus == null) {
+      commitStatus = getLatestCommitStatusForBuildFromVcs(revision, buildPromotion.getBuildType());
+    }
     return getRevisionStatus(buildPromotion, commitStatus);
   }
 
-  private GitLabCommitStatus getLatestCommitStatusForBuild(@NotNull BuildRevision revision, @Nullable SBuildType buildType) throws PublisherException {
-    String url = buildRevisionStatusesUrl(revision, buildType);
-    ResponseEntityProcessor<GitLabCommitStatus[]> processor = new ResponseEntityProcessor<>(GitLabCommitStatus[].class);
-    GitLabCommitStatus[] commitStatuses = get(url, null, null, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), processor);
+  @Override
+  public boolean publish(BuildRevision revision, CommonBuildStatus status) throws PublisherException {
+    if (status == null) return false;
+    GitlabBuildStatus buildStatus = GitlabBuildStatus.getByName(status.getState());
+    if (buildStatus == null) {
+      return false;
+    }
+    String buildName = status.getBuild();
+    String message = createMessage(buildStatus, buildName, revision, status.getUrl(), status.getDescription());
+    publish(message, revision, status.toString());
+    storeStatusInHistory(buildName, revision.getRevision(), message);
+    return true;
+  }
+
+  @Override
+  public CommonBuildStatus getLatestInformativeBuildStatusForPromotion(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) {
+    Set<String> possibleViewUrls = getPossibleViewUrls(buildPromotion);
+    Optional<GitLabPublishCommitStatus> statusOpt = getBuildStatusFromStorage(buildPromotion.getBuildType().getName(), revision,
+                                                                              str -> myGson.fromJson(str, GitLabPublishCommitStatus.class),
+                                                                              new InformativeCommitStatusFilter<GitLabPublishCommitStatus>(possibleViewUrls));
+    if (statusOpt.isPresent()) {
+      GitLabPublishCommitStatus status = statusOpt.get();
+      return new CommonBuildStatus(status.name, status.state, status.description, status.target_url);
+    }
+    return null;
+  }
+
+  private GitLabReceiveCommitStatus getLatestCommitStatusForBuildFromVcs(@NotNull BuildRevision revision, @Nullable SBuildType buildType) throws PublisherException {
+    String url = buildRevisionStatusesUrl(revision, buildType, 1, 1,false);
+    ResponseEntityProcessor<GitLabReceiveCommitStatus[]> processor = new ResponseEntityProcessor<>(GitLabReceiveCommitStatus[].class);
+    GitLabReceiveCommitStatus[] commitStatuses = get(url, null, null, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), processor);
     if (commitStatuses == null || commitStatuses.length == 0) {
       return null;
     }
@@ -143,7 +201,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Nullable
-  RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @Nullable GitLabCommitStatus commitStatus) {
+  RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @Nullable GitLabReceiveCommitStatus commitStatus) {
     if(commitStatus == null) {
       return null;
     }
@@ -152,23 +210,43 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     return new RevisionStatus(event, isSameBuild);
   }
 
-  private String buildRevisionStatusesUrl(@NotNull BuildRevision revision, @Nullable BuildType buildType) throws PublisherException {
+  private String buildRevisionStatusesUrl(@NotNull BuildRevision revision, @Nullable BuildType buildType, @Nullable Integer page,
+                                          @Nullable Integer perPage, @Nullable Boolean filterSha) throws PublisherException {
     VcsRootInstance root = revision.getRoot();
-    String apiUrl = getApiUrl();
+    final String apiUrl = getApiUrl();
     if (null == apiUrl || apiUrl.length() == 0)
       throw new PublisherException("Missing GitLab API URL parameter");
     String pathPrefix = GitlabSettings.getPathPrefix(apiUrl);
     Repository repository = parseRepository(root, pathPrefix);
     if (repository == null)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
-    String statusesUrl = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/repository/commits/" + revision.getRevision() + "/statuses";
+    StringBuilder statusesUrl = new StringBuilder(GitlabSettings.getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName()))
+      .append("/repository/commits/")
+      .append(revision.getRevision())
+      .append("/statuses");
+    boolean isParameterAppended = false;
     if (buildType != null) {
-      statusesUrl += ("?" + encodeParameter("name", buildType.getName()));
+      statusesUrl.append("?").append(encodeParameter("name", buildType.getName()));
+      isParameterAppended = true;
     }
-    return statusesUrl;
+    if (page != null) {
+      statusesUrl.append(isParameterAppended ? '&' : '?');
+      statusesUrl.append(encodeParameter("page", page.toString()));
+      isParameterAppended = true;
+    }
+    if (perPage != null) {
+      statusesUrl.append(isParameterAppended ? '&' : '?');
+      statusesUrl.append(encodeParameter("per_page", perPage.toString()));
+      isParameterAppended = true;
+    }
+    if (Boolean.TRUE.equals(filterSha)) {
+      statusesUrl.append(isParameterAppended ? '&' : '?');
+      statusesUrl.append(encodeParameter("sha", revision.getRevision()));
+    }
+    return statusesUrl.toString();
   }
 
-  private Event getTriggeredEvent(GitLabCommitStatus commitStatus) {
+  private Event getTriggeredEvent(GitLabReceiveCommitStatus commitStatus) {
     if (commitStatus.status == null) {
       LOG.warn("No GitLab build status is provided. Related event can not be calculated");
       return null;
@@ -202,8 +280,10 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
                        @NotNull BuildRevision revision,
                        @NotNull GitlabBuildStatus status,
                        @NotNull String description) throws PublisherException {
-    String message = createMessage(status, build.getBuildTypeName(), revision, myLinks.getViewResultsUrl(build), description);
+    String buildName = build.getBuildTypeName();
+    String message = createMessage(status, buildName, revision, myLinks.getViewResultsUrl(build), description);
     publish(message, revision, LogUtil.describe(build));
+    storeStatusInHistory(buildName, revision.getRevision(), message);
   }
 
   private void publish(@NotNull BuildPromotion buildPromotion,
@@ -212,8 +292,10 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
                        @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     String url = getViewUrl(buildPromotion);
     String description = additionalTaskInfo.compileQueueRelatedMessage();
-    String message = createMessage(status, buildPromotion.getBuildType().getName(), revision, url, description);
+    String buildName = buildPromotion.getBuildType().getName();
+    String message = createMessage(status, buildName, revision, url, description);
     publish(message, revision, LogUtil.describe(buildPromotion));
+    storeStatusInHistory(buildName, revision.getRevision(), message);
   }
 
   private String getViewUrl(BuildPromotion buildPromotion) {
@@ -288,13 +370,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
       }
     }
 
-    final Map<String, String> data = new LinkedHashMap<String, String>();
-    data.put("state", status.getName());
-    data.put("name", name);
-    data.put("target_url", url);
-    data.put("description", description);
-    if (ref != null)
-      data.put("ref", ref);
+    GitLabPublishCommitStatus data = new GitLabPublishCommitStatus(status.getName(), description, name, url, ref);
     return myGson.toJson(data);
   }
 
@@ -317,4 +393,54 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     return myParams.get(Constants.GITLAB_TOKEN);
   }
 
+  protected CustomDataStorage getStatusHistoryDataStorage() {
+    return myDataStorageManager.getCustomDataStorage(getClass());
+  }
+
+  private class InformativeCommitStatusFilter<T extends GitLabCommitStatus> implements Predicate<T> {
+    private final Set<String> myPossibleBuildUrls;
+    private final Set<String> myQueuedUrlsForRemovedBuilds = new HashSet<>();
+
+    public InformativeCommitStatusFilter(Set<String> possibleBuildUrls) {
+      myPossibleBuildUrls = possibleBuildUrls;
+    }
+
+    @Override
+    public boolean test(T status) {
+      if (myPossibleBuildUrls.contains(status.target_url)) {  // should not be from other context and should not be same build
+        return false;
+      }
+      if (myQueuedUrlsForRemovedBuilds.contains(status.target_url)) { // build should not be removed from queue already
+        return false;
+      }
+      if (status.description == null) {
+        return true;
+      }
+      if (status.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) {  // should not be removed from queue
+        String expectedQueuedStatusUrl = buildQueuedUrl(status);
+        if (expectedQueuedStatusUrl != null) {
+          myQueuedUrlsForRemovedBuilds.add(expectedQueuedStatusUrl);
+        }
+        return false;
+      }
+      return true;
+    }
+
+    private String buildQueuedUrl(@NotNull T status) {
+      if (status.target_url == null) return null;
+      int endOfBaseUrl = status.target_url.indexOf("viewLog.html?");
+      if (endOfBaseUrl < 0) {
+        return null;
+      }
+      final String baseUrl = status.target_url.substring(0, endOfBaseUrl - 1);
+      int buildIdStart = status.target_url.indexOf("buildId=");
+      if (buildIdStart < 0) {
+        return null;
+      }
+      buildIdStart+="buildId=".length();
+      int buildIdEnd = status.target_url.indexOf('&', buildIdStart);
+      final String buildId = status.target_url.substring(buildIdStart, buildIdEnd < 0 ? status.target_url.length() : buildIdEnd);
+      return baseUrl + "/viewQueued.html?itemId=" +  buildId;
+    }
+  }
 }
