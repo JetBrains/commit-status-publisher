@@ -37,7 +37,6 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
 
   private static final String UNKNOWN_BUILD_CONFIGURATION = "Unknown build configuration";
 
-  private final WebLinks myLinks;
   private final SpaceConnectDescriber mySpaceConnector;
   private final Gson myGson = new Gson();
 
@@ -47,8 +46,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
                  @NotNull Map<String, String> params,
                  @NotNull CommitStatusPublisherProblems problems,
                  @NotNull SpaceConnectDescriber spaceConnector) {
-    super(settings, buildType, buildFeatureId, params, problems);
-    myLinks = links;
+    super(settings, buildType, buildFeatureId, params, problems, links);
     mySpaceConnector = spaceConnector;
   }
 

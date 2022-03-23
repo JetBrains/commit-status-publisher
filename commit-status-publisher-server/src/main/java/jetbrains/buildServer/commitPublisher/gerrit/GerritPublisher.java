@@ -16,16 +16,14 @@
 
 package jetbrains.buildServer.commitPublisher.gerrit;
 
+import java.util.Map;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Map;
-
 class GerritPublisher extends BaseCommitStatusPublisher {
 
-  private final WebLinks myLinks;
   private final GerritClient myGerritClient;
 
   GerritPublisher(@NotNull CommitStatusPublisherSettings settings,
@@ -34,8 +32,7 @@ class GerritPublisher extends BaseCommitStatusPublisher {
                   @NotNull WebLinks links,
                   @NotNull Map<String, String> params,
                   @NotNull CommitStatusPublisherProblems problems) {
-    super(settings, buildType, buildFeatureId, params, problems);
-    myLinks = links;
+    super(settings, buildType, buildFeatureId, params, problems, links);
     myGerritClient = gerritClient;
   }
 

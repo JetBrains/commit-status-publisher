@@ -18,8 +18,10 @@ package jetbrains.buildServer.commitPublisher;
 
 import java.util.List;
 import java.util.Map;
+import jetbrains.buildServer.RootUrlHolder;
 import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 
@@ -49,7 +51,18 @@ public class MockPublisherSettings extends DummyPublisherSettings {
 
   @Override
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return null == myPublisher ? new MockPublisher(this, getId(), buildType, buildFeatureId, params, myProblems, new PublisherLogger()) : myPublisher;
+    WebLinks webLinks = new WebLinks(new RootUrlHolder() {
+      @NotNull
+      @Override
+      public String getRootUrl() {
+        return "";
+      }
+
+      @Override
+      public void setRootUrl(@NotNull String rootUrl) {
+      }
+    });
+    return null == myPublisher ? new MockPublisher(this, getId(), buildType, buildFeatureId, params, myProblems, new PublisherLogger(), webLinks) : myPublisher;
   }
 
   @Override

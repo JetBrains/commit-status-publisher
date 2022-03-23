@@ -16,12 +16,14 @@
 
 package jetbrains.buildServer.commitPublisher;
 
+import java.util.Collection;
+import java.util.Collections;
+import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
-import jetbrains.buildServer.serverSide.systemProblems.*;
+import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
+import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import java.util.*;
 
 import static org.assertj.core.api.BDDAssertions.then;
 
@@ -40,6 +42,7 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
   private CommitStatusPublisher myPublisher;
   private PublisherLogger myLogger;
   private CommitStatusPublisherSettings myPublisherSettings;
+  private WebLinks myLinks;
 
   @BeforeMethod
   public void setUp() throws Exception {
@@ -48,7 +51,8 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
     myProblemEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
     myProblems = new CommitStatusPublisherProblems(myProblemEngine);
     myPublisherSettings = new MockPublisherSettings(myProblems);
-    myPublisher = new MockPublisher(myPublisherSettings, "PUBLISHER1", myBuildType, FEATURE_1, Collections.emptyMap(), myProblems, myLogger);
+    myLinks = myFixture.getSingletonService(WebLinks.class);
+    myPublisher = new MockPublisher(myPublisherSettings, "PUBLISHER1", myBuildType, FEATURE_1, Collections.emptyMap(), myProblems, myLogger, myLinks);
   }
 
   public void must_add_and_delete_problems() {
@@ -68,7 +72,7 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
     final String PUB2_P1 = "First issue of publisher 2";
     final String PUB2_P2 = "Second issue of publisher 2";
     CommitStatusPublisher publisher2 = new MockPublisher(myPublisherSettings, "PUBLISHER2", myBuildType, FEATURE_2,
-                                                         Collections.emptyMap(), myProblems, myLogger);
+                                                         Collections.emptyMap(), myProblems, myLogger, myLinks);
 
     myProblems.reportProblem(PUB2_P1, publisher2, "Build description", null, null, myLogger);
     myProblems.reportProblem(PUB1_P1, myPublisher, "Build description", null, null, myLogger);

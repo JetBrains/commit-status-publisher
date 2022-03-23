@@ -16,9 +16,11 @@
 
 package jetbrains.buildServer.commitPublisher;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
@@ -39,16 +41,19 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   protected SBuildType myBuildType;
   private final String myBuildFeatureId;
   private final CommitStatusPublisherSettings mySettings;
+  protected final WebLinks myLinks;
 
   protected BaseCommitStatusPublisher(@NotNull CommitStatusPublisherSettings settings,
-                                      @NotNull SBuildType buildType,@NotNull String buildFeatureId,
+                                      @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                                       @NotNull Map<String, String> params,
-                                      @NotNull CommitStatusPublisherProblems problems) {
+                                      @NotNull CommitStatusPublisherProblems problems,
+                                      @NotNull WebLinks links) {
     mySettings = settings;
     myParams = params;
     myProblems = problems;
     myBuildType = buildType;
     myBuildFeatureId = buildFeatureId;
+    myLinks = links;
     myConnectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
     if (buildType instanceof BuildTypeEx) {
       String strTimeout = ((BuildTypeEx)buildType).getInternalParameterValue(CONNECTION_TIMEOUT_PARAM, "");
@@ -160,26 +165,46 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     return null;
   }
 
+  protected <T> Optional<T> getBuildStatusFromStorage(@NotNull String buildName, @NotNull BuildRevision revision, @NotNull Function<String, T> unmarshaller, Predicate<T> predicate) {
+    CustomDataStorage storage = getStatusHistoryDataStorage();
+    Map<String, String> statuses = storage.getValues();
+    if (statuses == null) {
+      LOG.debug("No previously published statuses is stored in storage. Can not find informative status");
+      return Optional.empty();
+    }
+    final String keyPrefix = getStorageKeyPrefix(buildName, revision.getRevision());
+    return statuses.entrySet().stream()
+                                                            .filter(entry -> entry.getKey().startsWith(keyPrefix))
+                                                            .sorted(Comparator.comparing(this::getDateFromStorageKey, Comparator.reverseOrder()))
+                                                            .map(entry -> unmarshaller.apply(entry.getValue()))
+                                                            .filter(predicate)
+                                                            .findFirst();
+  }
+
   @Override
   public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
     return null;
   }
 
+  protected CustomDataStorage getStatusHistoryDataStorage() {
+    return null;
+  }
+
   @NotNull
-  protected Set<String> getPossibleViewUrls(@NotNull BuildPromotion buildPromotion, @NotNull WebLinks webLinks) {
+  protected Set<String> getPossibleViewUrls(@NotNull BuildPromotion buildPromotion) {
     Set<String> result = new HashSet<>();
     SBuild build = ((BuildPromotionEx)buildPromotion).getRealOrDummyBuild();
-    result.add(webLinks.getViewResultsUrl(build));
+    result.add(myLinks.getViewResultsUrl(build));
     SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    String rootUrl = webLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
+    String rootUrl = myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
     result.add(rootUrl);
     if (queuedBuild != null) {
-      result.add(webLinks.getQueuedBuildUrl(queuedBuild));
+      result.add(myLinks.getQueuedBuildUrl(queuedBuild));
     } else {
-      result.add((rootUrl.endsWith("/") ? rootUrl.substring(0, rootUrl.length()-1) : rootUrl) + "/viewQueued.html?itemId=" + buildPromotion.getId());  // preferable to mock QueuedBuild class and call myWebLinks.getQueuedBuildUrl(...) method
+      result.add((rootUrl.endsWith("/") ? rootUrl.substring(0, rootUrl.length()-1) : rootUrl) + "/viewQueued.html?itemId=" + buildPromotion.getId());  // preferable to mock QueuedBuild class and call mymyLinks.getQueuedBuildUrl(...) method
     }
     if (buildPromotion.getBuildType() != null) {
-      result.add(webLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()));
+      result.add(myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()));
     }
     return result;
   }
@@ -199,5 +224,23 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     int buildIdEnd = url.indexOf('&', buildIdStart);
     final String buildId = url.substring(buildIdStart, buildIdEnd < 0 ? url.length() : buildIdEnd);
     return baseUrl + "/viewQueued.html?itemId=" +  buildId;
+  }
+
+  protected String getStorageKeyPrefix(@NotNull String buildName, @NotNull String revision) {
+    return String.format("%s#%s@", buildName, revision);
+  }
+
+  protected LocalDateTime getDateFromStorageKey(Map.Entry<String, String> entry) {
+    String key = entry.getKey();
+    int dateStart = key.indexOf('@') + 1;
+    return LocalDateTime.parse(key.substring(dateStart), DateTimeFormatter.ISO_DATE_TIME);
+  }
+
+  protected void storeStatusInHistory(String buildName, String revision, String message) {
+    CustomDataStorage storage = getStatusHistoryDataStorage();
+    if (storage == null) return;
+
+    String now = DateTimeFormatter.ISO_DATE_TIME.format(LocalDateTime.now());
+    storage.putValue(getStorageKeyPrefix(buildName, revision) + now, message);
   }
 }

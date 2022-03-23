@@ -47,8 +47,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
                   @NotNull WebLinks links,
                   @NotNull Map<String, String> params,
                   @NotNull CommitStatusPublisherProblems problems) {
-    super(settings, buildType, buildFeatureId, params, problems);
-    myLinks = links;
+    super(settings, buildType, buildFeatureId, params, problems, links);
   }
 
 

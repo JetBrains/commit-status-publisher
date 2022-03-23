@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.util.http.HttpMethod;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
@@ -37,8 +38,9 @@ public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPub
   public HttpBasedCommitStatusPublisher(@NotNull CommitStatusPublisherSettings settings,
                                         @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                                         @NotNull Map<String, String> params,
-                                        @NotNull CommitStatusPublisherProblems problems) {
-    super(settings, buildType, buildFeatureId, params, problems);
+                                        @NotNull CommitStatusPublisherProblems problems,
+                                        @NotNull WebLinks links) {
+    super(settings, buildType, buildFeatureId, params, problems, links);
     myHttpResponseProcessor = new DefaultHttpResponseProcessor();
   }
 

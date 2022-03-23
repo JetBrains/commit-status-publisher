@@ -31,7 +31,6 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 class GitHubPublisher extends BaseCommitStatusPublisher {
 
   private final ChangeStatusUpdater myUpdater;
-  private final WebLinks myWebLinks;
 
   GitHubPublisher(@NotNull CommitStatusPublisherSettings settings,
                   @NotNull SBuildType buildType, @NotNull String buildFeatureId,
@@ -39,9 +38,8 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
                   @NotNull Map<String, String> params,
                   @NotNull CommitStatusPublisherProblems problems,
                   @NotNull WebLinks webLinks) {
-    super(settings, buildType, buildFeatureId, params, problems);
+    super(settings, buildType, buildFeatureId, params, problems, webLinks);
     myUpdater = updater;
-    myWebLinks = webLinks;
   }
 
   @NotNull
@@ -122,7 +120,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       return null;
     }
     Event triggeredEvent = getTriggeredEvent(commitStatus);
-    boolean isSameBuild = StringUtil.areEqual(myWebLinks.getQueuedBuildUrl(removedBuild), commitStatus.target_url);
+    boolean isSameBuild = StringUtil.areEqual(myLinks.getQueuedBuildUrl(removedBuild), commitStatus.target_url);
     return new RevisionStatus(triggeredEvent, isSameBuild);
   }
 
@@ -233,7 +231,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       LOG.warn("No revisions were found to request GitHub status. Please check you have Git VCS roots in the build configuration");
       return null;
     }
-    return handler.getLatestInformativeStatus(revision, getPossibleViewUrls(buildPromotion, myWebLinks));
+    return handler.getLatestInformativeStatus(revision, getPossibleViewUrls(buildPromotion));
   }
 
   private boolean updateQueuedBuildStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision,
@@ -256,15 +254,15 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   private String getViewUrl(BuildPromotion buildPromotion) {
     SBuild associatedBuild = buildPromotion.getAssociatedBuild();
     if (associatedBuild != null) {
-      return myWebLinks.getViewResultsUrl(associatedBuild);
+      return myLinks.getViewResultsUrl(associatedBuild);
     }
     SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
     if (queuedBuild != null) {
-      return myWebLinks.getQueuedBuildUrl(queuedBuild);
+      return myLinks.getQueuedBuildUrl(queuedBuild);
     }
     return buildPromotion.getBuildType() != null ?
-           myWebLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-           myWebLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
+           myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
+           myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
   }
 
   @NotNull

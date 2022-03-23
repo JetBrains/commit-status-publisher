@@ -57,6 +57,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   private SUser myUser;
   private Event myLastEventProcessed;
   private final Consumer<Event> myEventProcessedCallback = event -> myLastEventProcessed = event;
+  private WebLinks myLinks;
 
   @BeforeMethod
   public void setUp() throws Exception {
@@ -72,9 +73,10 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
                                                    myFixture.getServerResponsibility(), myFixture.getSingletonService(ExecutorServices.class),
                                                    myFixture.getSingletonService(ProjectManager.class), myFixture.getSingletonService(UserModel.class),
                                                    myMultiNodeTasks);
+    myLinks = myFixture.getSingletonService(WebLinks.class);
     myListener.setEventProcessedCallback(myEventProcessedCallback);
     myPublisher = new MockPublisher(myPublisherSettings, MockPublisherSettings.PUBLISHER_ID, myBuildType, myFeatureDescriptor.getId(),
-                                    Collections.emptyMap(), myProblems, myLogger);
+                                    Collections.emptyMap(), myProblems, myLogger, myLinks);
     myUser = myFixture.createUserAccount("newuser");
     myPublisherSettings.setPublisher(myPublisher);
   }

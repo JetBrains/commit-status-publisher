@@ -70,8 +70,9 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
                 @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                 @NotNull Map<String, String> params,
                 @NotNull CommitStatusPublisherProblems problems,
-                @NotNull PublisherLogger logger) {
-    super(settings, buildType, buildFeatureId, params, problems);
+                @NotNull PublisherLogger logger,
+                @NotNull WebLinks links) {
+    super(settings, buildType, buildFeatureId, params, problems, links);
     myLogger = logger;
     myType = publisherType;
   }

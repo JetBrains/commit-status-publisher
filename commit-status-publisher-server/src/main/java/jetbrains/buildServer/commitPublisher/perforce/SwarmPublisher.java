@@ -1,7 +1,10 @@
 package jetbrains.buildServer.commitPublisher.perforce;
 
 import java.util.Map;
-import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.AdditionalTaskInfo;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
+import jetbrains.buildServer.commitPublisher.HttpBasedCommitStatusPublisher;
+import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -17,7 +20,6 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   private static final String SWARM_TESTRUNS_SUPPORT_ENABLED = "teamcity.swarm.testruns.enabled";
   private static final String SWARM_COMMENTS_NOTIFICATIONS_ENABLED = "teamcity.internal.swarm.commentsNotifications.enabled";
 
-  private final WebLinks myLinks;
   private final SwarmClient mySwarmClient;
   private final boolean myCreateTestRuns;
 
@@ -27,8 +29,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
                         @NotNull Map<String, String> params,
                         @NotNull CommitStatusPublisherProblems problems,
                         @NotNull WebLinks links) {
-    super(swarmPublisherSettings, buildType, buildFeatureId, params, problems);
-    myLinks = links;
+    super(swarmPublisherSettings, buildType, buildFeatureId, params, problems, links);
     myCreateTestRuns = StringUtil.isTrue(params.get(SwarmPublisherSettings.PARAM_CREATE_SWARM_TEST));
 
     mySwarmClient = new SwarmClient(links, params, getConnectionTimeout(), swarmPublisherSettings.trustStore());

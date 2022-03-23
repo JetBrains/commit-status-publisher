@@ -67,6 +67,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   protected OAuthConnectionsManager myOAuthConnectionsManager;
   protected OAuthTokensStorage myOAuthTokenStorage;
   protected SSLTrustStoreProvider myTrustStoreProvider;
+  protected CustomDataStorageManager myCustomDataStorageManager;
 
 
   protected enum EventToTest {
@@ -102,6 +103,8 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     myBranch = null;
     myOAuthConnectionsManager = myFixture.getSingletonService(OAuthConnectionsManager.class);
     myOAuthTokenStorage = myFixture.getSingletonService(OAuthTokensStorage.class);
+    myCustomDataStorageManager = myFixture.getSingletonService(CustomDataStorageManager.class);
+
     myTrustStoreProvider = new SSLTrustStoreProvider() {
       @Nullable
       @Override

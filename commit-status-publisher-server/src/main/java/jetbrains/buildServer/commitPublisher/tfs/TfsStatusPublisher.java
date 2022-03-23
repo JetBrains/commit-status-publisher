@@ -60,7 +60,6 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   private static final Gson myGson = new GsonBuilder()
                                           .setDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
                                           .create();
-  private final WebLinks myLinks;
 
   // Captures pull request identifier. Example: refs/pull/1/merge
   private static final Pattern TFS_GIT_PULL_REQUEST_PATTERN = Pattern.compile("^refs\\/pull\\/(\\d+)/merge");
@@ -71,8 +70,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                      @NotNull final WebLinks webLinks,
                      @NotNull final Map<String, String> params,
                      @NotNull final CommitStatusPublisherProblems problems) {
-    super(settings, buildType, buildFeatureId, params, problems);
-    myLinks = webLinks;
+    super(settings, buildType, buildFeatureId, params, problems, webLinks);
   }
 
   @NotNull
@@ -181,7 +179,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public CommonBuildStatus getLatestInformativeBuildStatusForPromotion(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
-    Set<String> possibleViewUrls = getPossibleViewUrls(buildPromotion, myLinks);
+    Set<String> possibleViewUrls = getPossibleViewUrls(buildPromotion);
     CommitStatus commitStatus = getCommitStatus(revision, new InformativeCommitStatusFilter(buildPromotion.getBuildTypeExternalId(), possibleViewUrls));
     return commitStatus != null ? new CommonBuildStatus(commitStatus.context.name, commitStatus.state, commitStatus.description, commitStatus.targetUrl) : null;
   }
