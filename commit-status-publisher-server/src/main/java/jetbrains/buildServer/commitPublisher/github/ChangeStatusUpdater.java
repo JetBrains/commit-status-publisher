@@ -196,7 +196,7 @@ public class ChangeStatusUpdater {
         Repository repo = parseRepository(root);
         GitHubStatusClient statusClient = new GitHubStatusClient(params, publisher);
         try {
-          return statusClient.getStatus(revision, repo, new InformativeCommitStatusFilter(buildContext, possibleBuildUrls));
+          return statusClient.getStatus(revision, repo, new GitHubInformativeCommitStatusFilter(buildContext, possibleBuildUrls));
         } catch (IOException e) {
           publisher.getProblems().reportProblem(String.format("Commit Status Publisher error. Can not receive status for revision: %s", revision.getRevision()), publisher,
                                                 buildContext, publisher.getServerUrl(), e, LOG);
@@ -513,53 +513,28 @@ public class ChangeStatusUpdater {
     }
   }
 
-  private class InformativeCommitStatusFilter implements Predicate<CommitStatus> {
+  private class GitHubInformativeCommitStatusFilter extends InformativeCommitStatusFilter<CommitStatus> {
     private final String myBuildContext;
-    private final Set<String> myPossibleBuildUrls;
-    private final Set<String> myQueuedUrlsForRemovedBuilds = new HashSet<>();
 
-    public InformativeCommitStatusFilter(String buildContext, Set<String> possibleBuildUrls) {
+    public GitHubInformativeCommitStatusFilter(String buildContext, Set<String> possibleBuildUrls) {
+      super(possibleBuildUrls);
       myBuildContext = buildContext;
-      myPossibleBuildUrls = possibleBuildUrls;
-
     }
 
     @Override
     public boolean test(@NotNull CommitStatus status) {
-      if (!myBuildContext.equals(status.context) || myPossibleBuildUrls.contains(status.target_url)) {  // should not be from other context and should not be same build
-        return false;
-      }
-      if (myQueuedUrlsForRemovedBuilds.contains(status.target_url)) { // build should not be removed from queue already
-        return false;
-      }
-      if (status.description == null) {
-        return true;
-      }
-      if (status.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) {  // should not be removed from queue
-        String expectedQueuedStatusUrl = buildQueuedUrl(status);
-        if (expectedQueuedStatusUrl != null) {
-          myQueuedUrlsForRemovedBuilds.add(expectedQueuedStatusUrl);
-        }
-        return false;
-      }
-      return true;
+      if (!myBuildContext.equals(status.context)) return false;  // should not be from other context
+      return super.test(status);
     }
 
-    private String buildQueuedUrl(@NotNull CommitStatus status) {
-      if (status.target_url == null) return null;
-      int endOfBaseUrl = status.target_url.indexOf("viewLog.html?");
-      if (endOfBaseUrl < 0) {
-        return null;
-      }
-      final String baseUrl = status.target_url.substring(0, endOfBaseUrl - 1);
-      int buildIdStart = status.target_url.indexOf("buildId=");
-      if (buildIdStart < 0) {
-        return null;
-      }
-      buildIdStart+="buildId=".length();
-      int buildIdEnd = status.target_url.indexOf('&', buildIdStart);
-      final String buildId = status.target_url.substring(buildIdStart, buildIdEnd < 0 ? status.target_url.length() : buildIdEnd);
-      return baseUrl + "/viewQueued.html?itemId=" +  buildId;
+    @Override
+    protected String getUrl(CommitStatus status) {
+      return status.target_url;
+    }
+
+    @Override
+    protected String getDescription(CommitStatus status) {
+      return status.description;
     }
   }
 

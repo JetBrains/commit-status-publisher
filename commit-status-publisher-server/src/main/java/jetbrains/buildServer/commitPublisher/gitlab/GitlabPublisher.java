@@ -17,8 +17,10 @@
 package jetbrains.buildServer.commitPublisher.gitlab;
 
 import com.google.gson.Gson;
-import java.util.*;
-import java.util.function.Predicate;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.Optional;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabCommitStatus;
@@ -179,10 +181,9 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public CommonBuildStatus getLatestInformativeBuildStatusForPromotion(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) {
-    Set<String> possibleViewUrls = getPossibleViewUrls(buildPromotion);
     Optional<GitLabPublishCommitStatus> statusOpt = getBuildStatusFromStorage(buildPromotion.getBuildType().getName(), revision,
                                                                               str -> myGson.fromJson(str, GitLabPublishCommitStatus.class),
-                                                                              new InformativeCommitStatusFilter<GitLabPublishCommitStatus>(possibleViewUrls));
+                                                                              new GitLabInformativeCommitStatusFilter<GitLabPublishCommitStatus>(buildPromotion));
     if (statusOpt.isPresent()) {
       GitLabPublishCommitStatus status = statusOpt.get();
       return new CommonBuildStatus(status.name, status.state, status.description, status.target_url);
@@ -397,50 +398,19 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     return myDataStorageManager.getCustomDataStorage(getClass());
   }
 
-  private class InformativeCommitStatusFilter<T extends GitLabCommitStatus> implements Predicate<T> {
-    private final Set<String> myPossibleBuildUrls;
-    private final Set<String> myQueuedUrlsForRemovedBuilds = new HashSet<>();
-
-    public InformativeCommitStatusFilter(Set<String> possibleBuildUrls) {
-      myPossibleBuildUrls = possibleBuildUrls;
+  private class GitLabInformativeCommitStatusFilter<T extends GitLabCommitStatus> extends InformativeCommitStatusFilter<T> {
+    public GitLabInformativeCommitStatusFilter(BuildPromotion buildPromotion) {
+      super(getPossibleViewUrls(buildPromotion));
     }
 
     @Override
-    public boolean test(T status) {
-      if (myPossibleBuildUrls.contains(status.target_url)) {  // should not be from other context and should not be same build
-        return false;
-      }
-      if (myQueuedUrlsForRemovedBuilds.contains(status.target_url)) { // build should not be removed from queue already
-        return false;
-      }
-      if (status.description == null) {
-        return true;
-      }
-      if (status.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) {  // should not be removed from queue
-        String expectedQueuedStatusUrl = buildQueuedUrl(status);
-        if (expectedQueuedStatusUrl != null) {
-          myQueuedUrlsForRemovedBuilds.add(expectedQueuedStatusUrl);
-        }
-        return false;
-      }
-      return true;
+    protected String getUrl(T status) {
+      return status.target_url;
     }
 
-    private String buildQueuedUrl(@NotNull T status) {
-      if (status.target_url == null) return null;
-      int endOfBaseUrl = status.target_url.indexOf("viewLog.html?");
-      if (endOfBaseUrl < 0) {
-        return null;
-      }
-      final String baseUrl = status.target_url.substring(0, endOfBaseUrl - 1);
-      int buildIdStart = status.target_url.indexOf("buildId=");
-      if (buildIdStart < 0) {
-        return null;
-      }
-      buildIdStart+="buildId=".length();
-      int buildIdEnd = status.target_url.indexOf('&', buildIdStart);
-      final String buildId = status.target_url.substring(buildIdStart, buildIdEnd < 0 ? status.target_url.length() : buildIdEnd);
-      return baseUrl + "/viewQueued.html?itemId=" +  buildId;
+    @Override
+    protected String getDescription(T status) {
+      return status.description;
     }
   }
 }

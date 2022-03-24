@@ -52,7 +52,8 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
                           @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                           @NotNull WebLinks links,
                           @NotNull Map<String, String> params,
-                          @NotNull CommitStatusPublisherProblems problems, CustomDataStorageManager customDataStorageManager) {
+                          @NotNull CommitStatusPublisherProblems problems,
+                          @NotNull CustomDataStorageManager customDataStorageManager) {
     super(settings, buildType, buildFeatureId, params, problems, links);
     myCustomDataStorageManager = customDataStorageManager;
   }
@@ -148,8 +149,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   public CommonBuildStatus getLatestInformativeBuildStatusForPromotion(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) {
     Set<String> possibleViewUrls = getPossibleViewUrls(buildPromotion);
     Optional<BitbucketCloudCommitBuildStatus> buildStatus = getBuildStatusFromStorage(getBuildName(buildPromotion), revision,
-                                                                                      str -> myGson.fromJson(str, BitbucketCloudCommitBuildStatus.class),
-                                                                                      new InformativeCommitStatusFilter(possibleViewUrls));
+                                                                                      str -> myGson.fromJson(str, BitbucketCloudCommitBuildStatus.class), new BitbucketCloudInformativeCommitStatusFilter(possibleViewUrls));
     if (buildStatus.isPresent()) {
       BitbucketCloudCommitBuildStatus bitbucketCloudCommitBuildStatus = buildStatus.get();
       Map<String, String> attributes = new HashMap<>();
@@ -352,29 +352,20 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
     return myParams.get(Constants.BITBUCKET_CLOUD_PASSWORD);
   }
 
-  private class InformativeCommitStatusFilter implements Predicate<BitbucketCloudCommitBuildStatus> {
-    private final Set<String> myPossibleBuildUrls;
-    private final Set<String> myQueuedUrlsForRemovedBuilds = new HashSet<>();
+  private class BitbucketCloudInformativeCommitStatusFilter extends InformativeCommitStatusFilter<BitbucketCloudCommitBuildStatus> {
 
-    private InformativeCommitStatusFilter(Set<String> possibleBuildUrls) {
-      myPossibleBuildUrls = possibleBuildUrls;
+    private BitbucketCloudInformativeCommitStatusFilter(Set<String> possibleBuildUrls) {
+      super(possibleBuildUrls);
     }
 
     @Override
-    public boolean test(BitbucketCloudCommitBuildStatus status) {
-      if (myPossibleBuildUrls.contains(status.url)) return false;  // not same build
-      if (myQueuedUrlsForRemovedBuilds.contains(status.url)) return false;  // not removed from queue before
-      if (status.description == null) {
-        return true;
-      }
-      if (status.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) {  // not removed from quque
-        String expectedRemovedBuildUrl = buildQueuedUrlForCurrentUrl(status.url);
-        if (expectedRemovedBuildUrl != null) {
-          myQueuedUrlsForRemovedBuilds.add(expectedRemovedBuildUrl);
-        }
-        return false;
-      }
-      return true;
+    protected String getUrl(BitbucketCloudCommitBuildStatus status) {
+      return status.url;
+    }
+
+    @Override
+    protected String getDescription(BitbucketCloudCommitBuildStatus status) {
+      return status.description;
     }
   }
 

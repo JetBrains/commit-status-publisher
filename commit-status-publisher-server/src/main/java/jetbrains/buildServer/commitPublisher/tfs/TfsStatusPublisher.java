@@ -180,7 +180,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   @Override
   public CommonBuildStatus getLatestInformativeBuildStatusForPromotion(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
     Set<String> possibleViewUrls = getPossibleViewUrls(buildPromotion);
-    CommitStatus commitStatus = getCommitStatus(revision, new InformativeCommitStatusFilter(buildPromotion.getBuildTypeExternalId(), possibleViewUrls));
+    CommitStatus commitStatus = getCommitStatus(revision, new TfsInformativeCommitStatusFilter(buildPromotion.getBuildTypeExternalId(), possibleViewUrls));
     return commitStatus != null ? new CommonBuildStatus(commitStatus.context.name, commitStatus.state, commitStatus.description, commitStatus.targetUrl) : null;
   }
 
@@ -734,52 +734,28 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     private String commitId;
   }
 
-  private class InformativeCommitStatusFilter implements Predicate<CommitStatus> {
+  private class TfsInformativeCommitStatusFilter extends InformativeCommitStatusFilter<CommitStatus> {
     private final String myBuildTypeExternalId;
-    private final Set<String> myPossibleBuildUrls;
-    private final Set<String> myQueuedUrlsForRemovedBuilds = new HashSet<>();
 
-    public InformativeCommitStatusFilter(String buildTypeExternalId, Set<String> possibleBuildUrls) {
+    public TfsInformativeCommitStatusFilter(String buildTypeExternalId, Set<String> possibleBuildUrls) {
+      super(possibleBuildUrls);
       myBuildTypeExternalId = buildTypeExternalId;
-      myPossibleBuildUrls = possibleBuildUrls;
     }
 
     @Override
     public boolean test(CommitStatus status) {
-      if (!myBuildTypeExternalId.equals(status.context.name) || myPossibleBuildUrls.contains(status.targetUrl)) {  // should not be from other context and should not be same build
-        return false;
-      }
-      if (myQueuedUrlsForRemovedBuilds.contains(status.targetUrl)) { // build should not be removed from queue already
-        return false;
-      }
-      if (status.description == null) {
-        return true;
-      }
-      if (status.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) {  // should not be removed from queue
-        String expectedQueuedStatusUrl = buildQueuedUrl(status);
-        if (expectedQueuedStatusUrl != null) {
-          myQueuedUrlsForRemovedBuilds.add(expectedQueuedStatusUrl);
-        }
-        return false;
-      }
-      return true;
+      if (!myBuildTypeExternalId.equals(status.context.name)) return false;// should not be from other context
+      return super.test(status);
     }
 
-    private String buildQueuedUrl(@NotNull CommitStatus status) {
-      if (status.targetUrl == null) return null;
-      int endOfBaseUrl = status.targetUrl.indexOf("viewLog.html?");
-      if (endOfBaseUrl < 0) {
-        return null;
-      }
-      final String baseUrl = status.targetUrl.substring(0, endOfBaseUrl - 1);
-      int buildIdStart = status.targetUrl.indexOf("buildId=");
-      if (buildIdStart < 0) {
-        return null;
-      }
-      buildIdStart+="buildId=".length();
-      int buildIdEnd = status.targetUrl.indexOf('&', buildIdStart);
-      final String buildId = status.targetUrl.substring(buildIdStart, buildIdEnd < 0 ? status.targetUrl.length() : buildIdEnd);
-      return baseUrl + "/viewQueued.html?itemId=" +  buildId;
+    @Override
+    protected String getUrl(CommitStatus status) {
+      return status.targetUrl;
+    }
+
+    @Override
+    protected String getDescription(CommitStatus status) {
+      return status.description;
     }
   }
 }
