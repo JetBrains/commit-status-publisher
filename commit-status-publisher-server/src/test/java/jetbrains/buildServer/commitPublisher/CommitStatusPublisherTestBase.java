@@ -36,6 +36,9 @@ import jetbrains.buildServer.web.openapi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.web.servlet.mvc.Controller;
+import org.testng.annotations.AfterMethod;
+
+import static jetbrains.buildServer.commitPublisher.CommitStatusPublisherListener.MODIFICATIONS_PROCESSING_FEATURE_TOGGLE;
 
 /**
  * @author anton.zamolotskikh, 15/09/16.
@@ -95,8 +98,12 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     extensionHolder.registerExtension(BuildFeature.class, CommitStatusPublisherFeature.TYPE, myFeature);
   }
 
-
-
+  @AfterMethod(alwaysRun = true)
+  @Override
+  protected void tearDown() throws Exception {
+    setInternalProperty(MODIFICATIONS_PROCESSING_FEATURE_TOGGLE, false);
+    super.tearDown();
+  }
 
   private class MockWebControllerManager implements WebControllerManager {
 

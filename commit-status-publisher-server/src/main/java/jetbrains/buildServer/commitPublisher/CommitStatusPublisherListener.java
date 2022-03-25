@@ -40,10 +40,7 @@ import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.EventDispatcher;
-import jetbrains.buildServer.vcs.SVcsRootEx;
-import jetbrains.buildServer.vcs.SelectPrevBuildPolicy;
-import jetbrains.buildServer.vcs.VcsModification;
-import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.VcsModificationEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -54,10 +51,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   final static String PUBLISHING_ENABLED_PROPERTY_NAME = "teamcity.commitStatusPublisher.enabled";
   final static String EXPECTED_PROMOTIONS_CACHE_REFRESH_TIME_PROPERTY_NAME = "teamcity.commitStatusPublisher.promotionsCache.expectedRefreshTime";
-  final static String MODIFICATIONS_PROCESSING_INTERVAL_PROPERTY_NAME = "teamcity.commitStatusPublisher.modificationsProcessing.interval";
   final static String MODIFICATIONS_PROCESSING_DELAY_PROPERTY_NAME = "teamcity.commitStatusPublisher.modificationsProcessing.delay";
+  final static String CSP_FOR_BUILD_TYPE_CONFIGURATION_FLAG_TTL_PROPERTY_NAME = "teamcity.commitStatusPublisher.enabledForBuildCache.ttl";
   final static String MODIFICATIONS_PROCESSING_FEATURE_TOGGLE = "teamcity.internal.commitStatusPublisher.modificationsProcessing.enabled";
   private final static int MAX_LAST_EVENTS_TO_REMEMBER = 1000;
+  private final ValueWithTTL<Boolean> OUTDATED_CACHE_VALUE = new ValueWithTTL<Boolean>(null, -1L);
 
   private final PublisherManager myPublisherManager;
   private final BuildHistory myBuildHistory;
@@ -79,9 +77,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         return size() > MAX_LAST_EVENTS_TO_REMEMBER;
       }
     };
-  private final ConcurrentMap<String, VcsModificationEx> myModificationsToProcess = new ConcurrentHashMap<>();
-  private ScheduledFuture<?> myModificationsProcessingFuture = null;
-  private final ReentrantLock myModificationsProcessingFutureLock = new ReentrantLock();
+  private final ConcurrentLinkedQueue<VcsModificationWithRoot> myModificationsToProcess = new ConcurrentLinkedQueue<>();
+  private final Object myModificationsToProcessLock = new Object();
+  private Future<?> myModificationsProcessorFuture = CompletableFuture.completedFuture(null);
+  private final ReentrantLock myModificationsProcessorFutureLock = new ReentrantLock();
+  private final ConcurrentMap<String, ValueWithTTL<Boolean>> myBuildTypeCommitStatusPublisherConfiguredCache = new ConcurrentHashMap<>();
 
   private Consumer<Event> myEventProcessedCallback = null;
 
@@ -248,61 +248,145 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   @Override
   public void changeAdded(@NotNull VcsModification modification, @NotNull VcsRoot root, @Nullable final Collection<SBuildType> buildTypes) {
     if (TeamCityProperties.getBoolean(MODIFICATIONS_PROCESSING_FEATURE_TOGGLE)) {
-      myModificationsToProcess.put(modification.getVersion(), (VcsModificationEx)modification);
-      scheduleModificationsProcessing();
-    }
-  }
-
-  private void scheduleModificationsProcessing() {
-    if (myModificationsProcessingFuture == null) {
-      myModificationsProcessingFutureLock.lock();
-      try {
-        if (myModificationsProcessingFuture == null) {
-          final long modificationsProcessingDelay = TeamCityProperties.getIntervalMilliseconds(MODIFICATIONS_PROCESSING_DELAY_PROPERTY_NAME, 5_000);
-          myModificationsProcessingFuture = myExecutorServices.getNormalExecutorService().schedule(() -> processModifications(), modificationsProcessingDelay, TimeUnit.MILLISECONDS);
-        }
-      } finally {
-        myModificationsProcessingFutureLock.unlock();
+      myModificationsToProcess.add(new VcsModificationWithRoot((VcsModificationEx)modification, root));
+      initModificationsProcessing();
+      synchronized (myModificationsToProcessLock) {
+        myModificationsToProcessLock.notifyAll();
       }
     }
   }
 
-  private Collection<VcsModificationEx> getModificationsToProcess() {
-    Map<String, VcsModificationEx> toProcess = new HashMap<>(myModificationsToProcess);
-    myModificationsToProcess.keySet().removeAll(toProcess.keySet());
-    return toProcess.values();
+  private boolean testIfCheckoutRulePass(CheckoutRules checkoutRules, VcsModification modification) {
+    return modification.getChanges().stream()
+                       .map(VcsFileModification::getRelativeFileName)
+                       .anyMatch(checkoutRules::shouldInclude);
   }
 
-  private void processModifications() {
-    myModificationsProcessingFuture = null;
-    Collection<VcsModificationEx> modificationsToProcess = getModificationsToProcess();
-    if (modificationsToProcess.isEmpty()) {
+  private boolean testIfCheckoutRulePass(SBuildType buildType, VcsModificationEx modification) {
+    VcsRootInstance vcsRoot;
+    try {
+      vcsRoot = modification.getVcsRoot();
+    } catch (UnsupportedOperationException e) {
+      LOG.debug("Can not get root for modification " + modification.getVersion());
+      return false;
+    }
+    CheckoutRules checkoutRules = buildType.getCheckoutRules(vcsRoot);
+    if (checkoutRules == null) {
+      SVcsRoot parentVcsRoot = vcsRoot.getParent();
+      checkoutRules = buildType.getCheckoutRules(parentVcsRoot);
+      if (checkoutRules == null) {
+        return true;
+      }
+    }
+    return testIfCheckoutRulePass(checkoutRules, modification);
+  }
+
+  private void initModificationsProcessing() {
+    if (myModificationsProcessorFuture.isDone()) {
+      myModificationsProcessorFutureLock.lock();
+      try {
+        if (myModificationsProcessorFuture.isDone()) {
+          myModificationsProcessorFuture = myExecutorServices.getLowPriorityExecutorService().submit(() -> {
+            try {
+              processModifications();
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              LOG.warn("Modifications processing by Commit Status Publisher was interrupted");
+            } catch (Exception e) {
+              LOG.error("Exception on new modifications processing", e);
+            }
+          });
+        }
+      } finally {
+        myModificationsProcessorFutureLock.unlock();
+      }
+    }
+  }
+
+  private boolean testIfBuildTypeUsingCommitStatusPublisher(SBuildType buildType) {
+    ValueWithTTL<Boolean> isCSPEnabled = myBuildTypeCommitStatusPublisherConfiguredCache.getOrDefault(buildType.getInternalId(), OUTDATED_CACHE_VALUE);
+    if (isCSPEnabled.isActual()) {
+      return isCSPEnabled.myValue;
+    } else {
+      myBuildTypeCommitStatusPublisherConfiguredCache.remove(buildType.getInternalId());
+    }
+    boolean isConfigured = buildType.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE).stream().anyMatch(f -> buildType.isEnabled(f.getId()));
+    myBuildTypeCommitStatusPublisherConfiguredCache.putIfAbsent(buildType.getInternalId(),
+                                                                new ValueWithTTL<>(isConfigured, new Date().getTime() + TeamCityProperties.getIntervalMilliseconds(CSP_FOR_BUILD_TYPE_CONFIGURATION_FLAG_TTL_PROPERTY_NAME, 5 * 60 * 1000)));
+    return isConfigured;
+  }
+
+  private void processModifications() throws InterruptedException {
+    while (TeamCityProperties.getBoolean(MODIFICATIONS_PROCESSING_FEATURE_TOGGLE)) {
+      if (!myModificationsToProcess.isEmpty()) {
+        waitForDummyPromotionsCacheUpdate();
+        Collection<VcsModificationWithRoot> modifications = new ArrayList<>(myModificationsToProcess);
+        myModificationsToProcess.removeAll(modifications);
+
+        Map<String, VcsModificationEx> modificationsToProcess = new HashMap<>();
+        Set<Long> nonprocessibleRootIds = new HashSet<>();
+        Iterator<VcsModificationWithRoot> i = modifications.iterator();
+        while (i.hasNext()) {
+          VcsModificationWithRoot modificationWithRoot = i.next();
+          VcsRoot root = modificationWithRoot.getRoot();
+          if (nonprocessibleRootIds.contains(root.getId())) {
+            continue;
+          }
+          boolean isRootNonprocessible = true;
+          for (Map.Entry<SBuildType, CheckoutRules> btToRules : ((VcsRootInstanceEx)root).getUsages().entrySet()) {
+            SBuildType buildType = btToRules.getKey();
+            if (!testIfBuildTypeUsingCommitStatusPublisher(buildType)) {
+              continue;
+            }
+            if (!buildType.isInQueue()) {
+              continue;
+            }
+            isRootNonprocessible = false;
+            VcsModificationEx modification = modificationWithRoot.getModification();
+            if (!modificationsToProcess.containsKey(modification.getVersion()) && testIfCheckoutRulePass(btToRules.getValue(), modification)) {
+              i.remove();
+              modificationsToProcess.putIfAbsent(modification.getVersion(), modification);
+              break;
+            }
+          }
+          if (isRootNonprocessible) {
+            nonprocessibleRootIds.add(root.getId());
+          }
+        }
+
+        updateQueuedStatusForModification(modificationsToProcess.values());
+      }
+
+      if (TeamCityProperties.getBoolean(MODIFICATIONS_PROCESSING_FEATURE_TOGGLE) && myModificationsToProcess.isEmpty()) {
+        synchronized (myModificationsToProcessLock) {
+          myModificationsToProcessLock.wait(TeamCityProperties.getIntervalMilliseconds(MODIFICATIONS_PROCESSING_DELAY_PROPERTY_NAME, 60 * 1000));
+        }
+      }
+    }
+  }
+
+  private void updateQueuedStatusForModification(@NotNull Collection<VcsModificationEx> modifications) {
+    if (modifications.isEmpty()) {
       return;
     }
-    runAsync(() -> waitForDummyPromotionsCacheUpdate(), () -> updateQueuedStatusForModification(modificationsToProcess));
-  }
-
-  private void updateQueuedStatusForModification(Collection<VcsModificationEx> modifications) {
     Set<String> relatedBuildTypeIds = modifications.stream()
       .map(modification -> modification.getRelatedConfigurationIds(false))
       .flatMap(List::stream)
       .collect(Collectors.toSet());
     Collection<SBuildType> relatedBuildTypes = myProjectManager.findBuildTypes(relatedBuildTypeIds);
+
+    Map<String, SQueuedBuild> buildsToPublishInfoFor = new HashMap<>();
     for (SBuildType buildType : relatedBuildTypes) {
       List<SQueuedBuild> queuedBuildsOfType = buildType.getQueuedBuilds(null);
       for (SQueuedBuild queuedBuild : queuedBuildsOfType) {
-        String branchName = getBranchName(queuedBuild.getBuildPromotion());
-        BranchEx branch = ((BuildTypeEx) buildType).getBranch(branchName);
-        Set<Long> detectedChanges = branch.getDetectedChanges(SelectPrevBuildPolicy.SINCE_NULL_BUILD, false).stream()
-                                                                                    .map(changeDescriptor -> ((VcsModificationEx)changeDescriptor).getId())
-                                                                                    .collect(Collectors.toSet());
         for (VcsModificationEx modification : modifications) {
-          if (detectedChanges.contains(modification.getId())) {
-            buildTypeAddedToQueue(queuedBuild);
+          if(modification.isRelatedTo(buildType) && testIfCheckoutRulePass(buildType, modification)) {
+            buildsToPublishInfoFor.putIfAbsent(queuedBuild.getItemId(), queuedBuild);
           }
         }
       }
     }
+    buildsToPublishInfoFor.values().forEach(queuedBuild -> buildTypeAddedToQueue(queuedBuild));
   }
 
   public void waitForDummyPromotionsCacheUpdate() {
@@ -918,6 +1002,38 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
           ((BuildPromotionEx)promotion).addBuildProblem(buildProblem);
         }
       }
+    }
+  }
+
+  private class ValueWithTTL<T> {
+    private final T myValue;
+    private final long myTtl;
+
+    public ValueWithTTL(T value, long ttl) {
+      myValue = value;
+      myTtl = ttl;
+    }
+
+    boolean isActual() {
+      return new Date().getTime() <= myTtl;
+    }
+  }
+
+  private class VcsModificationWithRoot {
+    private final VcsModificationEx myModification;
+    private final VcsRoot myRoot;
+
+    private VcsModificationWithRoot(VcsModificationEx modification, VcsRoot root) {
+      myModification = modification;
+      myRoot = root;
+    }
+
+    public VcsModificationEx getModification() {
+      return myModification;
+    }
+
+    public VcsRoot getRoot() {
+      return myRoot;
     }
   }
 }

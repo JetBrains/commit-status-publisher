@@ -25,6 +25,7 @@ import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.RunningBuildState;
+import jetbrains.buildServer.serverSide.impl.beans.VcsRootInstanceContext;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsWatcher;
 import jetbrains.buildServer.serverSide.impl.xml.XmlConstants;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
@@ -35,6 +36,7 @@ import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.*;
+import jetbrains.buildServer.vcs.impl.VcsRootInstanceImpl;
 import org.jdom.Element;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -59,9 +61,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    setInternalProperty(CommitStatusPublisherListener.EXPECTED_PROMOTIONS_CACHE_REFRESH_TIME_PROPERTY_NAME, "150");
-    setInternalProperty(CommitStatusPublisherListener.MODIFICATIONS_PROCESSING_INTERVAL_PROPERTY_NAME, "300");
-    setInternalProperty(CommitStatusPublisherListener.MODIFICATIONS_PROCESSING_DELAY_PROPERTY_NAME, "300");
+    setInternalProperty(CommitStatusPublisherListener.EXPECTED_PROMOTIONS_CACHE_REFRESH_TIME_PROPERTY_NAME, "0");
+    setInternalProperty(CommitStatusPublisherListener.MODIFICATIONS_PROCESSING_DELAY_PROPERTY_NAME, "10");
     setInternalProperty(MODIFICATIONS_PROCESSING_FEATURE_TOGGLE, "true");
     myLastEventProcessed = null;
     myLogger = new PublisherLogger();
@@ -482,13 +483,42 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     assertEquals(1, myPublisher.getCommentsReceived().size());
 
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
+    VcsRootInstanceImpl root = new VcsRootInstanceImpl(vcsRootInstance.getId(), vcsRootInstance.getVcsName(), vcsRootInstance.getParentId(), vcsRootInstance.getName(),
+                                                       vcsRootInstance.getProperties(), myFixture.getSingletonService(VcsRootInstanceContext.class));
     SVcsModification modification = myFixture.addModification(new ModificationData(new Date(),
                                                                                        Collections.singletonList(
                                                                                          new VcsChange(VcsChangeInfo.Type.CHANGED, "changed", "file", "file", "2", "3")),
-                                                                                       "descr", "user", vcsRootInstance, "rev1_3", "rev1_3"));
-    myListener.changeAdded(modification, myBuildType.getVcsRoots().iterator().next(), Collections.singleton(myBuildType));
+                                                                                       "descr", "user", root, "rev1_3", "rev1_3"));
+    myListener.changeAdded(modification, root, Collections.singleton(myBuildType));
     waitFor(() -> myPublisher.getCommentsReceived().size() == 2, TASK_COMPLETION_TIMEOUT_MS);
     assertEquals(DefaultStatusMessages.BUILD_QUEUED, myPublisher.getLastComment());
+  }
+
+  public void should_not_publish_queued_status_because_of_checkout_rule() {
+    prepareVcs();
+    final SVcsRoot vcsRoot = myBuildType.getVcsRoots().iterator().next();
+    CheckoutRules checkoutRules = new CheckoutRules("+:src => .");
+    myBuildType.setCheckoutRules(vcsRoot, checkoutRules);
+
+    myBuildType.addToQueue("");
+    waitForTasksToFinish(Event.QUEUED);
+
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
+    VcsRootInstanceImpl root = new VcsRootInstanceImpl(vcsRootInstance.getId(), vcsRootInstance.getVcsName(), vcsRootInstance.getParentId(), vcsRootInstance.getName(),
+                                                                   vcsRootInstance.getProperties(), myFixture.getSingletonService(VcsRootInstanceContext.class));
+
+    SVcsModification modification = myFixture.addModification(new ModificationData(new Date(),
+                                                                                   Collections.singletonList(
+                                                                                     new VcsChange(VcsChangeInfo.Type.CHANGED, "changed", "file", "file", "2", "3")),
+                                                                                   "descr", "user", root, "rev1_3", "rev1_3"));
+    myListener.changeAdded(modification, root, Collections.singleton(myBuildType));
+
+    RunningBuildEx runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
+    myFixture.finishBuild(runningBuild, false);
+    waitForTasksToFinish(Event.FINISHED);
+
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
   }
 
   public void should_not_publish_queued_after_consiquent_event() {
