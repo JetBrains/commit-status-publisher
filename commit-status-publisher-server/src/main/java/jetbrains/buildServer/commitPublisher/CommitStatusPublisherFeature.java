@@ -18,6 +18,7 @@ package jetbrains.buildServer.commitPublisher;
 
 import com.intellij.openapi.util.text.StringUtil;
 import jetbrains.buildServer.serverSide.BuildFeature;
+import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import org.jetbrains.annotations.NotNull;
@@ -77,7 +78,7 @@ public class CommitStatusPublisherFeature extends BuildFeature {
 
   @Nullable
   @Override
-  public PropertiesProcessor getParametersProcessor() {
+  public PropertiesProcessor getParametersProcessor(BuildTypeIdentity buildTypeOrTemplate) {
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
@@ -90,7 +91,7 @@ public class CommitStatusPublisherFeature extends BuildFeature {
         CommitStatusPublisherSettings settings = myPublisherManager.findSettings(publisherId);
         if (settings == null)
           return errors;
-        PropertiesProcessor proc = settings.getParametersProcessor();
+        PropertiesProcessor proc = settings.getParametersProcessor(buildTypeOrTemplate);
         if (proc != null)
           errors.addAll(proc.process(params));
         return errors;

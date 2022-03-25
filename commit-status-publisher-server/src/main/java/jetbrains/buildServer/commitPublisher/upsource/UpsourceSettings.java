@@ -99,7 +99,7 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
   }
 
   @Nullable
-  public PropertiesProcessor getParametersProcessor() {
+  public PropertiesProcessor getParametersProcessor(@NotNull BuildTypeIdentity buildTypeOrTemplate) {
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();

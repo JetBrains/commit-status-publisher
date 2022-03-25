@@ -94,7 +94,7 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
     final List<OAuthConnectionDescriptor> tfsConnections = myOauthConnectionsManager.getAvailableConnectionsOfType(project, TfsAuthProvider.TYPE);
     final Map<OAuthConnectionDescriptor, Boolean> connections = new LinkedHashMap<OAuthConnectionDescriptor, Boolean>();
     for (OAuthConnectionDescriptor c : tfsConnections) {
-      connections.put(c, !myOAuthTokensStorage.getUserTokens(c.getId(), user).isEmpty());
+      connections.put(c, !myOAuthTokensStorage.getUserTokens(c.getId(), user, project, false).isEmpty());
     }
     return connections;
   }
@@ -145,7 +145,7 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
   }
 
   @Nullable
-  public PropertiesProcessor getParametersProcessor() {
+  public PropertiesProcessor getParametersProcessor(@NotNull BuildTypeIdentity buildTypeOrTemplate) {
     return new PropertiesProcessor() {
       private boolean checkNotEmpty(@NotNull final Map<String, String> properties,
                                     @NotNull final String key,
@@ -173,7 +173,7 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
         if (authUsername != null && authProviderId != null) {
           final User currentUser = mySecurityContext.getAuthorityHolder().getAssociatedUser();
           if (currentUser != null && currentUser instanceof SUser) {
-            for (OAuthToken token : myOAuthTokensStorage.getUserTokens(authProviderId, (SUser) currentUser)) {
+            for (OAuthToken token : myOAuthTokensStorage.getUserTokens(authProviderId, (SUser) currentUser, buildTypeOrTemplate.getProject(), false)) {
               if (token.getOauthLogin().equals(authUsername)) {
                 p.put(TfsConstants.ACCESS_TOKEN, token.getAccessToken());
                 p.remove(TfsConstants.AUTH_USER);

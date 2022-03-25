@@ -116,7 +116,7 @@ public class CommitStatusPublisherFeatureController extends BaseController {
     mv.addObject("project", project);
     mv.addObject("projectId", project.getExternalId());
     SUser user = SessionUser.getUser(request);
-    mv.addObject("oauthConnections", null == settings ? null : settings.getOAuthConnections(project, user));
+    mv.addObject("oauthConnections", user == null || null == settings ? null : settings.getOAuthConnections(project, user));
     return mv;
   }
 

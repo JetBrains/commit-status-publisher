@@ -60,7 +60,7 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
   String describeParameters(@NotNull Map<String, String> params);
 
   @Nullable
-  PropertiesProcessor getParametersProcessor();
+  PropertiesProcessor getParametersProcessor(@NotNull BuildTypeIdentity buildTypeOrTemplate);
 
   @NotNull
   Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(@NotNull final SProject project, @NotNull final SUser user);

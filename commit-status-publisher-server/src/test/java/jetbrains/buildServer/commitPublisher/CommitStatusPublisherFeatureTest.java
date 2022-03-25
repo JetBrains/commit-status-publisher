@@ -36,7 +36,7 @@ public class CommitStatusPublisherFeatureTest extends CommitStatusPublisherTestB
   }
 
   public void should_not_allow_to_save_feature_without_publisher_selected() {
-    PropertiesProcessor processor = myFeature.getParametersProcessor();
+    PropertiesProcessor processor = myFeature.getParametersProcessor(myBuildType);
     Collection<InvalidProperty> errors = processor.process(map(Constants.VCS_ROOT_ID_PARAM, "someRootId"));
     then(errors).extracting("propertyName", "invalidReason").contains(tuple(Constants.PUBLISHER_ID_PARAM, "Choose a publisher"));
 

@@ -132,7 +132,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
 
   @Nullable
   @Override
-  public PropertiesProcessor getParametersProcessor() {
+  public PropertiesProcessor getParametersProcessor(@NotNull BuildTypeIdentity buildTypeOrTemplate) {
     return params -> {
       List<InvalidProperty> errors = new ArrayList<>();
 
@@ -224,7 +224,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     final List<OAuthConnectionDescriptor> spaceConnections = myOAuthConnectionManager.getAvailableConnectionsOfType(project, SpaceOAuthProvider.TYPE);
 
     for (OAuthConnectionDescriptor c : spaceConnections) {
-      connections.put(c, !myOAuthTokensStorage.getUserTokens(c.getId(), user).isEmpty());
+      connections.put(c, !myOAuthTokensStorage.getUserTokens(c.getId(), user, project, false).isEmpty());
     }
 
     return connections;

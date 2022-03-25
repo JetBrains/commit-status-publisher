@@ -70,7 +70,7 @@ class DummyPublisherSettings implements CommitStatusPublisherSettings {
   }
 
   @Nullable
-  public PropertiesProcessor getParametersProcessor() {
+  public PropertiesProcessor getParametersProcessor(@NotNull BuildTypeIdentity buildTypeOrTemplate) {
     return null;
   }
 

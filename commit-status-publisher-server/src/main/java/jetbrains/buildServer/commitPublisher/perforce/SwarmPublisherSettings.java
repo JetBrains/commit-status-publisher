@@ -75,7 +75,7 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
 
   @Nullable
   @Override
-  public PropertiesProcessor getParametersProcessor() {
+  public PropertiesProcessor getParametersProcessor(@NotNull BuildTypeIdentity buildTypeOrTemplate) {
     return new PropertiesProcessor() {
       @Override
       public Collection<InvalidProperty> process(Map<String, String> properties) {

@@ -87,7 +87,8 @@ public class PublisherSettingsController extends BaseController {
     request.setAttribute("testConnectionSupported", settings.isTestConnectionSupported());
 
     SUser user = SessionUser.getUser(request);
-    request.setAttribute("oauthConnections", settings.getOAuthConnections(project, user));
+    if (project != null && user != null)
+      request.setAttribute("oauthConnections", settings.getOAuthConnections(project, user));
 
     if (settingsUrl != null)
       request.getRequestDispatcher(settingsUrl).include(request, response);
@@ -127,7 +128,8 @@ public class PublisherSettingsController extends BaseController {
           BasePropertiesBean propBean = new BasePropertiesBean(params);
           PluginPropertiesUtil.bindPropertiesFromRequest(request, propBean);
           Map<String, String> props = propBean.getProperties();
-          PropertiesProcessor processor = settings.getParametersProcessor();
+          BuildTypeIdentity buildTypeOrTemplate = getBuildTypeOrTemplate(request.getParameter("id"));
+          PropertiesProcessor processor = settings.getParametersProcessor(buildTypeOrTemplate);
           if (null != processor) {
             Collection<InvalidProperty> invalidProps = processor.process(props);
             if (invalidProps != null) {

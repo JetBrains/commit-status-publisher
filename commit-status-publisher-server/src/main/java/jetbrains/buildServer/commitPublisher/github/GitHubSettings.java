@@ -124,7 +124,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
     validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GHEOAuthProvider.TYPE));
     Map<OAuthConnectionDescriptor, Boolean> connections = new LinkedHashMap<OAuthConnectionDescriptor, Boolean>();
     for (OAuthConnectionDescriptor c: validConnections) {
-      connections.put(c, !myOAuthTokensStorage.getUserTokens(c.getId(), user).isEmpty());
+      connections.put(c, !myOAuthTokensStorage.getUserTokens(c.getId(), user, project, false).isEmpty());
     }
     return connections;
   }
@@ -155,7 +155,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
   }
 
   @Nullable
-  public PropertiesProcessor getParametersProcessor() {
+  public PropertiesProcessor getParametersProcessor(@NotNull BuildTypeIdentity buildTypeOrTemplate) {
     final UpdateChangesConstants c = new UpdateChangesConstants();
     return new PropertiesProcessor() {
       private boolean checkNotEmpty(@NotNull final Map<String, String> properties,
@@ -192,7 +192,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
           if (null != oauthUsername && null != oauthProviderId) {
             User currentUser = mySecurityContext.getAuthorityHolder().getAssociatedUser();
             if (null != currentUser && currentUser instanceof SUser) {
-              for (OAuthToken token: myOAuthTokensStorage.getUserTokens(oauthProviderId, (SUser) currentUser)) {
+              for (OAuthToken token: myOAuthTokensStorage.getUserTokens(oauthProviderId, (SUser) currentUser, buildTypeOrTemplate.getProject(), false)) {
                 if (token.getOauthLogin().equals(oauthUsername)) {
                   p.put(c.getAccessTokenKey(), token.getAccessToken());
                   p.remove(c.getOAuthProviderIdKey());
