@@ -8,9 +8,9 @@ public class CommonBuildStatus {
   private final String myState;
   private final String myDescription;
   private final String myUrl;
-  private final Map<String, String> myDomainSpecificAtributes;
+  private final Map<String, Object> myDomainSpecificAtributes;
 
-  public CommonBuildStatus(String build, String state, String description, String url, Map<String, String> domainSpecificAtributes) {
+  public CommonBuildStatus(String build, String state, String description, String url, Map<String, Object> domainSpecificAtributes) {
     myBuild = build;
     myState = state;
     myDescription = description;
@@ -38,8 +38,8 @@ public class CommonBuildStatus {
     return myUrl;
   }
 
-  public String getAttribute(String attributeName) {
-    return myDomainSpecificAtributes.get(attributeName);
+  public <T> T getAttribute(String attributeName) {
+    return (T) myDomainSpecificAtributes.get(attributeName);
   }
 
   @Override

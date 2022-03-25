@@ -18,9 +18,7 @@ package jetbrains.buildServer.commitPublisher.stash;
 
 import com.google.gson.*;
 import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -44,15 +42,22 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   private static final Pattern PULL_REQUEST_BRANCH_PATTERN = Pattern.compile("^refs\\/pull\\-requests\\/(\\d+)\\/from");
   private static final String SERVER_VERSION_BUILD_SERVER_HWM = "7.4";
   private static final String SERVER_VERSION_EXTENDED_SERVER_LWM = "7.14.0";
+  private static final String BUILD_NUMBER_STATUS_FIELD = "buildNumber";
+  private static final String KEY_STATUS_FIELD = "key";
+  private static final String BUILD_DURATION_STATUS_FIELD = "buildDurationMs";
+  private static final String TEST_STATISTIC_STATUS_FIELD = "testStatistic";
 
   private final Gson myGson = new Gson();
+  private final CustomDataStorageManager myDataStorageManager;
   private BitbucketEndpoint myBitbucketEndpoint = null;
 
   StashPublisher(@NotNull CommitStatusPublisherSettings settings,
                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                  @NotNull WebLinks links, @NotNull Map<String, String> params,
-                 @NotNull CommitStatusPublisherProblems problems) {
+                 @NotNull CommitStatusPublisherProblems problems,
+                 @NotNull CustomDataStorageManager dataStorageManager) {
     super(settings, buildType, buildFeatureId, params, problems, links);
+    myDataStorageManager = dataStorageManager;
   }
 
   @NotNull
@@ -128,6 +133,33 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Override
+  public boolean publish(BuildRevision revision, CommonBuildStatus status) throws PublisherException {
+    vote(revision, status);
+    return true;
+  }
+
+  @Override
+  public CommonBuildStatus getLatestInformativeBuildStatusForPromotion(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
+    Optional<StatusData> status = getBuildStatusFromStorage(buildPromotion.getBuildType().getFullName(), revision,
+                                                                            str -> myGson.fromJson(str, StatusData.class),
+                                                                            new StashInformativeCommitStatusFilter(getPossibleViewUrls(buildPromotion)));
+    if (status.isPresent()) {
+      StatusData buildData = status.get();
+      return buildCommonBuildStatus(buildData);
+    }
+    return null;
+  }
+
+  private CommonBuildStatus buildCommonBuildStatus(StatusData buildData) {
+    Map<String, Object> attributes = new HashMap<>();
+    attributes.put(KEY_STATUS_FIELD, buildData.getKey());
+    attributes.put(BUILD_NUMBER_STATUS_FIELD, buildData.getBuildNumber());
+    attributes.put(BUILD_DURATION_STATUS_FIELD, buildData.getBuildDurationMs());
+    attributes.put(TEST_STATISTIC_STATUS_FIELD, buildData.getTestStatistics());
+    return new CommonBuildStatus(buildData.getName(), String.valueOf(buildData.getState()), buildData.getDescription(), buildData.getUrl(), attributes);
+  }
+
+  @Override
   public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) {
     BuildPromotion buildPromotion = removedBuild.getBuildPromotion();
     StatusRequestData data = new SBuildPromotionRequestData(buildPromotion, revision);
@@ -199,18 +231,31 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
                     @NotNull BuildRevision revision,
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) {
-    String vcsBranch = getVcsBranch(revision, LogUtil.describe(build));
-    SBuildData data = new SBuildData(build, revision, status, comment, vcsBranch);
-    getEndpoint().publishBuildStatus(data, LogUtil.describe(build));
+    String buildDescription = LogUtil.describe(build);
+    String vcsBranch = getVcsBranch(revision, buildDescription);
+    StatusData data = new StatusData(build, revision, status, comment, vcsBranch);
+    getEndpoint().publishBuildStatus(data, buildDescription);
   }
 
   private void vote(@NotNull BuildPromotion buildPromotion,
                     @NotNull BuildRevision revision,
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) {
-    String vcsBranch = getVcsBranch(revision, LogUtil.describe(buildPromotion));
-    SBuildPromotionData data = new SBuildPromotionData(buildPromotion, revision, status, comment, vcsBranch);
-    getEndpoint().publishBuildStatus(data, LogUtil.describe(buildPromotion));
+    String buildDescription = LogUtil.describe(buildPromotion);
+    String vcsBranch = getVcsBranch(revision, buildDescription);
+    StatusData data = new StatusData(buildPromotion, revision, status, comment, vcsBranch);
+    getEndpoint().publishBuildStatus(data, buildDescription);
+  }
+
+  private void vote(BuildRevision revision, CommonBuildStatus status) {
+    String buildDescription = status.toString();
+    String vcsBranch = getVcsBranch(revision, buildDescription);
+    StashBuildStatus buildStatus = StashBuildStatus.getByName(status.getState());
+    if (buildStatus == null) {
+      return;
+    }
+    StatusData data = new StatusData(revision, buildStatus, vcsBranch, status);
+    getEndpoint().publishBuildStatus(data, buildDescription);
   }
 
   @Nullable
@@ -290,6 +335,11 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     return myBitbucketEndpoint;
   }
 
+  @Override
+  protected CustomDataStorage getStatusHistoryDataStorage() {
+    return myDataStorageManager.getCustomDataStorage(getClass());
+  }
+
   private interface StatusRequestData {
     @NotNull String getCommit();
     @NotNull String getKey();
@@ -324,153 +374,126 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     }
   }
 
-  private interface StatusData extends StatusRequestData {
-    @NotNull StashBuildStatus getState();
-    @NotNull String getName();
-    @NotNull String getUrl();
-    @NotNull String getDescription();
-    @NotNull String getBuildNumber();
-    long getBuildDurationMs();
-    @Nullable String getVcsBranch();
+  private class StatusData implements StatusRequestData {
+    private final String key;
+    private final String name;
+    private final String url;
+    private final String buildNumber;
+    private final long buildDurationMs;
+    private final JsonStashBuildStatus.StashTestStatistics testStatistics;
+    private final String commit;
+    private final VcsRootInstance vcsRootInstance;
+    private final StashBuildStatus state;
+    private final String description;
+    private final String vcsBranch;
 
-    BuildStatistics getBuildStatistics();
-  }
+    StatusData(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull StashBuildStatus state, @NotNull String description, @Nullable String vcsBranch) {
+      this.state = state;
+      this.description = description;
+      this.vcsBranch = vcsBranch;
+      commit = revision.getRevision();
+      vcsRootInstance = revision.getRoot();
+      key = build.getBuildPromotion().getBuildTypeExternalId();
+      name = build.getFullName();
+      url = myLinks.getViewResultsUrl(build);
+      buildNumber = build.getBuildNumber();
+      buildDurationMs = build.getDuration() * 1000;
+      testStatistics = buildTestStatistics(build.getBuildStatistics(BuildStatisticsOptions.ALL_TESTS_NO_DETAILS));
+    }
 
-  private abstract class BaseBuildData implements StatusData {
-    private final BuildRevision myRevision;
-    private final StashBuildStatus myStatus;
-    private final String myDescription;
-    private final String myVcsBranch;
+    StatusData(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull StashBuildStatus state, @NotNull String description, @Nullable String vcsBranch) {
+      this.state = state;
+      this.description = description;
+      this.vcsBranch = vcsBranch;
+      commit = revision.getRevision();
+      vcsRootInstance = revision.getRoot();
+      buildNumber = "";
+      buildDurationMs = 0;
+      testStatistics = null;
+      key = buildPromotion.getBuildTypeExternalId();
+      SBuildType buildType = buildPromotion.getBuildType();
+      name = buildType != null ? buildType.getFullName() : buildPromotion.getBuildTypeExternalId();
+      url = getViewUrl(buildPromotion);
+    }
 
-    BaseBuildData(@NotNull BuildRevision revision, @NotNull StashBuildStatus status, @NotNull String description, @Nullable String vcsBranch) {
-      myRevision = revision;
-      myStatus = status;
-      myDescription = description;
-      myVcsBranch = vcsBranch;
+    StatusData(BuildRevision revision, StashBuildStatus buildStatus, String vcsBranch, CommonBuildStatus status) {
+      state = buildStatus;
+      description = status.getDescription();
+      this.vcsBranch = vcsBranch;
+      commit = revision.getRevision();
+      vcsRootInstance = revision.getRoot();
+      key = status.getAttribute(KEY_STATUS_FIELD);
+      name = status.getBuild();
+      url = status.getUrl();
+      buildNumber = status.getAttribute(BUILD_NUMBER_STATUS_FIELD);
+      buildDurationMs = status.getAttribute(BUILD_DURATION_STATUS_FIELD);
+      testStatistics = status.getAttribute(TEST_STATISTIC_STATUS_FIELD);
+    }
+
+    @NotNull
+    @Override
+    public String getKey() {
+      return key;
+    }
+
+    @NotNull
+    public String getName() {
+      return name;
+    }
+
+    @NotNull
+    public String getUrl() {
+      return url;
+    }
+
+    @NotNull
+    public String getBuildNumber() {
+      return buildNumber;
+    }
+    
+    public long getBuildDurationMs() {
+      return buildDurationMs;
+    }
+
+    @Nullable
+    public JsonStashBuildStatus.StashTestStatistics getTestStatistics() {
+      return testStatistics;
     }
 
     @NotNull
     @Override
     public String getCommit() {
-      return myRevision.getRevision();
+      return commit;
     }
 
     @NotNull
-    @Override
     public StashBuildStatus getState() {
-      return myStatus;
+      return state;
     }
 
     @NotNull
-    @Override
     public String getDescription() {
-      return myDescription;
+      return description;
     }
 
     @Nullable
     @Override
     public VcsRootInstance getVcsRootInstance() {
-      return myRevision.getRoot();
+      return vcsRootInstance;
     }
 
     @Nullable
-    @Override
     public String getVcsBranch() {
-      return myVcsBranch;
-    }
-  }
-
-  private class SBuildData extends BaseBuildData implements StatusData {
-
-    private final SBuild myBuild;
-    private final BuildStatistics myBuildStatistics;
-
-    SBuildData(@NotNull SBuild build, @NotNull BuildRevision revision, @NotNull StashBuildStatus status, @NotNull String description, @Nullable String vcsBranch) {
-      super(revision, status, description, vcsBranch);
-      myBuild = build;
-      myBuildStatistics = myBuild.getBuildStatistics(BuildStatisticsOptions.ALL_TESTS_NO_DETAILS);
+      return vcsBranch;
     }
 
-    @NotNull
-    @Override
-    public String getKey() {
-      return myBuild.getBuildPromotion().getBuildTypeExternalId();
-    }
+    private JsonStashBuildStatus.StashTestStatistics buildTestStatistics(@NotNull BuildStatistics stats) {
+      JsonStashBuildStatus.StashTestStatistics testResults = new JsonStashBuildStatus.StashTestStatistics();
 
-    @NotNull
-    @Override
-    public String getName() {
-      return myBuild.getFullName() + " #" + myBuild.getBuildNumber();
-    }
-
-    @NotNull
-    @Override
-    public String getUrl() {
-      return myLinks.getViewResultsUrl(myBuild);
-    }
-
-    @NotNull
-    @Override
-    public String getBuildNumber() {
-      return myBuild.getBuildNumber();
-    }
-
-    @Override
-    public long getBuildDurationMs() {
-      return myBuild.getDuration() * 1000;
-    }
-
-    @Override
-    public BuildStatistics getBuildStatistics() {
-      return myBuildStatistics;
-    }
-  }
-
-  private class SBuildPromotionData extends BaseBuildData implements StatusData {
-
-    private final BuildPromotion myBuildPromotion;
-
-    SBuildPromotionData(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull StashBuildStatus status, @NotNull String description, @Nullable String vcsBranch) {
-      super(revision, status, description, vcsBranch);
-      myBuildPromotion = buildPromotion;
-    }
-
-    @NotNull
-    @Override
-    public String getKey() {
-      return myBuildPromotion.getBuildTypeExternalId();
-    }
-
-    @NotNull
-    @Override
-    public String getName() {
-      return myBuildPromotion.getBuildType().getName();
-    }
-
-    @NotNull
-    @Override
-    public String getUrl() {
-      SQueuedBuild queuedBuild = myBuildPromotion.getQueuedBuild();
-      if (queuedBuild != null) {
-        return myLinks.getQueuedBuildUrl(queuedBuild);
-      }
-      return myLinks.getConfigurationHomePageUrl(myBuildPromotion.getBuildType());
-    }
-
-    @NotNull
-    @Override
-    public String getBuildNumber() {
-      return "";
-    }
-
-    @Override
-    public long getBuildDurationMs() {
-      return 0;
-    }
-
-    @Override
-    public BuildStatistics getBuildStatistics() {
-      return null;
+      testResults.failed = stats.getFailedTestCount();
+      testResults.skipped = stats.getMutedTestsCount() + stats.getIgnoredTestCount();
+      testResults.successful = stats.getPassedTestCount();
+      return testResults;
     }
   }
 
@@ -486,7 +509,9 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     public void publishBuildStatus(@NotNull StatusData data, @NotNull String buildDescription) {
       try {
         String url = getBuildEndpointUrl(data);
-        postJson(url, getUsername(), getPassword(), createBuildStatusMessage(data), null, buildDescription);
+        String statusMessage = createBuildStatusMessage(data);
+        postJson(url, getUsername(), getPassword(), statusMessage, null, buildDescription);
+        storeStatusInHistory(data.getName(), data.getCommit(), statusMessage);
       } catch (PublisherException ex) {
         myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
       }
@@ -641,17 +666,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     @NotNull
     @Override
     protected String createBuildStatusMessage(@NotNull final StatusData data) {
-      BuildStatistics stats = data.getBuildStatistics();
-      JsonStashBuildStatus.StashTestStatistics testResults;
-      if (stats != null) {
-        testResults = new JsonStashBuildStatus.StashTestStatistics();
-
-        testResults.failed = stats.getFailedTestCount();
-        testResults.skipped = stats.getMutedTestsCount() + stats.getIgnoredTestCount();
-        testResults.successful = stats.getPassedTestCount();
-      } else {
-        testResults = null;
-      }
+      JsonStashBuildStatus.StashTestStatistics testResults = data.getTestStatistics();
       JsonStashBuildStatus status = new JsonStashBuildStatus(data.getBuildNumber(), data.getDescription(), data.getKey(), data.getKey(), data.getName(), data.getVcsBranch(),
                                                              data.getUrl(), data.getState().name(), data.getBuildDurationMs(), testResults);
       return myGson.toJson(status);
@@ -698,5 +713,22 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   private static class PullRequestRef {
     private String id, displayId, latestCommit;
+  }
+
+  private class StashInformativeCommitStatusFilter extends InformativeCommitStatusFilter<StatusData> {
+
+    public StashInformativeCommitStatusFilter(Set<String> possibleBuildUrls) {
+      super(possibleBuildUrls);
+    }
+
+    @Override
+    protected String getUrl(StatusData status) {
+      return status.getUrl();
+    }
+
+    @Override
+    protected String getDescription(StatusData status) {
+      return status.getDescription();
+    }
   }
 }

@@ -17,8 +17,10 @@
 package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
 import com.google.gson.*;
-import java.util.*;
-import java.util.function.Predicate;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudCommitBuildStatus;
 import jetbrains.buildServer.serverSide.*;
@@ -152,7 +154,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
                                                                                       str -> myGson.fromJson(str, BitbucketCloudCommitBuildStatus.class), new BitbucketCloudInformativeCommitStatusFilter(possibleViewUrls));
     if (buildStatus.isPresent()) {
       BitbucketCloudCommitBuildStatus bitbucketCloudCommitBuildStatus = buildStatus.get();
-      Map<String, String> attributes = new HashMap<>();
+      Map<String, Object> attributes = new HashMap<>();
       attributes.put("key", bitbucketCloudCommitBuildStatus.key);
       return new CommonBuildStatus(bitbucketCloudCommitBuildStatus.name, bitbucketCloudCommitBuildStatus.state, bitbucketCloudCommitBuildStatus.description, bitbucketCloudCommitBuildStatus.url, attributes);
     }
@@ -238,19 +240,6 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
     }
     vote(revision.getRevision(), buildStatus, repository, LogUtil.describe(buildPromotion));
     return true;
-  }
-
-  private String getViewUrl(@NotNull BuildPromotion buildPromotion) {
-    SBuild build = buildPromotion.getAssociatedBuild();
-    if (build != null) {
-      return myLinks.getViewResultsUrl(build);
-    }
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      return myLinks.getQueuedBuildUrl(queuedBuild);
-    }
-    return buildPromotion.getBuildType() != null ? myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-                                                   myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
   }
 
   @NotNull
