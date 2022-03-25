@@ -39,15 +39,18 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
 
   private final SpaceConnectDescriber mySpaceConnector;
   private final Gson myGson = new Gson();
+  private final CustomDataStorageManager myDataStorageManager;
 
   SpacePublisher(@NotNull CommitStatusPublisherSettings settings,
                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                  @NotNull WebLinks links,
                  @NotNull Map<String, String> params,
                  @NotNull CommitStatusPublisherProblems problems,
-                 @NotNull SpaceConnectDescriber spaceConnector) {
+                 @NotNull SpaceConnectDescriber spaceConnector,
+                 @NotNull CustomDataStorageManager dataStorageManager) {
     super(settings, buildType, buildFeatureId, params, problems, links);
     mySpaceConnector = spaceConnector;
+    myDataStorageManager = dataStorageManager;
   }
 
   @NotNull
@@ -110,6 +113,46 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
     publish(build, revision, buildInProgress ? SpaceBuildStatus.RUNNING : SpaceBuildStatus.SUCCEEDED, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL);
     return true;
+  }
+
+  @Override
+  public boolean publish(BuildRevision revision, CommonBuildStatus status) throws PublisherException {
+    List<String> changes = status.getAttribute(SpaceSettings.CHANGES_FIELD);
+    Long timestamp = status.getAttribute(SpaceSettings.TIMESTAMP_FIELD);
+    SpaceBuildStatusInfo statusInfo = new SpaceBuildStatusInfo(changes, status.getState(), status.getDescription(), timestamp,
+                                                               status.getAttribute(SpaceSettings.TASK_ID_FIELD), status.getBuild(), status.getUrl(),
+                                                               status.getAttribute(SpaceSettings.EXTERNAL_SERVICE_NAME_FIELD));
+    publish(revision, statusInfo, "Build: " + status.getBuild());
+    return true;
+  }
+
+  @Override
+  public CommonBuildStatus getLatestInformativeBuildStatusForPromotion(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) {
+    Optional<SpaceBuildStatusInfo> status = getBuildStatusFromStorage(buildPromotion.getBuildType().getFullName(), revision,
+                                                                      str -> myGson.fromJson(str, SpaceBuildStatusInfo.class),
+                                                                      new SpaceInformativeCommitStatusFilter(buildPromotion));
+    if (status.isPresent()) {
+      SpaceBuildStatusInfo spaceStatus = status.get();
+      return convertToCommonStatus(spaceStatus);
+    }
+    return null;
+  }
+
+  private CommonBuildStatus convertToCommonStatus(SpaceBuildStatusInfo spaceStatus) {
+    Map<String, Object> attributes = new HashMap<>();
+    if (spaceStatus.changes != null) {
+      attributes.put(SpaceSettings.CHANGES_FIELD, spaceStatus.changes);
+    }
+    if (spaceStatus.timestamp != null) {
+      attributes.put(SpaceSettings.TIMESTAMP_FIELD, spaceStatus.timestamp);
+    }
+    if (spaceStatus.taskId != null) {
+      attributes.put(SpaceSettings.TASK_ID_FIELD, spaceStatus.taskId);
+    }
+    if (spaceStatus.externalServiceName != null) {
+      attributes.put(SpaceSettings.EXTERNAL_SERVICE_NAME_FIELD, spaceStatus.externalServiceName);
+    }
+    return new CommonBuildStatus(spaceStatus.taskName, spaceStatus.executionStatus, spaceStatus.description, spaceStatus.url, attributes);
   }
 
   @Override
@@ -201,23 +244,21 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
       .collect(Collectors.toList());
     String viewUrl = getViewUrl(buildPromotion);
     Date timestamp = buildPromotion.getServerStartDate() != null ? buildPromotion.getServerStartDate() : buildPromotion.getQueuedDate();
-    final String payload = createPayload(
-      changes,
-      status,
-      viewUrl,
-      SpaceSettings.getDisplayName(myParams),
-      buildPromotion.getBuildType() != null ? buildPromotion.getBuildType().getFullName() : UNKNOWN_BUILD_CONFIGURATION,
-      buildPromotion.getBuildTypeExternalId(),
-      (timestamp == null ? new Date() : timestamp).getTime(),
-      additionalTaskInfo.compileQueueRelatedMessage()
-    );
+    SpaceBuildStatusInfo statusInfo = new SpaceBuildStatusInfo(changes, status.getName(), additionalTaskInfo.compileQueueRelatedMessage(),
+                                                               (timestamp == null ? new Date() : timestamp).getTime(), buildPromotion.getBuildTypeExternalId(),
+                                                               buildPromotion.getBuildType() != null ? buildPromotion.getBuildType().getFullName() : UNKNOWN_BUILD_CONFIGURATION,
+                                                               viewUrl, SpaceSettings.getDisplayName(myParams));
 
-    String description = LogUtil.describe(buildPromotion);
-    final SpaceToken token = requestToken(revision.getRoot().getName(), description);
+    return publish(revision, statusInfo, LogUtil.describe(buildPromotion));
+  }
+
+  private boolean publish(@NotNull BuildRevision revision, @NotNull SpaceBuildStatusInfo statusInfo, @NotNull String buildDescription) throws PublisherException {
+    final SpaceToken token = requestToken(revision.getRoot().getName(), buildDescription);
     if (token == null) {
       return false;
     }
 
+    final String payload = myGson.toJson(statusInfo);
     final Repository repoInfo = SpaceUtils.getRepositoryInfo(revision.getRoot(), myParams.get(Constants.SPACE_PROJECT_KEY));
 
     final String requestUrl = SpaceApiUrls.commitStatusUrl(
@@ -231,7 +272,8 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
     headers.put(HttpHeaders.ACCEPT, ContentType.TEXT_PLAIN.getMimeType());
     token.toHeader(headers);
 
-    postJson(requestUrl, null, null, payload, headers, description);
+    postJson(requestUrl, null, null, payload, headers, buildDescription);
+    storeStatusInHistory(statusInfo.taskName, revision.getRevision(), payload);
     return true;
   }
 
@@ -245,38 +287,11 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
       .limit(200)
       .map(VcsModification::getVersion)
       .collect(Collectors.toList());
-
-    String payload = createPayload(
-      changes,
-      status,
-      myLinks.getViewResultsUrl(build),
-      SpaceSettings.getDisplayName(myParams),
-      build.getFullName(),
-      build.getBuildTypeExternalId(),
-      (finishDate == null ? build.getServerStartDate() : finishDate).getTime(),
-      description
-    );
-
     String buildDescription = LogUtil.describe(build);
-    SpaceToken token = requestToken(revision.getRoot().getName(), buildDescription);
-    if (token == null) {
-      return;
-    }
-
-    Repository repoInfo= SpaceUtils.getRepositoryInfo(revision.getRoot(), myParams.get(Constants.SPACE_PROJECT_KEY));
-
-    String url = SpaceApiUrls.commitStatusUrl(
-      mySpaceConnector.getFullAddress(),
-      repoInfo.owner(),
-      repoInfo.repositoryName(),
-      revision.getRevision()
-    );
-
-    Map<String, String> headers = new LinkedHashMap<>();
-    headers.put(HttpHeaders.ACCEPT, ContentType.TEXT_PLAIN.getMimeType());
-    token.toHeader(headers);
-
-    postJson(url, null, null, payload, headers, buildDescription);
+    SpaceBuildStatusInfo statusInfo = new SpaceBuildStatusInfo(changes, status.getName(), description, (finishDate == null ? build.getServerStartDate() : finishDate).getTime(),
+                                                               build.getBuildTypeExternalId(), build.getFullName(), myLinks.getViewResultsUrl(build),
+                                                               SpaceSettings.getDisplayName(myParams));
+    publish(revision, statusInfo, buildDescription);
   }
 
   @Nullable
@@ -297,31 +312,6 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
     }
   }
 
-  @NotNull
-  private String createPayload(@NotNull List<String> changes,
-                               @NotNull SpaceBuildStatus executionStatus,
-                               @NotNull String url,
-                               @NotNull String externalServiceName,
-                               @NotNull String taskName,
-                               @NotNull String taskId,
-                               Long timestamp,
-                               String description) {
-    Map<String, Object> data = new HashMap<>();
-    data.put(SpaceSettings.CHANGES_FIELD, changes);
-    data.put(SpaceSettings.EXECUTION_STATUS_FIELD, executionStatus.getName());
-    data.put(SpaceSettings.BUILD_URL_FIELD, url);
-    data.put(SpaceSettings.EXTERNAL_SERVICE_NAME_FIELD, externalServiceName);
-    data.put(SpaceSettings.TASK_NAME_FIELD, taskName);
-    data.put(SpaceSettings.TASK_ID_FIELD, taskId);
-
-    if (timestamp != null)
-      data.put(SpaceSettings.TIMESTAMP_FIELD, timestamp);
-    if (description != null)
-      data.put(SpaceSettings.DESCRIPTION_FIELD, description);
-
-    return myGson.toJson(data);
-  }
-
   @Override
   public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException {
     int statusCode = response.getStatusCode();
@@ -329,6 +319,28 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
 
     if (statusCode >= 400) {
       throw new HttpPublisherException(statusCode, response.getStatusText(), "HTTP response error: " + (responseContent != null ? responseContent : "<empty>"));
+    }
+  }
+
+  @Override
+  protected CustomDataStorage getStatusHistoryDataStorage() {
+    return myDataStorageManager.getCustomDataStorage(getClass());
+  }
+
+  private class SpaceInformativeCommitStatusFilter extends InformativeCommitStatusFilter<SpaceBuildStatusInfo> {
+
+    public SpaceInformativeCommitStatusFilter(BuildPromotion buildPromotion) {
+      super(getPossibleViewUrls(buildPromotion));
+    }
+
+    @Override
+    protected String getUrl(SpaceBuildStatusInfo status) {
+      return status.url;
+    }
+
+    @Override
+    protected String getDescription(SpaceBuildStatusInfo status) {
+      return status.description;
     }
   }
 }

@@ -523,23 +523,6 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
   }
 
-  public void should_not_publish_queued_after_consiquent_event() {
-    prepareVcs();
-    myBuildType.addToQueue("");
-    waitForTasksToFinish(Event.QUEUED);
-    RunningBuildEx runningBuild = myFixture.flushQueueAndWait();
-    waitForTasksToFinish(Event.STARTED);
-    myFixture.finishBuild(runningBuild, false);
-    waitForTasksToFinish(Event.FINISHED);
-    assertTrue(myBuildType.getQueuedBuilds().isEmpty());
-
-    myBuildType.addToQueue("");
-    assertEquals(1, myBuildType.getQueuedBuilds().size());
-    runningBuild.setBuildComment(myUser , "My test comment"); // to check, that one more Event.QUEUED was not published
-    waitForTasksToFinish(Event.COMMENTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED, Event.COMMENTED));
-  }
-
   public void should_not_publish_removed_from_queue_after_build_was_strted() {
     prepareVcs();
     build().in(myBuildType).parameter("mock", "val").addToQueue();

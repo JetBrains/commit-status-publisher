@@ -52,6 +52,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
 
   private final OAuthConnectionsManager myOAuthConnectionManager;
   private final OAuthTokensStorage myOAuthTokensStorage;
+  private final CustomDataStorageManager myCustomDataStorageManager;
 
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     add(Event.STARTED);
@@ -72,10 +73,12 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
                        @NotNull CommitStatusPublisherProblems problems,
                        @NotNull SSLTrustStoreProvider trustStoreProvider,
                        @NotNull OAuthConnectionsManager oAuthConnectionsManager,
-                       @NotNull OAuthTokensStorage oauthTokensStorage) {
+                       @NotNull OAuthTokensStorage oauthTokensStorage,
+                       @NotNull CustomDataStorageManager customDataStorageManager) {
     super(descriptor, links, problems, trustStoreProvider);
     myOAuthConnectionManager = oAuthConnectionsManager;
     myOAuthTokensStorage = oauthTokensStorage;
+    myCustomDataStorageManager = customDataStorageManager;
   }
 
   @NotNull
@@ -100,7 +103,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   @Override
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
     SpaceConnectDescriber connector = SpaceUtils.getConnectionData(params, myOAuthConnectionManager, buildType.getProject());
-    return new SpacePublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, connector);
+    return new SpacePublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, connector, myCustomDataStorageManager);
   }
 
   @NotNull
