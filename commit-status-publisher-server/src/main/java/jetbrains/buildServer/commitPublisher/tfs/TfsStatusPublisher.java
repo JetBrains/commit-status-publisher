@@ -590,19 +590,6 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     return new CommitStatus(targetStatus, additionalTaskInfo.compileQueueRelatedMessage(), getViewUrl(buildPromotion), context);
   }
 
-  private String getViewUrl(BuildPromotion buildPromotion) {
-    SBuild build = buildPromotion.getAssociatedBuild();
-    if (build != null) {
-      return myLinks.getViewResultsUrl(build);
-    }
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      return myLinks.getQueuedBuildUrl(queuedBuild);
-    }
-    return buildPromotion.getBuildType() != null ? myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-                                                   myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
-  }
-
   @NotNull
   private CommitStatus getCommitStatus(final SBuild build, final boolean isStarting) {
     StatusContext context = new StatusContext();

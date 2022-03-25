@@ -167,6 +167,10 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
 
   protected <T> Optional<T> getBuildStatusFromStorage(@NotNull String buildName, @NotNull BuildRevision revision, @NotNull Function<String, T> unmarshaller, Predicate<T> predicate) {
     CustomDataStorage storage = getStatusHistoryDataStorage();
+    if (storage == null) {
+      LOG.debug(String.format("No storage is provided for publisher %s. Status won't be saved locally", getClass().getSimpleName()));
+      return Optional.empty();
+    }
     Map<String, String> statuses = storage.getValues();
     if (statuses == null) {
       LOG.debug("No previously published statuses is stored in storage. Can not find informative status");
@@ -209,21 +213,17 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     return result;
   }
 
-  @Nullable
-  protected String buildQueuedUrlForCurrentUrl(@NotNull String url) {
-    int endOfBaseUrl = url.indexOf("viewLog.html?");
-    if (endOfBaseUrl < 0) {
-      return null;
+  protected String getViewUrl(@NotNull BuildPromotion buildPromotion) {
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build != null) {
+      return myLinks.getViewResultsUrl(build);
     }
-    final String baseUrl = url.substring(0, endOfBaseUrl - 1);
-    int buildIdStart = url.indexOf("buildId=");
-    if (buildIdStart < 0) {
-      return null;
+    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    if (queuedBuild != null) {
+      return myLinks.getQueuedBuildUrl(queuedBuild);
     }
-    buildIdStart+="buildId=".length();
-    int buildIdEnd = url.indexOf('&', buildIdStart);
-    final String buildId = url.substring(buildIdStart, buildIdEnd < 0 ? url.length() : buildIdEnd);
-    return baseUrl + "/viewQueued.html?itemId=" +  buildId;
+    return buildPromotion.getBuildType() != null ? myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
+           myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
   }
 
   protected String getStorageKeyPrefix(@NotNull String buildName, @NotNull String revision) {

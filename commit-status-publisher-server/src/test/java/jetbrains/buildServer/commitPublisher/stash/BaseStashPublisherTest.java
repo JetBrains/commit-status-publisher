@@ -42,8 +42,8 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
   protected void setUp() throws Exception {
     super.setUp();
     Map<String, String> params = getPublisherParams();
-    myPublisherSettings = new StashSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
-    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisherSettings = new StashSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myCustomDataStorageManager);
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, myCustomDataStorageManager);
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }
 
@@ -59,7 +59,7 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, myCustomDataStorageManager);
     test_buildFinished_Successfully();
   }
 
@@ -70,7 +70,7 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, myCustomDataStorageManager);
     test_buildFinished_Successfully();
   }
 

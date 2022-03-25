@@ -251,21 +251,6 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   @NotNull
-  private String getViewUrl(BuildPromotion buildPromotion) {
-    SBuild associatedBuild = buildPromotion.getAssociatedBuild();
-    if (associatedBuild != null) {
-      return myLinks.getViewResultsUrl(associatedBuild);
-    }
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      return myLinks.getQueuedBuildUrl(queuedBuild);
-    }
-    return buildPromotion.getBuildType() != null ?
-           myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-           myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
-  }
-
-  @NotNull
   private Map<String, String> getParams(@NotNull BuildPromotion buildPromotion) {
     String context = getBuildContext(buildPromotion);
     Map<String, String> result = new HashMap<String, String>(myParams);

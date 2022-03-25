@@ -235,20 +235,6 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
     return true;
   }
 
-  private String getViewUrl(BuildPromotion buildPromotion) {
-    SBuild associatedBuild = buildPromotion.getAssociatedBuild();
-    if (associatedBuild != null) {
-      return myLinks.getViewResultsUrl(associatedBuild);
-    }
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      return myLinks.getQueuedBuildUrl(queuedBuild);
-    }
-    return buildPromotion.getBuildType() != null ?
-           myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-           myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
-  }
-
   private void publish(@NotNull SBuild build,
                        @NotNull BuildRevision revision,
                        @NotNull SpaceBuildStatus status,

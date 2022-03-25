@@ -161,19 +161,6 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     return new RevisionStatus(event, isSameBuild);
   }
 
-  private String getViewUrl(BuildPromotion buildPromotion) {
-    SBuild build = buildPromotion.getAssociatedBuild();
-    if (build != null) {
-      return myLinks.getViewResultsUrl(build);
-    }
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      return myLinks.getQueuedBuildUrl(queuedBuild);
-    }
-    return buildPromotion.getBuildType() != null ? myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-                                                   myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
-  }
-
   private Event getTriggeredEvent(JsonStashBuildStatus buildStatus) {
     if (buildStatus.state == null) {
       LOG.warn("No Bitbucket build status is provided. Related event can not be defined");

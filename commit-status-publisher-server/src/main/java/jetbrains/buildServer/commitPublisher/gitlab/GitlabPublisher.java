@@ -299,19 +299,6 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     storeStatusInHistory(buildName, revision.getRevision(), message);
   }
 
-  private String getViewUrl(BuildPromotion buildPromotion) {
-    SBuild build = buildPromotion.getAssociatedBuild();
-    if (build != null) {
-      return myLinks.getViewResultsUrl(build);
-    }
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      return myLinks.getQueuedBuildUrl(queuedBuild);
-    }
-    return buildPromotion.getBuildType() != null ? myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-                                                   myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
-  }
-
   private void publish(@NotNull String message,
                        @NotNull BuildRevision revision,
                        @NotNull String buildDescription) throws PublisherException {
