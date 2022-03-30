@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class AdditionalTaskInfo {
-  protected String myComment;
+  protected final String myComment;
   protected final User myCommentAuthor;
   protected final BuildPromotion myReplacingPromotion;
 
@@ -45,13 +45,5 @@ public abstract class AdditionalTaskInfo {
 
   public boolean isPromotionReplaced() {
     return myReplacingPromotion != null;
-  }
-
-  public void appendCommentTo(String substring) {
-    if (myComment == null) {
-      myComment = substring;
-    } else {
-      myComment = substring + myComment;
-    }
   }
 }

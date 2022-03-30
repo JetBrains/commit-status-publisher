@@ -68,7 +68,6 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion,
                              @NotNull BuildRevision revision,
                              @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    additionalTaskInfo.appendCommentTo(DefaultStatusMessages.BUILD_QUEUED);
     return publishQueued(buildPromotion, revision, SpaceBuildStatus.SCHEDULED, additionalTaskInfo);
   }
 
