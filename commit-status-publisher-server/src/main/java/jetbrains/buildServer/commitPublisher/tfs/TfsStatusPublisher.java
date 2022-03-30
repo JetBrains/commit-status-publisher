@@ -552,17 +552,6 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     publishPullRequestStatus(info, revision, data, commitId, description);
   }
 
-  @NotNull
-  private CommitStatus getCommitStatus(@NotNull BuildPromotion buildPromotion, @NotNull AdditionalTaskInfo additionalTaskInfo) {
-    final StatusContext context = new StatusContext();
-    context.name = buildPromotion.getBuildTypeExternalId();
-    context.genre = "TeamCity";
-
-    String targetStatus = (additionalTaskInfo.isPromotionReplaced() || !buildPromotion.isCanceled()) ?
-                          StatusState.Pending.getName() : StatusState.Error.getName();
-    return new CommitStatus(targetStatus, additionalTaskInfo.compileQueueRelatedMessage(), getViewUrl(buildPromotion), context);
-  }
-
   private String getViewUrl(BuildPromotion buildPromotion) {
     SBuild build = buildPromotion.getAssociatedBuild();
     if (build != null) {
@@ -582,21 +571,35 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     context.name = build.getBuildTypeExternalId();
     context.genre = "TeamCity";
 
-    StatusState state = getState(isStarting, build.getBuildStatus());
+    BuildPromotion buildPromotion = build.getBuildPromotion();
+    boolean isCanceled = buildPromotion.isCanceled();
+    StatusState state = getState(isStarting, isCanceled, build.getBuildStatus());
     String description = String.format("The build %s %s %s %s",
                                        build.getFullName(), build.getBuildNumber(),
-                                       isStarting ? "is" : "has", state.toString().toLowerCase());
+                                       (isStarting || isCanceled) ? "is" : "has", isCanceled ? "canceled" : state.toString().toLowerCase());
     return new CommitStatus(state.getName(), description, myLinks.getViewResultsUrl(build), context);
   }
 
-  private static StatusState getState(boolean isStarting, Status status) {
+  private static StatusState getState(boolean isStarting, boolean isCanceled, Status status) {
     if (!isStarting) {
       if (status.isSuccessful()) return StatusState.Succeeded;
       else if (status == Status.ERROR) return StatusState.Error;
       else if (status == Status.FAILURE) return StatusState.Failed;
+      else if (isCanceled) return StatusState.Error;
     }
 
     return StatusState.Pending;
+  }
+
+  @NotNull
+  private CommitStatus getCommitStatus(@NotNull BuildPromotion buildPromotion, @NotNull AdditionalTaskInfo additionalTaskInfo) {
+    final StatusContext context = new StatusContext();
+    context.name = buildPromotion.getBuildTypeExternalId();
+    context.genre = "TeamCity";
+
+    String targetStatus = (additionalTaskInfo.isPromotionReplaced() || !buildPromotion.isCanceled()) ?
+                          StatusState.Pending.getName() : StatusState.Error.getName();
+    return new CommitStatus(targetStatus, additionalTaskInfo.compileQueueRelatedMessage(), getViewUrl(buildPromotion), context);
   }
 
   @Nullable
