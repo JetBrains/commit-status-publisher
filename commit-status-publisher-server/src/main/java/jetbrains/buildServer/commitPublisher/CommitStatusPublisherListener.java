@@ -543,6 +543,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         if (!publisher.isAvailable(buildPromotion))
           return;
         try {
+          boolean isReplacedStatusPublished = publishReplacingStatus(publisher, revision, additionalTaskInfo);
+          if (isReplacedStatusPublished) {
+            return;
+          }
           if (isCurrentRevisionSuitableForRemovedBuild(event, queuedBuild, revision, publisher)) {
             publisher.buildRemovedFromQueue(buildPromotion, revision, additionalTaskInfo);
           }
@@ -557,6 +561,25 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       }
     };
     proccessPublishing(Event.REMOVED_FROM_QUEUE, buildPromotion, publishingProcessor);
+  }
+
+  private boolean publishReplacingStatus(CommitStatusPublisher publisher, BuildRevision revision, AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+    BuildPromotion replacingPromotion = additionalTaskInfo.getReplacingPromotion();
+    if (replacingPromotion == null) {
+      return false;
+    }
+    SQueuedBuild replacingQueuedBuild = replacingPromotion.getQueuedBuild();
+    if (replacingQueuedBuild != null) {
+      return publisher.buildQueued(replacingPromotion, revision, new AdditionalQueuedInfo(DefaultStatusMessages.BUILD_QUEUED, additionalTaskInfo.getCommentAuthor()));
+    }
+    SBuild replacingBuild = replacingPromotion.getAssociatedBuild();
+    if (replacingBuild == null) {
+      return false;
+    }
+    if (replacingBuild.isFinished()) {
+      return publisher.buildFinished(replacingBuild, revision);
+    }
+    return publisher.buildStarted(replacingBuild, revision);
   }
 
   private void proccessPublishing(Event event, BuildPromotion buildPromotion, PublishingProcessor publishingProcessor) {
