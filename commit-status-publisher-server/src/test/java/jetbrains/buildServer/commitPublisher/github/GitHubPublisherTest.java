@@ -30,7 +30,6 @@ import jetbrains.buildServer.commitPublisher.github.api.impl.data.Permissions;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.RepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.impl.DummyBuildPromotion;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -53,8 +52,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
 
   public GitHubPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*description\":\"%s\".*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
-    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*error.*build removed.*by %s: %s.*", REVISION, USER.toLowerCase(), COMMENT));
-    myExpectedRegExps.put(EventToTest.MERGED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*build removed.*by %s: %s.*Link leads to the actual build.*", REVISION, USER.toLowerCase(), COMMENT));
+    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*error.*%s\".*", REVISION, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE));
     myExpectedRegExps.put(EventToTest.STARTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_STARTED));
     myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*success.*%s.*", REVISION, DefaultStatusMessages.BUILD_FINISHED));
     myExpectedRegExps.put(EventToTest.FAILED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*%s.*", REVISION, DefaultStatusMessages.BUILD_FAILED));
@@ -116,13 +114,6 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     } catch (PublisherException ex) {
       then(ex.getMessage()).matches("Cannot parse.*" + myVcsRoot.getName() + ".*");
     }
-  }
-
-  public void test_buildRemovedFromQueue_because_of_merge() throws Exception {
-    SQueuedBuild build = addBuildToQueue();
-    DummyBuildPromotion replacingPromotion = myFixture.getBuildPromotionManager().createDummyPromotion("branch_name", myBuildType);
-    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalRemovedFromQueueInfo(COMMENT, myUser, replacingPromotion));
-    then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.MERGED));
   }
 
   public void shoudld_calculate_correct_revision_status() {

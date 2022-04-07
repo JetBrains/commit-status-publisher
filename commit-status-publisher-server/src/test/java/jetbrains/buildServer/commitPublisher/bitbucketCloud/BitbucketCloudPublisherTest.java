@@ -46,8 +46,7 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
 
   public BitbucketCloudPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*INPROGRESS.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
-    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*STOPPED.*%s by %s.*%s.*", REVISION, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, USER.toLowerCase(), COMMENT));
-    myExpectedRegExps.put(EventToTest.MERGED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*INPROGRESS.*%s by %s.*%s.*Link leads to the actual build.*", REVISION, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, USER.toLowerCase(), COMMENT));
+    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*STOPPED.*%s\".*", REVISION, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE));
     myExpectedRegExps.put(EventToTest.STARTED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*INPROGRESS.*%s.*", REVISION, DefaultStatusMessages.BUILD_STARTED));
     myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*SUCCESSFUL.*Success.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*FAILED.*Failure.*", REVISION));

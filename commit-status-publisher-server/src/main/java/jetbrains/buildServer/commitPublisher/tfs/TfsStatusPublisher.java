@@ -599,7 +599,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
     String targetStatus = (additionalTaskInfo.isPromotionReplaced() || !buildPromotion.isCanceled()) ?
                           StatusState.Pending.getName() : StatusState.Error.getName();
-    return new CommitStatus(targetStatus, additionalTaskInfo.compileQueueRelatedMessage(), getViewUrl(buildPromotion), context);
+    return new CommitStatus(targetStatus, additionalTaskInfo.getComment(), getViewUrl(buildPromotion), context);
   }
 
   @Nullable

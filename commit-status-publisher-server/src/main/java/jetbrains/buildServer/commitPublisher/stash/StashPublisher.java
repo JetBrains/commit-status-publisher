@@ -70,14 +70,14 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) {
-    vote(buildPromotion, revision, StashBuildStatus.INPROGRESS, additionalTaskInfo.compileQueueRelatedMessage());
+    vote(buildPromotion, revision, StashBuildStatus.INPROGRESS, additionalTaskInfo.getComment());
     return true;
   }
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) {
     StashBuildStatus targetStatus = additionalTaskInfo.isPromotionReplaced() ? StashBuildStatus.INPROGRESS : StashBuildStatus.FAILED;
-    vote(buildPromotion, revision, targetStatus, additionalTaskInfo.compileQueueRelatedMessage());
+    vote(buildPromotion, revision, targetStatus, additionalTaskInfo.getComment());
     return true;
   }
 

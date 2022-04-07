@@ -145,7 +145,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   public void test_buildQueued() throws Exception {
     if (isSkipEvent(EventToTest.QUEUED)) return;
     SQueuedBuild build = addBuildToQueue();
-    myPublisher.buildQueued(build.getBuildPromotion(), myRevision, new AdditionalQueuedInfo(DefaultStatusMessages.BUILD_QUEUED, null));
+    myPublisher.buildQueued(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(DefaultStatusMessages.BUILD_QUEUED, null));
     checkRequestMatch(".*removed.*", EventToTest.QUEUED);
   }
 
@@ -153,7 +153,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     if (isSkipEvent(EventToTest.REMOVED)) return;
     SQueuedBuild build = addBuildToQueue();
     build.removeFromQueue(myUser, null);
-    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalRemovedFromQueueInfo(COMMENT, myUser, null));
+    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, myUser, null));
     then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.REMOVED));
   }
 

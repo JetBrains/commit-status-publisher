@@ -212,7 +212,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
                        @NotNull GitlabBuildStatus status,
                        @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     String url = getViewUrl(buildPromotion);
-    String description = additionalTaskInfo.compileQueueRelatedMessage();
+    String description = additionalTaskInfo.getComment();
     String message = createMessage(status, buildPromotion.getBuildType().getName(), revision, url, description);
     publish(message, revision, LogUtil.describe(buildPromotion));
   }

@@ -3,6 +3,7 @@ package jetbrains.buildServer.commitPublisher.perforce;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
+import jetbrains.buildServer.commitPublisher.AdditionalTaskInfo;
 import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.PublisherException;
@@ -108,6 +109,14 @@ public class SwarmPublisherTest extends HttpPublisherTest {
       // success
       then(ex).hasMessageContaining("lack admin permissions");
     }
+  }
+
+  @Override
+  public void test_buildRemovedFromQueue() throws Exception {
+    SQueuedBuild build = addBuildToQueue();
+    build.removeFromQueue(myUser, null);
+    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(COMMENT, myUser, null));
+    then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.REMOVED));
   }
 
   @Override

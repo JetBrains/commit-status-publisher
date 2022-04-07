@@ -59,7 +59,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion,
                              @NotNull BuildRevision revision,
                              @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    return vote(buildPromotion, revision, BitbucketCloudBuildStatus.INPROGRESS, additionalTaskInfo.compileQueueRelatedMessage());
+    return vote(buildPromotion, revision, BitbucketCloudBuildStatus.INPROGRESS, additionalTaskInfo.getComment());
   }
 
   @Override
@@ -67,7 +67,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
                                        @NotNull BuildRevision revision,
                                        @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     BitbucketCloudBuildStatus targetStatus = additionalTaskInfo.isPromotionReplaced() ? BitbucketCloudBuildStatus.INPROGRESS : BitbucketCloudBuildStatus.STOPPED;
-    return vote(buildPromotion, revision, targetStatus, additionalTaskInfo.compileQueueRelatedMessage());
+    return vote(buildPromotion, revision, targetStatus, additionalTaskInfo.getComment());
   }
 
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {

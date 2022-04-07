@@ -325,7 +325,7 @@ public class ChangeStatusUpdater {
         return false;
       }
 
-      String compiledMessage = additionalTaskInfo.compileQueueRelatedMessage();
+      String compiledMessage = additionalTaskInfo.getComment();
       boolean prMergeBranch = !hash.equals(version.getVersion());
       try {
         myApi.setChangeStatus(

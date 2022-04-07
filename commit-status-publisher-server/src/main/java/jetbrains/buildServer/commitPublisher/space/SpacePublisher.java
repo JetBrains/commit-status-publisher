@@ -210,7 +210,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
       buildPromotion.getBuildType() != null ? buildPromotion.getBuildType().getFullName() : UNKNOWN_BUILD_CONFIGURATION,
       buildPromotion.getBuildTypeExternalId(),
       (timestamp == null ? new Date() : timestamp).getTime(),
-      additionalTaskInfo.compileQueueRelatedMessage()
+      additionalTaskInfo.getComment()
     );
 
     String description = LogUtil.describe(buildPromotion);

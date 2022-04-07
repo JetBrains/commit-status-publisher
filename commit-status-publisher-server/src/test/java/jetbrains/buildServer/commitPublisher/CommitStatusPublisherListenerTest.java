@@ -454,24 +454,24 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForAssert(() -> myProblemNotificationEngine.getProblems(myBuildType).isEmpty(), TASK_COMPLETION_TIMEOUT_MS);
   }
 
-  public void should_pass_through_comment_and_user() {
+  public void should_not_pass_through_comment_and_user() {
     prepareVcs();
     SQueuedBuild myBuild = myBuildType.addToQueue(myUser.getUsername());
     waitForTasksToFinish(Event.QUEUED);
     final String removeFromQueueComment = "Test comment for remove from queue";
     myBuild.removeFromQueue(myUser, removeFromQueueComment);
-    final String expectedComment = String.format("TeamCity build removed from queue by %s: %s", myUser.getUsername(), removeFromQueueComment);
+    final String expectedComment = DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE;
     waitForAssert(() -> expectedComment.equals(myPublisher.getLastComment()), TASK_COMPLETION_TIMEOUT_MS);
     then(myPublisher.getLastUser()).isEqualTo(myUser);
   }
 
-  public void should_pass_through_user_comment_on_build_delete_from_queue() {
+  public void should_not_pass_through_user_comment_on_build_delete_from_queue() {
     prepareVcs();
     SQueuedBuild queuedBuild = myBuildType.addToQueue("");
     waitForTasksToFinish(Event.QUEUED);
     final String comment = "Comment, received from AJAX query";
     myFixture.getBuildQueue().removeQueuedBuilds(Collections.singleton(queuedBuild), myUser, comment);
-    final String expectedComment = String.format("TeamCity build removed from queue by %s: %s", myUser.getUsername(), comment);
+    final String expectedComment = DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE;
     waitForAssert(() -> expectedComment.equals(myPublisher.getLastComment()), TASK_COMPLETION_TIMEOUT_MS);
     then(myPublisher.getLastUser()).isEqualTo(myUser);
   }

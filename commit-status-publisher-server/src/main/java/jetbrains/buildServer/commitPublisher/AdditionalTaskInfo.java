@@ -5,10 +5,14 @@ import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class AdditionalTaskInfo {
+public class AdditionalTaskInfo {
   protected final String myComment;
   protected final User myCommentAuthor;
   protected final BuildPromotion myReplacingPromotion;
+
+  public AdditionalTaskInfo(@Nullable String comment, @Nullable User commentAuthor) {
+    this(comment, commentAuthor, null);
+  }
 
   public AdditionalTaskInfo(@Nullable String comment, @Nullable User commentAuthor, @Nullable BuildPromotion replacingPromotion) {
     myComment = comment;
@@ -17,11 +21,8 @@ public abstract class AdditionalTaskInfo {
   }
 
   @NotNull
-  public abstract String compileQueueRelatedMessage();
-
-  @Nullable
   public String getComment() {
-    return myComment;
+    return myComment == null ? "" : myComment;
   }
 
   @NotNull
