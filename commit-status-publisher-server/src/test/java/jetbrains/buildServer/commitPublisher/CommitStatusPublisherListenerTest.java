@@ -556,6 +556,26 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.QUEUED, Event.STARTED, Event.FINISHED));
   }
 
+  public void shoudl_publish_queued_on_passed_revision() throws PublisherException {
+    prepareVcs();
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
+    SVcsModification modififcation1 = myFixture.addModification(new ModificationData(new Date(),
+                                                                                       Collections.singletonList(
+                                                                                         new VcsChange(VcsChangeInfo.Type.CHANGED, "changed", "file", "file", "2", "3")),
+                                                                                       "Should publish on this", "user", vcsRootInstance, "rev1_3", "rev1_3"));
+    SVcsModification modififcation2 = myFixture.addModification(new ModificationData(new Date(),
+                                                                                     Collections.singletonList(
+                                                                                       new VcsChange(VcsChangeInfo.Type.CHANGED, "changed", "file", "file", "3", "4")),
+                                                                                     "Should ignore this", "user", vcsRootInstance, "rev1_4", "rev1_4"));
+    BuildRevisionEx revision1 = new BuildRevisionEx(vcsRootInstance, modififcation1.getVersion(), "", modififcation1.getDisplayVersion());
+    BuildPromotionEx buildPromotion = myBuildType.createBuildPromotion("branch1");
+    buildPromotion.setBuildRevisions(Arrays.asList(revision1), modififcation1.getId(), Long.MAX_VALUE);
+    myBuildType.addToQueue(buildPromotion, "");
+    waitForTasksToFinish(Event.QUEUED);
+    then(myPublisher.getLastTargetRevision()).isEqualTo(modififcation1.getVersion());
+    then(myPublisher.getPublishingTargetRevisions()).doesNotContain(modififcation2.getVersion());
+  }
+
   private void prepareVcs() {
    prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.EXT_ID);
   }
