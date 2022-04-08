@@ -494,6 +494,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     assertEquals(DefaultStatusMessages.BUILD_QUEUED, myPublisher.getLastComment());
   }
 
+  @Test(enabled = false)  // Should pass after TW-75702
   public void should_not_publish_queued_status_because_of_checkout_rule() {
     prepareVcs();
     final SVcsRoot vcsRoot = myBuildType.getVcsRoots().iterator().next();

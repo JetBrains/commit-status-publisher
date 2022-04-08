@@ -35,6 +35,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.MultiNodeTasks.PerformingTask;
 import jetbrains.buildServer.serverSide.comments.Comment;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.impl.DummyBuild;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.users.User;
@@ -708,12 +709,14 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   @NotNull
-  private List<BuildRevision> getQueuedBuildRevisionForVote(@NotNull BuildType buildType,
+  private Collection<BuildRevision> getQueuedBuildRevisionForVote(@NotNull BuildType buildType,
                                                             @NotNull CommitStatusPublisher publisher,
                                                             @NotNull BuildPromotion buildPromotion) {
+    if (buildPromotion.isFailedToCollectChanges()) return Collections.emptyList();
+
     SBuild b = buildPromotion.getAssociatedBuild();
     if (b != null) {
-      List<BuildRevision> revisions = getBuildRevisionForVote(publisher, b);
+      List<BuildRevision> revisions = getBuildRevisionForVote(publisher, b.getRevisions());
       if (!revisions.isEmpty())
         return revisions;
     }
@@ -728,19 +731,29 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       }
     }
 
-    String branchName = getBranchName(buildPromotion);
-    BranchEx branch = ((BuildTypeEx) buildType).getBranch(branchName);
-    return getBuildRevisionForVote(publisher, branch.getDummyBuild());
+    Stream<VcsRootInstanceEntry> vcsRootEntryStream = buildPromotion.getVcsRootEntries().stream();
+    if (vcsRootId != null) {
+      vcsRootEntryStream = vcsRootEntryStream.filter(root -> vcsRootId.equals(root.getVcsRoot().getExternalId()));
+    }
+    boolean isOnlyIncludeAllRules = vcsRootEntryStream.map(entry -> entry.getCheckoutRules()).allMatch(CheckoutRules::isIncludeAll);
+
+    if (isOnlyIncludeAllRules) {
+      String branchName = getBranchName(buildPromotion);
+      BranchEx branch = ((BuildTypeEx) buildType).getBranch(branchName);
+      DummyBuild dummyBuild = branch.getDummyBuild();
+      return getBuildRevisionForVote(publisher, dummyBuild.getRevisions());
+    }
+    LOG.debug("Build configuration has excluding checkout rules: can not select revision to publish status");
+    return Collections.emptyList();
   }
 
   @NotNull
-  private List<BuildRevision> getBuildRevisionForVote(@NotNull CommitStatusPublisher publisher, @NotNull SBuild build) {
-    if (build.getBuildPromotion().isFailedToCollectChanges()) return Collections.emptyList();
-
+  private List<BuildRevision> getBuildRevisionForVote(@NotNull CommitStatusPublisher publisher,
+                                                      @NotNull Collection<BuildRevision> revisionsToCheck) {
     String vcsRootId = publisher.getVcsRootId();
     if (vcsRootId == null) {
       List<BuildRevision> revisions = new ArrayList<BuildRevision>();
-      for (BuildRevision revision : build.getRevisions()) {
+      for (BuildRevision revision : revisionsToCheck) {
         if (publisher.isPublishingForRevision(revision)) {
           revisions.add(revision);
         }
@@ -748,7 +761,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       return revisions;
     }
 
-    for (BuildRevision revision : build.getRevisions()) {
+    for (BuildRevision revision : revisionsToCheck) {
       SVcsRootEx root = (SVcsRootEx)revision.getRoot().getParent();
       if (vcsRootId.equals(root.getExternalId()) || root.isAliasExternalId(vcsRootId) || vcsRootId.equals(String.valueOf(root.getId())))
         return Arrays.asList(revision);
@@ -881,7 +894,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
         @Override
         public Collection<BuildRevision> getRevisions(BuildType buildType, CommitStatusPublisher publisher) {
-          return getBuildRevisionForVote(publisher, build);
+          if (buildPromotion.isFailedToCollectChanges()) return Collections.emptyList();
+          return getBuildRevisionForVote(publisher, build.getRevisions());
         }
       };
 
