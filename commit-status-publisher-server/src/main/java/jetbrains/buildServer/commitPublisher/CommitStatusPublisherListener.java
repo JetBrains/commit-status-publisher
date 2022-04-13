@@ -248,7 +248,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
 
   @Override
   public void changeAdded(@NotNull VcsModification modification, @NotNull VcsRoot root, @Nullable final Collection<SBuildType> buildTypes) {
-    if (TeamCityProperties.getBoolean(MODIFICATIONS_PROCESSING_FEATURE_TOGGLE)) {
+    if (TeamCityProperties.getBooleanOrTrue(MODIFICATIONS_PROCESSING_FEATURE_TOGGLE)) {
       myModificationsToProcess.add(new VcsModificationWithRoot((VcsModificationEx)modification, root));
       initModificationsProcessing();
       synchronized (myModificationsToProcessLock) {
@@ -318,7 +318,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
   }
 
   private void processModifications() throws InterruptedException {
-    while (TeamCityProperties.getBoolean(MODIFICATIONS_PROCESSING_FEATURE_TOGGLE)) {
+    while (TeamCityProperties.getBooleanOrTrue(MODIFICATIONS_PROCESSING_FEATURE_TOGGLE)) {
       if (!myModificationsToProcess.isEmpty()) {
         waitForDummyPromotionsCacheUpdate();
         Collection<VcsModificationWithRoot> modifications = new ArrayList<>(myModificationsToProcess);
@@ -358,7 +358,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         updateQueuedStatusForModification(modificationsToProcess.values());
       }
 
-      if (TeamCityProperties.getBoolean(MODIFICATIONS_PROCESSING_FEATURE_TOGGLE) && myModificationsToProcess.isEmpty()) {
+      if (TeamCityProperties.getBooleanOrTrue(MODIFICATIONS_PROCESSING_FEATURE_TOGGLE) && myModificationsToProcess.isEmpty()) {
         synchronized (myModificationsToProcessLock) {
           myModificationsToProcessLock.wait(TeamCityProperties.getIntervalMilliseconds(MODIFICATIONS_PROCESSING_DELAY_PROPERTY_NAME, 60 * 1000));
         }

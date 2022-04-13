@@ -112,7 +112,7 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
 
   protected boolean isBuildQueuedSupported(final SBuildType buildType, final Map<String, String> params) {
     if (buildType instanceof BuildTypeEx) {
-      return ((BuildTypeEx) buildType).getBooleanInternalParameter(PARAM_PUBLISH_BUILD_QUEUED_STATUS);
+      return ((BuildTypeEx) buildType).getBooleanInternalParameterOrTrue(PARAM_PUBLISH_BUILD_QUEUED_STATUS);
     }
     throw new IllegalStateException("Unexpected build type implementation: can not determine if queued build statuses publishing is enabled");
   }
