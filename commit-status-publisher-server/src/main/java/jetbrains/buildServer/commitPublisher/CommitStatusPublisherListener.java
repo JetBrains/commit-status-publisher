@@ -721,10 +721,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
         return revisions;
     }
 
-    if (!buildPromotion.getRevisions().isEmpty()) {
-      return getBuildRevisionForVote(publisher, buildPromotion.getRevisions());
-    }
-
     String vcsRootId = publisher.getVcsRootId();
     Stream<VcsRootInstanceEntry> vcsRootEntryStream = buildPromotion.getVcsRootEntries().stream();
     if (vcsRootId != null) {
@@ -733,6 +729,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     boolean isOnlyIncludeAllRules = vcsRootEntryStream.map(entry -> entry.getCheckoutRules()).allMatch(CheckoutRules::isIncludeAll);
 
     if (isOnlyIncludeAllRules) {
+      if (!buildPromotion.getRevisions().isEmpty()) {
+        return getBuildRevisionForVote(publisher, buildPromotion.getRevisions());
+      }
       String branchName = getBranchName(buildPromotion);
       BranchEx branch = ((BuildTypeEx) buildType).getBranch(branchName);
       DummyBuild dummyBuild = branch.getDummyBuild();
