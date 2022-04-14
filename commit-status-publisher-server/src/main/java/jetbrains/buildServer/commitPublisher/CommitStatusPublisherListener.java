@@ -48,7 +48,7 @@ import org.jetbrains.annotations.Nullable;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
-public class CommitStatusPublisherListener extends BuildServerAdapter {
+public class CommitStatusPublisherListener extends BuildServerAdapter implements ChangesCollectionCondition {
 
   final static String PUBLISHING_ENABLED_PROPERTY_NAME = "teamcity.commitStatusPublisher.enabled";
   final static String EXPECTED_PROMOTIONS_CACHE_REFRESH_TIME_PROPERTY_NAME = "teamcity.commitStatusPublisher.promotionsCache.expectedRefreshTime";
@@ -311,7 +311,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     } else {
       myBuildTypeCommitStatusPublisherConfiguredCache.remove(buildType.getInternalId());
     }
-    boolean isConfigured = buildType.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE).stream().anyMatch(f -> buildType.isEnabled(f.getId()));
+    boolean isConfigured = !isBuildFeatureAbsent(buildType);
     myBuildTypeCommitStatusPublisherConfiguredCache.putIfAbsent(buildType.getInternalId(),
                                                                 new ValueWithTTL<>(isConfigured, new Date().getTime() + TeamCityProperties.getIntervalMilliseconds(CSP_FOR_BUILD_TYPE_CONFIGURATION_FLAG_TTL_PROPERTY_NAME, 5 * 60 * 1000)));
     return isConfigured;
@@ -722,13 +722,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     }
 
     String vcsRootId = publisher.getVcsRootId();
-    Stream<VcsRootInstanceEntry> vcsRootEntryStream = buildPromotion.getVcsRootEntries().stream();
-    if (vcsRootId != null) {
-      vcsRootEntryStream = vcsRootEntryStream.filter(root -> vcsRootId.equals(root.getVcsRoot().getExternalId()));
-    }
-    boolean isOnlyIncludeAllRules = vcsRootEntryStream.map(entry -> entry.getCheckoutRules()).allMatch(CheckoutRules::isIncludeAll);
 
-    if (isOnlyIncludeAllRules) {
+    if (areOnlyIncludeAllVcsRulesConfigured(buildPromotion, vcsRootId)) {
       if (!buildPromotion.getRevisions().isEmpty()) {
         return getBuildRevisionForVote(publisher, buildPromotion.getRevisions());
       }
@@ -737,8 +732,16 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
       DummyBuild dummyBuild = branch.getDummyBuild();
       return getBuildRevisionForVote(publisher, dummyBuild.getRevisions());
     }
-    LOG.debug("Build configuration has excluding checkout rules: can not select revision to publish status");
+
     return Collections.emptyList();
+  }
+
+  private boolean areOnlyIncludeAllVcsRulesConfigured(@NotNull BuildPromotion buildPromotion, @Nullable String requiredVcsRootId) {
+    Stream<VcsRootInstanceEntry> vcsRootEntryStream = buildPromotion.getVcsRootEntries().stream();
+    if (requiredVcsRootId != null) {
+      vcsRootEntryStream = vcsRootEntryStream.filter(root -> requiredVcsRootId.equals(root.getVcsRoot().getExternalId()));
+    }
+    return vcsRootEntryStream.map(entry -> entry.getCheckoutRules()).allMatch(CheckoutRules::isIncludeAll);
   }
 
   @NotNull
@@ -762,6 +765,30 @@ public class CommitStatusPublisherListener extends BuildServerAdapter {
     }
 
     return Collections.emptyList();
+  }
+
+  @Override
+  public boolean shouldCollectChangesNow(@NotNull BuildPromotion buildPromotion) {
+    SBuildType buildType = buildPromotion.getBuildType();
+    if (buildType == null) return false;
+
+    if (!((BuildTypeEx)buildType).getBooleanInternalParameterOrTrue(PUBLISHING_ENABLED_PROPERTY_NAME)) return false;
+
+    boolean isBuildTypeUsingCSP = testIfBuildTypeUsingCommitStatusPublisher(buildType);
+    if (!isBuildTypeUsingCSP) return false;
+
+    String publishingForBuildEnabledStr = buildType.getParameterValue(PUBLISHING_ENABLED_PROPERTY_NAME);
+    boolean isPublishingDisabled = Boolean.FALSE.toString().equalsIgnoreCase(publishingForBuildEnabledStr);
+    if (isPublishingDisabled) return false;
+
+
+    Collection<CommitStatusPublisher> publishers = getPublishers(buildType).values();
+    for (CommitStatusPublisher publisher : publishers) {
+      if (!areOnlyIncludeAllVcsRulesConfigured(buildPromotion, publisher.getVcsRootId())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @NotNull
