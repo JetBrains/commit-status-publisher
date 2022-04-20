@@ -67,6 +67,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   private final MultiNodeTasks myMultiNodeTasks;
   private final ExecutorServices myExecutorServices;
   private final ProjectManager myProjectManager;
+  private final TeamCityNodes myTeamCityNodes;
   private final UserModel myUserModel;
   private final Map<String, Event> myEventTypes = new HashMap<>();
   private final Striped<Lock> myLocks = Striped.lazyWeakLock(100);
@@ -95,6 +96,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
                                        @NotNull ServerResponsibility serverResponsibility,
                                        @NotNull final ExecutorServices executorServices,
                                        @NotNull ProjectManager projectManager,
+                                       @NotNull TeamCityNodes teamCityNodes,
                                        @NotNull UserModel userModel,
                                        @NotNull MultiNodeTasks multiNodeTasks) {
     myPublisherManager = voterManager;
@@ -103,6 +105,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     myBuildPromotionManager = buildPromotionManager;
     myProblems = problems;
     myServerResponsibility = serverResponsibility;
+    myTeamCityNodes = teamCityNodes;
     myMultiNodeTasks = multiNodeTasks;
     myExecutorServices = executorServices;
     myProjectManager = projectManager;
@@ -429,12 +432,17 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     if (isBuildFeatureAbsent(buildType))
       return;
 
-    if  (!myServerResponsibility.canManageBuilds()) {
-      LOG.debug("Current node is not responsible for build " + LogUtil.describe(build) + ", skip processing event " + Event.QUEUED);
-      return;
-    }
-    long promotionId = build.getBuildPromotion().getId();
+    BuildPromotion buildPromotion = build.getBuildPromotion();
+    if (isCreatedOnOtherNode(buildPromotion)) return;
+
+    long promotionId = buildPromotion.getId();
     myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(Event.QUEUED.getName(), Event.QUEUED.getName() + ":" + promotionId, promotionId, null, DefaultStatusMessages.BUILD_QUEUED));
+  }
+
+  private boolean isCreatedOnOtherNode(BuildPromotion buildPromotion) {
+    String creatorNodeId = buildPromotion.getCreatorNodeId();
+    String currentNodeId = CurrentNodeInfo.getNodeId();
+    return !creatorNodeId.equals(currentNodeId);
   }
 
   @Override
@@ -443,18 +451,30 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     if (build instanceof QueuedBuildEx && ((QueuedBuildEx) build).isStarted()) return;
     if (isBuildFeatureAbsent(buildType)) return;
 
-    if  (!myServerResponsibility.canManageBuilds()) {
-      LOG.debug("Current node is not responsible for build " + LogUtil.describe(build) + ", skip processing removing from queue");
-      return;
-    }
     if (isPublishingDisabled(build.getBuildType())) {
       LOG.info(String.format("Event: %s, build: %s: commit status publishing is disabled", Event.REMOVED_FROM_QUEUE, LogUtil.describe(build)));
       return;
     }
 
+    if (!canNodeProcessRemovedFromQueue(build.getBuildPromotion())) return;
+
     runAsync(() -> {
       proccessRemovedFromQueueBuild(build, user, comment);
     }, null);
+  }
+
+  private boolean canNodeProcessRemovedFromQueue(BuildPromotion buildPromotion) {
+    String creatorNodeId = buildPromotion.getCreatorNodeId();
+    String currentNodeId = CurrentNodeInfo.getNodeId();
+    if (creatorNodeId.equals(currentNodeId)) return true;  // allowed to process on node, where promotion was cereated
+
+    List<TeamCityNode> onlineNodes = myTeamCityNodes.getOnlineNodes();
+    boolean isCreatorNodeOnline = onlineNodes.stream()
+                                             .map(TeamCityNode::getId)
+                                             .anyMatch(nodeId -> nodeId.equals(creatorNodeId));
+    if (isCreatorNodeOnline) return false; // should process on online node, where promotion was created (not this one)
+
+    return CurrentNodeInfo.isMainNode(); // node that created promotion is offline, should be processes on main node
   }
 
   @Override
