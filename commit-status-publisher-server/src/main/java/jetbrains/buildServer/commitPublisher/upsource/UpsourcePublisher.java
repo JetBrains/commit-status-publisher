@@ -33,7 +33,6 @@ import org.jetbrains.annotations.Nullable;
 class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
 
   private final VcsModificationHistory myVcsHistory;
-  private final WebLinks myLinks;
   private final Gson myGson = new Gson();
   private static final Pattern TEAMCITY_SVN_REVISION_PATTERN = Pattern.compile("([^\\|]+\\|)?([0-9]+)(_.+)?");
 
@@ -43,9 +42,8 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
                     @NotNull VcsModificationHistory vcsHistory,
                     @NotNull WebLinks links, @NotNull Map<String, String> params,
                     @NotNull CommitStatusPublisherProblems problems) {
-    super(settings, buildType, buildFeatureId, params, problems);
+    super(settings, buildType, buildFeatureId, params, problems, links);
     myVcsHistory = vcsHistory;
-    myLinks = links;
   }
 
   @NotNull
@@ -96,7 +94,7 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
                        @NotNull BuildRevision revision,
                        @NotNull UpsourceStatus status,
                        @NotNull String description) throws PublisherException {
-    String url = myLinks.getViewResultsUrl(build);
+    String url = getViewUrl(build);
     String commitMessage = null;
     Long commitDate = null;
     if (revision instanceof BuildRevisionEx) {

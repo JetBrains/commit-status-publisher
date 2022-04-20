@@ -32,7 +32,6 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   private String myBaseUrl = BitbucketCloudSettings.DEFAULT_API_URL;
-  private final WebLinks myLinks;
   private final Gson myGson = new Gson();
 
   BitbucketCloudPublisher(@NotNull CommitStatusPublisherSettings settings,
@@ -40,8 +39,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
                           @NotNull WebLinks links,
                           @NotNull Map<String, String> params,
                           @NotNull CommitStatusPublisherProblems problems) {
-    super(settings, buildType, buildFeatureId, params, problems);
-    myLinks = links;
+    super(settings, buildType, buildFeatureId, params, problems, links);
   }
 
   @NotNull
@@ -210,19 +208,6 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
     return true;
   }
 
-  private String getViewUrl(@NotNull BuildPromotion buildPromotion) {
-    SBuild build = buildPromotion.getAssociatedBuild();
-    if (build != null) {
-      return myLinks.getViewResultsUrl(build);
-    }
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      return myLinks.getQueuedBuildUrl(queuedBuild);
-    }
-    return buildPromotion.getBuildType() != null ? myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-                                                   myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
-  }
-
   private String getBuildName(BuildPromotion buildPromotion) {
     StringBuilder sb = new StringBuilder();
     if (buildPromotion.getBuildType() != null) {
@@ -245,7 +230,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
       throw new PublisherException(String.format("Bitbucket publisher has failed to parse repository URL from VCS root '%s'", root.getName()));
     }
     BitbucketCloudCommitBuildStatus buildStatus = new BitbucketCloudCommitBuildStatus(build.getBuildPromotion().getBuildTypeId(), status.name(), getBuildName(build), comment,
-                                                                                      myLinks.getViewResultsUrl(build)
+                                                                                      getViewUrl(build)
     );
     vote(revision.getRevision(), buildStatus, repository, LogUtil.describe(build));
   }

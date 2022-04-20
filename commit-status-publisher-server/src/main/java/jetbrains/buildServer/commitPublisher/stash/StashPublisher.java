@@ -46,15 +46,13 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   private static final String SERVER_VERSION_EXTENDED_SERVER_LWM = "7.14.0";
 
   private final Gson myGson = new Gson();
-  private final WebLinks myLinks;
   private BitbucketEndpoint myBitbucketEndpoint = null;
 
   StashPublisher(@NotNull CommitStatusPublisherSettings settings,
                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                  @NotNull WebLinks links, @NotNull Map<String, String> params,
                  @NotNull CommitStatusPublisherProblems problems) {
-    super(settings, buildType, buildFeatureId, params, problems);
-    myLinks = links;
+    super(settings, buildType, buildFeatureId, params, problems, links);
   }
 
   @NotNull
@@ -161,19 +159,6 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     Event event = getTriggeredEvent(buildStatus);
     boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), buildStatus.url);
     return new RevisionStatus(event, buildStatus.description, isSameBuild);
-  }
-
-  private String getViewUrl(BuildPromotion buildPromotion) {
-    SBuild build = buildPromotion.getAssociatedBuild();
-    if (build != null) {
-      return myLinks.getViewResultsUrl(build);
-    }
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      return myLinks.getQueuedBuildUrl(queuedBuild);
-    }
-    return buildPromotion.getBuildType() != null ? myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-                                                   myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
   }
 
   private Event getTriggeredEvent(JsonStashBuildStatus buildStatus) {
@@ -421,7 +406,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     @NotNull
     @Override
     public String getUrl() {
-      return myLinks.getViewResultsUrl(myBuild);
+      return getViewUrl(myBuild);
     }
 
     @NotNull
@@ -465,11 +450,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     @NotNull
     @Override
     public String getUrl() {
-      SQueuedBuild queuedBuild = myBuildPromotion.getQueuedBuild();
-      if (queuedBuild != null) {
-        return myLinks.getQueuedBuildUrl(queuedBuild);
-      }
-      return myLinks.getConfigurationHomePageUrl(myBuildPromotion.getBuildType());
+      return getViewUrl(myBuildPromotion);
     }
 
     @NotNull

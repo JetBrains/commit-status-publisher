@@ -60,6 +60,8 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     }
   }
 
+  protected abstract WebLinks getLinks();
+
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     return false;
   }
@@ -151,5 +153,22 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   @Override
   public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
     return null;
+  }
+
+  protected String getViewUrl(@NotNull BuildPromotion buildPromotion) {
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build != null) {
+      return getLinks().getViewResultsUrl(build);
+    }
+    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    if (queuedBuild != null) {
+      return getLinks().getQueuedBuildUrl(queuedBuild);
+    }
+    return buildPromotion.getBuildType() != null ? getLinks().getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
+           getLinks().getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
+  }
+
+  protected String getViewUrl(@NotNull SBuild build) {
+    return getLinks().getViewResultsUrl(build);
   }
 }

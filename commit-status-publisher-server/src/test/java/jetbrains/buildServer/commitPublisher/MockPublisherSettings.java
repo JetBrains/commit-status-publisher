@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 
@@ -30,6 +31,7 @@ public class MockPublisherSettings extends DummyPublisherSettings {
 
   static final String PUBLISHER_ID = "MockPublisherId";
   private final CommitStatusPublisherProblems myProblems;
+  private WebLinks myLinks;
   private CommitStatusPublisher myPublisher = null;
   private List<String> myRootNamesToFailTestConnection = null;
 
@@ -47,9 +49,13 @@ public class MockPublisherSettings extends DummyPublisherSettings {
     myPublisher = publisher;
   }
 
+  public void setLinks(WebLinks links) {
+    myLinks = links;
+  }
+
   @Override
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return null == myPublisher ? new MockPublisher(this, getId(), buildType, buildFeatureId, params, myProblems, new PublisherLogger()) : myPublisher;
+    return null == myPublisher ? new MockPublisher(this, getId(), buildType, buildFeatureId, params, myProblems, new PublisherLogger(), myLinks) : myPublisher;
   }
 
   @Override

@@ -58,7 +58,6 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   private static final Gson myGson = new GsonBuilder()
                                           .setDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
                                           .create();
-  private final WebLinks myLinks;
 
   // Captures pull request identifier. Example: refs/pull/1/merge
   private static final Pattern TFS_GIT_PULL_REQUEST_PATTERN = Pattern.compile("^refs\\/pull\\/(\\d+)/merge");
@@ -69,8 +68,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                      @NotNull final WebLinks webLinks,
                      @NotNull final Map<String, String> params,
                      @NotNull final CommitStatusPublisherProblems problems) {
-    super(settings, buildType, buildFeatureId, params, problems);
-    myLinks = webLinks;
+    super(settings, buildType, buildFeatureId, params, problems, webLinks);
   }
 
   @NotNull
@@ -552,19 +550,6 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     publishPullRequestStatus(info, revision, data, commitId, description);
   }
 
-  private String getViewUrl(BuildPromotion buildPromotion) {
-    SBuild build = buildPromotion.getAssociatedBuild();
-    if (build != null) {
-      return myLinks.getViewResultsUrl(build);
-    }
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      return myLinks.getQueuedBuildUrl(queuedBuild);
-    }
-    return buildPromotion.getBuildType() != null ? myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-                                                   myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
-  }
-
   @NotNull
   private CommitStatus getCommitStatus(final SBuild build, final boolean isStarting) {
     StatusContext context = new StatusContext();
@@ -577,7 +562,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     String description = String.format("The build %s %s %s %s",
                                        build.getFullName(), build.getBuildNumber(),
                                        (isStarting || isCanceled) ? "is" : "has", isCanceled ? "canceled" : state.toString().toLowerCase());
-    return new CommitStatus(state.getName(), description, myLinks.getViewResultsUrl(build), context);
+    return new CommitStatus(state.getName(), description, getViewUrl(build), context);
   }
 
   private static StatusState getState(boolean isStarting, boolean isCanceled, Status status) {

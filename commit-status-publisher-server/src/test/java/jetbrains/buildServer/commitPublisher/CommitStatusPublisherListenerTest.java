@@ -74,9 +74,10 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
                                                    myMultiNodeTasks);
     myListener.setEventProcessedCallback(myEventProcessedCallback);
     myPublisher = new MockPublisher(myPublisherSettings, MockPublisherSettings.PUBLISHER_ID, myBuildType, myFeatureDescriptor.getId(),
-                                    Collections.emptyMap(), myProblems, myLogger);
+                                    Collections.emptyMap(), myProblems, myLogger, myWebLinks);
     myUser = myFixture.createUserAccount("newuser");
     myPublisherSettings.setPublisher(myPublisher);
+    myPublisherSettings.setLinks(myWebLinks);
   }
 
   public void should_publish_started() {

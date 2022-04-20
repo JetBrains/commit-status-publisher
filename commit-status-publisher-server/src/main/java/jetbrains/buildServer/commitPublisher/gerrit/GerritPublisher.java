@@ -16,12 +16,11 @@
 
 package jetbrains.buildServer.commitPublisher.gerrit;
 
+import java.util.Map;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Map;
 
 class GerritPublisher extends BaseCommitStatusPublisher {
 
@@ -60,7 +59,7 @@ class GerritPublisher extends BaseCommitStatusPublisher {
     String msg = build.getFullName() +
             " #" + build.getBuildNumber() +
             ": " + build.getStatusDescriptor().getText() +
-            " " + myLinks.getViewResultsUrl(build);
+            " " + getViewUrl(build);
 
     try {
       SBuildType bt = build.getBuildType();
@@ -76,6 +75,11 @@ class GerritPublisher extends BaseCommitStatusPublisher {
       throw new PublisherException("Cannot publish status to Gerrit for VCS root " +
                                    revision.getRoot().getName() + ": " + e.toString(), e);
     }
+  }
+
+  @Override
+  protected WebLinks getLinks() {
+    return myLinks;
   }
 
   private String getGerritServer() {

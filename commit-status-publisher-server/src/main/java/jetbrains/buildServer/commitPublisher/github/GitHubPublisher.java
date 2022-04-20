@@ -117,6 +117,11 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     return getRevisionStatusForRemovedBuild(removedBuild, commitStatus);
   }
 
+  @Override
+  protected WebLinks getLinks() {
+    return myWebLinks;
+  }
+
   RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @Nullable CommitStatus commitStatus) {
     if (commitStatus == null) {
       return null;
@@ -208,21 +213,6 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     } else {
       return h.changeRemovedFromQueue(revision, buildPromotion, additionalTaskInfo, viewUrl);
     }
-  }
-
-  @NotNull
-  private String getViewUrl(BuildPromotion buildPromotion) {
-    SBuild associatedBuild = buildPromotion.getAssociatedBuild();
-    if (associatedBuild != null) {
-      return myWebLinks.getViewResultsUrl(associatedBuild);
-    }
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      return myWebLinks.getQueuedBuildUrl(queuedBuild);
-    }
-    return buildPromotion.getBuildType() != null ?
-           myWebLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-           myWebLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
   }
 
   @NotNull

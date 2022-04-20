@@ -37,7 +37,6 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
 
   private static final String UNKNOWN_BUILD_CONFIGURATION = "Unknown build configuration";
 
-  private final WebLinks myLinks;
   private final SpaceConnectDescriber mySpaceConnector;
   private final Gson myGson = new Gson();
 
@@ -47,8 +46,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
                  @NotNull Map<String, String> params,
                  @NotNull CommitStatusPublisherProblems problems,
                  @NotNull SpaceConnectDescriber spaceConnector) {
-    super(settings, buildType, buildFeatureId, params, problems);
-    myLinks = links;
+    super(settings, buildType, buildFeatureId, params, problems, links);
     mySpaceConnector = spaceConnector;
   }
 
@@ -236,20 +234,6 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
     return true;
   }
 
-  private String getViewUrl(BuildPromotion buildPromotion) {
-    SBuild associatedBuild = buildPromotion.getAssociatedBuild();
-    if (associatedBuild != null) {
-      return myLinks.getViewResultsUrl(associatedBuild);
-    }
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      return myLinks.getQueuedBuildUrl(queuedBuild);
-    }
-    return buildPromotion.getBuildType() != null ?
-           myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-           myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
-  }
-
   private void publish(@NotNull SBuild build,
                        @NotNull BuildRevision revision,
                        @NotNull SpaceBuildStatus status,
@@ -264,7 +248,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
     String payload = createPayload(
       changes,
       status,
-      myLinks.getViewResultsUrl(build),
+      getViewUrl(build),
       SpaceSettings.getDisplayName(myParams),
       build.getFullName(),
       build.getBuildTypeExternalId(),

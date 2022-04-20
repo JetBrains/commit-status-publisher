@@ -40,15 +40,12 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   private final Gson myGson = new Gson();
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
-  private final WebLinks myLinks;
-
   GitlabPublisher(@NotNull CommitStatusPublisherSettings settings,
                   @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                   @NotNull WebLinks links,
                   @NotNull Map<String, String> params,
                   @NotNull CommitStatusPublisherProblems problems) {
-    super(settings, buildType, buildFeatureId, params, problems);
-    myLinks = links;
+    super(settings, buildType, buildFeatureId, params, problems, links);
   }
 
 
@@ -203,7 +200,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
                        @NotNull BuildRevision revision,
                        @NotNull GitlabBuildStatus status,
                        @NotNull String description) throws PublisherException {
-    String message = createMessage(status, build.getBuildTypeName(), revision, myLinks.getViewResultsUrl(build), description);
+    String message = createMessage(status, build.getBuildTypeName(), revision, getViewUrl(build), description);
     publish(message, revision, LogUtil.describe(build));
   }
 
@@ -215,19 +212,6 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     String description = additionalTaskInfo.getComment();
     String message = createMessage(status, buildPromotion.getBuildType().getName(), revision, url, description);
     publish(message, revision, LogUtil.describe(buildPromotion));
-  }
-
-  private String getViewUrl(BuildPromotion buildPromotion) {
-    SBuild build = buildPromotion.getAssociatedBuild();
-    if (build != null) {
-      return myLinks.getViewResultsUrl(build);
-    }
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      return myLinks.getQueuedBuildUrl(queuedBuild);
-    }
-    return buildPromotion.getBuildType() != null ? myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-                                                   myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
   }
 
   private void publish(@NotNull String message,

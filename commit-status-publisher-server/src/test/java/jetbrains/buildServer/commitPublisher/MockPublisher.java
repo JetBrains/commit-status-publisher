@@ -30,6 +30,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
 
   static final String PUBLISHER_ERROR = "Simulated publisher exception";
 
+  private final WebLinks myLinks;
   private final String myType;
   private String myVcsRootId = null;
 
@@ -81,10 +82,12 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
                 @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                 @NotNull Map<String, String> params,
                 @NotNull CommitStatusPublisherProblems problems,
-                @NotNull PublisherLogger logger) {
+                @NotNull PublisherLogger logger,
+                @NotNull WebLinks links) {
     super(settings, buildType, buildFeatureId, params, problems);
     myLogger = logger;
     myType = publisherType;
+    myLinks = links;
   }
 
   @Nullable
@@ -133,6 +136,11 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
       }
     }
     myEventsReceived.add(event);
+  }
+
+  @Override
+  protected WebLinks getLinks() {
+    return myLinks;
   }
 
   @Override
