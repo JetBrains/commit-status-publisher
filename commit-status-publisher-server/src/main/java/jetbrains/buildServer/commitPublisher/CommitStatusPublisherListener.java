@@ -47,6 +47,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
+import static jetbrains.buildServer.commitPublisher.ValueWithTTL.OUTDATED_CACHE_VALUE;
 
 public class CommitStatusPublisherListener extends BuildServerAdapter implements ChangesCollectionCondition {
 
@@ -55,8 +56,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   final static String MODIFICATIONS_PROCESSING_DELAY_PROPERTY_NAME = "teamcity.commitStatusPublisher.modificationsProcessing.delay";
   final static String CSP_FOR_BUILD_TYPE_CONFIGURATION_FLAG_TTL_PROPERTY_NAME = "teamcity.commitStatusPublisher.enabledForBuildCache.ttl";
   final static String MODIFICATIONS_PROCESSING_FEATURE_TOGGLE = "teamcity.internal.commitStatusPublisher.modificationsProcessing.enabled";
+  final static String QUEUE_PAUSER_SYSTEM_PROPERTY = "teamcity.plugin.queuePauser.queue.enabled";
+
   private final static int MAX_LAST_EVENTS_TO_REMEMBER = 1000;
-  private final ValueWithTTL<Boolean> OUTDATED_CACHE_VALUE = new ValueWithTTL<Boolean>(null, -1L);
 
   private final PublisherManager myPublisherManager;
   private final BuildHistory myBuildHistory;
@@ -309,14 +311,14 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   private boolean testIfBuildTypeUsingCommitStatusPublisher(SBuildType buildType) {
     ValueWithTTL<Boolean> isCSPEnabled = myBuildTypeCommitStatusPublisherConfiguredCache.getOrDefault(buildType.getInternalId(), OUTDATED_CACHE_VALUE);
-    if (isCSPEnabled.isActual()) {
-      return isCSPEnabled.myValue;
+    if (isCSPEnabled.isAlive()) {
+      return isCSPEnabled.getValue();
     } else {
       myBuildTypeCommitStatusPublisherConfiguredCache.remove(buildType.getInternalId());
     }
     boolean isConfigured = !isBuildFeatureAbsent(buildType);
     myBuildTypeCommitStatusPublisherConfiguredCache.putIfAbsent(buildType.getInternalId(),
-                                                                new ValueWithTTL<>(isConfigured, new Date().getTime() + TeamCityProperties.getIntervalMilliseconds(CSP_FOR_BUILD_TYPE_CONFIGURATION_FLAG_TTL_PROPERTY_NAME, 5 * 60 * 1000)));
+                                                                new ValueWithTTL<>(isConfigured, System.currentTimeMillis() + TeamCityProperties.getIntervalMilliseconds(CSP_FOR_BUILD_TYPE_CONFIGURATION_FLAG_TTL_PROPERTY_NAME, 5 * 60 * 1000)));
     return isConfigured;
   }
 
@@ -428,6 +430,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   @Override
   public void buildTypeAddedToQueue(@NotNull final SQueuedBuild build) {
+    if (isQueueDisabled()) return;
+
     SBuildType buildType = getBuildType(Event.QUEUED, build);
     if (isBuildFeatureAbsent(buildType))
       return;
@@ -439,6 +443,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(Event.QUEUED.getName(), Event.QUEUED.getName() + ":" + promotionId, promotionId, null, DefaultStatusMessages.BUILD_QUEUED));
   }
 
+  public boolean isQueueDisabled() {
+    String isQueueEnabled = System.getProperty(QUEUE_PAUSER_SYSTEM_PROPERTY);
+    return Boolean.FALSE.toString().equalsIgnoreCase(isQueueEnabled);
+  }
+
   private boolean isCreatedOnOtherNode(BuildPromotion buildPromotion) {
     String creatorNodeId = buildPromotion.getCreatorNodeId();
     String currentNodeId = CurrentNodeInfo.getNodeId();
@@ -447,6 +456,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   @Override
   public void buildRemovedFromQueue(@NotNull final SQueuedBuild build, final User user, final String comment) {
+    if (isQueueDisabled()) return;
+
     SBuildType buildType = getBuildType(Event.REMOVED_FROM_QUEUE, build);
     if (build instanceof QueuedBuildEx && ((QueuedBuildEx) build).isStarted()) return;
     if (isBuildFeatureAbsent(buildType)) return;
@@ -1077,20 +1088,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
           ((BuildPromotionEx)promotion).addBuildProblem(buildProblem);
         }
       }
-    }
-  }
-
-  private class ValueWithTTL<T> {
-    private final T myValue;
-    private final long myTtl;
-
-    public ValueWithTTL(T value, long ttl) {
-      myValue = value;
-      myTtl = ttl;
-    }
-
-    boolean isActual() {
-      return new Date().getTime() <= myTtl;
     }
   }
 

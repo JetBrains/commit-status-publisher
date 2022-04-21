@@ -70,8 +70,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myHistory = myFixture.getHistory();
     myListener = new CommitStatusPublisherListener(myFixture.getEventDispatcher(), myPublisherManager, myHistory, myBuildsManager, myFixture.getBuildPromotionManager(), myProblems,
                                                    myFixture.getServerResponsibility(), myFixture.getSingletonService(ExecutorServices.class),
-                                                   myFixture.getSingletonService(ProjectManager.class), myFixture.getTeamCityNodes(), myFixture.getSingletonService(UserModel.class),
-                                                   myMultiNodeTasks);
+                                                   myFixture.getSingletonService(ProjectManager.class), myFixture.getSingletonService(TeamCityNodes.class),
+                                                   myFixture.getSingletonService(UserModel.class), myMultiNodeTasks);
     myListener.setEventProcessedCallback(myEventProcessedCallback);
     myPublisher = new MockPublisher(myPublisherSettings, MockPublisherSettings.PUBLISHER_ID, myBuildType, myFeatureDescriptor.getId(),
                                     Collections.emptyMap(), myProblems, myLogger, myWebLinks);
