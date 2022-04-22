@@ -209,15 +209,11 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   private String getBuildName(BuildPromotion buildPromotion) {
-    StringBuilder sb = new StringBuilder();
-    if (buildPromotion.getBuildType() != null) {
-      sb.append(buildPromotion.getBuildType().getFullName());
+    SBuildType buildType = buildPromotion.getBuildType();
+    if (buildType != null) {
+      return buildType.getFullName();
     }
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      sb.append(" #").append(queuedBuild.getOrderNumber());
-    }
-    return sb.toString();
+    return buildPromotion.getBuildTypeExternalId();
   }
 
   private void vote(@NotNull SBuild build,
