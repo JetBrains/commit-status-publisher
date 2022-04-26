@@ -134,8 +134,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.FINISHED);
     List<Event> eventsAfterFinished = myPublisher.getEventsReceived();
     then(eventsAfterFinished).contains(Event.FINISHED);
-    myListener.changesLoaded(runningBuild);
-    waitForTasksToFinish(Event.STARTED);
+    myListener.changesLoaded(runningBuild.getBuildPromotion()); // won't execute at all, because build should be running to be processed
     then(myPublisher.getEventsReceived()).isEqualTo(eventsAfterFinished);  // no more events must arrive at the publisher
   }
 

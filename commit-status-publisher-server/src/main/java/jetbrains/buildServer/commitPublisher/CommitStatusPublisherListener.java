@@ -205,12 +205,19 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   }
 
   @Override
-  public void changesLoaded(@NotNull final SRunningBuild build) {
-    SBuildType buildType = getBuildType(Event.STARTED, build);
-    if (isBuildFeatureAbsent(buildType))
-      return;
+  public void changesLoaded(@NotNull BuildPromotion buildPromotion) {
+    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    if (queuedBuild != null) {
+      buildTypeAddedToQueue(queuedBuild);
+    } else {
+      SBuild build = buildPromotion.getAssociatedBuild();
+      SBuildType buildType = buildPromotion.getBuildType();
+      if (build == null || isBuildFeatureAbsent(buildType)) return;
 
-    submitTaskForBuild(Event.STARTED, build);
+      if (isBuildInProgress(build)) {
+        submitTaskForBuild(Event.STARTED, build);
+      }
+    }
   }
 
   @Override
@@ -754,7 +761,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
     String vcsRootId = publisher.getVcsRootId();
 
-    if (areOnlyIncludeAllVcsRulesConfigured(buildPromotion, vcsRootId)) {
+    if (!((BuildPromotionEx)buildPromotion).isChangeCollectingNeeded(true) &&
+        !buildPromotion.getRevisions().isEmpty()) {
+      return getBuildRevisionForVote(publisher, buildPromotion.getRevisions());
+    } else if (areOnlyIncludeAllVcsRulesConfigured(buildPromotion, vcsRootId)) {
       if (!buildPromotion.getRevisions().isEmpty()) {
         return getBuildRevisionForVote(publisher, buildPromotion.getRevisions());
       }
