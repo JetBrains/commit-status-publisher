@@ -308,7 +308,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   @Nullable
-  private static String getPullRequestIteration(@NotNull final TfsRepositoryInfo info,
+  private static Iteration getPullRequestIteration(@NotNull final TfsRepositoryInfo info,
                                                 @NotNull final String pullRequestId,
                                                 @NotNull final Set<String> parentCommits,
                                                 @NotNull final Map<String, String> params,
@@ -316,7 +316,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     final String url = MessageFormat.format(PULL_REQUEST_ITERATIONS_URL_FORMAT,
       info.getServer(), info.getProject(), info.getRepository(), pullRequestId);
 
-    final AtomicReference<String> iterationIdRef = new AtomicReference<>();
+    final AtomicReference<Iteration> iterationRef = new AtomicReference<>();
 
     try {
       IOGuard.allowNetworkCall(() -> {
@@ -341,7 +341,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                 for (Map.Entry<String, Iteration> targetCommitToIteration : targetCommitIdForPossibleIterations.entrySet()) {
                   String targetCommitId = targetCommitToIteration.getKey();
                   if (parentCommits.contains(targetCommitId)) {
-                    iterationIdRef.set(targetCommitToIteration.getValue().id);
+                    iterationRef.set(targetCommitToIteration.getValue());
                     return;
                   }
                 }
@@ -353,7 +353,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
                 if (commitFromRepo.isPresent()) {
                   String commitId = commitFromRepo.get().commitId;
                   Iteration iteration = targetCommitIdForPossibleIterations.get(commitId);
-                  iterationIdRef.set(iteration.id);
+                  iterationRef.set(iteration);
                 } else {
                   LOG.debug("Iteration was not found among " + commitsToLoad + " latest commits from repository " + info);
                 }
@@ -367,7 +367,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
       throw new PublisherException(message, e);
     }
 
-    return iterationIdRef.get();
+    return iterationRef.get();
   }
 
   private static int numCommitsToLoad() {
@@ -451,12 +451,8 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     final CommitStatus status = getCommitStatus(buildPromotion, additionalTaskInfo);
     final String description = LogUtil.describe(buildPromotion);
     final String data = myGson.toJson(status);
-    final String commitId = revision.getRevision();
-    boolean isPublished = publishCommitStatus(info, data, commitId, description);
-    if (!isPublished) {
-      return false;
-    }
-    return publishPullRequestStatus(info, revision, data, commitId, description);
+    final String commitId = publishPullRequestStatus(info, revision, data, description);
+    return publishCommitStatus(info, data, commitId, description);
   }
 
   private TfsRepositoryInfo getReposioryInfo(BuildRevision revision) throws PublisherException {
@@ -480,28 +476,29 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     return true;
   }
 
-  private boolean publishPullRequestStatus(@NotNull TfsRepositoryInfo info,
+  @NotNull
+  private String publishPullRequestStatus(@NotNull TfsRepositoryInfo info,
                                            @NotNull BuildRevision revision,
                                            @NotNull String data,
-                                           @NotNull String commitId,
                                            @NotNull String description) throws PublisherException {
     // Check whether pull requests status publishing enabled
+    String commitId = revision.getRevision();
     final String publishPullRequest = StringUtil.emptyIfNull(myParams.get(TfsConstants.PUBLISH_PULL_REQUESTS)).trim();
     if (!Boolean.parseBoolean(publishPullRequest)) {
-      return true;
+      return commitId;
     }
 
     // Get branch and try to find pull request id
     final String branch = revision.getRepositoryVersion().getVcsBranch();
     if (StringUtil.isEmptyOrSpaces(branch)) {
       LOG.debug(String.format("Branch was not specified for commit %s, pull request status would not be published", commitId));
-      return true;
+      return commitId;
     }
 
     final Matcher matcher = TFS_GIT_PULL_REQUEST_PATTERN.matcher(branch);
     if (!matcher.find()) {
       LOG.debug(String.format("Branch %s for commit %s does not contain info about pull request, status would not be published", branch, commitId));
-      return true;
+      return commitId;
     }
 
     final String pullRequestId = matcher.group(1);
@@ -512,17 +509,19 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     final Set<String> commits = getParentCommits(info, commitId, myParams, trustStore);
 
     // Then we need to get pull request iteration where this commit present
-    final String iterationId = getPullRequestIteration(info, pullRequestId, commits, myParams, trustStore);
+    final Iteration iteration = getPullRequestIteration(info, pullRequestId, commits, myParams, trustStore);
     final String pullRequestStatusUrl;
 
-    if (StringUtil.isEmptyOrSpaces(iterationId)) {
+    if (iteration == null || StringUtil.isEmptyOrSpaces(iteration.id)) {
       // Publish status for pull request
       pullRequestStatusUrl = MessageFormat.format(PULL_REQUEST_STATUS_URL_FORMAT,
                                                   info.getServer(), info.getProject(), info.getRepository(), pullRequestId);
     } else {
+      if (iteration.sourceRefCommit != null && !StringUtil.isEmptyOrSpaces(iteration.sourceRefCommit.commitId))
+        commitId = iteration.sourceRefCommit.commitId;
       // Publish status for pull request iteration
       pullRequestStatusUrl = MessageFormat.format(PULL_REQUEST_ITERATION_STATUS_URL_FORMAT,
-                                                  info.getServer(), info.getProject(), info.getRepository(), pullRequestId, iterationId);
+                                                  info.getServer(), info.getProject(), info.getRepository(), pullRequestId, iteration.id);
     }
 
     postJson(pullRequestStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
@@ -530,7 +529,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
              Collections.singletonMap("Accept", "application/json"),
              description
     );
-    return true;
+    return commitId;
   }
 
   private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) throws PublisherException {
@@ -541,13 +540,8 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     final CommitStatus status = getCommitStatus(build, isStarting);
     final String description = LogUtil.describe(build);
     final String data = myGson.toJson(status);
-    final String commitId = revision.getRevision();
-
-    boolean isPublished = publishCommitStatus(info, data, commitId, description);
-    if (!isPublished) {
-      return;
-    }
-    publishPullRequestStatus(info, revision, data, commitId, description);
+    final String commitId = publishPullRequestStatus(info, revision, data, description);
+    publishCommitStatus(info, data, commitId, description);
   }
 
   @NotNull
