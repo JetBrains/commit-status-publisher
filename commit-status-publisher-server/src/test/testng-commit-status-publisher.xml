@@ -39,6 +39,7 @@
       <class name="jetbrains.buildServer.commitPublisher.space.SpacePublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.perforce.SwarmPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.perforce.SwarmPublisherWithNativeSwarmTest" />
+      <class name="jetbrains.buildServer.commitPublisher.reports.MissingVcsRootReportTest" />
     </classes>
   </test>
 </suite>
