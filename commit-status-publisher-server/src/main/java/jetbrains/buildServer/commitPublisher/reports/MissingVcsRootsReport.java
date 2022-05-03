@@ -20,12 +20,14 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.healthStatus.*;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootEntry;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import org.jetbrains.annotations.Nullable;
 
 public class MissingVcsRootsReport extends HealthStatusReport {
 
@@ -72,28 +74,38 @@ public class MissingVcsRootsReport extends HealthStatusReport {
       for (VcsRootEntry vcs: vcsRootEntries) {
         VcsRoot vcsRoot = vcs.getVcsRoot();
         if (vcsRoot instanceof SVcsRoot) {
-          vcsRootIds.add(((SVcsRoot)vcsRoot).getExternalId());
+          vcsRootIds.add(vcsRoot.getExternalId());
         }
       }
       Collection<SBuildFeatureDescriptor> features = bt.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE);
       for (SBuildFeatureDescriptor feature: features) {
         if (bt.isEnabled(feature.getId())) {
           Map<String, String> params = feature.getParameters();
-          if (params.containsKey(Constants.VCS_ROOT_ID_PARAM)) {
-            String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
+          String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
+          if (StringUtil.isEmpty(vcsRootId)) {
+            if (bt.getVcsRoots().isEmpty()) {
+              reportIssue(consumer, bt, feature, vcsRootId);
+            }
+          } else {
             if (!vcsRootIds.contains(vcsRootId)) {
-              String identity = REPORT_TYPE + "_BT_" + bt.getInternalId() + "_FEATURE_" + feature.getId();
-              HashMap<String, Object> additionalData = new HashMap<String, Object>();
-              additionalData.put("buildType", bt);
-              additionalData.put("featureId", feature.getId());
-              SVcsRoot missingVcsRoot = myProjectManager.findVcsRootByExternalId(vcsRootId);
-              if (null != missingVcsRoot) // VCS root is there, but not attached
-                additionalData.put("missingVcsRoot", missingVcsRoot);
-              consumer.consumeForBuildType(bt, new HealthStatusItem(identity, CATEGORY, additionalData));
+              reportIssue(consumer, bt, feature, vcsRootId);
             }
           }
         }
       }
     }
+  }
+
+  private void reportIssue(@NotNull HealthStatusItemConsumer consumer, @NotNull SBuildType bt, @NotNull SBuildFeatureDescriptor feature, @Nullable String vcsRootId) {
+    String identity = REPORT_TYPE + "_BT_" + bt.getInternalId() + "_FEATURE_" + feature.getId();
+    HashMap<String, Object> additionalData = new HashMap<String, Object>();
+    additionalData.put("buildType", bt);
+    additionalData.put("featureId", feature.getId());
+    if (vcsRootId != null) {
+      SVcsRoot missingVcsRoot = myProjectManager.findVcsRootByExternalId(vcsRootId);
+      if (null != missingVcsRoot) // VCS root is there, but not attached
+        additionalData.put("missingVcsRoot", missingVcsRoot);
+    }
+    consumer.consumeForBuildType(bt, new HealthStatusItem(identity, CATEGORY, additionalData));
   }
 }
