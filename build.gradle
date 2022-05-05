@@ -51,7 +51,7 @@ subprojects {
         }
 
         maven {
-          url = uri("https://packages.jetbrains.team/maven/p/tc/maven")
+          url = "https://packages.jetbrains.team/maven/p/tc/maven"
           credentials {
             username = findProperty("spaceUsername")
             password = findProperty("spacePassword")
