@@ -49,6 +49,14 @@ subprojects {
         maven {
             url = 'https://repo.maven.apache.org/maven2'
         }
+
+        maven {
+          url = uri("https://packages.jetbrains.team/maven/p/tc/maven")
+          credentials {
+            username = findProperty("spaceUsername")
+            password = findProperty("spacePassword")
+          }
+        }
     }
 
     sourceCompatibility = '1.8'
