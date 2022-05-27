@@ -38,15 +38,12 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
   private final Gson myGson = new Gson();
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
-  private final WebLinks myLinks;
-
   GiteaPublisher(@NotNull CommitStatusPublisherSettings settings,
                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
-                 @NotNull WebLinks links,
                  @NotNull Map<String, String> params,
-                 @NotNull CommitStatusPublisherProblems problems) {
-    super(settings, buildType, buildFeatureId, params, problems);
-    myLinks = links;
+                 @NotNull CommitStatusPublisherProblems problems,
+                 @NotNull WebLinks links) {
+    super(settings, buildType, buildFeatureId, params, problems, links);
   }
 
 
@@ -71,7 +68,8 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    publish(buildPromotion, revision, GiteaBuildStatus.PENDING, additionalTaskInfo);
+    GiteaBuildStatus targetStatus = additionalTaskInfo.isPromotionReplaced() ? GiteaBuildStatus.PENDING : GiteaBuildStatus.WARNING;
+    publish(buildPromotion, revision, targetStatus, additionalTaskInfo);
     return true;
   }
 
@@ -199,7 +197,9 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
                        @NotNull BuildRevision revision,
                        @NotNull GiteaBuildStatus status,
                        @NotNull String description) throws PublisherException {
-    String message = createMessage(status, build.getBuildTypeName(), revision, myLinks.getViewResultsUrl(build), description);
+    SBuildType buildType = build.getBuildType();
+    String buildName = buildType != null ? buildType.getFullName() : build.getBuildTypeExternalId();
+    String message = createMessage(status, buildName, revision, getViewUrl(build), description);
     publish(message, revision, LogUtil.describe(build));
   }
 
@@ -208,22 +208,11 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
                        @NotNull GiteaBuildStatus status,
                        @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     String url = getViewUrl(buildPromotion);
-    String description = additionalTaskInfo.compileQueueRelatedMessage();
-    String message = createMessage(status, buildPromotion.getBuildType().getName(), revision, url, description);
+    String description = additionalTaskInfo.getComment();
+    SBuildType buildType = buildPromotion.getBuildType();
+    String buildName = buildType != null ? buildType.getFullName() : buildPromotion.getBuildTypeExternalId();
+    String message = createMessage(status, buildName, revision, url, description);
     publish(message, revision, LogUtil.describe(buildPromotion));
-  }
-
-  private String getViewUrl(BuildPromotion buildPromotion) {
-    SBuild build = buildPromotion.getAssociatedBuild();
-    if (build != null) {
-      return myLinks.getViewResultsUrl(build);
-    }
-    SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
-    if (queuedBuild != null) {
-      return myLinks.getQueuedBuildUrl(queuedBuild);
-    }
-    return buildPromotion.getBuildType() != null ? myLinks.getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-                                                   myLinks.getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
   }
 
   private void publish(@NotNull String message,
@@ -274,7 +263,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
                                @NotNull String url,
                                @NotNull String description) {
 
-    final Map<String, String> data = new LinkedHashMap<String, String>();
+    final Map<String, String> data = new LinkedHashMap<>();
     data.put("state", status.getName());
     data.put("context", name);
     data.put("description", description);

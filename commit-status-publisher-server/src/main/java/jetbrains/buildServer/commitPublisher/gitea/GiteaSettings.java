@@ -80,7 +80,7 @@ public class GiteaSettings extends BasePublisherSettings implements CommitStatus
   @NotNull
   @Override
   public GiteaPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new GiteaPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems);
+    return new GiteaPublisher(this, buildType, buildFeatureId, params, myProblems, myLinks);
   }
 
   @Override
@@ -147,7 +147,7 @@ public class GiteaSettings extends BasePublisherSettings implements CommitStatus
 
   @Nullable
   @Override
-  public PropertiesProcessor getParametersProcessor() {
+  public PropertiesProcessor getParametersProcessor(@NotNull BuildTypeIdentity buildTypeOrTemplate) {
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
