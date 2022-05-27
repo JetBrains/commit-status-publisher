@@ -20,6 +20,7 @@ import java.util.*;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.util.http.HttpMethod;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,6 +49,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   private final LinkedList<String> myPublishingBuilds = new LinkedList<>();
   private final LinkedList<String> myCommentsReceived = new LinkedList<>();
   private final LinkedList<String> myPublishingTargetRevisions = new LinkedList<>();
+  private final LinkedList<HttpMethod> myHttpRequests = new LinkedList<>();
 
   boolean isFailureReceived() { return myFailuresReceived > 0; }
   boolean isSuccessReceived() { return mySuccessReceived > 0; }
@@ -68,6 +70,10 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
       return null;
     }
     return myPublishingTargetRevisions.getLast();
+  }
+
+  List<HttpMethod> getSentRequests() {
+    return new ArrayList<>(myHttpRequests);
   }
 
   List<String> getPublishingTargetRevisions() {
@@ -151,6 +157,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     myCommentsReceived.add(additionalTaskInfo.getComment());
     myPublishingBuilds.add(prepareContextName(buildPromotion.getBuildType()));
     myPublishingTargetRevisions.add(revision.getRevision());
+    myHttpRequests.add(HttpMethod.POST);
     return true;
   }
 
@@ -160,6 +167,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     myPublishingBuilds.add(prepareContextName(buildPromotion.getBuildType()));
     myPublishingTargetRevisions.add(revision.getRevision());
     myLastUser = additionalTaskInfo.getCommentAuthor();
+    myHttpRequests.add(HttpMethod.POST);
     return true;
   }
 
@@ -169,6 +177,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     myCommentsReceived.add(DefaultStatusMessages.BUILD_STARTED);
     myPublishingBuilds.add(prepareContextName(build.getBuildType()));
     myPublishingTargetRevisions.add(revision.getRevision());
+    myHttpRequests.add(HttpMethod.POST);
     return true;
   }
 
@@ -178,6 +187,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     myCommentsReceived.add(DefaultStatusMessages.BUILD_FINISHED);
     myPublishingBuilds.add(prepareContextName(build.getBuildType()));
     myPublishingTargetRevisions.add(revision.getRevision());
+    myHttpRequests.add(HttpMethod.POST);
     Status s = build.getBuildStatus();
     if (s.equals(Status.NORMAL)) mySuccessReceived++;
     if (s.equals(Status.FAILURE)) myFailuresReceived++;
@@ -200,18 +210,21 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     myCommentsReceived.add(comment);
     myPublishingBuilds.add(prepareContextName(build.getBuildType()));
     myPublishingTargetRevisions.add(revision.getRevision());
+    myHttpRequests.add(HttpMethod.POST);
     return true;
   }
 
   @Override
   public boolean buildInterrupted(@NotNull final SBuild build, @NotNull final BuildRevision revision) throws PublisherException {
     pretendToHandleEvent(Event.INTERRUPTED);
+    myHttpRequests.add(HttpMethod.POST);
     return true;
   }
 
   @Override
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     pretendToHandleEvent(Event.FAILURE_DETECTED);
+    myHttpRequests.add(HttpMethod.POST);
     myFailuresReceived++;
     return true;
   }
@@ -219,11 +232,13 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   @Override
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
     pretendToHandleEvent(Event.MARKED_AS_SUCCESSFUL);
+    myHttpRequests.add(HttpMethod.POST);
     return super.buildMarkedAsSuccessful(build, revision, buildInProgress);
   }
 
   @Override
   public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) {
+    myHttpRequests.add(HttpMethod.GET);
     if (myEventsReceived.isEmpty()) {
       return null;
     }
@@ -235,7 +250,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   @Override
   public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild,
                                                          @NotNull BuildRevision revision) throws PublisherException {
-    return this.getRevisionStatus(removedBuild.getBuildPromotion(), revision);
+    return getRevisionStatus(removedBuild.getBuildPromotion(), revision);
   }
 
   private String prepareContextName(SBuildType buildType) {

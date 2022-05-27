@@ -20,10 +20,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
+import jetbrains.buildServer.QueuedBuild;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.RunningBuildState;
 import jetbrains.buildServer.serverSide.impl.beans.VcsRootInstanceContext;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsWatcher;
@@ -35,13 +38,14 @@ import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.TestFor;
+import jetbrains.buildServer.util.http.HttpMethod;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.VcsRootInstanceImpl;
 import org.jdom.Element;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import static jetbrains.buildServer.commitPublisher.CommitStatusPublisherListener.MODIFICATIONS_PROCESSING_FEATURE_TOGGLE;
+import static jetbrains.buildServer.commitPublisher.CommitStatusPublisherListener.CHECK_STATUS_BEFORE_PUBLISHING;
 import static org.assertj.core.api.BDDAssertions.then;
 
 @Test
@@ -63,7 +67,6 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     super.setUp();
     setInternalProperty(CommitStatusPublisherListener.EXPECTED_PROMOTIONS_CACHE_REFRESH_TIME_PROPERTY_NAME, "0");
     setInternalProperty(CommitStatusPublisherListener.MODIFICATIONS_PROCESSING_DELAY_PROPERTY_NAME, "10");
-    setInternalProperty(MODIFICATIONS_PROCESSING_FEATURE_TOGGLE, "true");
     myLastEventProcessed = null;
     myLogger = new PublisherLogger();
     myPublisherManager = new PublisherManager(myServer);
@@ -79,10 +82,24 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myPublisherSettings.setPublisher(myPublisher);
     myPublisherSettings.setLinks(myWebLinks);
   }
+  
+  private QueuedBuild addBuildToQueue(BuildPromotionEx buildPromotion) {
+    QueuedBuildEx queuedBuild = (QueuedBuildEx)buildPromotion.getBuildType().addToQueue(buildPromotion, "");
+    assertNotNull(queuedBuild);
+    myListener.changesLoaded(queuedBuild.getBuildPromotion());
+    return queuedBuild;
+  }
+  
+  private QueuedBuild addBuildToQueue() {
+    QueuedBuildEx queuedBuild = (QueuedBuildEx)myBuildType.addToQueue("");
+    assertNotNull(queuedBuild);
+    myListener.changesLoaded(queuedBuild.getBuildPromotion());
+    return queuedBuild;
+  }
 
   public void should_publish_started() {
     prepareVcs();
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
@@ -91,7 +108,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_not_publish_remove_from_queue_before_start() {
     prepareVcs();
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
@@ -103,7 +120,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   public void should_publish_statuses_in_order() throws InterruptedException {
     prepareVcs();
     myPublisher.setEventToWait(Event.STARTED);
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
     myFixture.finishBuild(runningBuild, false);
@@ -115,7 +132,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   public void should_mark_task_finished_before_publishing() throws InterruptedException {
     prepareVcs();
     myPublisher.setEventToWait(Event.STARTED);
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     myFixture.flushQueueAndWait();
     waitFor(() -> myMultiNodeTasks.findFinishedTasks(Collections.singleton(Event.STARTED.getName()), Dates.ONE_MINUTE).stream().findAny().isPresent(), TASK_COMPLETION_TIMEOUT_MS);
@@ -126,7 +143,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_not_accept_pending_after_finished() {
     prepareVcs();
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
@@ -143,8 +160,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     BuildCustomizerFactory customizerFactory = myFixture.getSingletonService(BuildCustomizerFactory.class);
     BuildCustomizer customizer = customizerFactory.createBuildCustomizer(myBuildType, myUser);
     customizer.setBuildComment("Non-empty comment");
-    BuildPromotion promotion = customizer.createPromotion();
-    SQueuedBuild queuedBuild = promotion.addToQueue("");
+    BuildPromotionEx promotion = (BuildPromotionEx)customizer.createPromotion();
+    SQueuedBuild queuedBuild = (SQueuedBuild)addBuildToQueue(promotion);
     waitForTasksToFinish(Event.QUEUED);
     myFixture.waitForQueuedBuildToStart(queuedBuild);
     waitForTasksToFinish(Event.STARTED);
@@ -153,7 +170,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_publish_commented() {
     prepareVcs();
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
@@ -165,7 +182,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_publish_failure() {
     prepareVcs();
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
@@ -177,14 +194,14 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_publish_queued() {
     prepareVcs();
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED));
   }
 
   public void should_publish_interrupted() {
     prepareVcs();
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
@@ -196,7 +213,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_publish_removed_from_queue() {
     prepareVcs();
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     then(myPublisher.getLastComment()).isEqualTo(DefaultStatusMessages.BUILD_QUEUED);
     myServer.getQueue().removeAllFromQueue();
@@ -206,7 +223,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_publish_finished_success() {
     prepareVcs();
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
@@ -238,7 +255,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     prepareVcs();
     setInternalProperty(CommitStatusPublisherListener.PUBLISHING_ENABLED_PROPERTY_NAME, "false");
     myBuildType.getProject().addParameter(new SimpleParameter(CommitStatusPublisherListener.PUBLISHING_ENABLED_PROPERTY_NAME, "true"));
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
@@ -262,7 +279,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.DONT);
     prepareVcs("vcs2", "222", "rev2_2", SetVcsRootIdMode.DONT);
     prepareVcs("vcs3", "333", "rev3_2", SetVcsRootIdMode.DONT);
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
@@ -279,7 +296,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.DONT);
     prepareVcs("vcs2", "222", "rev2_2", SetVcsRootIdMode.EXT_ID);
     prepareVcs("vcs3", "333", "rev3_2", SetVcsRootIdMode.DONT);
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
@@ -292,7 +309,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_handle_publisher_exception() {
     prepareVcs();
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
@@ -337,7 +354,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_not_publish_additional_status_if_marked_successful() {
     prepareVcs();
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
@@ -456,7 +473,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_not_pass_through_comment_and_user() {
     prepareVcs();
-    SQueuedBuild myBuild = myBuildType.addToQueue(myUser.getUsername());
+    SQueuedBuild myBuild = (SQueuedBuild)addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     final String removeFromQueueComment = "Test comment for remove from queue";
     myBuild.removeFromQueue(myUser, removeFromQueueComment);
@@ -467,7 +484,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_not_pass_through_user_comment_on_build_delete_from_queue() {
     prepareVcs();
-    SQueuedBuild queuedBuild = myBuildType.addToQueue("");
+    SQueuedBuild queuedBuild = (SQueuedBuild)addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     final String comment = "Comment, received from AJAX query";
     myFixture.getBuildQueue().removeQueuedBuilds(Collections.singleton(queuedBuild), myUser, comment);
@@ -476,22 +493,21 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getLastUser()).isEqualTo(myUser);
   }
 
-  public void should_publish_queued_status_for_new_commit_for_queued_build() {
+  public void should_not_publish_queued_status_for_new_commit_for_queued_build() {
     prepareVcs();
-    myBuildType.addToQueue("");
+    QueuedBuildEx queuedBuild = (QueuedBuildEx)addBuildToQueue();
+    assertNotNull(queuedBuild);
     waitForTasksToFinish(Event.QUEUED);
     assertEquals(1, myPublisher.getCommentsReceived().size());
 
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
     VcsRootInstanceImpl root = new VcsRootInstanceImpl(vcsRootInstance.getId(), vcsRootInstance.getVcsName(), vcsRootInstance.getParentId(), vcsRootInstance.getName(),
                                                        vcsRootInstance.getProperties(), myFixture.getSingletonService(VcsRootInstanceContext.class));
-    SVcsModification modification = myFixture.addModification(new ModificationData(new Date(),
-                                                                                       Collections.singletonList(
-                                                                                         new VcsChange(VcsChangeInfo.Type.CHANGED, "changed", "file", "file", "2", "3")),
+    myFixture.addModification(new ModificationData(new Date(), Collections.singletonList(new VcsChange(VcsChangeInfo.Type.CHANGED, "changed", "file",
+                                                                                                       "file", "2", "3")),
                                                                                        "descr", "user", root, "rev1_3", "rev1_3"));
-    myListener.changeAdded(modification, root, Collections.singleton(myBuildType));
-    waitFor(() -> myPublisher.getCommentsReceived().size() == 2, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(DefaultStatusMessages.BUILD_QUEUED, myPublisher.getLastComment());
+    myListener.changesLoaded(queuedBuild.getBuildPromotion());
+    waitFor(() -> myPublisher.getCommentsReceived().size() == 1, TASK_COMPLETION_TIMEOUT_MS);
   }
 
   @Test(enabled = false)  // Should pass after TW-75702
@@ -501,7 +517,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     CheckoutRules checkoutRules = new CheckoutRules("+:src => .");
     myBuildType.setCheckoutRules(vcsRoot, checkoutRules);
 
-    myBuildType.addToQueue("");
+    addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
 
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
@@ -522,41 +538,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
   }
 
-  public void should_not_publish_queued_after_consiquent_event() {
-    prepareVcs();
-    myBuildType.addToQueue("");
-    waitForTasksToFinish(Event.QUEUED);
-    RunningBuildEx runningBuild = myFixture.flushQueueAndWait();
-    waitForTasksToFinish(Event.STARTED);
-    myFixture.finishBuild(runningBuild, false);
-    waitForTasksToFinish(Event.FINISHED);
-    assertTrue(myBuildType.getQueuedBuilds().isEmpty());
-
-    myBuildType.addToQueue("");
-    assertEquals(1, myBuildType.getQueuedBuilds().size());
-    runningBuild.setBuildComment(myUser , "My test comment"); // to check, that one more Event.QUEUED was not published
-    waitForTasksToFinish(Event.COMMENTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED, Event.COMMENTED));
-  }
-
-  public void should_not_publish_removed_from_queue_after_build_was_strted() {
-    prepareVcs();
-    build().in(myBuildType).parameter("mock", "val").addToQueue();
-    SQueuedBuild secondQueuedBuild = myBuildType.addToQueue("");
-    waitForTasksToFinish(Event.QUEUED);
-    RunningBuildEx runningBuild = myFixture.flushQueueAndWait();
-    waitForTasksToFinish(Event.STARTED);
-    assertEquals(3, myPublisher.getCommentsReceived().size());
-    secondQueuedBuild.removeFromQueue(myUser, "test");
-    myFixture.finishBuild(runningBuild, false);
-    waitForTasksToFinish(Event.FINISHED);
-    assertEquals(4, myPublisher.getCommentsReceived().size());
-    assertEquals(DefaultStatusMessages.BUILD_FINISHED, myPublisher.getLastComment());
-    assertFalse(myPublisher.getCommentsReceived().stream().anyMatch(comment -> comment.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)));
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.QUEUED, Event.STARTED, Event.FINISHED));
-  }
-
-  public void shoudl_publish_queued_on_passed_revision() throws PublisherException {
+  public void should_publish_queued_on_passed_revision() throws PublisherException {
     prepareVcs();
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
     SVcsModification modififcation1 = myFixture.addModification(new ModificationData(new Date(),
@@ -570,10 +552,88 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     BuildRevisionEx revision1 = new BuildRevisionEx(vcsRootInstance, modififcation1.getVersion(), "", modififcation1.getDisplayVersion());
     BuildPromotionEx buildPromotion = myBuildType.createBuildPromotion("branch1");
     buildPromotion.setBuildRevisions(Arrays.asList(revision1), modififcation1.getId(), Long.MAX_VALUE);
-    myBuildType.addToQueue(buildPromotion, "");
+    addBuildToQueue(buildPromotion);
     waitForTasksToFinish(Event.QUEUED);
     then(myPublisher.getLastTargetRevision()).isEqualTo(modififcation1.getVersion());
     then(myPublisher.getPublishingTargetRevisions()).doesNotContain(modififcation2.getVersion());
+  }
+
+  public void should_be_sent_excepted_number_of_requests_for_build_chain() {
+    prepareVcs();
+    String projectName = myProject.getName();
+    SBuildFeatureDescriptor myBuildFeature = myBuildType.getBuildFeatures().iterator().next();
+    SVcsRoot commonVcsRoot = myBuildType.getVcsRoots().iterator().next();
+    BuildTypeImpl bt2 = registerBuildType("bt2", projectName);
+    bt2.addBuildFeature(myBuildFeature);
+    bt2.addVcsRoot(commonVcsRoot);
+    BuildTypeImpl bt3 = registerBuildType("bt3", projectName);
+    bt3.addBuildFeature(myBuildFeature);
+    bt3.addVcsRoot(commonVcsRoot);
+    BuildTypeImpl bt4 = registerBuildType("bt4", projectName);
+    bt4.addBuildFeature(myBuildFeature);
+    bt4.addVcsRoot(commonVcsRoot);
+    DependencyFactory dependencyFactory = myFixture.getSingletonService(DependencyFactory.class);
+    myBuildType.addDependency(dependencyFactory.createDependency(bt2));
+    myBuildType.addDependency(dependencyFactory.createDependency(bt3));
+    bt2.addDependency(dependencyFactory.createDependency(bt4));
+    bt3.addDependency(dependencyFactory.createDependency(bt4));
+
+    addBuildToQueue();
+    waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 4, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(0, myPublisher.getSentRequests().size());
+
+    waitFor(() -> myPublisher.getSentRequests().size() >= 8, TASK_COMPLETION_TIMEOUT_MS); // 4 x GET current status (cache is implemented in publisher) + 4 x POST new statuses
+    assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.GET).count());
+    assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+  }
+
+  public void should_be_sent_excepted_number_of_requests_for_build_chain_toggle_on() {
+    prepareVcs();
+    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "true");
+    String projectName = myProject.getName();
+    SBuildFeatureDescriptor myBuildFeature = myBuildType.getBuildFeatures().iterator().next();
+    SVcsRoot commonVcsRoot = myBuildType.getVcsRoots().iterator().next();
+    BuildTypeImpl bt2 = registerBuildType("bt2", projectName);
+    bt2.addBuildFeature(myBuildFeature);
+    bt2.addVcsRoot(commonVcsRoot);
+    BuildTypeImpl bt3 = registerBuildType("bt3", projectName);
+    bt3.addBuildFeature(myBuildFeature);
+    bt3.addVcsRoot(commonVcsRoot);
+    BuildTypeImpl bt4 = registerBuildType("bt4", projectName);
+    bt4.addBuildFeature(myBuildFeature);
+    bt4.addVcsRoot(commonVcsRoot);
+    DependencyFactory dependencyFactory = myFixture.getSingletonService(DependencyFactory.class);
+    myBuildType.addDependency(dependencyFactory.createDependency(bt2));
+    myBuildType.addDependency(dependencyFactory.createDependency(bt3));
+    bt2.addDependency(dependencyFactory.createDependency(bt4));
+    bt3.addDependency(dependencyFactory.createDependency(bt4));
+
+    addBuildToQueue();
+    waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 4, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(0, myPublisher.getSentRequests().size());
+
+    waitFor(() -> myPublisher.getSentRequests().size() >= 8, TASK_COMPLETION_TIMEOUT_MS); // 4 x GET current status (cache is implemented in publisher) + 4 x POST new statuses
+    assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.GET).count());
+  }
+
+  public void should_be_sent_excepted_number_of_requests_for_single_build() {
+    prepareVcs();
+    addBuildToQueue();
+    waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 1, TASK_COMPLETION_TIMEOUT_MS);
+    waitFor(() -> myPublisher.getSentRequests().size() == 2, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(1L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    assertEquals(1L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.GET).count());
+  }
+
+  public void should_be_sent_excepted_number_of_requests_for_single_build_toggle_on() {
+    prepareVcs();
+    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "true");
+    addBuildToQueue();
+    waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 1, TASK_COMPLETION_TIMEOUT_MS);
+    waitFor(() -> myPublisher.getSentRequests().size() == 2, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(1L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    assertEquals(1L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.GET).count());
   }
 
   private void prepareVcs() {
