@@ -52,7 +52,7 @@ public class GiteaPublisherTest extends HttpPublisherTest {
 
   public GiteaPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
-    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*%s by %s.*%s.*", REVISION, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, USER.toLowerCase(), COMMENT));
+    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*warning.*%s\".*", REVISION, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE));
     myExpectedRegExps.put(EventToTest.STARTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_STARTED));
     myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*Failure.*", REVISION));
@@ -75,7 +75,7 @@ public class GiteaPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GiteaPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisher = new GiteaPublisher(myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks);
     test_buildFinished_Successfully();
   }
 
@@ -86,7 +86,7 @@ public class GiteaPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GiteaPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisher = new GiteaPublisher(myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks);
     test_buildFinished_Successfully();
   }
 
@@ -157,7 +157,7 @@ public class GiteaPublisherTest extends HttpPublisherTest {
     super.setUp();
     myPublisherSettings = new GiteaSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
     Map<String, String> params = getPublisherParams();
-    myPublisher = new GiteaPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisher = new GiteaPublisher(myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks);
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }
 
