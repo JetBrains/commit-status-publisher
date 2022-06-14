@@ -19,6 +19,9 @@ package jetbrains.buildServer.commitPublisher;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.KeyStore;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -51,6 +54,7 @@ public class HttpHelper {
     final AtomicReference<String> content = new AtomicReference<String>();
     final AtomicReference<Integer> code = new AtomicReference<Integer>(0);
     final AtomicReference<String> text = new AtomicReference<String>();
+    final AtomicReference<Duration> retryDelay = new AtomicReference<Duration>();
 
     final HTTPRequestBuilder builder;
     try {
@@ -76,6 +80,14 @@ public class HttpHelper {
             content.set(response.getBodyAsString());
             code.set(response.getStatusCode());
             text.set(response.getStatusText());
+            String retryAfter = response.getHeader("Retry-After");
+            if (retryAfter != null) {
+              try {
+                retryDelay.set(Duration.ofSeconds(Long.parseLong(retryAfter)));
+              } catch (NumberFormatException ex) {
+                retryDelay.set(Duration.between(Instant.now(), Instant.from(DateTimeFormatter.RFC_1123_DATE_TIME.parse(retryAfter))));
+              }
+            }
           }
         })
         .onSuccess(new HTTPRequestBuilder.ResponseConsumer() {
@@ -103,7 +115,13 @@ public class HttpHelper {
       }
     }
 
-    if (processor != null) {
+    Duration duration = retryDelay.get();
+    if (duration != null) {
+      try {
+        Thread.sleep(duration.plus(Constants.RATE_LIMIT_RESET_BUFFER).toMillis());
+      } catch (InterruptedException ignored) {}
+      call(method, url, username, password, headers, timeout, trustStore, processor, modifier);
+    } else if (processor != null) {
       processor.processResponse(new HttpResponse(code.get(), text.get(), content.get()));
     }
   }

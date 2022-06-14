@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.commitPublisher;
 
+import java.time.Duration;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import org.jetbrains.annotations.NotNull;
 
@@ -62,6 +63,7 @@ public class Constants {
   public static final String GITHUB_OAUTH_PROVIDER_ID = "github_oauth_provider_id";
   public static final String GITHUB_CUSTOM_CONTEXT_BUILD_PARAM = "teamcity.commitStatusPublisher.githubContext";
   public static final String GITHUB_CONTEXT = "github_context";
+  public static final String GITHUB_RATE_LIMIT_RESET_HEADER = "X-RateLimit-Reset";
 
   public static final String BITBUCKET_PUBLISHER_ID = "bitbucketCloudPublisher";
   public static final String BITBUCKET_CLOUD_USERNAME = "bitbucketUsername";
@@ -70,6 +72,8 @@ public class Constants {
   public static final String GITLAB_PUBLISHER_ID = "gitlabStatusPublisher";
   public static final String GITLAB_API_URL = "gitlabApiUrl";
   public static final String GITLAB_TOKEN = "secure:gitlabAccessToken";
+
+  public static final Duration RATE_LIMIT_RESET_BUFFER = Duration.ofSeconds(1);
 
 
   @NotNull

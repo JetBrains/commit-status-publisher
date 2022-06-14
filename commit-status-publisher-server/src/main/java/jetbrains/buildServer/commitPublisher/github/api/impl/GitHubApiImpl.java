@@ -20,6 +20,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
@@ -112,6 +114,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
 
     final AtomicReference<CombinedCommitStatus> status = new AtomicReference<>();
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
+    final AtomicReference<Duration> retryDelay = new AtomicReference<>();
     IOGuard.allowNetworkCall(() -> {
       myClient.get(statusUrl, authenticationCredentials(), defaultHeaders(),
                    success -> {
@@ -135,14 +138,25 @@ public abstract class GitHubApiImpl implements GitHubApi {
                      }
                    },
                    response -> {
-                     logFailedResponse(method, statusUrl, null, response);
-                     exceptionRef.set(new IOException(getErrorMessage(response, null)));
+                     String reset = response.getHeader(Constants.GITHUB_RATE_LIMIT_RESET_HEADER);
+                     if (reset != null) {
+                       retryDelay.set(Duration.between(Instant.now(), Instant.ofEpochSecond(Long.parseLong(reset))));
+                     } else {
+                       logFailedResponse(method, statusUrl, null, response);
+                       exceptionRef.set(new IOException(getErrorMessage(response, null)));
+                     }
                    },
                    e -> exceptionRef.set(e));
     });
 
     final Exception ex;
-    if ((ex = exceptionRef.get()) != null) {
+    final Duration duration = retryDelay.get();
+    if (duration != null) {
+      try {
+        Thread.sleep(duration.plus(Constants.RATE_LIMIT_RESET_BUFFER).toMillis());
+      } catch (InterruptedException ignored) {}
+      return readChangeCombinedStatus(repoOwner, repoName, hash, perPage, page);
+    } else if ((ex = exceptionRef.get()) != null) {
       if (ex instanceof IOException) {
         throw (IOException) ex;
       } else {
@@ -176,6 +190,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     LoggerUtil.logRequest(Constants.GITHUB_PUBLISHER_ID, method, url, entity);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
+    final AtomicReference<Duration> retryDelay = new AtomicReference<>();
     IOGuard.allowNetworkCall(() -> {
       myClient.post(
         url, authenticationCredentials(), defaultHeaders(),
@@ -183,14 +198,25 @@ public abstract class GitHubApiImpl implements GitHubApi {
         response -> {
         },
         response -> {
-          logFailedResponse(method, url, entity, response);
-          exceptionRef.set(new IOException(getErrorMessage(response, MSG_PROXY_OR_PERMISSIONS)));
+          String reset = response.getHeader(Constants.GITHUB_RATE_LIMIT_RESET_HEADER);
+          if (reset != null) {
+            retryDelay.set(Duration.between(Instant.now(), Instant.ofEpochSecond(Long.parseLong(reset))));
+          } else {
+            logFailedResponse(method, url, entity, response);
+            exceptionRef.set(new IOException(getErrorMessage(response, MSG_PROXY_OR_PERMISSIONS)));
+          }
         },
         e -> exceptionRef.set(e));
     });
 
     final Exception ex;
-    if ((ex = exceptionRef.get()) != null) {
+    final Duration duration = retryDelay.get();
+    if (duration != null) {
+      try {
+        Thread.sleep(duration.plus(Constants.RATE_LIMIT_RESET_BUFFER).toMillis());
+      } catch (InterruptedException ignored) {}
+      setChangeStatus(repoOwner, repoName, hash, status, targetUrl, description, context);
+    } else if ((ex = exceptionRef.get()) != null) {
       if (ex instanceof IOException) {
         throw (IOException) ex;
       } else {
@@ -249,6 +275,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
     final AtomicReference<T> resultRef = new AtomicReference<>();
+    final AtomicReference<Duration> retryDelay = new AtomicReference<>();
     IOGuard.allowNetworkCall(() -> {
       myClient.get(uri, authenticationCredentials(), defaultHeaders(),
                    success -> {
@@ -267,8 +294,13 @@ public abstract class GitHubApiImpl implements GitHubApi {
                      }
                    },
                    error -> {
-                     logFailedResponse(HttpMethod.GET, uri, null, error, logErrorsDebugOnly);
-                     exceptionRef.set(new IOException(getErrorMessage(error, MSG_PROXY_OR_PERMISSIONS)));
+                     String reset = error.getHeader(Constants.GITHUB_RATE_LIMIT_RESET_HEADER);
+                     if (reset != null) {
+                       retryDelay.set(Duration.between(Instant.now(), Instant.ofEpochSecond(Long.parseLong(reset))));
+                     } else {
+                       logFailedResponse(HttpMethod.GET, uri, null, error, logErrorsDebugOnly);
+                       exceptionRef.set(new IOException(getErrorMessage(error, MSG_PROXY_OR_PERMISSIONS)));
+                     }
                    },
                    e -> {
                      exceptionRef.set(e);
@@ -277,7 +309,13 @@ public abstract class GitHubApiImpl implements GitHubApi {
     });
 
     final Exception ex;
-    if ((ex = exceptionRef.get()) != null) {
+    final Duration duration = retryDelay.get();
+    if (duration != null) {
+      try {
+        Thread.sleep(duration.plus(Constants.RATE_LIMIT_RESET_BUFFER).toMillis());
+      } catch (InterruptedException ignored) {}
+      return processResponse(uri, clazz, logErrorsDebugOnly);
+    } else if ((ex = exceptionRef.get()) != null) {
       if (ex instanceof IOException) {
         throw (IOException)ex;
       } else if (ex instanceof PublisherException) {
@@ -350,6 +388,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     LoggerUtil.logRequest(Constants.GITHUB_PUBLISHER_ID, method, url, entity);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
+    final AtomicReference<Duration> retryDelay = new AtomicReference<>();
     IOGuard.allowNetworkCall(() -> {
       myClient.post(
         url, authenticationCredentials(), defaultHeaders(),
@@ -357,14 +396,25 @@ public abstract class GitHubApiImpl implements GitHubApi {
         response -> {
         },
         response -> {
-          logFailedResponse(method, url, entity, response);
-          exceptionRef.set(new IOException(getErrorMessage(response, null)));
+          String reset = response.getHeader(Constants.GITHUB_RATE_LIMIT_RESET_HEADER);
+          if (reset != null) {
+            retryDelay.set(Duration.between(Instant.now(), Instant.ofEpochSecond(Long.parseLong(reset))));
+          } else {
+            logFailedResponse(method, url, entity, response);
+            exceptionRef.set(new IOException(getErrorMessage(response, null)));
+          }
         },
         e -> exceptionRef.set(e));
     });
 
     final Exception ex;
-    if ((ex = exceptionRef.get()) != null) {
+    final Duration duration = retryDelay.get();
+    if (duration != null) {
+      try {
+        Thread.sleep(duration.plus(Constants.RATE_LIMIT_RESET_BUFFER).toMillis());
+      } catch (InterruptedException ignored) {}
+      postComment(ownerName, repoName, hash, comment);
+    } else if ((ex = exceptionRef.get()) != null) {
       if (ex instanceof IOException) {
         throw (IOException) ex;
       } else {
