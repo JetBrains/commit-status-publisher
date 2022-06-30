@@ -116,7 +116,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
     events.addListener(this);
 
-    myMultiNodeTasks.subscribe(Event.STARTED.getName(), new BuildPublisherTaskConsumer (
+    myMultiNodeTasks.subscribeOnSingletonTask(Event.STARTED.getName(), new BuildPublisherTaskConsumer (
       build -> new PublishTask() {
         @Override
         public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
@@ -220,9 +220,24 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     }
   }
 
+  /**
+   * This event is required because new one is not triggered before build start in trivial cases
+   * @deprecated it's better to use only {@link changesLoaded(BuildPromotion)} instead
+   * @param build build, whose changes are loaded and it's started
+   */
+  @Deprecated
+  @Override
+  public void changesLoaded(@NotNull SRunningBuild build) {
+    SBuildType buildType = getBuildType(Event.STARTED, build);
+    if (isBuildFeatureAbsent(buildType))
+      return;
+
+    submitTaskForBuild(Event.STARTED, build);
+  }
+
   @Override
   public void buildFinished(@NotNull SRunningBuild build) {
-    SBuildType buildType = getBuildType(Event.FINISHED, build);
+     SBuildType buildType = getBuildType(Event.FINISHED, build);
     if (isBuildFeatureAbsent(buildType))
       return;
 
