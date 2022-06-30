@@ -254,14 +254,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
 
   @Nullable
   private String getCustomContextFromParameter(@NotNull BuildPromotion buildPromotion) {
-    String value = buildPromotion.getBuildParameters().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM);
-    if (value == null) {
-      return null;
-    }
-    SBuild associatedBuild = buildPromotion.getAssociatedBuild();
-    if (associatedBuild == null) {
-      return null;
-    }
-    return associatedBuild.getValueResolver().resolve(value).getResult();
+    String value = buildPromotion.getParameters().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM);
+    return value == null ? null : myBuildType.getValueResolver().resolve(value).getResult();
   }
 }
