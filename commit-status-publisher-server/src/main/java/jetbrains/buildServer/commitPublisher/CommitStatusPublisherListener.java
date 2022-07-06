@@ -214,6 +214,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   public void changesLoaded(@NotNull BuildPromotion buildPromotion) {
     SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
     if (queuedBuild != null) {
+      if (buildPromotion.isPartOfBuildChain() && buildPromotion.getContainingChanges().isEmpty() && buildPromotion.getNumberOfDependedOnMe() != 0) {
+        LOG.debug(String.format("Queued status for build #%s will not be published, because it will be optimized", queuedBuild.getItemId()));
+        return;
+      }
       buildAddedToQueue(queuedBuild);
     } else {
       SBuild build = buildPromotion.getAssociatedBuild();

@@ -21,12 +21,14 @@ import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
 import jetbrains.buildServer.QueuedBuild;
+import jetbrains.buildServer.buildTriggers.vcs.ModificationDataBuilder;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
+import jetbrains.buildServer.serverSide.impl.CancelableTaskHolder;
 import jetbrains.buildServer.serverSide.impl.RunningBuildState;
 import jetbrains.buildServer.serverSide.impl.beans.VcsRootInstanceContext;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsWatcher;
@@ -93,6 +95,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   private QueuedBuild addBuildToQueue() {
     QueuedBuildEx queuedBuild = (QueuedBuildEx)myBuildType.addToQueue("");
     assertNotNull(queuedBuild);
+    queuedBuild.getBuildPromotion().getTopDependencyGraph().collectChangesForGraph(new CancelableTaskHolder());
     myListener.changesLoaded(queuedBuild.getBuildPromotion());
     return queuedBuild;
   }
@@ -285,9 +288,8 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.STARTED);
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
-    // This documents the current behaviour, i.e. only one QUEUED event received for some reason
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED,
-                                                                  Event.STARTED, Event.STARTED,
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.QUEUED, Event.QUEUED,
+                                                                  Event.STARTED, Event.STARTED, Event.STARTED,
                                                                   Event.FINISHED, Event.FINISHED, Event.FINISHED));
     then(myPublisher.successReceived()).isEqualTo(3);
   }
@@ -302,8 +304,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.STARTED);
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
-    // This documents the current behaviour, i.e. no QUEUED event received
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.STARTED, Event.FINISHED));
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
     then(myPublisher.successReceived()).isEqualTo(1);
   }
 
@@ -563,24 +564,30 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     String projectName = myProject.getName();
     SBuildFeatureDescriptor myBuildFeature = myBuildType.getBuildFeatures().iterator().next();
     SVcsRoot commonVcsRoot = myBuildType.getVcsRoots().iterator().next();
+    VcsRootInstance commonVcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
+    int version = 42;
+
     BuildTypeImpl bt2 = registerBuildType("bt2", projectName);
     bt2.addBuildFeature(myBuildFeature);
     bt2.addVcsRoot(commonVcsRoot);
+    myFixture.addModification(ModificationDataBuilder.modification().in(commonVcsRootInstance).version(version++), bt2, RelationType.REGULAR);
     BuildTypeImpl bt3 = registerBuildType("bt3", projectName);
     bt3.addBuildFeature(myBuildFeature);
     bt3.addVcsRoot(commonVcsRoot);
+    myFixture.addModification(ModificationDataBuilder.modification().in(commonVcsRootInstance).version(version++), bt3, RelationType.REGULAR);
     BuildTypeImpl bt4 = registerBuildType("bt4", projectName);
     bt4.addBuildFeature(myBuildFeature);
     bt4.addVcsRoot(commonVcsRoot);
+    myFixture.addModification(ModificationDataBuilder.modification().in(commonVcsRootInstance).version(version), bt4, RelationType.REGULAR);
     DependencyFactory dependencyFactory = myFixture.getSingletonService(DependencyFactory.class);
     myBuildType.addDependency(dependencyFactory.createDependency(bt2));
     myBuildType.addDependency(dependencyFactory.createDependency(bt3));
     bt2.addDependency(dependencyFactory.createDependency(bt4));
     bt3.addDependency(dependencyFactory.createDependency(bt4));
 
+    assertEquals(0, myPublisher.getSentRequests().size());
     addBuildToQueue();
     waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 4, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(0, myPublisher.getSentRequests().size());
 
     waitFor(() -> myPublisher.getSentRequests().size() >= 8, TASK_COMPLETION_TIMEOUT_MS); // 4 x GET current status (cache is implemented in publisher) + 4 x POST new statuses
     assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.GET).count());
@@ -593,24 +600,31 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     String projectName = myProject.getName();
     SBuildFeatureDescriptor myBuildFeature = myBuildType.getBuildFeatures().iterator().next();
     SVcsRoot commonVcsRoot = myBuildType.getVcsRoots().iterator().next();
+    VcsRootInstance commonVcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
+    int version = 42;
+
     BuildTypeImpl bt2 = registerBuildType("bt2", projectName);
     bt2.addBuildFeature(myBuildFeature);
     bt2.addVcsRoot(commonVcsRoot);
+    myFixture.addModification(ModificationDataBuilder.modification().in(commonVcsRootInstance).version(version++), bt2, RelationType.REGULAR);
     BuildTypeImpl bt3 = registerBuildType("bt3", projectName);
     bt3.addBuildFeature(myBuildFeature);
     bt3.addVcsRoot(commonVcsRoot);
+    myFixture.addModification(ModificationDataBuilder.modification().in(commonVcsRootInstance).version(version++), bt3, RelationType.REGULAR);
     BuildTypeImpl bt4 = registerBuildType("bt4", projectName);
     bt4.addBuildFeature(myBuildFeature);
     bt4.addVcsRoot(commonVcsRoot);
+    myFixture.addModification(ModificationDataBuilder.modification().in(commonVcsRootInstance).version(version), bt4, RelationType.REGULAR);
     DependencyFactory dependencyFactory = myFixture.getSingletonService(DependencyFactory.class);
     myBuildType.addDependency(dependencyFactory.createDependency(bt2));
     myBuildType.addDependency(dependencyFactory.createDependency(bt3));
     bt2.addDependency(dependencyFactory.createDependency(bt4));
     bt3.addDependency(dependencyFactory.createDependency(bt4));
 
+
+    assertEquals(0, myPublisher.getSentRequests().size());
     addBuildToQueue();
     waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 4, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(0, myPublisher.getSentRequests().size());
 
     waitFor(() -> myPublisher.getSentRequests().size() >= 8, TASK_COMPLETION_TIMEOUT_MS); // 4 x GET current status (cache is implemented in publisher) + 4 x POST new statuses
     assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
