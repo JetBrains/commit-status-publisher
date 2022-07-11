@@ -198,7 +198,8 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
       case Pending:
         if (commitStatus.description == null) return null;
         return commitStatus.description.contains(DefaultStatusMessages.BUILD_QUEUED) ? Event.QUEUED :
-               commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE) ? Event.REMOVED_FROM_QUEUE : null;
+               commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE) ? Event.REMOVED_FROM_QUEUE :
+               commitStatus.description.contains(DefaultStatusMessages.BUILD_STARTED) ? Event.STARTED : null;
       case Error:
       case Succeeded:
       case Failed:

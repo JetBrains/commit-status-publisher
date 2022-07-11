@@ -65,10 +65,10 @@ public class StashPublisherTest extends BaseStashPublisherTest {
     assertNull(publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, null, null, null, null, null, null, "nonsense", null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL, null, null, null, null, null, StashBuildStatus.INPROGRESS.name(), null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, null, null, null, null, null, null, StashBuildStatus.INPROGRESS.name(), null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_STARTED, null, null, null, null, null, StashBuildStatus.INPROGRESS.name(), null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, "nonsense", null, null, null, null, null, StashBuildStatus.INPROGRESS.name(), null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_QUEUED, null, null, null, null, null, StashBuildStatus.INPROGRESS.name(), null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null, null, null, null, StashBuildStatus.INPROGRESS.name(), null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_STARTED, null, null, null, null, null, StashBuildStatus.INPROGRESS.name(), null, null)).getTriggeredEvent());
   }
 
   public void should_define_correctly_if_event_allowed() {

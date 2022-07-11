@@ -185,7 +185,8 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
       case INPROGRESS:
         if (buildStatus.description == null) return null;
         return buildStatus.description.contains(DefaultStatusMessages.BUILD_QUEUED) ? Event.QUEUED :
-               buildStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE) ? Event.REMOVED_FROM_QUEUE : null;
+               buildStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE) ? Event.REMOVED_FROM_QUEUE :
+               buildStatus.description.contains(DefaultStatusMessages.BUILD_STARTED) ? Event.STARTED : null;
       case STOPPED:
       case FAILED:
       case SUCCESSFUL:

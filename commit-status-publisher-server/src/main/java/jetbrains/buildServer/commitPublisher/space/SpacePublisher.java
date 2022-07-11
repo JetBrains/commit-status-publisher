@@ -179,6 +179,8 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
         if (commitStatus.description == null) return Event.QUEUED;
         return commitStatus.description.contains(DefaultStatusMessages.BUILD_QUEUED) ? Event.QUEUED : Event.REMOVED_FROM_QUEUE;
       case RUNNING:
+        if (commitStatus.description == null) return null;
+        return commitStatus.description.contains(DefaultStatusMessages.BUILD_STARTED) ? Event.STARTED : null;
       case SUCCEEDED:
       case FAILED:
       case FAILING:

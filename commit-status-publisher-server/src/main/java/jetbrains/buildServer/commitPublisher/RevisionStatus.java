@@ -35,7 +35,8 @@ public class RevisionStatus {
     }
     switch (event) {
       case QUEUED:
-        return event == myTriggeredEvent || CommitStatusPublisher.Event.REMOVED_FROM_QUEUE == myTriggeredEvent;
+        return event == myTriggeredEvent || CommitStatusPublisher.Event.REMOVED_FROM_QUEUE == myTriggeredEvent ||
+               (CommitStatusPublisher.Event.STARTED == myTriggeredEvent && !myIsLastStatusForRevision);
       case REMOVED_FROM_QUEUE:
         return myIsLastStatusForRevision && CommitStatusPublisher.Event.QUEUED == myTriggeredEvent;
       case STARTED:

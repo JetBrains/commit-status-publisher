@@ -116,7 +116,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     }
   }
 
-  public void shoudld_calculate_correct_revision_status() {
+  public void should_calculate_correct_revision_status() {
     BuildPromotion promotion = new MockBuildPromotion();
     GitHubPublisher publisher = (GitHubPublisher)myPublisher;
     assertNull(publisher.getRevisionStatus(promotion, (CommitStatus)null));
@@ -127,7 +127,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     assertNull(publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Failure.getState(), null, null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, "nonsense", null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, DefaultStatusMessages.BUILD_STARTED, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, DefaultStatusMessages.BUILD_STARTED, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, DefaultStatusMessages.BUILD_QUEUED, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null)).getTriggeredEvent());
   }

@@ -150,7 +150,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
           return null;
         }
         if (description.contains(DefaultStatusMessages.BUILD_STARTED)) {
-          return null;
+          return Event.STARTED;
         } else if (description.contains(DefaultStatusMessages.BUILD_QUEUED)) {
           return Event.QUEUED;
         } else if (description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) {

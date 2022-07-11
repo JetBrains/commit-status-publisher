@@ -105,8 +105,6 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     assertNull(publisher.getRevisionStatus(promotion, new BitbucketCloudCommitBuildStatus(null, BitbucketCloudBuildStatus.INPROGRESS.name(),
                                                                                                                                  null, null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new BitbucketCloudCommitBuildStatus(null, BitbucketCloudBuildStatus.INPROGRESS.name(),
-                                                                                                                                 null, DefaultStatusMessages.BUILD_STARTED, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new BitbucketCloudCommitBuildStatus(null, BitbucketCloudBuildStatus.INPROGRESS.name(),
                                                                                                                                  null, "", null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new BitbucketCloudCommitBuildStatus(null, BitbucketCloudBuildStatus.INPROGRESS.name(),
                                                                                                                                 null, DefaultStatusMessages.BUILD_QUEUED, null)).getTriggeredEvent());
@@ -115,6 +113,8 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
                                                                                                                                             null,
                                                                                                                                             DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE,
                                                                                                                                             null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new BitbucketCloudCommitBuildStatus(null, BitbucketCloudBuildStatus.INPROGRESS.name(),
+                                                                                                                                 null, DefaultStatusMessages.BUILD_STARTED, null)).getTriggeredEvent());
   }
 
   public void should_define_correctly_if_event_allowed() {

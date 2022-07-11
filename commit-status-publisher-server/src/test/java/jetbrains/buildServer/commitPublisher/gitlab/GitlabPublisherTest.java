@@ -141,7 +141,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     assertNull(publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.CANCELED.getName(), null, null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.CANCELED.getName(), "nonsense", null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.RUNNING.getName(), null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.RUNNING.getName(), DefaultStatusMessages.BUILD_STARTED, null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.RUNNING.getName(), DefaultStatusMessages.BUILD_STARTED, null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.CANCELED.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.PENDING.getName(), "", null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, null, null)).getTriggeredEvent());

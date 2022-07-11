@@ -101,6 +101,7 @@ public class TfsPublisherTest extends HttpPublisherTest {
     assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), null, null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), "nonsense", null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_QUEUED, null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_STARTED, null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null)).getTriggeredEvent());
   }
 

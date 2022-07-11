@@ -73,7 +73,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   private final TeamCityNodes myTeamCityNodes;
   private final UserModel myUserModel;
   private final Map<String, Event> myEventTypes = new HashMap<>();
-  private final Striped<Lock> myLocks = Striped.lazyWeakLock(100);
+  private final Striped<Lock> myRevisionLocks = Striped.lazyWeakLock(100);
   private final Map<Long, Event> myLastEvents =
     new LinkedHashMap<Long, Event> () {
       @Override
@@ -472,6 +472,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       public void publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
         if (!publisher.isAvailable(buildPromotion))
           return;
+        Lock lock = myRevisionLocks.get(revision.getRevision());
+        lock.lock();
         try {
           boolean isReplacedStatusPublished = publishReplacingStatus(publisher, revision, additionalTaskInfo);
           if (isReplacedStatusPublished) {
@@ -482,6 +484,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
           }
         } catch (PublisherException e) {
           LOG.warn("Cannot publish removed build status to VCS for " + publisher.getBuildType() + ", commit: " + revision.getRevision(), e);
+        } finally {
+          lock.unlock();
         }
       }
 
@@ -764,35 +768,25 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       Event eventType = getEventType(task);
       SBuild build = getBuild(task);
 
+      // We are accepting the task. It will be either completed or will fail
+      // One way or another it will be marked as finished (see TW-69618)
+      task.finished();
       if (eventType == null || build == null) {
-        task.finished();
         eventProcessed(eventType);
         return;
       }
 
       synchronized (myLastEvents) {
-        if (myLastEvents.get(build.getBuildId()) != null && eventType.isFirstTask()) {
-          task.finished();
+        BuildPromotion buildPromotion = build.getBuildPromotion();
+        if (myLastEvents.get(buildPromotion.getId()) != null && eventType.isFirstTask()) {
           eventProcessed(eventType);
           return;
         }
         if (eventType.isConsequentTask())
-          myLastEvents.put(build.getBuildId(), eventType);
+          myLastEvents.put(buildPromotion.getId(), eventType);
       }
 
-      // We are accepting the task. It will be either completed or will fail
-      // One way or another it will be marked as finished (see TW-69618)
-      task.finished();
-
-      runAsync(() -> {
-          Lock lock = myLocks.get(build.getBuildTypeId());
-          lock.lock();
-          try {
-            runForEveryPublisher(eventType, build);
-          } finally {
-            lock.unlock();
-          }
-        }, () -> { eventProcessed(eventType); });
+      runAsync(() -> runForEveryPublisher(eventType, build), () -> { eventProcessed(eventType); });
     }
 
     @Nullable
@@ -820,7 +814,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       PublishingProcessor publishingProcessor = new PublishingProcessor() {
         @Override
         public void publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
-          runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision, null);
+          Lock lock = myRevisionLocks.get(revision.getRevision());
+          lock.lock();
+          try {
+            runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision, null);
+          } finally {
+            lock.unlock();
+          }
         }
 
         @Override
@@ -853,27 +853,23 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       Event eventType = getEventType(task);
       BuildPromotion promotion = getBuildPromotion(task);
 
-      User commentAuthor = getUser(task);
-      String comment = getComment(task);
+      task.finished();
       if (eventType == null || promotion == null) {
-        task.finished();
         eventProcessed(eventType);
         return;
       }
 
-      task.finished();
+      Event event = myLastEvents.get(promotion.getId());
+      if (event != null && event == Event.STARTED) {
+        eventProcessed(event);
+        return;
+      }
 
+      User commentAuthor = getUser(task);
+      String comment = getComment(task);
       AdditionalTaskInfo additionalTaskInfo = new AdditionalTaskInfo(comment, commentAuthor);
 
-      runAsync(() -> {
-        Lock lock = myLocks.get(promotion.getBuildTypeId());
-        lock.lock();
-        try {
-          runForEveryPublisher(eventType, promotion, additionalTaskInfo);
-        } finally {
-          lock.unlock();
-        }
-      }, () -> { eventProcessed(eventType); });
+      runAsync(() -> runForEveryPublisher(eventType, promotion, additionalTaskInfo), () -> { eventProcessed(eventType); });
     }
 
     @Nullable
@@ -907,7 +903,15 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       PublishingProcessor publishingProcessor = new PublishingProcessor() {
         @Override
         public void publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
-          runAsync(() -> doPublish(revision, publisher), null);
+          runAsync(() -> {
+            Lock lock = myRevisionLocks.get(revision.getRevision());
+            lock.lock();
+            try {
+              doPublish(revision, publisher);
+            } finally {
+              lock.unlock();
+            }
+          }, null);
         }
 
         private void doPublish(BuildRevision revision, CommitStatusPublisher publisher) {
@@ -934,7 +938,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     }
 
   }
-
 
   private abstract class PublisherTaskConsumer<T> extends MultiNodeTasks.TaskConsumer {
 

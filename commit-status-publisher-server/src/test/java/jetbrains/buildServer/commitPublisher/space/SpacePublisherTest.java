@@ -158,6 +158,7 @@ public class SpacePublisherTest extends HttpPublisherTest {
     assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.RUNNING.getName(), DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL, null, null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.RUNNING.getName(), "", null, null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.RUNNING.getName(), null, null, null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.RUNNING.getName(), DefaultStatusMessages.BUILD_STARTED, null, null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), DefaultStatusMessages.BUILD_QUEUED, null, null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), "", null, null, null)).getTriggeredEvent());
