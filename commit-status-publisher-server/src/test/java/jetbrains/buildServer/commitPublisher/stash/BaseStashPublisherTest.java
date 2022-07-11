@@ -16,13 +16,14 @@
 
 package jetbrains.buildServer.commitPublisher.stash;
 
-import com.google.gson.Gson;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
-import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
+import jetbrains.BuildServerCreator;
+import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.stash.data.DeprecatedJsonStashBuildStatuses;
+import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
 import jetbrains.buildServer.commitPublisher.stash.data.StashRepoInfo;
 import jetbrains.buildServer.commitPublisher.stash.data.StashServerInfo;
 import jetbrains.buildServer.serverSide.BuildRevision;
@@ -43,7 +44,7 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
     super.setUp();
     Map<String, String> params = getPublisherParams();
     myPublisherSettings = new StashSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
-    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }
 
@@ -59,7 +60,7 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
     test_buildFinished_Successfully();
   }
 
@@ -70,7 +71,7 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
     test_buildFinished_Successfully();
   }
 
@@ -89,7 +90,11 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
       StashServerInfo info = new StashServerInfo();
       info.version = myServerVersion;
       info.displayName = "Bitbucket Server";
-      httpResponse.setEntity(new StringEntity(new Gson().toJson(info), "UTF-8"));
+      httpResponse.setEntity(new StringEntity(gson.toJson(info), StandardCharsets.UTF_8));
+    } else if (url.contains("/rest/api/1.0/projects/" + OWNER + "/repos/" + CORRECT_REPO + "/commits/")) {
+      responseWithSingleCommitStatus(httpResponse);
+    } else if (url.contains("/rest/build-status/1.0/commits/")) {
+      responseWithCommitStatuses(httpResponse);
     } else if (url.endsWith(OWNER + "/repos/" + CORRECT_REPO)) {
       respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
     } else if (url.endsWith(OWNER + "/repos/" + READ_ONLY_REPO)) {
@@ -101,15 +106,45 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
     return true;
   }
 
+  private void responseWithSingleCommitStatus(HttpResponse httpResponse) {
+    JsonStashBuildStatus status = new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_QUEUED, BuildServerCreator.DEFAULT_TEST_PROJECT_EXT_ID, null, "My Default Test Project / My Default Test Build Type", null, null, StashBuildStatus.INPROGRESS.name(), null, null);
+    String json = gson.toJson(Collections.singleton(status));
+    httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
+  }
+
+  private void responseWithCommitStatuses(HttpResponse httpResponse) {
+    DeprecatedJsonStashBuildStatuses statuses = new DeprecatedJsonStashBuildStatuses();
+    statuses.isLastPage = true;
+    statuses.size = 1;
+
+    DeprecatedJsonStashBuildStatuses.Status status = new DeprecatedJsonStashBuildStatuses.Status();
+    status.name = "My Default Test Project / My Default Test Build Type";
+    status.key = "MyDefaultTestBuildType";
+    status.state = StashBuildStatus.INPROGRESS.name();
+    status.description = DefaultStatusMessages.BUILD_QUEUED;
+    statuses.values = Collections.singleton(status);
+    String json = gson.toJson(statuses);
+    httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
+  }
+
   @Override
   protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
     return isUrlExpected(url, httpResponse);
   }
 
   private void respondWithRepoInfo(HttpResponse httpResponse, String repoName, boolean isPushPermitted) {
-    Gson gson = new Gson();
     StashRepoInfo repoInfo = new StashRepoInfo();
     String jsonResponse = gson.toJson(repoInfo);
     httpResponse.setEntity(new StringEntity(jsonResponse, "UTF-8"));
+  }
+
+  @Override
+  protected boolean isStatusCacheNotImplemented() {
+    return false;
+  }
+
+  @Override
+  protected boolean requiresInitialRequest() {
+    return true;
   }
 }

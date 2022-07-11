@@ -16,12 +16,13 @@
 
 package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
-import com.google.gson.Gson;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.MockBuildPromotion;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudBuildStatuses;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudCommitBuildStatus;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudRepoInfo;
 import jetbrains.buildServer.messages.Status;
@@ -128,7 +129,11 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
 
   @Override
   protected boolean respondToGet(String url, HttpResponse httpResponse) {
-    if (url.endsWith("/repositories/" + OWNER + "/" + CORRECT_REPO)) {
+    if (url.contains("/statuses/build/")) {
+      responsWithStatus(httpResponse);
+    } else if (url.contains("/statuses")) {
+      responsWithStatuses(httpResponse);
+    }  else if (url.endsWith("/repositories/" + OWNER + "/" + CORRECT_REPO)) {
       respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
     } else if (url.endsWith("/repositories/" + OWNER + "/" + READ_ONLY_REPO)) {
       respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false);
@@ -139,6 +144,21 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     return true;
   }
 
+  private void responsWithStatuses(HttpResponse httpResponse) {
+    BitbucketCloudCommitBuildStatus status = new BitbucketCloudCommitBuildStatus("", BitbucketCloudBuildStatus.INPROGRESS.name(),
+                                                                                 "My Default Test Project / My Default Test Build Type", DefaultStatusMessages.BUILD_QUEUED, "");
+    BitbucketCloudBuildStatuses statuses = new BitbucketCloudBuildStatuses(Collections.singleton(status), 1 ,1, 1);
+    String json = gson.toJson(statuses);
+    httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
+  }
+
+  private void responsWithStatus(HttpResponse httpResponse) {
+    BitbucketCloudCommitBuildStatus status = new BitbucketCloudCommitBuildStatus("", BitbucketCloudBuildStatus.INPROGRESS.name(),
+                                                                                 "My Default Test Project / My Default Test Build Type", DefaultStatusMessages.BUILD_QUEUED, "");
+    String json = gson.toJson(status);
+    httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
+  }
+
   @Override
   protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
     return isUrlExpected(url, httpResponse);
@@ -146,14 +166,13 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
 
 
   private void respondWithRepoInfo(HttpResponse httpResponse, String repoName, boolean isPushPermitted) {
-    Gson gson = new Gson();
     BitbucketCloudRepoInfo repoInfo = new BitbucketCloudRepoInfo();
     repoInfo.slug = repoName;
     repoInfo.type = "repository";
     repoInfo.is_private = true;
     repoInfo.description = "";
     String jsonResponse = gson.toJson(repoInfo);
-    httpResponse.setEntity(new StringEntity(jsonResponse, "UTF-8"));
+    httpResponse.setEntity(new StringEntity(jsonResponse, StandardCharsets.UTF_8));
   }
 
   @BeforeMethod
@@ -164,7 +183,7 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     super.setUp();
     Map<String, String> params = getPublisherParams();
     myPublisherSettings = new BitbucketCloudSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
-    BitbucketCloudPublisher publisher = new BitbucketCloudPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    BitbucketCloudPublisher publisher = new BitbucketCloudPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
     publisher.setBaseUrl(getServerUrl() + "/");
     ((BitbucketCloudSettings)myPublisherSettings).setDefaultApiUrl(getServerUrl() + "/");
     myPublisher = publisher;
@@ -177,5 +196,10 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
       put(Constants.BITBUCKET_CLOUD_USERNAME, "user");
       put(Constants.BITBUCKET_CLOUD_PASSWORD, "pwd");
     }};
+  }
+
+  @Override
+  protected boolean isStatusCacheNotImplemented() {
+    return false;
   }
 }

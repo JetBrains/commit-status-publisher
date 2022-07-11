@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.commitPublisher.tfs;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -68,7 +69,7 @@ public class TfsPublisherTest extends HttpPublisherTest {
     myPublisherSettings = new TfsPublisherSettings(new MockPluginDescriptor(), myWebLinks, myProblems,
                                                    myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext(), myTrustStoreProvider);
     Map<String, String> params = getPublisherParams();
-    myPublisher = new TfsStatusPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisher = new TfsStatusPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
     myVcsURL = getServerUrl() + "/_git/" + CORRECT_REPO;
     myReadOnlyVcsURL = getServerUrl()  + "/_git/" + READ_ONLY_REPO;
     myVcsRoot.setProperties(Collections.singletonMap("url", myVcsURL));
@@ -134,10 +135,25 @@ public class TfsPublisherTest extends HttpPublisherTest {
   protected boolean respondToGet(String url, HttpResponse httpResponse) {
     if (url.contains(READ_ONLY_REPO)) {
       httpResponse.setStatusCode(403);
-      httpResponse.setEntity(new StringEntity("{'message': 'error'}", "UTF-8"));
+      httpResponse.setEntity(new StringEntity("{'message': 'error'}", StandardCharsets.UTF_8));
       return false;
+    } else if (url.contains("statuses?api-version=2.1")) {
+      respondWithStatuses(httpResponse);
     }
     return true;
+  }
+
+  private void respondWithStatuses(HttpResponse httpResponse) {
+    TfsStatusPublisher.CommitStatuses commitStatuses = new TfsStatusPublisher.CommitStatuses();
+    commitStatuses.count = 1;
+    TfsStatusPublisher.StatusContext context = new TfsStatusPublisher.StatusContext();
+    context.genre = "TeamCity";
+    context.name = "MyDefaultTestBuildType";
+    TfsStatusPublisher.CommitStatus status = new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(),
+                                                                                 DefaultStatusMessages.BUILD_QUEUED, "", context);
+    commitStatuses.value = Collections.singleton(status);
+    String json = gson.toJson(commitStatuses);
+    httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
   }
 
   @Override
@@ -145,4 +161,8 @@ public class TfsPublisherTest extends HttpPublisherTest {
     return isUrlExpected(url, httpResponse);
   }
 
+  @Override
+  protected boolean isStatusCacheNotImplemented() {
+    return false;
+  }
 }

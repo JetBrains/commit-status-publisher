@@ -16,7 +16,8 @@
 
 package jetbrains.buildServer.commitPublisher.github;
 
-import com.google.gson.Gson;
+import com.google.common.collect.Lists;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +26,7 @@ import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.GitHubApiFactoryImpl;
 import jetbrains.buildServer.commitPublisher.github.api.impl.HttpClientWrapperImpl;
+import jetbrains.buildServer.commitPublisher.github.api.impl.data.CombinedCommitStatus;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.Permissions;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.RepoInfo;
@@ -88,7 +90,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks);
+    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks, new CommitStatusesCache<>());
     test_buildFinished_Successfully();
   }
 
@@ -99,7 +101,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks);
+    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks, new CommitStatusesCache<>());
     test_buildFinished_Successfully();
   }
 
@@ -168,6 +170,11 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     assertEquals(expectedContext, buildContext);
   }
 
+  @Override
+  protected boolean isStatusCacheNotImplemented() {
+    return false;
+  }
+
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
@@ -183,7 +190,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     myPublisherSettings = new GitHubSettings(myChangeStatusUpdater, new MockPluginDescriptor(), myWebLinks, myProblems,
                                              myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext(),
                                              myTrustStoreProvider);
-    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks);
+    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks, new CommitStatusesCache<>());
   }
 
   @Override
@@ -202,7 +209,9 @@ public class GitHubPublisherTest extends HttpPublisherTest {
 
   @Override
   protected boolean respondToGet(String url, HttpResponse httpResponse) {
-    if (url.contains("/repos" +  "/" + OWNER + "/" + CORRECT_REPO)) {
+    if (url.contains("/repos" +  "/" + OWNER + "/" + CORRECT_REPO + "/commits")) {
+      respondWithCommitsInfo(httpResponse, "My Default Test Build Type (My Default Test Project)");
+    } else if (url.contains("/repos" +  "/" + OWNER + "/" + CORRECT_REPO)) {
       respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
     } else if (url.contains("/repos"  + "/" + OWNER + "/" +  READ_ONLY_REPO)) {
       respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false);
@@ -213,13 +222,22 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     return true;
   }
 
+  private void respondWithCommitsInfo(@NotNull HttpResponse httpResponse, String context) {
+    CombinedCommitStatus status = new CombinedCommitStatus();
+    status.total_count = 1;
+    status.statuses = Lists.newArrayList(
+      new CommitStatus(GitHubChangeState.Pending.getState(), "url", DefaultStatusMessages.BUILD_QUEUED, context)
+    );
+    String jsonResponse = gson.toJson(status);
+    httpResponse.setEntity(new StringEntity(jsonResponse, StandardCharsets.UTF_8));
+  }
+
   @Override
   protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
     return isUrlExpected(url, httpResponse);
   }
 
   private void respondWithRepoInfo(HttpResponse httpResponse, String repoName, boolean isPushPermitted) {
-    Gson gson = new Gson();
     RepoInfo repoInfo = new RepoInfo();
     repoInfo.name = repoName;
     repoInfo.permissions = new Permissions();

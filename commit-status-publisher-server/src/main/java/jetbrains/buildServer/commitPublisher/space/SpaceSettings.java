@@ -19,6 +19,7 @@ package jetbrains.buildServer.commitPublisher.space;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
+import jetbrains.buildServer.commitPublisher.space.data.SpaceBuildStatusInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
@@ -52,6 +53,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
 
   private final OAuthConnectionsManager myOAuthConnectionManager;
   private final OAuthTokensStorage myOAuthTokensStorage;
+  private final CommitStatusesCache<SpaceBuildStatusInfo> myStatusesCache;
 
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     add(Event.STARTED);
@@ -76,6 +78,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     super(descriptor, links, problems, trustStoreProvider);
     myOAuthConnectionManager = oAuthConnectionsManager;
     myOAuthTokensStorage = oauthTokensStorage;
+    myStatusesCache = new CommitStatusesCache<>();
   }
 
   @NotNull
@@ -100,7 +103,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   @Override
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
     SpaceConnectDescriber connector = SpaceUtils.getConnectionData(params, myOAuthConnectionManager, buildType.getProject());
-    return new SpacePublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, connector);
+    return new SpacePublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, connector, myStatusesCache);
   }
 
   @NotNull

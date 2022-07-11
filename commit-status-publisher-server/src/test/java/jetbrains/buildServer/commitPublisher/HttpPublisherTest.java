@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.commitPublisher;
 
+import com.google.gson.Gson;
 import com.intellij.openapi.util.io.StreamUtil;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,6 +25,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.messages.Status;
+import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.version.ServerVersionHolder;
 import org.apache.http.*;
@@ -45,6 +48,7 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
 
+  protected final static Gson gson = new Gson();
   protected final static String OWNER = "owner";
   protected final static String CORRECT_REPO = "project";
   protected final static String READ_ONLY_REPO = "readonly";
@@ -91,6 +95,59 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
     Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
     then(problems.size()).isEqualTo(1);
     then(problems.iterator().next().getProblem().getDescription()).matches(String.format("Commit Status Publisher.*%s.*timed out.*", myPublisher.getId()));
+  }
+
+  protected boolean isStatusCacheNotImplemented() {
+    return true;
+  }
+
+  public void should_cahce_get_requests_when_toggles_on() throws PublisherException {
+    if (isStatusCacheNotImplemented()) return;
+
+    setInternalProperty("teamcity.commitStatusPubliser.checkStatus.enabled", "true");
+    setInternalProperty("teamcity.commitStatusPublisher.statusCache.enabled", "true");
+    SFinishedBuild build = myFixture.createBuild(myBuildType, Status.NORMAL);
+    BuildPromotion buildPromotion = build.getBuildPromotion();
+    myPublisher.getRevisionStatus(buildPromotion, myRevision);
+    int expectedRequests = requiresInitialRequest() ?
+                           requiresAuthPreRequest() ? 4 : 2 :
+                           requiresAuthPreRequest() ? 2 : 1;
+    assertEquals(expectedRequests, countRequests());
+    myPublisher.getRevisionStatus(buildPromotion, myRevision);
+    assertEquals(expectedRequests, countRequests());   // new request to API was not sent
+  }
+
+  public void should_reset_cache_value_on_status_post_when_toggles_on() throws PublisherException {
+    if (isStatusCacheNotImplemented()) return;
+
+    setInternalProperty("teamcity.commitStatusPubliser.checkStatus.enabled", "true");
+    setInternalProperty("teamcity.commitStatusPublisher.statusCache.enabled", "true");
+    SFinishedBuild build = myFixture.createBuild(myBuildType, Status.NORMAL);
+    BuildPromotion buildPromotion = build.getBuildPromotion();
+    myPublisher.getRevisionStatus(buildPromotion, myRevision);
+    int expectedRequests = requiresInitialRequest() ?
+                            requiresAuthPreRequest() ? 4 : 2 :
+                            requiresAuthPreRequest() ? 2 : 1;
+    assertEquals(expectedRequests, countRequests());
+    assertTrue(getRequestAsString().contains("GET"));
+
+    myPublisher.buildStarted(build, myRevision);
+    expectedRequests += (requiresAuthPreRequest() ? 2 : 1);
+    assertEquals(expectedRequests, countRequests());
+    assertTrue(getRequestAsString().contains("POST"));
+
+    myPublisher.getRevisionStatus(buildPromotion, myRevision);
+    expectedRequests += (requiresAuthPreRequest() ? 2 : 1);
+    assertEquals(expectedRequests, countRequests());
+    assertTrue(getRequestAsString().contains("GET"));
+  }
+
+  protected boolean requiresAuthPreRequest() {
+    return false;
+  }
+
+  protected boolean requiresInitialRequest() {
+    return false;
   }
 
   @BeforeMethod
@@ -159,6 +216,10 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
   @Override
   protected String getRequestAsString() {
     return myRequests.isEmpty() ? null : myRequests.get(myRequests.size() - 1);
+  }
+
+  protected int countRequests() {
+    return myRequests.size();
   }
 
   protected String getServerUrl() {

@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
+import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudCommitBuildStatus;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudRepoInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.StringUtil;
@@ -50,11 +51,14 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
     addAll(mySupportedEvents);
   }};
 
+  private final CommitStatusesCache<BitbucketCloudCommitBuildStatus> myStatusesCache;
+
   public BitbucketCloudSettings(@NotNull PluginDescriptor descriptor,
                                 @NotNull WebLinks links,
                                 @NotNull CommitStatusPublisherProblems problems,
                                 @NotNull SSLTrustStoreProvider trustStoreProvider) {
     super(descriptor, links, problems, trustStoreProvider);
+    myStatusesCache = new CommitStatusesCache<>();
   }
 
   void setDefaultApiUrl(@NotNull String url) {
@@ -79,7 +83,7 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new BitbucketCloudPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems);
+    return new BitbucketCloudPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache);
   }
 
   @Nullable

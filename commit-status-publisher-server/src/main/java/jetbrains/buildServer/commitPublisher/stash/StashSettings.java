@@ -16,7 +16,11 @@
 
 package jetbrains.buildServer.commitPublisher.stash;
 
+import java.io.IOException;
+import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
+import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
 import jetbrains.buildServer.commitPublisher.stash.data.StashError;
 import jetbrains.buildServer.commitPublisher.stash.data.StashRepoInfo;
 import jetbrains.buildServer.commitPublisher.stash.data.StashServerInfo;
@@ -27,10 +31,6 @@ import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
-
-import java.io.IOException;
-import java.util.*;
 
 import static jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT;
 import static jetbrains.buildServer.commitPublisher.stash.StashPublisher.PROP_PUBLISH_QUEUED_BUILD_STATUS;
@@ -54,11 +54,14 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     addAll(mySupportedEvents);
   }};
 
+  private final CommitStatusesCache<JsonStashBuildStatus> myStatusesCache;
+
   public StashSettings(@NotNull PluginDescriptor descriptor,
                        @NotNull WebLinks links,
                        @NotNull CommitStatusPublisherProblems problems,
                        @NotNull SSLTrustStoreProvider trustStoreProvider) {
     super(descriptor, links, problems, trustStoreProvider);
+    myStatusesCache = new CommitStatusesCache<>();
   }
 
   @NotNull
@@ -78,7 +81,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new StashPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems);
+    return new StashPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache);
   }
 
   @NotNull

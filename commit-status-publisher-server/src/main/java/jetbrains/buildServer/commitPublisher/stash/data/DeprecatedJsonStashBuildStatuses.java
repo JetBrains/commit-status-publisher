@@ -8,7 +8,7 @@ public class DeprecatedJsonStashBuildStatuses {
   public Integer nextPageStart;
   public Collection<Status> values;
 
-  public class Status {
+  public static class Status {
     public String description;
     public String key;
     public String url;

@@ -60,6 +60,8 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
     addAll(mySupportedEvents);
   }};
 
+  private final CommitStatusesCache<TfsStatusPublisher.CommitStatus> myStatusesCache;
+
   public TfsPublisherSettings(@NotNull PluginDescriptor descriptor,
                               @NotNull WebLinks links,
                               @NotNull CommitStatusPublisherProblems problems,
@@ -71,6 +73,7 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
     myOauthConnectionsManager = oauthConnectionsManager;
     myOAuthTokensStorage = oauthTokensStorage;
     mySecurityContext = securityContext;
+    myStatusesCache = new CommitStatusesCache<>();
   }
 
   @NotNull
@@ -128,7 +131,7 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new TfsStatusPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems);
+    return new TfsStatusPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache);
   }
 
   @NotNull

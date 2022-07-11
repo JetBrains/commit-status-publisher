@@ -16,7 +16,10 @@
 
 package jetbrains.buildServer.commitPublisher.gitlab;
 
-import com.google.gson.Gson;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -72,7 +75,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
     test_buildFinished_Successfully();
   }
 
@@ -83,7 +86,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
     test_buildFinished_Successfully();
   }
 
@@ -156,6 +159,11 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, null, "http://localhost/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
   }
 
+  @Override
+  protected boolean isStatusCacheNotImplemented() {
+    return false;
+  }
+
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
@@ -164,7 +172,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     super.setUp();
     myPublisherSettings = new GitlabSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
     Map<String, String> params = getPublisherParams();
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }
 
@@ -186,7 +194,9 @@ public class GitlabPublisherTest extends HttpPublisherTest {
 
   @Override
   protected boolean respondToGet(String url, HttpResponse httpResponse) {
-    if (url.contains("/projects" +  "/" + OWNER + "%2F" + CORRECT_REPO)) {
+    if (url.contains("/projects/" + OWNER + "%2F" + CORRECT_REPO + "/repository/commits")) {
+      respondWithCommits(httpResponse, url.substring(url.lastIndexOf('=') + 1).replace('+', ' '));
+    } else if (url.contains("/projects" +  "/" + OWNER + "%2F" + CORRECT_REPO)) {
       respondWithRepoInfo(httpResponse, CORRECT_REPO, false, true);
     } else if (url.contains("/projects"  + "/" + OWNER + "%2F" +  GROUP_REPO)) {
       respondWithRepoInfo(httpResponse, GROUP_REPO, true, true);
@@ -199,6 +209,19 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     return true;
   }
 
+  private void respondWithCommits(HttpResponse httpResponse, String buildName) {
+    String decodedName;
+    try {
+      decodedName = URLDecoder.decode(buildName, StandardCharsets.UTF_8.name());
+    } catch (UnsupportedEncodingException e) {
+      decodedName = buildName;
+    }
+    ArrayList<GitLabReceiveCommitStatus> statuses = new ArrayList<>();
+    statuses.add(new GitLabReceiveCommitStatus(1L, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, decodedName, ""));
+    String json = gson.toJson(statuses);
+    httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
+  }
+
   @Override
   protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
     return isUrlExpected(url, httpResponse);
@@ -206,7 +229,6 @@ public class GitlabPublisherTest extends HttpPublisherTest {
 
 
   private void respondWithRepoInfo(HttpResponse httpResponse, String repoName, boolean isGroupRepo, boolean isPushPermitted) {
-    Gson gson = new Gson();
     GitLabRepoInfo repoInfo = new GitLabRepoInfo();
     repoInfo.id = "111";
     repoInfo.permissions = new GitLabPermissions();

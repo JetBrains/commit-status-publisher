@@ -16,8 +16,10 @@
 
 package jetbrains.buildServer.commitPublisher.github;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
@@ -32,16 +34,19 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
 
   private final ChangeStatusUpdater myUpdater;
   private final WebLinks myWebLinks;
+  private final CommitStatusesCache<CommitStatus> myStatusesCache;
 
   GitHubPublisher(@NotNull CommitStatusPublisherSettings settings,
                   @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                   @NotNull ChangeStatusUpdater updater,
                   @NotNull Map<String, String> params,
                   @NotNull CommitStatusPublisherProblems problems,
-                  @NotNull WebLinks webLinks) {
+                  @NotNull WebLinks webLinks,
+                  @NotNull CommitStatusesCache<CommitStatus> commitStatusesCache) {
     super(settings, buildType, buildFeatureId, params, problems);
     myUpdater = updater;
     myWebLinks = webLinks;
+    myStatusesCache = commitStatusesCache;
   }
 
   @NotNull
@@ -74,6 +79,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   @Override
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     updateBuildStatus(build, revision, false);
+    myStatusesCache.cleanupCache();
     return true;
   }
 
@@ -173,7 +179,8 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) throws PublisherException {
-    final ChangeStatusUpdater.Handler h = myUpdater.getHandler(revision.getRoot(), getParams(build.getBuildPromotion()), this);
+    Map<String, String> params = getParams(build.getBuildPromotion());
+    final ChangeStatusUpdater.Handler h = myUpdater.getHandler(revision.getRoot(), params, this);
 
     if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
       LOG.warn("No revisions were found to update GitHub status. Please check you have Git VCS roots in the build configuration");
@@ -186,33 +193,65 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     } else {
       h.changeCompleted(revision, build, viewUrl);
     }
+
+    String context = params.get(Constants.GITHUB_CONTEXT);
+    myStatusesCache.removeStatusFromCache(revision, context);
   }
 
   @Nullable
   private CommitStatus getCommitStatus(@NotNull BuildRevision revision, @NotNull BuildPromotion buildPromotion) throws PublisherException {
-    ChangeStatusUpdater.Handler handler = myUpdater.getHandler(revision.getRoot(), getParams(buildPromotion), this);
+    Map<String, String> params = getParams(buildPromotion);
+    ChangeStatusUpdater.Handler handler = myUpdater.getHandler(revision.getRoot(), params, this);
 
     if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
       LOG.warn("No revisions were found to request GitHub status. Please check you have Git VCS roots in the build configuration");
       return null;
     }
-    return handler.getStatus(revision);
+
+    final String context = params.get(Constants.GITHUB_CONTEXT);
+    if (context == null) {
+      return null;
+    }
+
+    AtomicReference<PublisherException> exception = new AtomicReference<>(null);
+
+    CommitStatus statusFromCache = myStatusesCache.getStatusFromCache(revision, context, () -> {
+      try {
+        return handler.getStatuses(revision);
+      } catch (PublisherException e) {
+        exception.set(e);
+      }
+      return Collections.emptyList();
+    }, status -> status.context);
+
+    if (exception.get() != null) {
+      throw exception.get();
+    }
+    return statusFromCache;
   }
 
   private boolean updateQueuedBuildStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision,
                                           @NotNull AdditionalTaskInfo additionalTaskInfo, boolean addingToQueue) throws PublisherException {
-    final ChangeStatusUpdater.Handler h = myUpdater.getHandler(revision.getRoot(), getParams(buildPromotion), this);
+    Map<String, String> params = getParams(buildPromotion);
+    final ChangeStatusUpdater.Handler h = myUpdater.getHandler(revision.getRoot(), params, this);
 
     if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
       LOG.warn("No revisions were found to update GitHub status. Please check you have Git VCS roots in the build configuration");
       return false;
     }
     String viewUrl = getViewUrl(additionalTaskInfo.isPromotionReplaced() ? additionalTaskInfo.getReplacingPromotion() : buildPromotion);
+    boolean statusUpdated;
     if (addingToQueue) {
-      return h.changeQueued(revision, buildPromotion, additionalTaskInfo, viewUrl);
+      statusUpdated = h.changeQueued(revision, buildPromotion, additionalTaskInfo, viewUrl);
     } else {
-      return h.changeRemovedFromQueue(revision, buildPromotion, additionalTaskInfo, viewUrl);
+      statusUpdated = h.changeRemovedFromQueue(revision, buildPromotion, additionalTaskInfo, viewUrl);
     }
+
+    if (statusUpdated) {
+      String context = params.get(Constants.GITHUB_CONTEXT);
+      myStatusesCache.removeStatusFromCache(revision, context);
+    }
+    return statusUpdated;
   }
 
   @NotNull

@@ -62,13 +62,17 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   // Captures pull request identifier. Example: refs/pull/1/merge
   private static final Pattern TFS_GIT_PULL_REQUEST_PATTERN = Pattern.compile("^refs\\/pull\\/(\\d+)/merge");
 
+  private final CommitStatusesCache<CommitStatus> myStatusesCache;
+
   TfsStatusPublisher(@NotNull final CommitStatusPublisherSettings settings,
                      @NotNull final SBuildType buildType,
                      @NotNull final String buildFeatureId,
                      @NotNull final WebLinks webLinks,
                      @NotNull final Map<String, String> params,
-                     @NotNull final CommitStatusPublisherProblems problems) {
+                     @NotNull final CommitStatusPublisherProblems problems,
+                     @NotNull CommitStatusesCache<CommitStatus> statusesCache) {
     super(settings, buildType, buildFeatureId, params, problems, webLinks);
+    myStatusesCache = statusesCache;
   }
 
   @NotNull
@@ -111,6 +115,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   @Override
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     updateBuildStatus(build, revision, false);
+    myStatusesCache.cleanupCache();
     return true;
   }
 
@@ -153,27 +158,45 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   private CommitStatus getCommitStatus(BuildRevision revision, SBuildType buildType) throws PublisherException {
+    final String buildTypeExternalId = buildType.getExternalId();
+    AtomicReference<PublisherException> exception = new AtomicReference<>(null);
+    CommitStatus status = myStatusesCache.getStatusFromCache(revision, buildTypeExternalId, () -> {
+      try {
+        return loadStatuses(revision, buildTypeExternalId);
+      } catch (PublisherException e) {
+        exception.set(e);
+      }
+      return Collections.emptyList();
+    }, commitStatus -> commitStatus.context.name);
+
+    if (exception.get() != null) {
+      throw exception.get();
+    }
+
+    return status;
+  }
+
+  private Collection<CommitStatus> loadStatuses(@NotNull BuildRevision revision, @NotNull String targetBuildName) throws PublisherException {
     final TfsRepositoryInfo info = getServerAndProject(revision.getRoot(), myParams);
     final String baseUrl = MessageFormat.format(COMMIT_STATUS_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository(), revision.getRevision());
-    final String buildTypeExternalId = buildType.getExternalId();
     final ResponseEntityProcessor<CommitStatuses> processor = new ResponseEntityProcessor<>(CommitStatuses.class);
     final int top = 25;
     int skip = 0;
-
-    CommitStatuses commitStatuses;
+    boolean shouldLoadMore = true;
+    Collection<CommitStatus> result = new ArrayList<>();
     do {
       String url = String.format("%s&top=%d&skip=%d", baseUrl, top, skip);
-      commitStatuses = get(url, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN), null, processor);
-      if (commitStatuses == null || commitStatuses.value == null || commitStatuses.value.isEmpty()) return null;
-      Optional<CommitStatus> commitStatusOp = commitStatuses.value.stream()
-                                                         .filter(status -> buildTypeExternalId.equals(status.context.name))
-                                                         .findFirst();
-      if (commitStatusOp.isPresent()) {
-        return commitStatusOp.get();
-      }
+      CommitStatuses commitStatuses = get(url, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN), null, processor);
+      if (commitStatuses == null || commitStatuses.value == null || commitStatuses.value.isEmpty()) return result;
+      result.addAll(commitStatuses.value);
+
+      if (commitStatuses.value.stream().anyMatch(status -> targetBuildName.equals(status.context.name))) return result;
       skip += top;
-    } while (commitStatuses.count >= top);
-    return null;
+      if (commitStatuses.count >= top) {
+        shouldLoadMore = false;
+      }
+    } while (shouldLoadMore);
+    return result;
   }
 
   @Nullable
@@ -453,7 +476,11 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     final String description = LogUtil.describe(buildPromotion);
     final String data = myGson.toJson(status);
     final String commitId = publishPullRequestStatus(info, revision, data, description);
-    return publishCommitStatus(info, data, commitId, description);
+    boolean published = publishCommitStatus(info, data, commitId, description);
+    if (published) {
+      myStatusesCache.removeStatusFromCache(revision, status.context.name);
+    }
+    return published;
   }
 
   private TfsRepositoryInfo getReposioryInfo(BuildRevision revision) throws PublisherException {
@@ -542,7 +569,10 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     final String description = LogUtil.describe(build);
     final String data = myGson.toJson(status);
     final String commitId = publishPullRequestStatus(info, revision, data, description);
-    publishCommitStatus(info, data, commitId, description);
+    boolean published = publishCommitStatus(info, data, commitId, description);
+    if (published) {
+      myStatusesCache.removeStatusFromCache(revision, status.context.name);
+    }
   }
 
   @NotNull
@@ -607,10 +637,10 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   }
 
   static class CommitStatus {
-    private final String state;
-    private final String description;
-    private final String targetUrl;
-    private final StatusContext context;
+    final String state;
+    final String description;
+    final String targetUrl;
+    final StatusContext context;
 
     public CommitStatus(String state, String description, String targetUrl, StatusContext context) {
       this.state = state;
@@ -620,9 +650,9 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     }
   }
 
-  private static class CommitStatuses {
-    private int count;
-    private List<CommitStatus> value;
+  static class CommitStatuses {
+    int count;
+    Collection<CommitStatus> value;
   }
 
   static enum StatusState {
@@ -656,9 +686,9 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     }
   }
 
-  private static class StatusContext {
-    private String name;
-    private String genre;
+  static class StatusContext {
+    String name;
+    String genre;
   }
 
   private static class CommitsList {

@@ -21,6 +21,7 @@ import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
+import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.serverSide.*;
@@ -47,6 +48,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
   private final OAuthConnectionsManager myOauthConnectionsManager;
   private final OAuthTokensStorage myOAuthTokensStorage;
   private final SecurityContext mySecurityContext;
+  private final CommitStatusesCache<CommitStatus> myStatusesCache;
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     add(Event.STARTED);
     add(Event.FINISHED);
@@ -74,6 +76,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
     myOauthConnectionsManager = oauthConnectionsManager;
     myOAuthTokensStorage = oauthTokensStorage;
     mySecurityContext = securityContext;
+    myStatusesCache = new CommitStatusesCache<>();
   }
 
   @NotNull
@@ -141,7 +144,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new GitHubPublisher(this, buildType, buildFeatureId, myUpdater, params, myProblems, myLinks);
+    return new GitHubPublisher(this, buildType, buildFeatureId, myUpdater, params, myProblems, myLinks, myStatusesCache);
   }
 
   @NotNull

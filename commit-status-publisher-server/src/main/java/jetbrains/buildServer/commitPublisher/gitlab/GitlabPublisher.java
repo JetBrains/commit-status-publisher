@@ -17,8 +17,10 @@
 package jetbrains.buildServer.commitPublisher.gitlab;
 
 import com.google.gson.Gson;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabPublishCommitStatus;
@@ -37,15 +39,20 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   private static final String REFS_HEADS = "refs/heads/";
   private static final String REFS_TAGS = "refs/tags/";
-  private final Gson myGson = new Gson();
+  private static final Gson myGson = new Gson();
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
+  private final CommitStatusesCache<GitLabReceiveCommitStatus> myStatusesCache;
+
   GitlabPublisher(@NotNull CommitStatusPublisherSettings settings,
-                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
+                  @NotNull SBuildType buildType,
+                  @NotNull String buildFeatureId,
                   @NotNull WebLinks links,
                   @NotNull Map<String, String> params,
-                  @NotNull CommitStatusPublisherProblems problems) {
+                  @NotNull CommitStatusPublisherProblems problems,
+                  @NotNull CommitStatusesCache<GitLabReceiveCommitStatus> statusesCache) {
     super(settings, buildType, buildFeatureId, params, problems, links);
+    myStatusesCache = statusesCache;
   }
 
 
@@ -86,6 +93,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     GitlabBuildStatus status = build.getBuildStatus().isSuccessful() ? GitlabBuildStatus.SUCCESS : GitlabBuildStatus.FAILED;
     publish(build, revision, status, build.getStatusDescriptor().getText());
+    myStatusesCache.cleanupCache();
     return true;
   }
 
@@ -111,7 +119,8 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
-    GitLabReceiveCommitStatus commitStatus = getLatestCommitStatusForBuild(revision, removedBuild.getBuildType());
+    SBuildType buildType = removedBuild.getBuildType();
+    GitLabReceiveCommitStatus commitStatus = getLatestCommitStatusForBuild(revision, buildType.getFullName(), removedBuild.getBuildPromotion());
     return getRevisionStatusForRemovedBuild(removedBuild, commitStatus);
   }
 
@@ -126,18 +135,39 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
-    GitLabReceiveCommitStatus commitStatus = getLatestCommitStatusForBuild(revision, buildPromotion.getBuildType());
+    SBuildType buildType = buildPromotion.getBuildType();
+    GitLabReceiveCommitStatus commitStatus = getLatestCommitStatusForBuild(revision, buildType == null ? buildPromotion.getBuildTypeExternalId() : buildType.getFullName(), buildPromotion);
     return getRevisionStatus(buildPromotion, commitStatus);
   }
 
-  private GitLabReceiveCommitStatus getLatestCommitStatusForBuild(@NotNull BuildRevision revision, @Nullable SBuildType buildType) throws PublisherException {
+  private GitLabReceiveCommitStatus getLatestCommitStatusForBuild(@NotNull BuildRevision revision, @NotNull String buildName, @NotNull BuildPromotion promotion) throws PublisherException {
+    AtomicReference<PublisherException> exception = new AtomicReference<>(null);
+    GitLabReceiveCommitStatus statusFromCache = myStatusesCache.getStatusFromCache(revision, buildName, () -> {
+      SBuildType exactBuildTypeToLoadStatuses = promotion.isPartOfBuildChain() ? null : promotion.getBuildType();
+      try {
+        GitLabReceiveCommitStatus[] commitStatuses = loadGitLabStatuses(revision, exactBuildTypeToLoadStatuses);
+        return Arrays.asList(commitStatuses);
+      } catch (PublisherException e) {
+        exception.set(e);
+        return Collections.emptyList();
+      }
+    }, status -> status.name);
+
+    if (exception.get() != null) {
+      throw exception.get();
+    }
+
+    return statusFromCache;
+  }
+
+  private GitLabReceiveCommitStatus[] loadGitLabStatuses(@NotNull BuildRevision revision, @Nullable SBuildType buildType) throws PublisherException {
     String url = buildRevisionStatusesUrl(revision, buildType);
     ResponseEntityProcessor<GitLabReceiveCommitStatus[]> processor = new ResponseEntityProcessor<>(GitLabReceiveCommitStatus[].class);
     GitLabReceiveCommitStatus[] commitStatuses = get(url, null, null, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), processor);
     if (commitStatuses == null || commitStatuses.length == 0) {
-      return null;
+      return new GitLabReceiveCommitStatus[0];
     }
-    return commitStatuses[0];
+    return commitStatuses;
   }
 
   @Nullable
@@ -161,7 +191,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
     String statusesUrl = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/repository/commits/" + revision.getRevision() + "/statuses";
     if (buildType != null) {
-      statusesUrl += ("?" + encodeParameter("name", buildType.getName()));
+      statusesUrl += ("?" + encodeParameter("name", buildType.getFullName()));
     }
     return statusesUrl;
   }
@@ -202,6 +232,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     String buildName = buildType != null ? buildType.getFullName() : build.getBuildTypeExternalId();
     String message = createMessage(status, buildName, revision, getViewUrl(build), description);
     publish(message, revision, LogUtil.describe(build));
+    myStatusesCache.removeStatusFromCache(revision, buildName);
   }
 
   private void publish(@NotNull BuildPromotion buildPromotion,
@@ -214,6 +245,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
     String buildName = buildType != null ? buildType.getFullName() : buildPromotion.getBuildTypeExternalId();
     String message = createMessage(status, buildName, revision, url, description);
     publish(message, revision, LogUtil.describe(buildPromotion));
+    myStatusesCache.removeStatusFromCache(revision, buildName);
   }
 
   private void publish(@NotNull String message,

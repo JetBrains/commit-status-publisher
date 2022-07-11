@@ -18,6 +18,7 @@ package jetbrains.buildServer.commitPublisher.space;
 
 import com.google.gson.Gson;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.space.data.SpaceBuildStatusInfo;
@@ -39,15 +40,19 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
 
   private final SpaceConnectDescriber mySpaceConnector;
   private final Gson myGson = new Gson();
+  private final CommitStatusesCache<SpaceBuildStatusInfo> myStatusesCache;
 
   SpacePublisher(@NotNull CommitStatusPublisherSettings settings,
-                 @NotNull SBuildType buildType, @NotNull String buildFeatureId,
+                 @NotNull SBuildType buildType,
+                 @NotNull String buildFeatureId,
                  @NotNull WebLinks links,
                  @NotNull Map<String, String> params,
                  @NotNull CommitStatusPublisherProblems problems,
-                 @NotNull SpaceConnectDescriber spaceConnector) {
+                 @NotNull SpaceConnectDescriber spaceConnector,
+                 @NotNull CommitStatusesCache<SpaceBuildStatusInfo> statusesCache) {
     super(settings, buildType, buildFeatureId, params, problems, links);
     mySpaceConnector = spaceConnector;
+    myStatusesCache = statusesCache;
   }
 
   @NotNull
@@ -90,6 +95,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     SpaceBuildStatus status = build.getBuildStatus().isSuccessful() ? SpaceBuildStatus.SUCCEEDED : SpaceBuildStatus.FAILED;
     publish(build, revision, status, build.getStatusDescriptor().getText());
+    myStatusesCache.cleanupCache();
     return true;
   }
 
@@ -133,25 +139,41 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
   }
 
   private SpaceBuildStatusInfo getExternalCheckStatus(@NotNull BuildRevision revision, @Nullable SBuildType buildType) throws PublisherException {
-    Repository repo = SpaceUtils.getRepositoryInfo(revision.getRoot(), myParams.get(Constants.SPACE_PROJECT_KEY));
-    String url = SpaceApiUrls.commitStatusUrl(mySpaceConnector.getFullAddress(), repo.owner(), repo.repositoryName(), revision.getRevision());
-    ResponseEntityProcessor<SpaceBuildStatusInfo[]> processor = new ResponseEntityProcessor<>(SpaceBuildStatusInfo[].class);
     String buildFullName = buildType != null ? buildType.getFullName() : UNKNOWN_BUILD_CONFIGURATION;
-    final SpaceToken token = requestToken(revision.getRoot().getName(), buildFullName);
-    if (token == null) {
-      return null;
+    AtomicReference<PublisherException> exception = new AtomicReference<>(null);
+    SpaceBuildStatusInfo status = myStatusesCache.getStatusFromCache(revision, buildFullName, () -> {
+      ResponseEntityProcessor<SpaceBuildStatusInfo[]> processor = new ResponseEntityProcessor<>(SpaceBuildStatusInfo[].class);
+      final SpaceToken token = requestToken(revision.getRoot().getName(), buildFullName);
+      if (token == null) {
+        return Collections.emptyList();
+      }
+      Map<String, String> headers = new LinkedHashMap<>();
+      headers.put(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType());
+      token.toHeader(headers);
+      SpaceBuildStatusInfo[] commitStatuses;
+      try {
+        String url = buildStatusesUrl(revision);
+        commitStatuses = get(url, null, null, headers, processor);
+      } catch (PublisherException e) {
+        exception.set(e);
+        return Collections.emptyList();
+      }
+      if (commitStatuses == null || commitStatuses.length == 0) {
+        return Collections.emptyList();
+      }
+      return Arrays.asList(commitStatuses);
+    }, spaceStatus -> spaceStatus.taskName);
+
+    if (exception.get() != null) {
+      throw exception.get();
     }
-    Map<String, String> headers = new LinkedHashMap<>();
-    headers.put(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType());
-    token.toHeader(headers);
-    SpaceBuildStatusInfo[] commitStatuses = get(url, null, null, headers, processor);
-    if (commitStatuses == null || commitStatuses.length == 0) {
-      return null;
-    }
-    Optional<SpaceBuildStatusInfo> commitStatusOpt = Arrays.stream(commitStatuses)
-                                                           .filter(status -> buildFullName.equals(status.taskName))
-                                                           .findAny();
-    return commitStatusOpt.isPresent() ? commitStatusOpt.get() : null;
+
+    return status;
+  }
+
+  private String buildStatusesUrl(BuildRevision revision) throws PublisherException {
+    Repository repo = SpaceUtils.getRepositoryInfo(revision.getRoot(), myParams.get(Constants.SPACE_PROJECT_KEY));
+    return SpaceApiUrls.commitStatusUrl(mySpaceConnector.getFullAddress(), repo.owner(), repo.repositoryName(), revision.getRevision());
   }
 
   @Nullable
@@ -202,12 +224,13 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
       .collect(Collectors.toList());
     String viewUrl = getViewUrl(buildPromotion);
     Date timestamp = buildPromotion.getServerStartDate() != null ? buildPromotion.getServerStartDate() : buildPromotion.getQueuedDate();
+    String taskName = buildPromotion.getBuildType() != null ? buildPromotion.getBuildType().getFullName() : UNKNOWN_BUILD_CONFIGURATION;
     final String payload = createPayload(
       changes,
       status,
       viewUrl,
       SpaceSettings.getDisplayName(myParams),
-      buildPromotion.getBuildType() != null ? buildPromotion.getBuildType().getFullName() : UNKNOWN_BUILD_CONFIGURATION,
+      taskName,
       buildPromotion.getBuildTypeExternalId(),
       (timestamp == null ? new Date() : timestamp).getTime(),
       additionalTaskInfo.getComment()
@@ -233,6 +256,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
     token.toHeader(headers);
 
     postJson(requestUrl, null, null, payload, headers, description);
+    myStatusesCache.removeStatusFromCache(revision, taskName);
     return true;
   }
 
@@ -278,6 +302,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
     token.toHeader(headers);
 
     postJson(url, null, null, payload, headers, buildDescription);
+    myStatusesCache.removeStatusFromCache(revision, build.getFullName());
   }
 
   @Nullable

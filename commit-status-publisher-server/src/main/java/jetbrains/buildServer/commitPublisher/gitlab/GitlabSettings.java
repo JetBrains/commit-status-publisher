@@ -23,6 +23,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabReceiveCommitStatus;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabUserInfo;
 import jetbrains.buildServer.serverSide.*;
@@ -51,11 +52,14 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     addAll(mySupportedEvents);
   }};
 
+  private final CommitStatusesCache<GitLabReceiveCommitStatus> myStatusesCache;
+
   public GitlabSettings(@NotNull PluginDescriptor descriptor,
                         @NotNull WebLinks links,
                         @NotNull CommitStatusPublisherProblems problems,
                         @NotNull SSLTrustStoreProvider trustStoreProvider) {
     super(descriptor, links, problems, trustStoreProvider);
+    myStatusesCache = new CommitStatusesCache<>();
   }
 
   @NotNull
@@ -79,7 +83,7 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
   @NotNull
   @Override
   public GitlabPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new GitlabPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems);
+    return new GitlabPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache);
   }
 
   @Override

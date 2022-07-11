@@ -16,7 +16,8 @@
 
 package jetbrains.buildServer.commitPublisher.space;
 
-import com.google.gson.Gson;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.MockBuildPromotion;
@@ -45,7 +46,6 @@ public class SpacePublisherTest extends HttpPublisherTest {
   private static final String FAKE_CLIENT_ID = "clientid";
   private static final String FAKE_CLIENT_SECRET = "clientsecret";
   private String myProjectFeatureId;
-  private Gson myGson;
 
   public SpacePublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*SCHEDULED.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
@@ -68,7 +68,6 @@ public class SpacePublisherTest extends HttpPublisherTest {
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
-    myGson = new Gson();
     setExpectedApiPath("/api/http");
     setExpectedEndpointPrefix("/projects/key:" + OWNER + "/repositories/" + CORRECT_REPO);
     super.setUp();
@@ -80,7 +79,7 @@ public class SpacePublisherTest extends HttpPublisherTest {
     myPublisherSettings = new SpaceSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myOAuthConnectionsManager, myOAuthTokenStorage);
     Map<String, String> params = getPublisherParams();
     SpaceConnectDescriber connector = SpaceUtils.getConnectionData(params, myOAuthConnectionsManager, myBuildType.getProject());
-    myPublisher = new SpacePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, connector);
+    myPublisher = new SpacePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, connector, new CommitStatusesCache<>());
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }
 
@@ -117,8 +116,20 @@ public class SpacePublisherTest extends HttpPublisherTest {
 
   @Override
   protected boolean respondToGet(String url, HttpResponse httpResponse) {
-    respondWithError(httpResponse, 404, String.format("Unexpected GET request to URL: %s", url));
-    return false;
+    if (url.endsWith("commit-statuses")) {
+      responseWithCommitStatuses(httpResponse);
+    } else {
+      respondWithError(httpResponse, 404, String.format("Unexpected GET request to URL: %s", url));
+      return false;
+    }
+    return true;
+  }
+
+  private void responseWithCommitStatuses(HttpResponse httpResponse) {
+    SpaceBuildStatusInfo status =
+      new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), DefaultStatusMessages.BUILD_QUEUED, System.currentTimeMillis(), "My Default Test Project / My Default Test Build Type", "");
+    String json = gson.toJson(Collections.singleton(status));
+    httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
   }
 
   @Override
@@ -129,7 +140,7 @@ public class SpacePublisherTest extends HttpPublisherTest {
         Map<String, String> tokenResponseMap = new HashMap<String, String>();
         tokenResponseMap.put(TOKEN_TYPE_FIELD_NAME, "fake_token");
         tokenResponseMap.put(ACCESS_TOKEN_FIELD_NAME, "mytoken");
-        String jsonResponse = myGson.toJson(tokenResponseMap);
+        String jsonResponse = gson.toJson(tokenResponseMap);
         httpResponse.setEntity(new StringEntity(jsonResponse, "UTF-8"));
         return true;
       }
@@ -172,5 +183,14 @@ public class SpacePublisherTest extends HttpPublisherTest {
     SpacePublisher publisher = (SpacePublisher)myPublisher;
     assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost/viewQueued.html?itemId=123")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
     assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+  }
+
+  @Override
+  protected boolean isStatusCacheNotImplemented() {
+    return false;
+  }
+
+  protected boolean requiresAuthPreRequest() {
+    return true;
   }
 }
