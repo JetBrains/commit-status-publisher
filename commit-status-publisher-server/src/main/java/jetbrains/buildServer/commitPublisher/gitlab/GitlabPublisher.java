@@ -93,7 +93,6 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     GitlabBuildStatus status = build.getBuildStatus().isSuccessful() ? GitlabBuildStatus.SUCCESS : GitlabBuildStatus.FAILED;
     publish(build, revision, status, build.getStatusDescriptor().getText());
-    myStatusesCache.cleanupCache();
     return true;
   }
 

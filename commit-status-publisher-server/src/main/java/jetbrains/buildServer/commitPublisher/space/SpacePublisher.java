@@ -95,7 +95,6 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     SpaceBuildStatus status = build.getBuildStatus().isSuccessful() ? SpaceBuildStatus.SUCCEEDED : SpaceBuildStatus.FAILED;
     publish(build, revision, status, build.getStatusDescriptor().getText());
-    myStatusesCache.cleanupCache();
     return true;
   }
 

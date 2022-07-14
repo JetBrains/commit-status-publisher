@@ -91,7 +91,6 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
     BitbucketCloudBuildStatus status = build.getBuildStatus().isSuccessful() ? BitbucketCloudBuildStatus.SUCCESSFUL : BitbucketCloudBuildStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
     vote(build, revision, status, description);
-    myStatusesCache.cleanupCache();
     return true;
   }
 

@@ -4,15 +4,15 @@ class ValueWithTTL<T> {
   public static final ValueWithTTL<Boolean> OUTDATED_CACHE_VALUE = new ValueWithTTL<Boolean>(null, -1L);
 
   private final T myValue;
-  private final long myTtl;
+  private final long myExpirationTime;
 
-  public ValueWithTTL(T value, long ttl) {
+  public ValueWithTTL(T value, long expirationTime) {
     myValue = value;
-    myTtl = ttl;
+    myExpirationTime = expirationTime;
   }
 
   public boolean isAlive() {
-    return System.currentTimeMillis() <= myTtl;
+    return System.currentTimeMillis() <= myExpirationTime;
   }
 
   public T getValue() {

@@ -115,7 +115,6 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
   @Override
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     updateBuildStatus(build, revision, false);
-    myStatusesCache.cleanupCache();
     return true;
   }
 

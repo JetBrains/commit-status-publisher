@@ -93,7 +93,6 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     StashBuildStatus status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.SUCCESSFUL : StashBuildStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
     vote(build, revision, status, description);
-    myStatusesCache.cleanupCache();
     return true;
   }
 
