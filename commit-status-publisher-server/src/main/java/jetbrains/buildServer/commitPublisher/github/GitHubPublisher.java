@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
+import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -178,7 +179,12 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) throws PublisherException {
-    Map<String, String> params = getParams(build.getBuildPromotion());
+    Map<String, String> params;
+    try {
+      params = getParams(build.getBuildPromotion());
+    } catch (GitHubContextResolveException e) {
+      throw new PublisherException("Can not resolve variables for custom GitHub context", e);
+    }
     final ChangeStatusUpdater.Handler h = myUpdater.getHandler(revision.getRoot(), params, this);
 
     if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
@@ -199,7 +205,15 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
 
   @Nullable
   private CommitStatus getCommitStatus(@NotNull BuildRevision revision, @NotNull BuildPromotion buildPromotion) throws PublisherException {
-    Map<String, String> params = getParams(buildPromotion);
+    Map<String, String> params;
+    try {
+      params = getParams(buildPromotion);
+    } catch (GitHubContextResolveException e) {
+      SBuildType buildType = buildPromotion.getBuildType();
+      LOG.debug(String.format("Custom GitHub context for build type \"%s\" contains variables that can be not resolved",
+                              buildType != null ? buildType.getFullName() : buildPromotion.getBuildTypeId()));
+      return null;
+    }
     ChangeStatusUpdater.Handler handler = myUpdater.getHandler(revision.getRoot(), params, this);
 
     if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
@@ -231,7 +245,15 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
 
   private boolean updateQueuedBuildStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision,
                                           @NotNull AdditionalTaskInfo additionalTaskInfo, boolean addingToQueue) throws PublisherException {
-    Map<String, String> params = getParams(buildPromotion);
+    Map<String, String> params;
+    try {
+      params = getParams(buildPromotion);
+    } catch (GitHubContextResolveException e) {
+      SBuildType buildType = buildPromotion.getBuildType();
+      LOG.debug(String.format("Custom GitHub context for build type \"%s\" contains variables that can be not resolved. Status won't be published",
+                              buildType != null ? buildType.getFullName() : buildPromotion.getBuildTypeId()));
+      return false;
+    }
     final ChangeStatusUpdater.Handler h = myUpdater.getHandler(revision.getRoot(), params, this);
 
     if (!revision.getRoot().getVcsName().equals("jetbrains.git")) {
@@ -254,7 +276,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   @NotNull
-  private Map<String, String> getParams(@NotNull BuildPromotion buildPromotion) {
+  private Map<String, String> getParams(@NotNull BuildPromotion buildPromotion) throws GitHubContextResolveException {
     String context = getBuildContext(buildPromotion);
     Map<String, String> result = new HashMap<String, String>(myParams);
     result.put(Constants.GITHUB_CONTEXT, context);
@@ -262,7 +284,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   @NotNull
-  String getBuildContext(@NotNull BuildPromotion buildPromotion) {
+  String getBuildContext(@NotNull BuildPromotion buildPromotion) throws GitHubContextResolveException {
     String context = getCustomContextFromParameter(buildPromotion);
     return context != null ? context : getDefaultContext(buildPromotion);
   }
@@ -291,8 +313,28 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   @Nullable
-  private String getCustomContextFromParameter(@NotNull BuildPromotion buildPromotion) {
-    String value = buildPromotion.getParameters().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM);
-    return value == null ? null : myBuildType.getValueResolver().resolve(value).getResult();
+  private String getCustomContextFromParameter(@NotNull BuildPromotion buildPromotion) throws GitHubContextResolveException {
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build != null) {
+      String value = build.getParametersProvider().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM);
+      if (value == null) return null;
+
+      if (isRemovedFromQueue(build) && ReferencesResolverUtil.mayContainReference(value)) {
+        throw new GitHubContextResolveException("Variables in custom context for removed from queue build can not be resolved");
+      }
+      return build.getValueResolver().resolve(value).getResult();
+    }
+    if (buildPromotion.getQueuedBuild() != null) {
+      String value = myBuildType.getParameters().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM);
+      if(value != null && ReferencesResolverUtil.mayContainReference(value)) {
+        throw new GitHubContextResolveException("Variables in custom context for queued build can not be resolved");
+      }
+      return value;
+    }
+    return null;
+  }
+
+  private boolean isRemovedFromQueue(@NotNull SBuild build) {
+    return build.isFinished() && build.getCanceledInfo() != null;
   }
 }

@@ -143,7 +143,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost/viewQueued.html?itemId=321", DefaultStatusMessages.BUILD_QUEUED, null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
   }
 
-  public void should_use_build_name_as_context() {
+  public void should_use_build_name_as_context() throws Exception {
     final String expectedContext = "My Default Test Build Type (My Default Test Project)";
     GitHubPublisher publisher = (GitHubPublisher)myPublisher;
     SQueuedBuild queuedBuild = myBuildType.addToQueue("");
@@ -156,7 +156,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     assertEquals(expectedContext, buildContext);
   }
 
-  public void should_use_context_from_parameters() {
+  public void should_use_context_from_parameters() throws Exception {
     final String expectedContext = "My custom context name";
     myBuildType.addBuildParameter(new SimpleParameter(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM, expectedContext));
     GitHubPublisher publisher = (GitHubPublisher)myPublisher;
