@@ -9,6 +9,7 @@ import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.util.TestFor;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
@@ -56,7 +57,7 @@ public class SwarmPublisherTest extends HttpPublisherTest {
     myPublisher = new SwarmPublisher((SwarmPublisherSettings)myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks);
 
 
-    myBuildType.addParameter(new SimpleParameter("vcsRoot." + myVcsRoot.getExternalId() + ".shelvedChangelist", CHANGELIST));
+    addShelvedChangelistParameter(CHANGELIST);
     myCreatePersonal = true;
   }
 
@@ -185,6 +186,24 @@ public class SwarmPublisherTest extends HttpPublisherTest {
     myPublisher.buildStarted(startBuildInCurrentBranch(myBuildType), myRevision);
 
     then(getRequestAsString()).isNull();
+  }
+
+  @Test
+  @TestFor(issues = "TW-76574")
+  public void should_not_report_on_personal_build_with_empty_shelve_param() throws Exception {
+    myCreatePersonal = true;
+    myBuildType.getParametersCollection().forEach((p) -> myBuildType.removeParameter(p.getName()));
+    addShelvedChangelistParameter("");
+
+    myRevision = new BuildRevision(myBuildType.getVcsRootInstanceForParent(myVcsRoot), CHANGELIST, "", CHANGELIST);
+
+    myPublisher.buildStarted(startBuildInCurrentBranch(myBuildType), myRevision);
+
+    then(getRequestAsString()).isNull();
+  }
+
+  private void addShelvedChangelistParameter(@NotNull String value) {
+    myBuildType.addParameter(new SimpleParameter("vcsRoot." + myVcsRoot.getExternalId() + ".shelvedChangelist", value));
   }
 
   protected void test_testConnection_failure(String repoURL, Map <String, String> params) throws InterruptedException {

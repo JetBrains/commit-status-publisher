@@ -167,7 +167,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
   private void postForEachReview(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final ReviewMessagePublisher messagePublisher) throws PublisherException {
 
     final String changelistId = getChangelistId(build, revision);
-    if (changelistId == null) return;
+    if (StringUtil.isEmpty(changelistId)) return;
 
     final SBuildType buildType = build.getBuildType();
     if (buildType == null) return;
