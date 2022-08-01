@@ -209,9 +209,6 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     try {
       params = getParams(buildPromotion);
     } catch (GitHubContextResolveException e) {
-      SBuildType buildType = buildPromotion.getBuildType();
-      LOG.debug(String.format("Custom GitHub context for build type \"%s\" contains variables that can be not resolved",
-                              buildType != null ? buildType.getFullName() : buildPromotion.getBuildTypeId()));
       return null;
     }
     ChangeStatusUpdater.Handler handler = myUpdater.getHandler(revision.getRoot(), params, this);
