@@ -1,4 +1,4 @@
-<%@ page import="jetbrains.buildServer.commitPublisher.perforce.SwarmPublisherSettings" %>
+<%@ page import="jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings" %>
 <%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="l" tagdir="/WEB-INF/tags/layout" %>

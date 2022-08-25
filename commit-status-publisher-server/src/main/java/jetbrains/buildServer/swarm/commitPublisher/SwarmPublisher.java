@@ -1,4 +1,4 @@
-package jetbrains.buildServer.commitPublisher.perforce;
+package jetbrains.buildServer.swarm.commitPublisher;
 
 import java.util.Map;
 import jetbrains.buildServer.commitPublisher.AdditionalTaskInfo;
@@ -10,7 +10,7 @@ import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static jetbrains.buildServer.commitPublisher.perforce.SwarmPublisherSettings.ID;
+import static jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings.ID;
 
 /**
  * @author kir

@@ -1,4 +1,4 @@
-package jetbrains.buildServer.commitPublisher.perforce;
+package jetbrains.buildServer.swarm.commitPublisher;
 
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.serverSide.BuildPromotion;

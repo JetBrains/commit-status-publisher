@@ -1,4 +1,4 @@
-package jetbrains.buildServer.commitPublisher.perforce;
+package jetbrains.buildServer.swarm.commitPublisher;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -22,7 +22,7 @@ import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static jetbrains.buildServer.commitPublisher.perforce.SwarmPublisherSettings.*;
+import static jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings.*;
 
 /**
  * @author kir

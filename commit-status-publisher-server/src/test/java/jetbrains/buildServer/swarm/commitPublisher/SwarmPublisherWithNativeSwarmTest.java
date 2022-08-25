@@ -1,4 +1,4 @@
-package jetbrains.buildServer.commitPublisher.perforce;
+package jetbrains.buildServer.swarm.commitPublisher;
 
 import com.intellij.openapi.util.io.StreamUtil;
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package jetbrains.buildServer.commitPublisher.perforce;
+package jetbrains.buildServer.swarm.commitPublisher;
 
 import java.util.HashMap;
 import java.util.Map;
