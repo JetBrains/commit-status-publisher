@@ -9,6 +9,7 @@ import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.swarm.SwarmClientManager;
 import jetbrains.buildServer.util.TestFor;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -52,9 +53,12 @@ public class SwarmPublisherTest extends HttpPublisherTest {
   protected void setUp() throws Exception {
     super.setUp();
 
-    myPublisherSettings = new SwarmPublisherSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
+    SwarmClientManager clientManager = new SwarmClientManager(myWebLinks, () -> null);
+    myPublisherSettings = new SwarmPublisherSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, clientManager);
+
     Map<String, String> params = getPublisherParams();
-    myPublisher = new SwarmPublisher((SwarmPublisherSettings)myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks);
+    myPublisher = new SwarmPublisher((SwarmPublisherSettings)myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks,
+                                     clientManager.getSwarmClient(params));
 
 
     addShelvedChangelistParameter(CHANGELIST);

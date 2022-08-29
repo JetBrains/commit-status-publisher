@@ -6,7 +6,7 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.swarm.SwarmClient;
+import jetbrains.buildServer.swarm.SwarmClientManager;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
@@ -36,11 +36,15 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
     add(CommitStatusPublisher.Event.MARKED_AS_SUCCESSFUL);
   }};
 
+  private final SwarmClientManager myClientManager;
+
   public SwarmPublisherSettings(@NotNull PluginDescriptor descriptor,
                                 @NotNull WebLinks links,
                                 @NotNull CommitStatusPublisherProblems problems,
-                                @NotNull SSLTrustStoreProvider trustStoreProvider) {
+                                @NotNull SSLTrustStoreProvider trustStoreProvider,
+                                @NotNull SwarmClientManager clientManager) {
     super(descriptor, links, problems, trustStoreProvider);
+    myClientManager = clientManager;
   }
 
   @NotNull
@@ -71,7 +75,7 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType,
                                                @NotNull String buildFeatureId,
                                                @NotNull Map<String, String> params) {
-    return new SwarmPublisher(this, buildType, buildFeatureId, params, myProblems, myLinks);
+    return new SwarmPublisher(this, buildType, buildFeatureId, params, myProblems, myLinks, myClientManager.getSwarmClient(params));
   }
 
   @Nullable
@@ -116,8 +120,7 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
                              @NotNull Map<String, String> params) throws PublisherException {
 
     IOGuard.allowNetworkCall(() -> {
-      final int testConnectionTimeout = 5000;
-      new SwarmClient(myLinks, params, testConnectionTimeout, trustStore()).testConnection();
+      myClientManager.getSwarmClient(params).testConnection();
     });
   }
 }

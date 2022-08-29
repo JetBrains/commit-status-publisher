@@ -23,7 +23,8 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
   protected void setUp() throws Exception {
     super.setUp();
 
-    myExtension = new SwarmBuildPageExtension(myServer, myWebManager, new MockPluginDescriptor(), new SwarmClientManager());
+    myExtension = new SwarmBuildPageExtension(myServer, myWebManager, new MockPluginDescriptor(), new SwarmClientManager(myWebLinks, () -> null));
+
     setInternalProperty(SWARM_REVIEWS_ENABLED, "true");
   }
 

@@ -11,6 +11,7 @@ import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.log.LogInitializer;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.swarm.SwarmClientManager;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
@@ -51,9 +52,11 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
 
     LogInitializer.setUnitTest(true);
 
-    myPublisherSettings = new SwarmPublisherSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
+    SwarmClientManager clientManager = new SwarmClientManager(myWebLinks, () -> null);
+    myPublisherSettings = new SwarmPublisherSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, clientManager);
     Map<String, String> params = getPublisherParams();
-    myPublisher = new SwarmPublisher((SwarmPublisherSettings)myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks);
+    myPublisher = new SwarmPublisher((SwarmPublisherSettings)myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks,
+                                     clientManager.getSwarmClient(params));
 
 
     myBuildType.addParameter(new SimpleParameter("vcsRoot." + myVcsRoot.getExternalId() + ".shelvedChangelist", CHANGELIST));

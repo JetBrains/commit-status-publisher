@@ -64,7 +64,7 @@ public class SwarmClient {
     try {
       final String data = "username=" + StringUtil.encodeURLParameter(myUsername) + "&password=" + StringUtil.encodeURLParameter(myTicket);
       HttpHelper.post(loginUrl, null, null,
-                      data, ContentType.APPLICATION_FORM_URLENCODED, null, myConnectionTimeout, myTrustStore, createLoginProcessor());
+                      data, ContentType.APPLICATION_FORM_URLENCODED, null, 5000, myTrustStore, createLoginProcessor());
     } catch (IOException e) {
       throw new PublisherException("Test connection failed for " + loginUrl, e);
     }
