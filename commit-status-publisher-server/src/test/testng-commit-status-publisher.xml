@@ -37,8 +37,11 @@
       <class name="jetbrains.buildServer.commitPublisher.tfs.TfsRepositoryInfoTest" />
       <class name="jetbrains.buildServer.commitPublisher.upsource.UpsourcePublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.space.SpacePublisherTest" />
+
       <class name="jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherTest" />
       <class name="jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherWithNativeSwarmTest" />
+      <class name="jetbrains.buildServer.swarm.web.SwarmBuildPageExtensionTest" />
+
       <class name="jetbrains.buildServer.commitPublisher.reports.MissingVcsRootReportTest" />
     </classes>
   </test>

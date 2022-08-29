@@ -1,4 +1,4 @@
-package jetbrains.buildServer.swarm.commitPublisher;
+package jetbrains.buildServer.swarm;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -247,6 +247,10 @@ public class SwarmClient {
 
   private void debug(String message) {
     LoggerUtil.LOG.info(message);
+  }
+
+  public String getSwarmServerUrl() {
+    return mySwarmUrl;
   }
 
   private class ReadReviewsProcessor implements HttpResponseProcessor {

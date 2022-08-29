@@ -56,6 +56,7 @@
   <bean class="jetbrains.buildServer.commitPublisher.space.SpaceSettings"/>
 
   <!-- Perforce Swarm -->
+  <bean class="jetbrains.buildServer.swarm.SwarmClientManager"/>
   <bean class="jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings"/>
   <bean class="jetbrains.buildServer.swarm.web.SwarmBuildPageExtension"/>
 
