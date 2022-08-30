@@ -19,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class SwarmPublisherSettings extends BasePublisherSettings {
 
-  static final String ID = "perforceSwarmPublisher";
+  public static final String ID = "perforceSwarmPublisher";
 
   public static final String PARAM_URL = "swarmUrl";
   public static final String PARAM_USERNAME = "swarmUser";

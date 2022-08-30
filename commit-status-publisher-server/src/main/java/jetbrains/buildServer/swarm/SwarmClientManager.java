@@ -1,12 +1,15 @@
 package jetbrains.buildServer.swarm;
 
 import java.util.Map;
-import jetbrains.buildServer.serverSide.RelativeWebLinks;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
+
+import static jetbrains.buildServer.commitPublisher.Constants.PUBLISHER_ID_PARAM;
+import static jetbrains.buildServer.commitPublisher.Constants.VCS_ROOT_ID_PARAM;
 
 public class SwarmClientManager {
   
@@ -26,7 +29,20 @@ public class SwarmClientManager {
   }
 
   public SwarmClient getSwarmClient(@NotNull SBuildType buildType, @NotNull VcsRootInstance root) {
-    // todo
+
+    for (SBuildFeatureDescriptor buildFeature : buildType.getResolvedSettings().getBuildFeatures()) {
+      Map<String, String> parameters = buildFeature.getParameters();
+
+      if (CommitStatusPublisherFeature.TYPE.equals(buildFeature.getType()) &&
+          SwarmPublisherSettings.ID.equals(parameters.get(PUBLISHER_ID_PARAM)) &&
+          buildType.isEnabled(buildFeature.getId())) {
+
+        String vcsRootId = parameters.get(VCS_ROOT_ID_PARAM);
+        if (vcsRootId == null || vcsRootId.equals(root.getExternalId())) {
+          return getSwarmClient(parameters);
+        }
+      }
+    }
     return null;
   }
 }
