@@ -8,6 +8,7 @@ import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.swarm.SwarmClient;
 import jetbrains.buildServer.swarm.SwarmClientManager;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.web.openapi.BuildInfoFragmentTab;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
@@ -89,9 +90,20 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
     for (BuildRevision revision : build.getBuildPromotion().getRevisions()) {
       SwarmClient swarmClient = mySwarmClients.getSwarmClient(buildType, revision.getRoot());
       if (swarmClient != null) {
-        swarmClientRevisions.add(new Pair<>(swarmClient, revision.getRevisionDisplayName()));
+        swarmClientRevisions.add(new Pair<>(swarmClient, getChangelist(build, revision)));
       }
     }
     return swarmClientRevisions;
+  }
+
+  @NotNull
+  private String getChangelist(@NotNull SBuild build, @NotNull BuildRevision revision) {
+    if (build.isPersonal()) {
+      String ver = build.getBuildOwnParameters().get("vcsRoot." + revision.getRoot().getExternalId() + ".shelvedChangelist");
+      if (StringUtil.isNotEmpty(ver)) {
+        return ver;
+      }
+    }
+    return revision.getRevisionDisplayName();
   }
 }
