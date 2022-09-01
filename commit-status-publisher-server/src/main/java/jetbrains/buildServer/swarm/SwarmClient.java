@@ -4,12 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import java.io.IOException;
 import java.security.KeyStore;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.log.LogInitializer;
@@ -49,10 +48,10 @@ public class SwarmClient {
     myConnectionTimeout = connectionTimeout;
     myTrustStore = trustStore;
 
-    myChangelist2ReviewsCache = CacheBuilder.newBuilder()
-                                            .maximumSize(1000)
-                                            .expireAfterWrite(10, TimeUnit.SECONDS)
-                                            .build();
+    myChangelist2ReviewsCache = Caffeine.newBuilder()
+                                        .maximumSize(1000)
+                                        .expireAfterWrite(10, TimeUnit.SECONDS)
+                                        .build();
   }
 
   public void setConnectionTimeout(int connectionTimeout) {
@@ -100,14 +99,18 @@ public class SwarmClient {
   @NotNull
   public List<Long> getReviewIds(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
     try {
-      return myChangelist2ReviewsCache.get(changelistId, () -> {
-        return doGetReviewsIds(changelistId, debugInfo);
-      });
-    } catch (ExecutionException e) {
+      return Objects.requireNonNull(myChangelist2ReviewsCache.get(changelistId, (id) -> {
+        try {
+          return doGetReviewsIds(changelistId, debugInfo);
+        } catch (PublisherException e) {
+          throw new RuntimeException("Some unexpetected problem while getting review IDs from Perforce Swarm server for " + debugInfo + ": " + e.getCause(), e);
+        }
+      }));
+    } catch (RuntimeException e) {
       if (e.getCause() instanceof PublisherException) {
         throw (PublisherException)e.getCause();
       }
-      throw new RuntimeException("Some unexpetected problem while getting review IDs from Perforce Swarm server for " + debugInfo + ": " + e.getCause(), e);
+      throw e;
     }
   }
 

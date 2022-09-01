@@ -2,6 +2,7 @@ package jetbrains.buildServer.swarm;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.TreeMap;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.BuildFeature;
@@ -22,6 +23,7 @@ public class SwarmClientManagerTest extends BaseServerTestCase {
 
   private SwarmClientManager mySwarmClientManager;
   private SVcsRootImpl myRoot;
+
 
   @BeforeMethod(alwaysRun = true)
   @Override
@@ -122,6 +124,24 @@ public class SwarmClientManagerTest extends BaseServerTestCase {
 
     SwarmClient swarmClient2 = mySwarmClientManager.getSwarmClient(myBuildType, myBuildType.getVcsRootInstanceForParent(root2));
     then(swarmClient2.getSwarmServerUrl()).isEqualTo("http://swarm1");
+  }
+
+  @Test
+  public void should_reuse_swarm_clients() throws Exception {
+    SwarmClient c1 = mySwarmClientManager.getSwarmClient(new HashMap<String, String>() {{
+      put("foo", "bar");
+    }});
+    SwarmClient c2 = mySwarmClientManager.getSwarmClient(new TreeMap<String, String>() {{
+      put("foo", "bar");
+    }});
+
+    assertSame(c1, c2);
+
+    SwarmClient c3 = mySwarmClientManager.getSwarmClient(new HashMap<String, String>() {{
+      put("foo", "bar3");
+    }});
+    assertNotSame(c1, c3);
+
   }
 
 }
