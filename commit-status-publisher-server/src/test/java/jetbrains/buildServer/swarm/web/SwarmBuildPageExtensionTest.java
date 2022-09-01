@@ -43,7 +43,7 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
     HashMap<String, Object> model = new HashMap<>();
     extension.fillModel(model, buildRequest, build);
     
-    then(((SwarmBuildDataBean)model.get(SWARM_BEAN)).isEmpty()).isTrue();
+    then(((SwarmBuildDataBean)model.get(SWARM_BEAN)).isDataPresent()).isFalse();
   }
   
   @Test
@@ -79,7 +79,7 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
     extension.fillModel(model, buildRequest, build);
 
     SwarmBuildDataBean bean = (SwarmBuildDataBean)model.get(SWARM_BEAN);
-    then((bean).isEmpty()).isFalse();
+    then((bean).isDataPresent()).isTrue();
     then(bean.getReviews().size()).isEqualTo(1);
     then(bean.getReviews().get(0).getUrl()).isEqualTo("http://swarm-root");
     then(bean.getReviews().get(0).getReviewIds()).containsExactly(380l, 381l, 382l);

@@ -14,8 +14,8 @@ public class SwarmBuildDataBean {
     mySwarmServers.computeIfAbsent(swarmServerUrl, SwarmServerData::new).addAll(reviewIds);
   }
 
-  public boolean isEmpty() {
-    return mySwarmServers.isEmpty();
+  public boolean isDataPresent() {
+    return !mySwarmServers.isEmpty();
   }
 
   public List<SwarmServerData> getReviews() {

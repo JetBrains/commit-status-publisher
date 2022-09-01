@@ -20,20 +20,32 @@
   ~ limitations under the License.
   --%>
 
+<jsp:useBean id="swarmBean" class="jetbrains.buildServer.swarm.web.SwarmBuildDataBean" scope="request"/>
+
 <style>
   .swarmReviews {
     margin: 0;
   }
 </style>
 
-<bs:_collapsibleBlock title="Swarm Reviews" id="smarmReviews" contentClass="swarmReviews">
+<c:if test="${swarmBean.dataPresent}">
 
-  Test content
+  <bs:_collapsibleBlock title="Open Swarm Reviews" id="smarmReviews" contentClass="swarmReviews">
+    <ul>
+      <c:forEach items="${swarmBean.reviews}" var="serverData">
+        <c:forEach items="${serverData.reviewIds}" var="reviewId">
+          <c:set var="url"><c:out value="${serverData.url}"/>/reviews/${reviewId}</c:set>
+          <li><span class="grayNote">Reviews</span> / <a href="${url}" target="_blank" rel="noopener">${reviewId}</a></li>
+        </c:forEach>
+      </c:forEach>
+    </ul>
+  </bs:_collapsibleBlock>
 
-</bs:_collapsibleBlock>
+</c:if>
 
 <script>
-  console.info("Run Perforce Swarm page extension");
+  console.info("Run Perforce Swarm page extension, empty: ${swarmBean.dataPresent}");
 </script>
+
 
 

@@ -46,7 +46,8 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
 
   @Override
   public String getDisplayName() {
-    return "Swarm Reviews";
+    // Also see text label at swarmBuildPageFragment.jsp
+    return "Open Swarm Reviews";
   }
 
   @Override
