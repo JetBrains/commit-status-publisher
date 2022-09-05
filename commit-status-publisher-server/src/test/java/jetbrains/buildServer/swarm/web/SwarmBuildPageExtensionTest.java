@@ -10,6 +10,8 @@ import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.controllers.MockRequest;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
+import jetbrains.buildServer.swarm.LoadedReviews;
+import jetbrains.buildServer.swarm.SingleReview;
 import jetbrains.buildServer.swarm.SwarmClient;
 import jetbrains.buildServer.swarm.SwarmClientManager;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -86,8 +88,12 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
     SwarmClient mockSwarmClient = Mockito.mock(SwarmClient.class);
     Mockito.when(mockSwarmClient.getSwarmServerUrl())
            .thenReturn("http://swarm-root/");
-    Mockito.when(mockSwarmClient.getReviewIds(Mockito.eq("12321"), Mockito.any()))
-           .thenReturn(Arrays.asList(380l, 382l, 381l));
+
+    LoadedReviews loadedReviews = new LoadedReviews(Arrays.asList(
+      new SingleReview(380l, "needsReview"),
+      new SingleReview(382l, "needsRevision"),
+      new SingleReview(381l, "needsReview")));
+    Mockito.when(mockSwarmClient.getReviews(Mockito.eq("12321"), Mockito.any())).thenReturn(loadedReviews);
 
     VcsRootInstance vri = myBuildType.getVcsRootInstanceForParent(perforce);
     Mockito.when(mockSwarmManager.getSwarmClient(myBuildType, vri))

@@ -14,7 +14,6 @@ import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.log.LogInitializer;
 import jetbrains.buildServer.serverSide.RelativeWebLinks;
 import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
 import org.apache.http.entity.ContentType;
@@ -36,7 +35,7 @@ public class SwarmClient {
   private final KeyStore myTrustStore;
   private final RelativeWebLinks myWebLinks;
 
-  private final Cache<String, List<Long>> myChangelist2ReviewsCache;
+  private final Cache<String, LoadedReviews> myChangelist2ReviewsCache;
 
   public SwarmClient(@NotNull RelativeWebLinks webLinks, @NotNull Map<String, String> params, int connectionTimeout, @Nullable KeyStore trustStore) {
     myWebLinks = webLinks;
@@ -97,11 +96,16 @@ public class SwarmClient {
   }
 
   @NotNull
-  public List<Long> getReviewIds(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
+  public List<Long> getOpenReviewIds(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
+    return getReviews(changelistId, debugInfo).getOpenReviewIds();
+  }
+
+  @NotNull
+  public LoadedReviews getReviews(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
     try {
       return Objects.requireNonNull(myChangelist2ReviewsCache.get(changelistId, (id) -> {
         try {
-          return doGetReviewsIds(changelistId, debugInfo);
+          return loadReviews(changelistId, debugInfo);
         } catch (PublisherException e) {
           throw new RuntimeException("Some unexpetected problem while getting review IDs from Perforce Swarm server for " + debugInfo + ": " + e.getCause(), e);
         }
@@ -115,25 +119,16 @@ public class SwarmClient {
   }
 
   @NotNull
-  private List<Long> doGetReviewsIds(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
-    String getReviewsUrl = mySwarmUrl + "/api/v9/reviews?fields=id&change[]=" + changelistId;
-    getReviewsUrl += addParamsToLimitReviewStatuses();
+  private LoadedReviews loadReviews(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
+    String getReviewsUrl = mySwarmUrl + "/api/v9/reviews?fields=id,state,stateLabel&change[]=" + changelistId;
     try {
       final ReadReviewsProcessor processor = new ReadReviewsProcessor(debugInfo);
       HttpHelper.get(getReviewsUrl, myUsername, myTicket, null, myConnectionTimeout, myTrustStore, processor);
 
-      return processor.getReviewIds();
+      return new LoadedReviews(processor.getReviews());
     } catch (IOException e) {
       throw new PublisherException("Cannot get list of reviews from " + getReviewsUrl + " for " + debugInfo + ": " + e, e);
     }
-  }
-
-  private String addParamsToLimitReviewStatuses() {
-    String extraParams = TeamCityProperties.getProperty("teamcity.swarm.reviewsExtra.params", "");
-    if (StringUtil.isNotEmpty(extraParams) && !extraParams.startsWith("&")) {
-      extraParams = "&" + extraParams;
-    }
-    return "&state[]=needsReview&state[]=needsRevision" + extraParams;
   }
 
   public void addCommentToReview(@NotNull Long reviewId, @NotNull String fullComment, @NotNull String debugInfo, boolean silenceNotification) throws PublisherException {
@@ -185,7 +180,7 @@ public class SwarmClient {
   @NotNull
   private static String testNameFrom(SBuild build) {
     return StringUtil.truncateStringValueWithDotsAtCenter(build.getBuildTypeExternalId(), 32)
-                     .replaceAll("\\.", "_");
+                     .replace('.', '_');
   }
 
   public void updateSwarmTestRuns(long reviewId, @NotNull SBuild build, @NotNull String debugBuildInfo) throws PublisherException {
@@ -258,7 +253,7 @@ public class SwarmClient {
 
   private class ReadReviewsProcessor implements HttpResponseProcessor {
 
-    private final List<Long> myReviewIds = new ArrayList<>();
+    private final List<SingleReview> myReviews = new ArrayList<>();
     private final String myDebugInfo;
 
     private ReadReviewsProcessor(@NotNull String debugInfo) {
@@ -285,11 +280,13 @@ public class SwarmClient {
         if (reviews != null) {
           for (Iterator<JsonNode> it = reviews.elements(); it.hasNext(); ) {
             JsonNode element = it.next();
-            myReviewIds.add(element.get("id").longValue());
+            long id = element.get("id").longValue();
+            String state = element.get("state").asText();
+            myReviews.add(new SingleReview(id, state));
           }
         }
-        if (myReviewIds.size() > 0) {
-          info(String.format("Found Perforce Swarm reviews %s for %s", myReviewIds, myDebugInfo));
+        if (myReviews.size() > 0) {
+          info(String.format("Found Perforce Swarm reviews %s for %s", myReviews, myDebugInfo));
         }
 
       } catch (JsonProcessingException e) {
@@ -298,8 +295,8 @@ public class SwarmClient {
     }
 
     @NotNull
-    public List<Long> getReviewIds() {
-      return myReviewIds;
+    public List<SingleReview> getReviews() {
+      return myReviews;
     }
   }
 

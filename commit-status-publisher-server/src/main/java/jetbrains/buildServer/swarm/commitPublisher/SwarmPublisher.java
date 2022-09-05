@@ -179,7 +179,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
     IOGuard.allowNetworkCall(() -> {
       final String debugBuildInfo = "build [id=" + build.getId() + "] in " + buildType.getExtendedFullName();
 
-      for (Long reviewId : mySwarmClient.getReviewIds(changelistId, debugBuildInfo)) {
+      for (Long reviewId : mySwarmClient.getOpenReviewIds(changelistId, debugBuildInfo)) {
         messagePublisher.publishMessage(reviewId, build, debugBuildInfo);
       }
     });

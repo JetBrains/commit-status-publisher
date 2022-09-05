@@ -1,17 +1,27 @@
 package jetbrains.buildServer.swarm.web;
 
+import java.time.Duration;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
+import jetbrains.buildServer.swarm.SingleReview;
+import jetbrains.buildServer.swarm.LoadedReviews;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
 public class SwarmBuildDataBean {
 
   private final ConcurrentMap<String, SwarmServerData> mySwarmServers = new ConcurrentHashMap<>();
+  private Date myLastRetrievedTime = null;
 
-  public void addData(@NotNull String swarmServerUrl, @NotNull List<Long> reviewIds) {
-    mySwarmServers.computeIfAbsent(swarmServerUrl, SwarmServerData::new).addAll(reviewIds);
+  public void addData(@NotNull String swarmServerUrl, @NotNull LoadedReviews reviews) {
+    if (myLastRetrievedTime == null || myLastRetrievedTime.after(reviews.getCreated())) {
+      myLastRetrievedTime = reviews.getCreated();
+    }
+    mySwarmServers.computeIfAbsent(swarmServerUrl, SwarmServerData::new).addAll(reviews.getReviews());
   }
 
   public boolean isDataPresent() {
@@ -22,16 +32,22 @@ public class SwarmBuildDataBean {
     return new ArrayList<>(mySwarmServers.values());
   }
 
+  @NotNull
+  public Duration getRetrievedAge() {
+    return null == myLastRetrievedTime ? Duration.ZERO :
+           Duration.between(ZonedDateTime.ofInstant(myLastRetrievedTime.toInstant(), ZoneId.systemDefault()), ZonedDateTime.now());
+  }
+
   public static class SwarmServerData {
     private final String myUrl;
-    private final Set<Long> myReviews = new HashSet<>();
+    private final Set<SingleReview> myReviews = new HashSet<>();
 
     public SwarmServerData(@NotNull String url) {
       myUrl = StringUtil.removeTailingSlash(url);
     }
 
-    public void addAll(@NotNull List<Long> reviewIds) {
-      myReviews.addAll(reviewIds);
+    public void addAll(@NotNull List<SingleReview> reviews) {
+      myReviews.addAll(reviews);
     }
 
     public String getUrl() {
@@ -39,9 +55,11 @@ public class SwarmBuildDataBean {
     }
 
     public List<Long> getReviewIds() {
-      ArrayList<Long> result = new ArrayList<>(myReviews);
-      result.sort(Long::compareTo);
-      return result;
+      return myReviews.stream().map((r) -> r.getId()).sorted().collect(Collectors.toList());
+    }
+
+    public List<SingleReview> getReviews() {
+      return myReviews.stream().sorted().collect(Collectors.toList());
     }
   }
 }

@@ -2,12 +2,14 @@ package jetbrains.buildServer.swarm.web;
 
 import com.intellij.openapi.util.Pair;
 import java.util.*;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.swarm.SwarmClient;
 import jetbrains.buildServer.swarm.SwarmClientManager;
+import jetbrains.buildServer.swarm.LoadedReviews;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.web.openapi.BuildInfoFragmentTab;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
@@ -20,6 +22,7 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
 
   static final String SWARM_REVIEWS_ENABLED = "teamcity.swarm.reviews.enabled";
   static final String SWARM_BEAN = "swarmBean";
+  static final String SWARM_CHANGELISTS = "swarmChangelists";
 
   private final SwarmClientManager mySwarmClients;
 
@@ -48,7 +51,7 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
   @Override
   public String getDisplayName() {
     // Also see text label at swarmBuildPageFragment.jsp
-    return "Open Swarm Reviews";
+    return "Swarm Reviews";
   }
 
   @Override
@@ -68,9 +71,9 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
     for (Pair<SwarmClient, String> swarmClientRevision : swarmClientRevisions) {
       try {
         SwarmClient swarmClient = swarmClientRevision.first;
-        List<Long> reviewIds = swarmClient.getReviewIds(swarmClientRevision.second, debugBuildInfo);
-        if (!reviewIds.isEmpty()) {
-          bean.addData(swarmClient.getSwarmServerUrl(), reviewIds);
+        LoadedReviews reviews = swarmClient.getReviews(swarmClientRevision.second, debugBuildInfo);
+        if (!reviews.getReviews().isEmpty()) {
+          bean.addData(swarmClient.getSwarmServerUrl(), reviews);
         }
       } catch (PublisherException e) {
         Loggers.SERVER.warnAndDebugDetails("Could not load reviews for build " + debugBuildInfo, e);
@@ -78,6 +81,10 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
     }
 
     model.put(SWARM_BEAN, bean);
+    model.put(SWARM_CHANGELISTS, swarmClientRevisions.stream()
+                                                     .map((r) -> r.second)
+                                                     .distinct()
+                                                     .collect(Collectors.joining(",")));
   }
 
   @NotNull

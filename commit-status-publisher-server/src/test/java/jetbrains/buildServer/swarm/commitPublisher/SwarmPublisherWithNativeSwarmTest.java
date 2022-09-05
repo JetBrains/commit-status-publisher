@@ -96,11 +96,11 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
 
   @Override
   protected boolean respondToGet(String url, HttpResponse httpResponse) {
-    if (url.contains("/api/v9/reviews?fields=id&change[]=" + CHANGELIST + "&state[]=needsReview")) {
+    if (url.contains("/api/v9/reviews?fields=id,state,stateLabel&change[]=" + CHANGELIST)) {
       if (myReviewsRequested) {
         throw new AssertionError("Should not request reviews twice, should cache");
       }
-      httpResponse.setEntity(new StringEntity("{\"lastSeen\":19,\"reviews\":[{\"id\":19}],\"totalCount\":1}", "UTF-8"));
+      httpResponse.setEntity(new StringEntity("{\"lastSeen\":19,\"reviews\":[{\"id\":19,\"state\":\"needsReview\"}],\"totalCount\":1}", "UTF-8"));
       myReviewsRequested = true;
       return true;
     }

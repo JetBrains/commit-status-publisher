@@ -26,24 +26,51 @@
   .swarmReviews {
     margin: 0;
   }
+  .swarmReviewsAge {
+    margin: 10px 0;
+  }
 </style>
 
-<c:if test="${swarmBean.dataPresent}">
+  <bs:refreshable containerId="pullRequestFullInfo" pageUrl="${pageUrl}">
+  <bs:_collapsibleBlock title="Swarm Reviews" id="smarmReviews" contentClass="swarmReviews">
 
-  <bs:_collapsibleBlock title="Open Swarm Reviews" id="smarmReviews" contentClass="swarmReviews">
+    Perforce changelist ID: <strong>${empty swarmChangelists ? 'none' : swarmChangelists}</strong>.
+    <c:if test="${not swarmBean.dataPresent}">
+      No reviews found.
+    </c:if>
+    <c:if test="${swarmBean.dataPresent}">
     <ul>
       <c:forEach items="${swarmBean.reviews}" var="serverData">
-        <c:forEach items="${serverData.reviewIds}" var="reviewId">
-          <c:set var="url"><c:out value="${serverData.url}"/>/reviews/${reviewId}</c:set>
-          <li><span class="grayNote">Reviews</span> / <a href="${url}" target="_blank" rel="noopener">${reviewId}</a></li>
+        <c:forEach items="${serverData.reviews}" var="review">
+          <c:set var="url"><c:out value="${serverData.url}"/>/reviews/${review.id}</c:set>
+          <li><span class="grayNote">Reviews</span> / <a href="${url}" target="_blank" rel="noopener">${review.id}</a>
+          (${review.statusText})</li>
         </c:forEach>
       </c:forEach>
     </ul>
-  </bs:_collapsibleBlock>
+    </c:if>
 
-</c:if>
+    <div class="swarmReviewsAge">
+      The data was obtained <bs:printTime time="${swarmBean.retrievedAge.seconds}"/> ago.
+      <!--    todo
+      <span id="swarmReviewsAge__refresh">
+        <bs:actionIcon
+          name="update"
+          onclick="refreshSwarmInfo('${buildData.buildId}'); return false;"
+          title="Refresh Helix Swarm information"
+        />
+      </span>
+      -->
+    </div>
+
+  </bs:_collapsibleBlock>
+  </bs:refreshable>
+
 
 <script>
+  function refreshSwarmInfo(buildId) {
+    console.info("Re-read Perforce Swarm info");
+  }
   console.info("Run Perforce Swarm page extension, empty: ${swarmBean.dataPresent}");
 </script>
 
