@@ -59,7 +59,7 @@
   <bean class="jetbrains.buildServer.swarm.SwarmClientManager"/>
   <bean class="jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings"/>
   <bean class="jetbrains.buildServer.swarm.web.SwarmBuildPageExtension"/>
-  <bean class="jetbrains.buildServer.swarm.web.LoadReviewsAction"/>
+<!--  <bean class="jetbrains.buildServer.swarm.web.LoadReviewsAction"/>-->
 
   <bean class="jetbrains.buildServer.commitPublisher.ServerListener">
     <constructor-arg index="0" ref="configActionsDispatcher"/>
