@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.security.KeyStore;
 import java.util.*;
@@ -123,7 +124,8 @@ public class SwarmClient {
   }
 
   @NotNull
-  private LoadedReviews loadReviews(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
+  @VisibleForTesting
+  protected LoadedReviews loadReviews(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
     String getReviewsUrl = mySwarmUrl + "/api/v9/reviews?fields=id,state,stateLabel&change[]=" + changelistId;
     try {
       final ReadReviewsProcessor processor = new ReadReviewsProcessor(debugInfo);

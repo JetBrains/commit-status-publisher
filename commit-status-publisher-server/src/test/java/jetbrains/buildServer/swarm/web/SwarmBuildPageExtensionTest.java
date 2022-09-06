@@ -1,28 +1,32 @@
 package jetbrains.buildServer.swarm.web;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 import jetbrains.buildServer.BaseWebTestCase;
 import jetbrains.buildServer.buildTriggers.vcs.BuildRevisionBuilder;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
+import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.controllers.MockRequest;
 import jetbrains.buildServer.messages.Status;
-import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.swarm.LoadedReviews;
 import jetbrains.buildServer.swarm.SingleReview;
 import jetbrains.buildServer.swarm.SwarmClient;
 import jetbrains.buildServer.swarm.SwarmClientManager;
+import jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings;
 import jetbrains.buildServer.util.cache.ResetCacheRegisterImpl;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
 import org.jetbrains.annotations.NotNull;
-import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings.PARAM_URL;
 import static jetbrains.buildServer.swarm.web.SwarmBuildPageExtension.SWARM_BEAN;
 import static jetbrains.buildServer.swarm.web.SwarmBuildPageExtension.SWARM_REVIEWS_ENABLED;
 import static org.assertj.core.api.BDDAssertions.then;
@@ -30,16 +34,38 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
 
+  private SwarmBuildPageExtension myExtension;
+  private VcsRootInstance myVri;
+
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
     super.setUp();
 
     setInternalProperty(SWARM_REVIEWS_ENABLED, "true");
+
+    myBuildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, ImmutableMap.of(
+      Constants.PUBLISHER_ID_PARAM, SwarmPublisherSettings.ID,
+      PARAM_URL, "http://swarm-root/"
+    ));
+
+    SVcsRootImpl perforce = myFixture.addVcsRoot("perforce", "");
+    myVri = myBuildType.getVcsRootInstanceForParent(perforce);
+    SwarmClientManager swarmClientManager = new SwarmClientManager(myWebLinks, () -> null, new ResetCacheRegisterImpl()) {
+      @NotNull
+      @Override
+      protected SwarmClient doCreateSwarmClient(@NotNull Map<String, String> params) {
+        return createSwarmClient(params);
+      }
+    };
+
+    myExtension = new SwarmBuildPageExtension(myServer, myWebManager, new MockPluginDescriptor(), swarmClientManager);
   }
 
   @Test
   public void should_not_be_available_without_swarm_feature() throws Exception {
+
+    myBuildType.removeBuildFeature(myBuildType.getBuildFeatures().iterator().next().getId());
     SwarmBuildPageExtension extension =
       new SwarmBuildPageExtension(myServer, myWebManager, new MockPluginDescriptor(), new SwarmClientManager(myWebLinks, () -> null, new ResetCacheRegisterImpl()));
 
@@ -84,45 +110,59 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
   }
 
   private void test_provide_reviews_data(Function<VcsRootInstance, SFinishedBuild> createBuildWithRevisions) throws PublisherException {
-    SVcsRootImpl perforce = myFixture.addVcsRoot("perforce", "");
+    SFinishedBuild build = createBuildWithRevisions.apply(myVri);
 
-
-    SwarmClient mockSwarmClient = Mockito.mock(SwarmClient.class);
-    Mockito.when(mockSwarmClient.getSwarmServerUrl())
-           .thenReturn("http://swarm-root/");
-
-    LoadedReviews loadedReviews = new LoadedReviews(Arrays.asList(
-      new SingleReview(380l, "needsReview"),
-      new SingleReview(382l, "needsRevision"),
-      new SingleReview(381l, "needsReview")));
-    Mockito.when(mockSwarmClient.getReviews(Mockito.eq("12321"), Mockito.any(), Mockito.eq(false))).thenReturn(loadedReviews);
-
-    VcsRootInstance vri = myBuildType.getVcsRootInstanceForParent(perforce);
-    SwarmClientManager swarmClientManager = new SwarmClientManager(myWebLinks, () -> null, new ResetCacheRegisterImpl()) {
-      @Override
-      public SwarmClient getSwarmClient(@NotNull SBuildType buildType, @NotNull VcsRootInstance root) {
-        if (buildType == myBuildType && root == vri) {
-          return mockSwarmClient;
-        }
-        return super.getSwarmClient(buildType, root);
-      }
-    };
-
-    SwarmBuildPageExtension extension = new SwarmBuildPageExtension(myServer, myWebManager, new MockPluginDescriptor(), swarmClientManager);
-
-    SFinishedBuild build = createBuildWithRevisions.apply(vri);
-
-    HashMap<String, Object> model = new HashMap<>();
-    MockRequest buildRequest = new MockRequest("buildId", String.valueOf(build.getBuildId()));
-    then(extension.isAvailable(buildRequest)).isTrue();
-    extension.fillModel(model, buildRequest, build);
-
-    SwarmBuildDataBean bean = (SwarmBuildDataBean)model.get(SWARM_BEAN);
+    SwarmBuildDataBean bean = runRequestAndGetBean(myExtension, build);
     then((bean).isDataPresent()).isTrue();
     then(bean.getReviews().size()).isEqualTo(1);
     then(bean.getReviews().get(0).getUrl()).isEqualTo("http://swarm-root");
     then(bean.getReviews().get(0).getReviewIds()).containsExactly(380l, 381l, 382l);
   }
 
+  @Test
+  public void should_cache_reviews_and_allow_to_reset_cache() throws Exception {
+
+    SFinishedBuild build = build().in(myBuildType)
+                                   .withBuildRevisions(BuildRevisionBuilder.buildRevision(myVri, "12321"))
+                                   .finish();
+
+    SwarmBuildDataBean bean1 = runRequestAndGetBean(myExtension, build);
+    SwarmBuildDataBean bean2 = runRequestAndGetBean(myExtension, build);
+
+    // Check caching
+    then(bean1.getReviews().get(0).getReviews().get(0))
+      .as("Should cache review data between recent calls")
+      .isSameAs(bean2.getReviews().get(0).getReviews().get(0));
+
+    // Reset cache
+    myExtension.forceLoadReviews(build);
+    SwarmBuildDataBean bean3 = runRequestAndGetBean(myExtension, build);
+    then(bean1.getReviews().get(0).getReviews().get(0))
+      .as("Should reset cache")
+      .isNotSameAs(bean3.getReviews().get(0).getReviews().get(0));
+  }
+
+  @NotNull
+  private SwarmClient createSwarmClient(final Map<String, String> params) {
+    return new SwarmClient(myWebLinks, params, 10, null) {
+      @NotNull
+      @Override
+      protected LoadedReviews loadReviews(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
+        return new LoadedReviews(Arrays.asList(
+          new SingleReview(380l, "needsReview"),
+          new SingleReview(382l, "needsRevision"),
+          new SingleReview(381l, "needsReview")));
+      }
+    };
+  }
+
+  private static SwarmBuildDataBean runRequestAndGetBean(SwarmBuildPageExtension extension, SFinishedBuild build) {
+    HashMap<String, Object> model = new HashMap<>();
+    MockRequest buildRequest = new MockRequest("buildId", String.valueOf(build.getBuildId()));
+    then(extension.isAvailable(buildRequest)).isTrue();
+    extension.fillModel(model, buildRequest, build);
+
+    return (SwarmBuildDataBean)model.get(SWARM_BEAN);
+  }
 
 }

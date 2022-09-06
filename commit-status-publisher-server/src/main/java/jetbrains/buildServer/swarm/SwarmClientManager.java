@@ -2,6 +2,7 @@ package jetbrains.buildServer.swarm;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.annotations.VisibleForTesting;
 import com.intellij.openapi.util.Pair;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
@@ -37,13 +38,19 @@ public class SwarmClientManager {
   }
 
   @NotNull
-  public SwarmClient getSwarmClient(@NotNull Map<String, String> params) {
+  public final SwarmClient getSwarmClient(@NotNull Map<String, String> params) {
     long key = Hash.calc(VcsUtil.propertiesToString(params));
-    SwarmClient swarmClient = mySwarmClientCache.get(key, (k) -> new SwarmClient(myWebLinks, params, myConnectionTimeout, myTrustStoreProvider.getTrustStore()));
+    SwarmClient swarmClient = mySwarmClientCache.get(key, (k) -> doCreateSwarmClient(params));
     return Objects.requireNonNull(swarmClient);
   }
 
-  public SwarmClient getSwarmClient(@NotNull SBuildType buildType, @NotNull VcsRootInstance root) {
+  @NotNull
+  @VisibleForTesting
+  protected SwarmClient doCreateSwarmClient(@NotNull Map<String, String> params) {
+    return new SwarmClient(myWebLinks, params, myConnectionTimeout, myTrustStoreProvider.getTrustStore());
+  }
+
+  public final SwarmClient getSwarmClient(@NotNull SBuildType buildType, @NotNull VcsRootInstance root) {
 
     for (SBuildFeatureDescriptor buildFeature : buildType.getResolvedSettings().getBuildFeatures()) {
       Map<String, String> parameters = buildFeature.getParameters();
