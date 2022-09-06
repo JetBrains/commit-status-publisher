@@ -9,6 +9,7 @@ import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.controllers.MockRequest;
 import jetbrains.buildServer.messages.Status;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.swarm.LoadedReviews;
 import jetbrains.buildServer.swarm.SingleReview;
@@ -17,6 +18,7 @@ import jetbrains.buildServer.swarm.SwarmClientManager;
 import jetbrains.buildServer.util.cache.ResetCacheRegisterImpl;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
+import org.jetbrains.annotations.NotNull;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -84,7 +86,6 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
   private void test_provide_reviews_data(Function<VcsRootInstance, SFinishedBuild> createBuildWithRevisions) throws PublisherException {
     SVcsRootImpl perforce = myFixture.addVcsRoot("perforce", "");
 
-    SwarmClientManager mockSwarmManager = Mockito.mock(SwarmClientManager.class);
 
     SwarmClient mockSwarmClient = Mockito.mock(SwarmClient.class);
     Mockito.when(mockSwarmClient.getSwarmServerUrl())
@@ -94,13 +95,20 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
       new SingleReview(380l, "needsReview"),
       new SingleReview(382l, "needsRevision"),
       new SingleReview(381l, "needsReview")));
-    Mockito.when(mockSwarmClient.getReviews(Mockito.eq("12321"), Mockito.any())).thenReturn(loadedReviews);
+    Mockito.when(mockSwarmClient.getReviews(Mockito.eq("12321"), Mockito.any(), Mockito.eq(false))).thenReturn(loadedReviews);
 
     VcsRootInstance vri = myBuildType.getVcsRootInstanceForParent(perforce);
-    Mockito.when(mockSwarmManager.getSwarmClient(myBuildType, vri))
-           .thenReturn(mockSwarmClient);
+    SwarmClientManager swarmClientManager = new SwarmClientManager(myWebLinks, () -> null, new ResetCacheRegisterImpl()) {
+      @Override
+      public SwarmClient getSwarmClient(@NotNull SBuildType buildType, @NotNull VcsRootInstance root) {
+        if (buildType == myBuildType && root == vri) {
+          return mockSwarmClient;
+        }
+        return super.getSwarmClient(buildType, root);
+      }
+    };
 
-    SwarmBuildPageExtension extension = new SwarmBuildPageExtension(myServer, myWebManager, new MockPluginDescriptor(), mockSwarmManager);
+    SwarmBuildPageExtension extension = new SwarmBuildPageExtension(myServer, myWebManager, new MockPluginDescriptor(), swarmClientManager);
 
     SFinishedBuild build = createBuildWithRevisions.apply(vri);
 

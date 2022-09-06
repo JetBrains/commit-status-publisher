@@ -97,12 +97,16 @@ public class SwarmClient {
 
   @NotNull
   public List<Long> getOpenReviewIds(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
-    return getReviews(changelistId, debugInfo).getOpenReviewIds();
+    return getReviews(changelistId, debugInfo, false).getOpenReviewIds();
   }
 
   @NotNull
-  public LoadedReviews getReviews(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
+  public LoadedReviews getReviews(@NotNull String changelistId, @NotNull String debugInfo, boolean forceLoad) throws PublisherException {
     try {
+      if (forceLoad) {
+        myChangelist2ReviewsCache.invalidate(changelistId);
+      }
+
       return Objects.requireNonNull(myChangelist2ReviewsCache.get(changelistId, (id) -> {
         try {
           return loadReviews(changelistId, debugInfo);

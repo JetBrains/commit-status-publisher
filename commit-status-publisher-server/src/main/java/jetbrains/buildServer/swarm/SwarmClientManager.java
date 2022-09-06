@@ -2,14 +2,13 @@ package jetbrains.buildServer.swarm;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.intellij.openapi.util.Pair;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
-import jetbrains.buildServer.serverSide.RelativeWebLinks;
-import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings;
 import jetbrains.buildServer.util.Hash;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.cache.ResetCacheHandler;
 import jetbrains.buildServer.util.cache.ResetCacheRegister;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
@@ -62,6 +61,40 @@ public class SwarmClientManager {
     return null;
   }
 
+  /**
+   * Returns a collection of SwarmClient with the associated changelistId related to the given build.
+   * There could be several such SwarmClients as there could be several Swarm features for the configuration
+   *
+   * @param build
+   * @return see above
+   */
+  public Set<Pair<SwarmClient, String>> getSwarmClientRevisions(@NotNull SBuild build) {
+    SBuildType buildType = build.getBuildType();
+    if (buildType == null) {
+      return Collections.emptySet();
+    }
+
+    Set<Pair<SwarmClient, String>> swarmClientRevisions = new HashSet<>();
+
+    for (BuildRevision revision : build.getBuildPromotion().getRevisions()) {
+      SwarmClient swarmClient = getSwarmClient(buildType, revision.getRoot());
+      if (swarmClient != null) {
+        swarmClientRevisions.add(new Pair<>(swarmClient, getChangelist(build, revision)));
+      }
+    }
+    return swarmClientRevisions;
+  }
+
+  @NotNull
+  private String getChangelist(@NotNull SBuild build, @NotNull BuildRevision revision) {
+    if (build.isPersonal()) {
+      String ver = build.getBuildOwnParameters().get("vcsRoot." + revision.getRoot().getExternalId() + ".shelvedChangelist");
+      if (StringUtil.isNotEmpty(ver)) {
+        return ver;
+      }
+    }
+    return revision.getRevisionDisplayName();
+  }
   private class SwarmResetCacheHandler implements ResetCacheHandler {
     private static final String CACHE_NAME = "Perforce Helix Swarm cache";
     @NotNull
