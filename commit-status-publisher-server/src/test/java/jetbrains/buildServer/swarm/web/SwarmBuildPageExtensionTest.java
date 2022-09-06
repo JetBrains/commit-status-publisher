@@ -14,6 +14,7 @@ import jetbrains.buildServer.swarm.LoadedReviews;
 import jetbrains.buildServer.swarm.SingleReview;
 import jetbrains.buildServer.swarm.SwarmClient;
 import jetbrains.buildServer.swarm.SwarmClientManager;
+import jetbrains.buildServer.util.cache.ResetCacheRegisterImpl;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
 import org.mockito.Mockito;
@@ -38,7 +39,7 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
   @Test
   public void should_not_be_available_without_swarm_feature() throws Exception {
     SwarmBuildPageExtension extension =
-      new SwarmBuildPageExtension(myServer, myWebManager, new MockPluginDescriptor(), new SwarmClientManager(myWebLinks, () -> null));
+      new SwarmBuildPageExtension(myServer, myWebManager, new MockPluginDescriptor(), new SwarmClientManager(myWebLinks, () -> null, new ResetCacheRegisterImpl()));
 
     SFinishedBuild build = createBuild(Status.NORMAL);
     MockRequest buildRequest = new MockRequest("buildId", String.valueOf(build.getBuildId()));

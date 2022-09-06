@@ -11,6 +11,7 @@ import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.swarm.SwarmClientManager;
 import jetbrains.buildServer.util.TestFor;
+import jetbrains.buildServer.util.cache.ResetCacheRegisterImpl;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
@@ -53,7 +54,7 @@ public class SwarmPublisherTest extends HttpPublisherTest {
   protected void setUp() throws Exception {
     super.setUp();
 
-    SwarmClientManager clientManager = new SwarmClientManager(myWebLinks, () -> null);
+    SwarmClientManager clientManager = new SwarmClientManager(myWebLinks, () -> null, new ResetCacheRegisterImpl());
     myPublisherSettings = new SwarmPublisherSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, clientManager);
 
     Map<String, String> params = getPublisherParams();

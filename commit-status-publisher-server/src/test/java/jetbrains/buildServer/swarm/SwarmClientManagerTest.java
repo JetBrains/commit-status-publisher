@@ -9,6 +9,7 @@ import jetbrains.buildServer.serverSide.BuildFeature;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings;
+import jetbrains.buildServer.util.cache.ResetCacheRegisterImpl;
 import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
@@ -30,7 +31,7 @@ public class SwarmClientManagerTest extends BaseServerTestCase {
   protected void setUp() throws Exception {
     super.setUp();
 
-    mySwarmClientManager = new SwarmClientManager(myWebLinks, () -> null);
+    mySwarmClientManager = new SwarmClientManager(myWebLinks, () -> null, new ResetCacheRegisterImpl());
 
     CommitStatusPublisherFeature publisherFeature = Mockito.mock(CommitStatusPublisherFeature.class);
     Mockito.when(publisherFeature.getType()).thenReturn(TYPE);
