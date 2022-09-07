@@ -58,7 +58,7 @@
     </c:if>
 
     <div class="swarmReviewsAge">
-      The data was obtained <bs:printTime time="${swarmBean.retrievedAge.seconds}"/> ago.
+      The data were retrieved <bs:printTime time="${swarmBean.retrievedAge.seconds}"/> ago.
       <span class="swarmReviewsAge__refresh">
         <bs:actionIcon
           name="update"
@@ -100,7 +100,7 @@
         $('pullRequestFullInfo').refresh();
       },
       onFailure(response) {
-        document.querySelector(".swarmReviewsAge__error").innerHTML = "Could not read reviews data: " + response.responseText.stripTags();
+        document.querySelector(".swarmReviewsAge__error").innerHTML = "Error: " + response.responseText.stripTags();
       },
       onComplete() {
         endProgress();
