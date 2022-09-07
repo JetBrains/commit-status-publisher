@@ -11,7 +11,7 @@ import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
-import jetbrains.buildServer.swarm.LoadedReviews;
+import jetbrains.buildServer.swarm.ReviewLoadResponse;
 import jetbrains.buildServer.swarm.SwarmClient;
 import jetbrains.buildServer.swarm.SwarmClientManager;
 import jetbrains.buildServer.web.openapi.BuildInfoFragmentTab;
@@ -78,13 +78,21 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
     SwarmBuildDataBean bean = new SwarmBuildDataBean();
     final String debugBuildInfo = "build [id=" + build.getBuildId() + "] in " + buildType.getExtendedFullName();
 
-    Loggers.SERVER.debug("Loading Swarm data for " + debugBuildInfo + "; forced: " + forceLoadData);
+    Loggers.SERVER.debug("Getting Swarm data for " + debugBuildInfo + "; forced: " + forceLoadData);
     for (Pair<SwarmClient, String> swarmClientRevision : swarmClientRevisions) {
       try {
         SwarmClient swarmClient = swarmClientRevision.first;
-        LoadedReviews reviews = swarmClient.getReviews(swarmClientRevision.second, debugBuildInfo, forceLoadData);
-        if (!reviews.getReviews().isEmpty()) {
-          bean.addData(swarmClient.getSwarmServerUrl(), reviews);
+        ReviewLoadResponse reviews = forceLoadData ?
+                                     swarmClient.getReviews(swarmClientRevision.second, debugBuildInfo, true) :
+                                     swarmClient.getCachedReviews(swarmClientRevision.second);
+
+        if (reviews != null) {
+          if (reviews.getError() != null) {
+            bean.setError(reviews.getError());
+          }
+          else {
+            bean.addData(swarmClient.getSwarmServerUrl(), reviews);
+          }
         }
       } catch (Throwable e) {
         bean.setError(e);

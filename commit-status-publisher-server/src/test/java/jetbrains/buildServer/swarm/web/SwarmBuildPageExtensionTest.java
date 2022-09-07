@@ -14,11 +14,12 @@ import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.controllers.MockRequest;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.swarm.LoadedReviews;
+import jetbrains.buildServer.swarm.ReviewLoadResponse;
 import jetbrains.buildServer.swarm.SingleReview;
 import jetbrains.buildServer.swarm.SwarmClient;
 import jetbrains.buildServer.swarm.SwarmClientManager;
 import jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings;
+import jetbrains.buildServer.util.ThreadUtil;
 import jetbrains.buildServer.util.cache.ResetCacheRegisterImpl;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
@@ -36,12 +37,14 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
 
   private SwarmBuildPageExtension myExtension;
   private VcsRootInstance myVri;
+  private boolean myHang;
 
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
     super.setUp();
 
+    myHang = false;
     setInternalProperty(SWARM_REVIEWS_ENABLED, "true");
 
     myBuildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, ImmutableMap.of(
@@ -111,6 +114,7 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
 
   private void test_provide_reviews_data(Function<VcsRootInstance, SFinishedBuild> createBuildWithRevisions) throws PublisherException {
     SFinishedBuild build = createBuildWithRevisions.apply(myVri);
+    myExtension.forceLoadReviews(build);
 
     SwarmBuildDataBean bean = runRequestAndGetBean(myExtension, build);
     then((bean).isDataPresent()).isTrue();
@@ -120,11 +124,25 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
   }
 
   @Test
+  public void should_not_load_data_on_simple_page_load() throws Exception {
+
+    myHang = true;
+
+    SFinishedBuild build = build().in(myBuildType)
+                                  .withBuildRevisions(BuildRevisionBuilder.buildRevision(myVri, "12321"))
+                                  .finish();
+
+    SwarmBuildDataBean bean = runRequestAndGetBean(myExtension, build);
+    then((bean).isDataPresent()).as("Should not preload data").isFalse(); // Data not preloaded
+  }
+
+  @Test
   public void should_cache_reviews_and_allow_to_reset_cache() throws Exception {
 
     SFinishedBuild build = build().in(myBuildType)
                                    .withBuildRevisions(BuildRevisionBuilder.buildRevision(myVri, "12321"))
                                    .finish();
+    myExtension.forceLoadReviews(build);
 
     SwarmBuildDataBean bean1 = runRequestAndGetBean(myExtension, build);
     SwarmBuildDataBean bean2 = runRequestAndGetBean(myExtension, build);
@@ -147,8 +165,12 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
     return new SwarmClient(myWebLinks, params, 10, null) {
       @NotNull
       @Override
-      protected LoadedReviews loadReviews(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
-        return new LoadedReviews(Arrays.asList(
+      protected ReviewLoadResponse loadReviews(@NotNull String changelistId, @NotNull String debugInfo) {
+        if (myHang) {
+          ThreadUtil.sleep(20000);
+          throw new RuntimeException("Problem");
+        }
+        return new ReviewLoadResponse(Arrays.asList(
           new SingleReview(380l, "needsReview"),
           new SingleReview(382l, "needsRevision"),
           new SingleReview(381l, "needsReview")));

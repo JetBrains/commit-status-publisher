@@ -15,6 +15,7 @@ import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.log.LogInitializer;
 import jetbrains.buildServer.serverSide.RelativeWebLinks;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
 import org.apache.http.entity.ContentType;
@@ -36,7 +37,7 @@ public class SwarmClient {
   private final KeyStore myTrustStore;
   private final RelativeWebLinks myWebLinks;
 
-  private final Cache<String, LoadedReviews> myChangelist2ReviewsCache;
+  private final Cache<String, ReviewLoadResponse> myChangelist2ReviewsCache;
 
   public SwarmClient(@NotNull RelativeWebLinks webLinks, @NotNull Map<String, String> params, int connectionTimeout, @Nullable KeyStore trustStore) {
     myWebLinks = webLinks;
@@ -50,7 +51,7 @@ public class SwarmClient {
 
     myChangelist2ReviewsCache = Caffeine.newBuilder()
                                         .maximumSize(1000)
-                                        .expireAfterWrite(10, TimeUnit.SECONDS)
+                                        .expireAfterWrite(1, TimeUnit.DAYS)
                                         .build();
   }
 
@@ -98,42 +99,53 @@ public class SwarmClient {
 
   @NotNull
   public List<Long> getOpenReviewIds(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
-    return getReviews(changelistId, debugInfo, false).getOpenReviewIds();
+    ReviewLoadResponse reviews = getReviews(changelistId, debugInfo, false);
+    Date expireTime = new Date(System.currentTimeMillis() - Dates.seconds(10));
+    if (reviews.getCreated().before(expireTime)) {
+      // Reload data, we need fresh info for this call as it is used in publishing build statuses
+      reviews = getReviews(changelistId, debugInfo, true);
+    }
+
+    if (reviews.getError() != null) {
+      try {
+        throw reviews.getError();
+      } catch (RuntimeException|PublisherException e) {
+        throw e;
+      }
+      catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+    return reviews.getOpenReviewIds();
   }
 
   @NotNull
-  public LoadedReviews getReviews(@NotNull String changelistId, @NotNull String debugInfo, boolean forceLoad) throws PublisherException {
-    try {
-      if (forceLoad) {
-        myChangelist2ReviewsCache.invalidate(changelistId);
-      }
-
-      return Objects.requireNonNull(myChangelist2ReviewsCache.get(changelistId, (id) -> {
-        try {
-          return loadReviews(changelistId, debugInfo);
-        } catch (PublisherException e) {
-          throw new RuntimeException("A problem while getting review IDs from Perforce Swarm server for " + debugInfo + ": " + e.getCause(), e);
-        }
-      }));
-    } catch (RuntimeException e) {
-      if (e.getCause() instanceof PublisherException) {
-        throw (PublisherException)e.getCause();
-      }
-      throw e;
+  public ReviewLoadResponse getReviews(@NotNull String changelistId, @NotNull String debugInfo, boolean forceLoad) {
+    if (forceLoad) {
+      myChangelist2ReviewsCache.invalidate(changelistId);
     }
+
+    return Objects.requireNonNull(myChangelist2ReviewsCache.get(changelistId, (id) -> {
+      return loadReviews(changelistId, debugInfo);
+    }));
+  }
+
+  @Nullable
+  public ReviewLoadResponse getCachedReviews(@NotNull String changelistId) {
+    return myChangelist2ReviewsCache.getIfPresent(changelistId);
   }
 
   @NotNull
   @VisibleForTesting
-  protected LoadedReviews loadReviews(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
+  protected ReviewLoadResponse loadReviews(@NotNull String changelistId, @NotNull String debugInfo) {
     String getReviewsUrl = mySwarmUrl + "/api/v9/reviews?fields=id,state,stateLabel&change[]=" + changelistId;
     try {
       final ReadReviewsProcessor processor = new ReadReviewsProcessor(debugInfo);
       HttpHelper.get(getReviewsUrl, myUsername, myTicket, null, myConnectionTimeout, myTrustStore, processor);
 
-      return new LoadedReviews(processor.getReviews());
-    } catch (IOException e) {
-      throw new PublisherException("Cannot get list of reviews from " + getReviewsUrl + " for " + debugInfo + ": " + e, e);
+      return new ReviewLoadResponse(processor.getReviews());
+    } catch (IOException|HttpPublisherException e) {
+      return new ReviewLoadResponse(new PublisherException("Cannot get list of reviews from " + getReviewsUrl + " for " + debugInfo + ": " + e, e));
     }
   }
 
