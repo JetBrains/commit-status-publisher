@@ -29,6 +29,13 @@
   .swarmReviewsAge {
     margin: 10px 0;
   }
+  .swarmReviewsAge--progress .swarmReviewsAge__refresh {
+    display: none;
+  }
+  .swarmReviewsAge__error {
+    color: var(--ring-error-color);
+    display: block;
+  }
 </style>
 
   <bs:refreshable containerId="pullRequestFullInfo" pageUrl="${pageUrl}">
@@ -52,24 +59,53 @@
 
     <div class="swarmReviewsAge">
       The data was obtained <bs:printTime time="${swarmBean.retrievedAge.seconds}"/> ago.
-      <!--    todo
-      <span id="swarmReviewsAge__refresh">
+      <span class="swarmReviewsAge__refresh">
         <bs:actionIcon
           name="update"
           onclick="refreshSwarmInfo('${buildData.buildId}'); return false;"
           title="Refresh Helix Swarm information"
         />
       </span>
-      -->
+      <span class="swarmReviewsAge__progressIcon"></span>
+      <span class="swarmReviewsAge__error"><c:out value="${not empty swarmBean.error ? swarmBean.error.message : ''}"/></span>
     </div>
 
   </bs:_collapsibleBlock>
   </bs:refreshable>
 
+  <c:if test="${swarmBean.retrievedAge.toMillis() > 2000}">
+    <script>
+      $j(document).ready(function() {
+        refreshSwarmInfo('${buildData.buildId}');
+      });
+    </script>
+  </c:if>
 
 <script>
   function refreshSwarmInfo(buildId) {
     console.info("Re-read Perforce Swarm info");
+    const startProgress = () => {
+      document.querySelector(".swarmReviewsAge").classList.add("swarmReviewsAge--progress");
+      document.querySelector(".swarmReviewsAge__error").innerHTML = '';
+      document.querySelector(".swarmReviewsAge__progressIcon").innerHTML = '<i class="icon-refresh icon-spin ring-loader-inline" />';
+    };
+    const endProgress = () => {
+      document.querySelector(".swarmReviewsAge").classList.remove("swarmReviewsAge--progress");
+      document.querySelector(".swarmReviewsAge__progressIcon").innerHTML = '';
+    };
+
+    startProgress();
+    BS.ajaxRequest(window["base_uri"] + "/app/commit-status-publisher/swarm/loadReviews?buildId=" + parseInt(buildId), {
+      onSuccess() {
+        $('pullRequestFullInfo').refresh();
+      },
+      onFailure(response) {
+        document.querySelector(".swarmReviewsAge__error").innerHTML = "Could not read reviews data: " + response.responseText.stripTags();
+      },
+      onComplete() {
+        endProgress();
+      }
+    });
   }
   console.info("Run Perforce Swarm page extension, empty: ${swarmBean.dataPresent}");
 </script>

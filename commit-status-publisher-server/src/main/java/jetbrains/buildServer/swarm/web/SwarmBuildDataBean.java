@@ -7,8 +7,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
-import jetbrains.buildServer.swarm.SingleReview;
 import jetbrains.buildServer.swarm.LoadedReviews;
+import jetbrains.buildServer.swarm.SingleReview;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -16,6 +16,7 @@ public class SwarmBuildDataBean {
 
   private final ConcurrentMap<String, SwarmServerData> mySwarmServers = new ConcurrentHashMap<>();
   private Date myLastRetrievedTime = null;
+  private Throwable myReportedError;
 
   public void addData(@NotNull String swarmServerUrl, @NotNull LoadedReviews reviews) {
     if (myLastRetrievedTime == null || myLastRetrievedTime.after(reviews.getCreated())) {
@@ -36,6 +37,14 @@ public class SwarmBuildDataBean {
   public Duration getRetrievedAge() {
     return null == myLastRetrievedTime ? Duration.ZERO :
            Duration.between(ZonedDateTime.ofInstant(myLastRetrievedTime.toInstant(), ZoneId.systemDefault()), ZonedDateTime.now());
+  }
+
+  public void setError(Throwable e) {
+    myReportedError = e;
+  }
+
+  public Throwable getError() {
+    return myReportedError;
   }
 
   public static class SwarmServerData {

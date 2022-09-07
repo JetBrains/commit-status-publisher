@@ -15,8 +15,17 @@
   ~ limitations under the License.
   -->
 
-<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
-<beans default-autowire="constructor">
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd"
+       default-autowire="constructor">
+
+  <mvc:annotation-driven/>
+
   <bean id="problems" class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems"/>
   <bean id="voterBuildFeature" class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature"/>
   <bean id="voterBuildListener" class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherListener"/>
@@ -59,7 +68,7 @@
   <bean class="jetbrains.buildServer.swarm.SwarmClientManager"/>
   <bean class="jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings"/>
   <bean class="jetbrains.buildServer.swarm.web.SwarmBuildPageExtension"/>
-<!--  <bean class="jetbrains.buildServer.swarm.web.LoadReviewsAction"/>-->
+  <bean class="jetbrains.buildServer.swarm.web.SwarmController"/>
 
   <bean class="jetbrains.buildServer.commitPublisher.ServerListener">
     <constructor-arg index="0" ref="configActionsDispatcher"/>

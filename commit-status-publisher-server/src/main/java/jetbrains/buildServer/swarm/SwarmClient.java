@@ -112,7 +112,7 @@ public class SwarmClient {
         try {
           return loadReviews(changelistId, debugInfo);
         } catch (PublisherException e) {
-          throw new RuntimeException("Some unexpetected problem while getting review IDs from Perforce Swarm server for " + debugInfo + ": " + e.getCause(), e);
+          throw new RuntimeException("A problem while getting review IDs from Perforce Swarm server for " + debugInfo + ": " + e.getCause(), e);
         }
       }));
     } catch (RuntimeException e) {

@@ -6,7 +6,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
-import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildServer;
@@ -75,8 +74,11 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
 
   @NotNull
   private static SwarmBuildDataBean createSwarmDataBean(@NotNull SBuild build, @NotNull SBuildType buildType, Set<Pair<SwarmClient, String>> swarmClientRevisions, boolean forceLoadData) {
+
     SwarmBuildDataBean bean = new SwarmBuildDataBean();
     final String debugBuildInfo = "build [id=" + build.getBuildId() + "] in " + buildType.getExtendedFullName();
+
+    Loggers.SERVER.debug("Loading Swarm data for " + debugBuildInfo + "; forced: " + forceLoadData);
     for (Pair<SwarmClient, String> swarmClientRevision : swarmClientRevisions) {
       try {
         SwarmClient swarmClient = swarmClientRevision.first;
@@ -84,19 +86,20 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
         if (!reviews.getReviews().isEmpty()) {
           bean.addData(swarmClient.getSwarmServerUrl(), reviews);
         }
-      } catch (PublisherException e) {
+      } catch (Throwable e) {
+        bean.setError(e);
         Loggers.SERVER.warnAndDebugDetails("Could not load reviews for build " + debugBuildInfo, e);
       }
     }
     return bean;
   }
 
-  public void forceLoadReviews(@NotNull SBuild build) {
+  public SwarmBuildDataBean forceLoadReviews(@NotNull SBuild build) {
     SBuildType buildType = build.getBuildType();
     if (buildType == null) {
-      return;
+      return null;
     }
 
-    createSwarmDataBean(build, buildType, mySwarmClients.getSwarmClientRevisions(build), true);
+    return createSwarmDataBean(build, buildType, mySwarmClients.getSwarmClientRevisions(build), true);
   }
 }
