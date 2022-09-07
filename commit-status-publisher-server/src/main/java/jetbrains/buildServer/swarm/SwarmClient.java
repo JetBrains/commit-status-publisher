@@ -60,13 +60,19 @@ public class SwarmClient {
   }
 
   public void testConnection() throws PublisherException {
-    final String loginUrl = mySwarmUrl + "/api/v9/login";
+    String url = mySwarmUrl + "/api/v9/session";
     try {
+      // To ensure ticket was provided, not password:
+      HttpHelper.get(url, myUsername, myTicket, null, 5000, myTrustStore, new DefaultHttpResponseProcessor());
+
+      url = mySwarmUrl + "/api/v9/login";
       final String data = "username=" + StringUtil.encodeURLParameter(myUsername) + "&password=" + StringUtil.encodeURLParameter(myTicket);
-      HttpHelper.post(loginUrl, null, null,
+      // Need to do actual login to read isAdmin flag for the user
+      HttpHelper.post(url, null, null,
                       data, ContentType.APPLICATION_FORM_URLENCODED, null, 5000, myTrustStore, createLoginProcessor());
+
     } catch (IOException e) {
-      throw new PublisherException("Test connection failed for " + loginUrl, e);
+      throw new PublisherException("Test connection failed for " + url, e);
     }
   }
 
