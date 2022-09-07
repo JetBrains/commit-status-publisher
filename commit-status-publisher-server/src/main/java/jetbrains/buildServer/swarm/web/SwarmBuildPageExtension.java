@@ -80,22 +80,18 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
 
     Loggers.SERVER.debug("Getting Swarm data for " + debugBuildInfo + "; forced: " + forceLoadData);
     for (Pair<SwarmClient, String> swarmClientRevision : swarmClientRevisions) {
+      ReviewLoadResponse reviews = null;
       try {
         SwarmClient swarmClient = swarmClientRevision.first;
-        ReviewLoadResponse reviews = forceLoadData ?
-                                     swarmClient.getReviews(swarmClientRevision.second, debugBuildInfo, true) :
-                                     swarmClient.getCachedReviews(swarmClientRevision.second);
+        reviews = forceLoadData ?
+                  swarmClient.getReviews(swarmClientRevision.second, debugBuildInfo, true) :
+                  swarmClient.getCachedReviews(swarmClientRevision.second);
 
         if (reviews != null) {
-          if (reviews.getError() != null) {
-            bean.setError(reviews.getError());
-          }
-          else {
-            bean.addData(swarmClient.getSwarmServerUrl(), reviews);
-          }
+          bean.addData(swarmClient.getSwarmServerUrl(), reviews);
         }
       } catch (Throwable e) {
-        bean.setError(e);
+        bean.setError(e, reviews);
         Loggers.SERVER.warnAndDebugDetails("Could not load reviews for build " + debugBuildInfo, e);
       }
     }

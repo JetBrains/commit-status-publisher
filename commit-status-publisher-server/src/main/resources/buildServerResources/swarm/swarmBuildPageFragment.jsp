@@ -27,7 +27,7 @@
     margin: 0;
   }
   .swarmReviewsAge {
-    margin: 10px 0;
+    margin-top: 10px;
   }
   .swarmReviewsAge--progress .swarmReviewsAge__refresh {
     display: none;
@@ -42,15 +42,15 @@
   <bs:_collapsibleBlock title="Swarm Reviews" id="smarmReviews" contentClass="swarmReviews">
 
     Perforce changelist ID: <strong>${empty swarmChangelists ? 'none' : swarmChangelists}</strong>.
-    <c:if test="${not swarmBean.dataPresent}">
+    <c:if test="${not swarmBean.reviewsPresent}">
       No reviews found.
     </c:if>
-    <c:if test="${swarmBean.dataPresent}">
+    <c:if test="${swarmBean.reviewsPresent}">
     <ul>
       <c:forEach items="${swarmBean.reviews}" var="serverData">
         <c:forEach items="${serverData.reviews}" var="review">
           <c:set var="url"><c:out value="${serverData.url}"/>/reviews/${review.id}</c:set>
-          <li><span class="grayNote">Reviews</span> / <a href="${url}" target="_blank" rel="noopener">${review.id}</a>
+          <li>Review <a href="${url}" target="_blank" rel="noopener">${review.id}</a>
           (${review.statusText})</li>
         </c:forEach>
       </c:forEach>
@@ -58,7 +58,12 @@
     </c:if>
 
     <div class="swarmReviewsAge">
-      The data were retrieved <bs:printTime time="${swarmBean.retrievedAge.seconds}"/> ago.
+      <c:if test="${swarmBean.hasData}">
+        The data were retrieved <bs:printTime time="${swarmBean.retrievedAge.seconds}"/> ago.
+      </c:if>
+      <c:if test="${not swarmBean.hasData}">
+        No data yet.
+      </c:if>
       <span class="swarmReviewsAge__refresh">
         <bs:actionIcon
           name="update"
@@ -73,7 +78,7 @@
   </bs:_collapsibleBlock>
   </bs:refreshable>
 
-  <c:if test="${swarmBean.retrievedAge.toMillis() > 2000}">
+  <c:if test="${not swarmBean.hasData or (swarmBean.retrievedAge.toMillis() > 60 * 1000)}">
     <script>
       $j(document).ready(function() {
         refreshSwarmInfo('${buildData.buildId}');
@@ -107,7 +112,7 @@
       }
     });
   }
-  console.info("Run Perforce Swarm page extension, empty: ${swarmBean.dataPresent}");
+  console.info("Run Perforce Swarm page extension, empty: ${swarmBean.reviewsPresent}");
 </script>
 
 

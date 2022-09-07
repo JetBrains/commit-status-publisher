@@ -11,16 +11,19 @@ import jetbrains.buildServer.swarm.ReviewLoadResponse;
 import jetbrains.buildServer.swarm.SingleReview;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class SwarmBuildDataBean {
 
   private final ConcurrentMap<String, SwarmServerData> mySwarmServers = new ConcurrentHashMap<>();
-  private Date myLastRetrievedTime = new Date();
+  private Date myLastRetrievedTime;
   private Throwable myReportedError;
 
   public void addData(@NotNull String swarmServerUrl, @NotNull ReviewLoadResponse reviews) {
-    if (myLastRetrievedTime.after(reviews.getCreated())) {
-      myLastRetrievedTime = reviews.getCreated();
+    updateLastRetrievedTimeFrom(reviews);
+    
+    if (reviews.getError() != null) {
+      setError(reviews.getError(), reviews);
     }
 
     if (!reviews.getReviews().isEmpty()) {
@@ -28,8 +31,18 @@ public class SwarmBuildDataBean {
     }
   }
 
-  public boolean isDataPresent() {
+  private void updateLastRetrievedTimeFrom(@NotNull ReviewLoadResponse reviews) {
+    if (myLastRetrievedTime == null || myLastRetrievedTime.after(reviews.getCreated())) {
+      myLastRetrievedTime = reviews.getCreated();
+    }
+  }
+
+  public boolean isReviewsPresent() {
     return !mySwarmServers.isEmpty();
+  }
+
+  public boolean isHasData() {
+    return myLastRetrievedTime != null;
   }
 
   public List<SwarmServerData> getReviews() {
@@ -38,11 +51,17 @@ public class SwarmBuildDataBean {
 
   @NotNull
   public Duration getRetrievedAge() {
+    if (myLastRetrievedTime == null) {
+      return Duration.ZERO;
+    }
     return Duration.between(ZonedDateTime.ofInstant(myLastRetrievedTime.toInstant(), ZoneId.systemDefault()), ZonedDateTime.now());
   }
 
-  public void setError(Throwable e) {
+  public void setError(@NotNull Throwable e, @Nullable ReviewLoadResponse reviews) {
     myReportedError = e;
+    if (reviews != null) {
+      updateLastRetrievedTimeFrom(reviews);
+    }
   }
 
   public Throwable getError() {

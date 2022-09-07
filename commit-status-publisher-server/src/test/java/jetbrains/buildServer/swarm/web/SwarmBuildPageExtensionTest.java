@@ -35,16 +35,22 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
 
+  enum SwarmReviewsResult {
+    EMPTY,
+    HANG,
+    NORMAL_REVIEWS
+  }
+
   private SwarmBuildPageExtension myExtension;
   private VcsRootInstance myVri;
-  private boolean myHang;
+  private SwarmReviewsResult myReviewsResult;
 
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
     super.setUp();
 
-    myHang = false;
+    myReviewsResult = SwarmReviewsResult.NORMAL_REVIEWS;
     setInternalProperty(SWARM_REVIEWS_ENABLED, "true");
 
     myBuildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, ImmutableMap.of(
@@ -79,7 +85,8 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
     HashMap<String, Object> model = new HashMap<>();
     extension.fillModel(model, buildRequest, build);
     
-    then(((SwarmBuildDataBean)model.get(SWARM_BEAN)).isDataPresent()).isFalse();
+    then(((SwarmBuildDataBean)model.get(SWARM_BEAN)).isReviewsPresent()).isFalse();
+    then(((SwarmBuildDataBean)model.get(SWARM_BEAN)).isHasData()).isFalse();
   }
   
   @Test
@@ -117,7 +124,8 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
     myExtension.forceLoadReviews(build);
 
     SwarmBuildDataBean bean = runRequestAndGetBean(myExtension, build);
-    then((bean).isDataPresent()).isTrue();
+    then((bean).isReviewsPresent()).isTrue();
+    then((bean).isHasData()).isTrue();
     then(bean.getReviews().size()).isEqualTo(1);
     then(bean.getReviews().get(0).getUrl()).isEqualTo("http://swarm-root");
     then(bean.getReviews().get(0).getReviewIds()).containsExactly(380l, 381l, 382l);
@@ -126,14 +134,15 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
   @Test
   public void should_not_load_data_on_simple_page_load() throws Exception {
 
-    myHang = true;
+    myReviewsResult = SwarmReviewsResult.HANG;
 
     SFinishedBuild build = build().in(myBuildType)
                                   .withBuildRevisions(BuildRevisionBuilder.buildRevision(myVri, "12321"))
                                   .finish();
 
     SwarmBuildDataBean bean = runRequestAndGetBean(myExtension, build);
-    then((bean).isDataPresent()).as("Should not preload data").isFalse(); // Data not preloaded
+    then((bean).isReviewsPresent()).as("Should not preload data").isFalse(); // Data not preloaded
+    then((bean).isHasData()).as("Should not preload data").isFalse(); // Data not preloaded
   }
 
   @Test
@@ -160,20 +169,40 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
       .isNotSameAs(bean3.getReviews().get(0).getReviews().get(0));
   }
 
+  @Test
+  public void should_return_info_when_no_reviews() throws Exception {
+
+    SFinishedBuild build = build().in(myBuildType)
+                                   .withBuildRevisions(BuildRevisionBuilder.buildRevision(myVri, "12321"))
+                                   .finish();
+    myReviewsResult = SwarmReviewsResult.EMPTY;
+    myExtension.forceLoadReviews(build);
+
+    SwarmBuildDataBean bean = runRequestAndGetBean(myExtension, build);
+
+    then(bean.getReviews()).isEmpty();
+    then(bean.isReviewsPresent()).isFalse();
+    then(bean.isHasData()).isTrue();
+  }
+
   @NotNull
   private SwarmClient createSwarmClient(final Map<String, String> params) {
     return new SwarmClient(myWebLinks, params, 10, null) {
       @NotNull
       @Override
       protected ReviewLoadResponse loadReviews(@NotNull String changelistId, @NotNull String debugInfo) {
-        if (myHang) {
-          ThreadUtil.sleep(20000);
-          throw new RuntimeException("Problem");
+        switch (myReviewsResult) {
+          case HANG: {
+            ThreadUtil.sleep(20000);
+            throw new RuntimeException("Problem");
+          }
+          case EMPTY: return new ReviewLoadResponse(Arrays.asList());
+          case NORMAL_REVIEWS: return new ReviewLoadResponse(Arrays.asList(
+            new SingleReview(380l, "needsReview"),
+            new SingleReview(382l, "needsRevision"),
+            new SingleReview(381l, "needsReview")));
+          default: throw new RuntimeException("Missing case");
         }
-        return new ReviewLoadResponse(Arrays.asList(
-          new SingleReview(380l, "needsReview"),
-          new SingleReview(382l, "needsRevision"),
-          new SingleReview(381l, "needsReview")));
       }
     };
   }

@@ -7,6 +7,11 @@ Authorization: Basic admin 87CC0AAE1D25AFA3771450244793E446
 ###
 
 
+GET http://perforce-swarm-test-sandbox.labs.intellij.net/api/v9/session
+Content-Type: application/json
+Authorization: Basic swarm 23809001C26183349A3DACE80001F1FF
+
+###
 
 #  status: pass, fail, running
 #  completedTime: msecs
