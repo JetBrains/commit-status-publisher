@@ -69,7 +69,7 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
     model.put(SWARM_CHANGELISTS, swarmClientRevisions.stream()
                                                      .map((r) -> r.second)
                                                      .distinct()
-                                                     .collect(Collectors.joining(",")));
+                                                     .collect(Collectors.joining(", ")));
   }
 
   @NotNull

@@ -2,6 +2,7 @@ package jetbrains.buildServer.swarm;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.TreeMap;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
 import jetbrains.buildServer.commitPublisher.Constants;
@@ -10,7 +11,10 @@ import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings;
 import jetbrains.buildServer.util.cache.ResetCacheRegisterImpl;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -43,40 +47,58 @@ public class SwarmClientManagerTest extends BaseServerTestCase {
   }
 
   @Test
-  public void should_create_swarm_client() throws Exception {
+  public void should_create_swarm_client_from_params() throws Exception {
     SwarmClient swarmClient = mySwarmClientManager.getSwarmClient(Collections.singletonMap(PARAM_URL, "http://swarm"));
     then(swarmClient.getSwarmServerUrl()).isEqualTo("http://swarm");
   }
 
   @Test
   public void should_create_swarm_client_from_feature() throws Exception {
+    addSwarmFeature(myRoot.getExternalId(), "http://swarm1");
+    checkClientCreatedOK();
+  }
 
-    myBuildType.addBuildFeature(TYPE, new HashMap<String, String>() {{
-      put(Constants.PUBLISHER_ID_PARAM, SwarmPublisherSettings.ID);
-      put(Constants.VCS_ROOT_ID_PARAM, myRoot.getExternalId());
-      put(PARAM_URL, "http://swarm1");
-    }});
+  @Test
+  public void should_create_swarm_client_from_feature_with_no_explicit_root() throws Exception {
+    addSwarmFeature(null, "http://swarm1");
+    checkClientCreatedOK();
+  }
 
+  @Test
+  public void should_not_create_swarm_client_from_feature_wrong_root() throws Exception {
+    addSwarmFeature("AnotherRootId", "http://swarm1");
+    then(getSwarmClient()).isNull();
+  }
+
+  public void should_not_create_swarm_client_from_feature_non_p4_root() throws Exception {
+    myBuildType.removeVcsRoot(myRoot);
+    myRoot = myFixture.addVcsRoot("svn", "");
+
+    addSwarmFeature(null, "http://swarm1");
+
+    then(getSwarmClient()).isNull();
+  }
+
+  public void should_create_swarm_clients_several_roots_one_feature() throws Exception {
+    SVcsRootImpl root2 = myFixture.addVcsRoot("perforce", "");
+    addSwarmFeature(null, "http://swarm1");
+
+    then(getSwarmClient()).isNotNull();
+    then(getSwarmClient(root2)).isNotNull();
+  }
+
+  private void checkClientCreatedOK() {
     SwarmClient client = getSwarmClient();
     then(client).isNotNull();
     then(client.getSwarmServerUrl()).isEqualTo("http://swarm1");
   }
 
   private SwarmClient getSwarmClient() {
-    return mySwarmClientManager.getSwarmClient(myBuildType, myBuildType.getVcsRootInstanceForParent(myRoot));
+    return getSwarmClient(myRoot);
   }
 
-  @Test
-  public void should_create_swarm_client_from_feature_with_no_explicit_root() throws Exception {
-
-    myBuildType.addBuildFeature(TYPE, new HashMap<String, String>() {{
-      put(Constants.PUBLISHER_ID_PARAM, SwarmPublisherSettings.ID);
-      put(PARAM_URL, "http://swarm1");
-    }});
-
-    SwarmClient client = getSwarmClient();
-    then(client).isNotNull();
-    then(client.getSwarmServerUrl()).isEqualTo("http://swarm1");
+  private SwarmClient getSwarmClient(@NotNull SVcsRoot root) {
+    return mySwarmClientManager.getSwarmClient(myBuildType, Objects.requireNonNull(myBuildType.getVcsRootInstanceForParent(root)));
   }
 
   @Test
@@ -105,26 +127,41 @@ public class SwarmClientManagerTest extends BaseServerTestCase {
   }
 
   @Test
-  public void should_create_swarm_client_from_different_roots() throws Exception {
-
-    myBuildType.addBuildFeature(TYPE, new HashMap<String, String>() {{
-      put(Constants.PUBLISHER_ID_PARAM, SwarmPublisherSettings.ID);
-      put(PARAM_URL, "http://swarm2");
-      put(Constants.VCS_ROOT_ID_PARAM, myRoot.getExternalId());
-    }});
+  public void should_create_swarm_client_from_2_roots_2_features() throws Exception {
 
     SVcsRootImpl root2 = myFixture.addVcsRoot("perforce", "root2");
-    myBuildType.addBuildFeature(TYPE, new HashMap<String, String>() {{
-      put(Constants.PUBLISHER_ID_PARAM, SwarmPublisherSettings.ID);
-      put(PARAM_URL, "http://swarm1");
-      put(Constants.VCS_ROOT_ID_PARAM, root2.getExternalId());
-    }});
+
+    addSwarmFeature(myRoot.getExternalId(), "http://swarm1");
+    addSwarmFeature(root2.getExternalId(), "http://swarm2");
 
     SwarmClient client = getSwarmClient();
-    then(client.getSwarmServerUrl()).isEqualTo("http://swarm2");
+    then(client.getSwarmServerUrl()).isEqualTo("http://swarm1");
 
-    SwarmClient swarmClient2 = mySwarmClientManager.getSwarmClient(myBuildType, myBuildType.getVcsRootInstanceForParent(root2));
-    then(swarmClient2.getSwarmServerUrl()).isEqualTo("http://swarm1");
+    then(getSwarmClient(root2).getSwarmServerUrl()).isEqualTo("http://swarm2");
+  }
+
+  private void addSwarmFeature(@Nullable final String vcsRootExtId, final String swarmUrl) {
+    HashMap<String, String> params = new HashMap<String, String>() {{
+      put(Constants.PUBLISHER_ID_PARAM, SwarmPublisherSettings.ID);
+      put(PARAM_URL, swarmUrl);
+    }};
+    if (vcsRootExtId != null) {
+      params.put(Constants.VCS_ROOT_ID_PARAM, vcsRootExtId);
+    }
+    myBuildType.addBuildFeature(TYPE, params);
+  }
+
+  public void should_not_create_swarm_client_when_unset_root_2_roots_2_features() throws Exception {
+
+    addSwarmFeature(null, "http://swarm2");
+
+    SVcsRootImpl root2 = myFixture.addVcsRoot("perforce", "root2");
+    addSwarmFeature(root2.getExternalId(), "http://swarm1");
+
+    SwarmClient client = getSwarmClient();
+    then(client).as("Specific VCS Root is not set when multiple Swarm features present").isNull();
+
+    then(getSwarmClient(root2).getSwarmServerUrl()).as("VCS Root is set").isEqualTo("http://swarm1");
   }
 
   @Test

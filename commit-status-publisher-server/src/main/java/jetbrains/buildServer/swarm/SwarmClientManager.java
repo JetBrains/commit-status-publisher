@@ -22,6 +22,8 @@ import static jetbrains.buildServer.commitPublisher.Constants.VCS_ROOT_ID_PARAM;
 
 public class SwarmClientManager {
 
+  public static final String PERFORCE_VCS_NAME = "perforce";
+
   private final RelativeWebLinks myWebLinks;
   private final SSLTrustStoreProvider myTrustStoreProvider;
 
@@ -51,7 +53,11 @@ public class SwarmClientManager {
   }
 
   public final SwarmClient getSwarmClient(@NotNull SBuildType buildType, @NotNull VcsRootInstance root) {
+    if (!PERFORCE_VCS_NAME.equals(root.getVcsName())) {
+      return null;
+    }
 
+    Set<Map<String, String>> ourFeatures = new HashSet<Map<String, String>>();
     for (SBuildFeatureDescriptor buildFeature : buildType.getResolvedSettings().getBuildFeatures()) {
       Map<String, String> parameters = buildFeature.getParameters();
 
@@ -59,12 +65,20 @@ public class SwarmClientManager {
           SwarmPublisherSettings.ID.equals(parameters.get(PUBLISHER_ID_PARAM)) &&
           buildType.isEnabled(buildFeature.getId())) {
 
-        String vcsRootId = parameters.get(VCS_ROOT_ID_PARAM);
-        if (vcsRootId == null || vcsRootId.equals(root.getExternalId())) {
-          return getSwarmClient(parameters);
-        }
+        ourFeatures.add(parameters);
       }
     }
+
+    for (Map<String, String> parameters : ourFeatures) {
+      String vcsRootId = parameters.get(VCS_ROOT_ID_PARAM);
+
+      // Either strict match of the VCS Root ID according to build feature settings
+      // or there is only one build feature configured - match case "any VCS Root"
+      if (root.getExternalId().equals(vcsRootId) || (vcsRootId == null && ourFeatures.size() == 1)) {
+        return getSwarmClient(parameters);
+      }
+    }
+
     return null;
   }
 
