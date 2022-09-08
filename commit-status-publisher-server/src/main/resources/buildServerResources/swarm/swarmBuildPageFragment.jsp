@@ -44,7 +44,7 @@
     Perforce changelist(s):
     <c:forEach items="${swarmBean.swarmClientRevisions}" var="change">
         <c:set var="url"><c:out value="${change.first.swarmServerUrl}"/>/changes/${change.second}</c:set>
-        <a href="${url}" target="_blank" rel="noopener">${change.second}</a>
+        <a href="${url}" target="_blank" rel="noopener" title="Open Helix Swarm page for the changelist">${change.second}</a>
     </c:forEach>
 
     <c:if test="${not swarmBean.reviewsPresent}">
@@ -55,7 +55,7 @@
       <c:forEach items="${swarmBean.reviews}" var="serverData">
         <c:forEach items="${serverData.reviews}" var="review">
           <c:set var="url"><c:out value="${serverData.url}"/>/reviews/${review.id}</c:set>
-          <li>Review <a href="${url}" target="_blank" rel="noopener">${review.id}</a>
+          <li>Review <a href="${url}" target="_blank" rel="noopener" title="Open Helix Swarm page for the review">${review.id}</a>
           (${review.statusText})</li>
         </c:forEach>
       </c:forEach>
