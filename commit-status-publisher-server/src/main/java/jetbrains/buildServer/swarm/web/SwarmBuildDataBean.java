@@ -1,5 +1,6 @@
 package jetbrains.buildServer.swarm.web;
 
+import com.intellij.openapi.util.Pair;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -9,6 +10,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.swarm.ReviewLoadResponse;
 import jetbrains.buildServer.swarm.SingleReview;
+import jetbrains.buildServer.swarm.SwarmClient;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,8 +18,13 @@ import org.jetbrains.annotations.Nullable;
 public class SwarmBuildDataBean {
 
   private final ConcurrentMap<String, SwarmServerData> mySwarmServers = new ConcurrentHashMap<>();
+  private final Collection<Pair<SwarmClient, String>> mySwarmClientRevisions;
   private Date myLastRetrievedTime;
   private Throwable myReportedError;
+
+  public SwarmBuildDataBean(@NotNull Collection<Pair<SwarmClient, String>> swarmClientRevisions) {
+    mySwarmClientRevisions = swarmClientRevisions;
+  }
 
   public void addData(@NotNull String swarmServerUrl, @NotNull ReviewLoadResponse reviews) {
     updateLastRetrievedTimeFrom(reviews);
@@ -29,6 +36,10 @@ public class SwarmBuildDataBean {
     if (!reviews.getReviews().isEmpty()) {
       mySwarmServers.computeIfAbsent(swarmServerUrl, SwarmServerData::new).addAll(reviews.getReviews());
     }
+  }
+
+  public Collection<Pair<SwarmClient, String>> getSwarmClientRevisions() {
+    return mySwarmClientRevisions;
   }
 
   private void updateLastRetrievedTimeFrom(@NotNull ReviewLoadResponse reviews) {

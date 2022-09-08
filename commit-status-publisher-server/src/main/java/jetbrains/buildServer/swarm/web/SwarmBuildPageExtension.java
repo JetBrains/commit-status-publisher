@@ -4,7 +4,6 @@ import com.intellij.openapi.util.Pair;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -25,7 +24,6 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
 
   static final String SWARM_REVIEWS_ENABLED = "teamcity.swarm.reviews.enabled";
   static final String SWARM_BEAN = "swarmBean";
-  static final String SWARM_CHANGELISTS = "swarmChangelists";
 
   private final SwarmClientManager mySwarmClients;
 
@@ -66,16 +64,12 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
     SwarmBuildDataBean bean = createSwarmDataBean(build, buildType, swarmClientRevisions, false);
 
     model.put(SWARM_BEAN, bean);
-    model.put(SWARM_CHANGELISTS, swarmClientRevisions.stream()
-                                                     .map((r) -> r.second)
-                                                     .distinct()
-                                                     .collect(Collectors.joining(", ")));
   }
 
   @NotNull
   private static SwarmBuildDataBean createSwarmDataBean(@NotNull SBuild build, @NotNull SBuildType buildType, Set<Pair<SwarmClient, String>> swarmClientRevisions, boolean forceLoadData) {
 
-    SwarmBuildDataBean bean = new SwarmBuildDataBean();
+    SwarmBuildDataBean bean = new SwarmBuildDataBean(swarmClientRevisions);
     final String debugBuildInfo = "build [id=" + build.getBuildId() + "] in " + buildType.getExtendedFullName();
 
     Loggers.SERVER.debug("Getting Swarm data for " + debugBuildInfo + "; forced: " + forceLoadData);

@@ -20,7 +20,7 @@
   ~ limitations under the License.
   --%>
 
-<jsp:useBean id="swarmBean" class="jetbrains.buildServer.swarm.web.SwarmBuildDataBean" scope="request"/>
+<%--@elvariable id="swarmBean" type="jetbrains.buildServer.swarm.web.SwarmBuildDataBean"--%>
 
 <style>
   .swarmReviews {
@@ -41,7 +41,12 @@
   <bs:refreshable containerId="pullRequestFullInfo" pageUrl="${pageUrl}">
   <bs:_collapsibleBlock title="Swarm Reviews" id="smarmReviews" contentClass="swarmReviews">
 
-    Perforce changelist ID: <strong>${empty swarmChangelists ? 'none' : swarmChangelists}</strong>.
+    Perforce changelist(s):
+    <c:forEach items="${swarmBean.swarmClientRevisions}" var="change">
+        <c:set var="url"><c:out value="${change.first.swarmServerUrl}"/>/changes/${change.second}</c:set>
+        <a href="${url}" target="_blank" rel="noopener">${change.second}</a>
+    </c:forEach>
+
     <c:if test="${not swarmBean.reviewsPresent}">
       No reviews found.
     </c:if>
