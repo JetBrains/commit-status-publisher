@@ -145,7 +145,6 @@ public class TfsPublisherTest extends HttpPublisherTest {
 
   private void respondWithStatuses(HttpResponse httpResponse) {
     TfsStatusPublisher.CommitStatuses commitStatuses = new TfsStatusPublisher.CommitStatuses();
-    commitStatuses.count = 1;
     TfsStatusPublisher.StatusContext context = new TfsStatusPublisher.StatusContext();
     context.genre = "TeamCity";
     context.name = "MyDefaultTestBuildType";

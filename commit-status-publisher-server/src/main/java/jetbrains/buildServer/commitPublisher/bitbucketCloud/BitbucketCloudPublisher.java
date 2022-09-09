@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import jetbrains.buildServer.CommitStatusPublisherConstants;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudBuildStatuses;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudCommitBuildStatus;
@@ -36,7 +37,7 @@ import org.jetbrains.annotations.Nullable;
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
-  private static final int DEFAULT_PAGE_SIZE = 10;
+  private static final int DEFAULT_PAGE_SIZE = 25;
   private String myBaseUrl = BitbucketCloudSettings.DEFAULT_API_URL;
   private final Gson myGson = new Gson();
 
@@ -181,7 +182,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
 
   private Collection<BitbucketCloudCommitBuildStatus> loadCommitStatuses(Repository repository, BuildRevision revision, BuildPromotion promotion) throws PublisherException {
     Collection<BitbucketCloudCommitBuildStatus> result = new ArrayList<>();
-    boolean shouldContinue = true;
+    boolean shouldContinue;
     int page = 1;
     final String targetName = getBuildName(promotion);
     final String baseUrl = String.format("%s2.0/repositories/%s/%s/commit/%s/statuses",
@@ -191,11 +192,10 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
       BitbucketCloudBuildStatuses statuses = get(url, getUsername(), getPassword(), null, statusesProcessor);
       if (statuses != null && statuses.values != null && !statuses.values.isEmpty()) {
         result.addAll(statuses.values);
-        if (statuses.values.stream().anyMatch(status -> targetName.equals(status.name))) {
-          shouldContinue = false;
-        } else if (statuses.size != null && result.size() >= statuses.size) {
-          shouldContinue = false;
-        }
+        shouldContinue = (statuses.size == null || result.size() < statuses.size) &&
+                         result.size() < TeamCityProperties.getInteger(CommitStatusPublisherConstants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY,
+                                                                       CommitStatusPublisherConstants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL) &&
+                         statuses.values.stream().noneMatch(status -> targetName.equals(status.name));
         page++;
       } else {
         shouldContinue = false;

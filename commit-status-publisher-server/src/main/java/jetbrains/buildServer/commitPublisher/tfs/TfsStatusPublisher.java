@@ -29,6 +29,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import jetbrains.buildServer.CommitStatusPublisherConstants;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -181,7 +182,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     final ResponseEntityProcessor<CommitStatuses> processor = new ResponseEntityProcessor<>(CommitStatuses.class);
     final int top = 25;
     int skip = 0;
-    boolean shouldLoadMore = true;
+    boolean shouldLoadMore;
     Collection<CommitStatus> result = new ArrayList<>();
     do {
       String url = String.format("%s&top=%d&skip=%d", baseUrl, top, skip);
@@ -191,9 +192,8 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
       if (commitStatuses.value.stream().anyMatch(status -> targetBuildName.equals(status.context.name))) return result;
       skip += top;
-      if (commitStatuses.count >= top) {
-        shouldLoadMore = false;
-      }
+      shouldLoadMore = result.size() < TeamCityProperties.getInteger(CommitStatusPublisherConstants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY,
+                                                     CommitStatusPublisherConstants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL);
     } while (shouldLoadMore);
     return result;
   }

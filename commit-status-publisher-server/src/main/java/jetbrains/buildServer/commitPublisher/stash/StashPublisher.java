@@ -22,6 +22,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import jetbrains.buildServer.CommitStatusPublisherConstants;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.stash.data.DeprecatedJsonStashBuildStatuses;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
@@ -590,7 +591,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
             }
             result.add(convertToActualStatus(status));
           }
-          if (requiredStatusFound || statuses.isLastPage) {
+          if (requiredStatusFound || statuses.isLastPage ||
+              result.size() >= TeamCityProperties.getInteger(CommitStatusPublisherConstants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY, CommitStatusPublisherConstants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL)) {
             shouldContinueSearch = false;
           }
         }

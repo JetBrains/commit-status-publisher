@@ -53,8 +53,6 @@ import static jetbrains.buildServer.commitPublisher.ValueWithTTL.OUTDATED_CACHE_
 public class CommitStatusPublisherListener extends BuildServerAdapter implements ChangesCollectionCondition {
 
   final static String PUBLISHING_ENABLED_PROPERTY_NAME = "teamcity.commitStatusPublisher.enabled";
-  final static String EXPECTED_PROMOTIONS_CACHE_REFRESH_TIME_PROPERTY_NAME = "teamcity.commitStatusPublisher.promotionsCache.expectedRefreshTime";
-  final static String MODIFICATIONS_PROCESSING_DELAY_PROPERTY_NAME = "teamcity.commitStatusPublisher.modificationsProcessing.delay";
   final static String CSP_FOR_BUILD_TYPE_CONFIGURATION_FLAG_TTL_PROPERTY_NAME = "teamcity.commitStatusPublisher.enabledForBuildCache.ttl";
   final static String QUEUE_PAUSER_SYSTEM_PROPERTY = "teamcity.plugin.queuePauser.queue.enabled";
   final static String CHECK_STATUS_BEFORE_PUBLISHING = "teamcity.commitStatusPubliser.checkStatus.enabled";
