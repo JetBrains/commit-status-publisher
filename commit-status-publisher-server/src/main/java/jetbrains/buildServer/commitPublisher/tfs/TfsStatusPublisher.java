@@ -29,7 +29,6 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import jetbrains.buildServer.CommitStatusPublisherConstants;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -184,6 +183,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
     int skip = 0;
     boolean shouldLoadMore;
     Collection<CommitStatus> result = new ArrayList<>();
+    final int statusesThreshold = TeamCityProperties.getInteger(Constants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY, Constants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL);
     do {
       String url = String.format("%s&top=%d&skip=%d", baseUrl, top, skip);
       CommitStatuses commitStatuses = get(url, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN), null, processor);
@@ -192,8 +192,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher {
 
       if (commitStatuses.value.stream().anyMatch(status -> targetBuildName.equals(status.context.name))) return result;
       skip += top;
-      shouldLoadMore = result.size() < TeamCityProperties.getInteger(CommitStatusPublisherConstants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY,
-                                                     CommitStatusPublisherConstants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL);
+      shouldLoadMore = result.size() < statusesThreshold;
     } while (shouldLoadMore);
     return result;
   }

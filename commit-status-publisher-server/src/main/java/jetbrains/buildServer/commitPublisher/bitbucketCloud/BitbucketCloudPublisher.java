@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import jetbrains.buildServer.CommitStatusPublisherConstants;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudBuildStatuses;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudCommitBuildStatus;
@@ -187,14 +186,14 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
     final String targetName = getBuildName(promotion);
     final String baseUrl = String.format("%s2.0/repositories/%s/%s/commit/%s/statuses",
                                          getBaseUrl(), repository.owner(), repository.repositoryName(), revision.getRevision());
+    final int statusesThreshold = TeamCityProperties.getInteger(Constants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY, Constants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL);
     do {
       String url = String.format("%s?pagelen=%d&page=%d", baseUrl, DEFAULT_PAGE_SIZE, page);
       BitbucketCloudBuildStatuses statuses = get(url, getUsername(), getPassword(), null, statusesProcessor);
       if (statuses != null && statuses.values != null && !statuses.values.isEmpty()) {
         result.addAll(statuses.values);
         shouldContinue = (statuses.size == null || result.size() < statuses.size) &&
-                         result.size() < TeamCityProperties.getInteger(CommitStatusPublisherConstants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY,
-                                                                       CommitStatusPublisherConstants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL) &&
+                         result.size() < statusesThreshold &&
                          statuses.values.stream().noneMatch(status -> targetName.equals(status.name));
         page++;
       } else {

@@ -18,7 +18,6 @@ package jetbrains.buildServer.commitPublisher.github;
 
 import java.io.IOException;
 import java.util.*;
-import jetbrains.buildServer.CommitStatusPublisherConstants;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
@@ -193,6 +192,7 @@ public class ChangeStatusUpdater {
         int page = 1;
         Collection<CommitStatus> result = new ArrayList<>();
         boolean keepLoading;
+        final int statusesThreshold = TeamCityProperties.getInteger(Constants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY, Constants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL);
 
         do {
           Collection<CommitStatus> statuses;
@@ -206,8 +206,7 @@ public class ChangeStatusUpdater {
           if (statuses == null) return result;
           result.addAll(statuses);
           keepLoading = !statuses.isEmpty() &&
-                        result.size() < TeamCityProperties.getInteger(CommitStatusPublisherConstants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY,
-                                                      CommitStatusPublisherConstants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL) &&
+                        result.size() < statusesThreshold &&
                         statuses.stream().noneMatch(status -> buildContext.equals(status.context));
         } while (keepLoading);
         return result;

@@ -22,7 +22,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import jetbrains.buildServer.CommitStatusPublisherConstants;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.stash.data.DeprecatedJsonStashBuildStatuses;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
@@ -579,6 +578,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
       int start = 0;
       Collection<JsonStashBuildStatus> result = new ArrayList<>();
       boolean shouldContinueSearch = true;
+      final int statusesThreshold = TeamCityProperties.getInteger(Constants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY, Constants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL);
       do {
         DeprecatedJsonStashBuildStatuses statuses  = doLoadStatuses(baseEndpointUrl, processor, start, size, buildDescription);
         if (statuses == null || statuses.values == null || statuses.values.isEmpty()) {
@@ -591,8 +591,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
             }
             result.add(convertToActualStatus(status));
           }
-          if (requiredStatusFound || statuses.isLastPage ||
-              result.size() >= TeamCityProperties.getInteger(CommitStatusPublisherConstants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY, CommitStatusPublisherConstants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL)) {
+          if (requiredStatusFound || statuses.isLastPage || result.size() >= statusesThreshold) {
             shouldContinueSearch = false;
           }
         }
