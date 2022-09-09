@@ -67,8 +67,6 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
-    setInternalProperty(CommitStatusPublisherListener.EXPECTED_PROMOTIONS_CACHE_REFRESH_TIME_PROPERTY_NAME, "0");
-    setInternalProperty(CommitStatusPublisherListener.MODIFICATIONS_PROCESSING_DELAY_PROPERTY_NAME, "10");
     myLastEventProcessed = null;
     myLogger = new PublisherLogger();
     myPublisherManager = new PublisherManager(myServer);
