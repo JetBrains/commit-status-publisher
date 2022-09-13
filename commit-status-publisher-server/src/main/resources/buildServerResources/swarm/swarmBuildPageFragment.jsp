@@ -106,14 +106,9 @@
 
     startProgress();
     BS.ajaxRequest(window["base_uri"] + "/app/commit-status-publisher/swarm/loadReviews?buildId=" + parseInt(buildId), {
-      onSuccess() {
-        $('pullRequestFullInfo').refresh();
-      },
-      onFailure(response) {
-        document.querySelector(".swarmReviewsAge__error").innerHTML = "Error: " + response.responseText.stripTags();
-      },
       onComplete() {
         endProgress();
+        $('pullRequestFullInfo').refresh();
       }
     });
   }
