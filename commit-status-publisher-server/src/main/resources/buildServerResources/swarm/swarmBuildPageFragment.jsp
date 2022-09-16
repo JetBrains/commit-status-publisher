@@ -1,9 +1,5 @@
-<%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@ taglib prefix="l" tagdir="/WEB-INF/tags/layout" %>
-<%@ taglib prefix="forms" tagdir="/WEB-INF/tags/forms" %>
-<%@ taglib prefix="bs" tagdir="/WEB-INF/tags" %>
-<%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
+<%@ page import="jetbrains.buildServer.swarm.SwarmConstants" %>
+<%@include file="/include.jsp"%>
 <%--
   ~ Copyright 2000-2022 JetBrains s.r.o.
   ~
@@ -22,21 +18,12 @@
 
 <%--@elvariable id="swarmBean" type="jetbrains.buildServer.swarm.web.SwarmBuildDataBean"--%>
 
-<style>
-  .swarmReviews {
-    margin: 0;
-  }
-  .swarmReviewsAge {
-    margin-top: 10px;
-  }
-  .swarmReviewsAge--progress .swarmReviewsAge__refresh {
-    display: none;
-  }
-  .swarmReviewsAge__error {
-    color: var(--ring-error-color);
-    display: block;
-  }
-</style>
+<bs:executeOnce id="swarmStyles">
+  <script>
+    <c:set var="pluginName" value="<%= SwarmConstants.PLUGIN_NAME%>"/>
+    BS.LoadStyleSheetDynamically("<c:url value='/plugins/${pluginName}/swarm/swarm.css'/>")
+  </script>
+</bs:executeOnce>
 
   <bs:refreshable containerId="pullRequestFullInfo" pageUrl="${pageUrl}">
   <bs:_collapsibleBlock title="Swarm Reviews" id="smarmReviews" contentClass="swarmReviews">

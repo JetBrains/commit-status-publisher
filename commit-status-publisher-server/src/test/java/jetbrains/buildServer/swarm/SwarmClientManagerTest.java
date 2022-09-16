@@ -116,10 +116,8 @@ public class SwarmClientManagerTest extends BaseServerTestCase {
   @Test
   public void should_not_create_swarm_client_from_disabled_feature() throws Exception {
 
-    SBuildFeatureDescriptor featureDescriptor = myBuildType.addBuildFeature(TYPE, new HashMap<String, String>() {{
-      put(Constants.PUBLISHER_ID_PARAM, SwarmPublisherSettings.ID);
-      put(PARAM_URL, "http://swarm1");
-    }});
+    SBuildFeatureDescriptor featureDescriptor = SwarmTestUtil.addSwarmFeature(myBuildType, "http://swarm1");
+
     myBuildType.setEnabled(featureDescriptor.getId(), false);
 
     SwarmClient client = getSwarmClient();

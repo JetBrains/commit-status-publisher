@@ -1,0 +1,26 @@
+.swarmIconClass {
+  background-image: url("swarm.png");
+  background-size: 135%;
+  background-position: center;
+
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  vertical-align: text-bottom;
+}
+
+
+
+.swarmReviews {
+  margin: 0;
+}
+.swarmReviewsAge {
+  margin-top: 10px;
+}
+.swarmReviewsAge--progress .swarmReviewsAge__refresh {
+  display: none;
+}
+.swarmReviewsAge__error {
+  color: var(--ring-error-color);
+  display: block;
+}

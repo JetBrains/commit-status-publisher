@@ -271,6 +271,9 @@ public class SwarmClient {
     LoggerUtil.LOG.info(message);
   }
 
+  /**
+   * @return Swarm server URL without tailing slash
+   */
   public String getSwarmServerUrl() {
     return mySwarmUrl;
   }

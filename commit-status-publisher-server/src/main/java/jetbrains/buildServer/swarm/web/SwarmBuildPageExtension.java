@@ -9,7 +9,6 @@ import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.swarm.ReviewLoadResponse;
 import jetbrains.buildServer.swarm.SwarmClient;
 import jetbrains.buildServer.swarm.SwarmClientManager;
@@ -21,8 +20,6 @@ import org.jetbrains.annotations.Nullable;
 
 public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
   private static final String SWARM_EXTENSION = "swarm";
-
-  static final String SWARM_REVIEWS_ENABLED = "teamcity.swarm.reviews.enabled";
   static final String SWARM_BEAN = "swarmBean";
 
   private final SwarmClientManager mySwarmClients;
@@ -37,7 +34,7 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
 
   @Override
   public boolean isAvailable(@NotNull HttpServletRequest request) {
-    if (!TeamCityProperties.getBoolean(SWARM_REVIEWS_ENABLED) || !super.isAvailable(request)) {
+    if (!super.isAvailable(request)) {
       return false;
     }
     SBuild build = Objects.requireNonNull(getBuild(request));

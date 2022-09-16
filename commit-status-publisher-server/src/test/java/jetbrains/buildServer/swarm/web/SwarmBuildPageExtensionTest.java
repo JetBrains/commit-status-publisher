@@ -1,24 +1,17 @@
 package jetbrains.buildServer.swarm.web;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 import jetbrains.buildServer.BaseWebTestCase;
 import jetbrains.buildServer.buildTriggers.vcs.BuildRevisionBuilder;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
-import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.controllers.MockRequest;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.swarm.ReviewLoadResponse;
-import jetbrains.buildServer.swarm.SingleReview;
-import jetbrains.buildServer.swarm.SwarmClient;
-import jetbrains.buildServer.swarm.SwarmClientManager;
-import jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings;
+import jetbrains.buildServer.swarm.*;
 import jetbrains.buildServer.util.ThreadUtil;
 import jetbrains.buildServer.util.cache.ResetCacheRegisterImpl;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -27,9 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import static jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings.PARAM_URL;
 import static jetbrains.buildServer.swarm.web.SwarmBuildPageExtension.SWARM_BEAN;
-import static jetbrains.buildServer.swarm.web.SwarmBuildPageExtension.SWARM_REVIEWS_ENABLED;
 import static org.assertj.core.api.BDDAssertions.then;
 
 @Test
@@ -51,12 +42,8 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
     super.setUp();
 
     myReviewsResult = SwarmReviewsResult.NORMAL_REVIEWS;
-    setInternalProperty(SWARM_REVIEWS_ENABLED, "true");
 
-    myBuildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, ImmutableMap.of(
-      Constants.PUBLISHER_ID_PARAM, SwarmPublisherSettings.ID,
-      PARAM_URL, "http://swarm-root/"
-    ));
+    SwarmTestUtil.addSwarmFeature(myBuildType, "http://swarm-root/");
 
     SVcsRootImpl perforce = myFixture.addVcsRoot("perforce", "");
     myVri = myBuildType.getVcsRootInstanceForParent(perforce);
