@@ -28,23 +28,37 @@
   <bs:refreshable containerId="pullRequestFullInfo" pageUrl="${pageUrl}">
   <bs:_collapsibleBlock title="Swarm Reviews" id="smarmReviews" contentClass="swarmReviews">
 
-    Perforce changelist(s):
-    <c:forEach items="${swarmBean.swarmChangelists}" var="change">
-        <c:set var="url"><c:out value="${change.swarmClient.swarmServerUrl}"/>/changes/${change.changelist}</c:set>
-        <a href="${url}" target="_blank" rel="noopener" title="Open Helix Swarm page for the changelist">${change.changelist}</a>
-    </c:forEach>
-
     <c:if test="${not swarmBean.reviewsPresent}">
       No reviews found.
     </c:if>
     <c:if test="${swarmBean.reviewsPresent}">
-    <ul>
+    <ul class="swarmReviewsList">
       <c:forEach items="${swarmBean.reviews}" var="serverData">
-        <c:forEach items="${serverData.reviews}" var="review">
-          <c:set var="url"><c:out value="${serverData.url}"/>/reviews/${review.id}</c:set>
-          <li>Review <a href="${url}" target="_blank" rel="noopener" title="Open Helix Swarm page for the review">${review.id}</a>
-          (${review.statusText})</li>
-        </c:forEach>
+        <li>
+          <span class="swarmReviewsList__changelist">
+              Changelist:
+
+              <c:if test="${serverData.shelved}">
+                <img src="<c:url value="/plugins/${pluginName}/swarm/p4v-icon-pending-changelist-with-swarm_15x15.webp"/>"
+                     class="swarmReviewsList__shelved" alt="Shelved changelist" title="Shelved changelist"/>
+              </c:if>
+
+              <c:set var="url"><c:out value="${serverData.url}"/>/changes/${serverData.changelist}</c:set>
+              <a href="${url}" target="_blank" rel="noopener" title="Open Helix Swarm page for the changelist">${serverData.changelist}</a>
+
+          </span>
+
+          <span class="swarmReviewsList__reviews">
+              Review<bs:s val="${fn:length(serverData.reviews)}"/>:
+
+              <c:forEach items="${serverData.reviews}" var="review">
+                <c:set var="url"><c:out value="${serverData.url}"/>/reviews/${review.id}</c:set>
+                <a href="${url}" target="_blank" rel="noopener" title="Open Helix Swarm page for the review">${review.id}</a>
+                (${review.statusText})
+              </c:forEach>
+          </span>
+          
+        </li>
       </c:forEach>
     </ul>
     </c:if>

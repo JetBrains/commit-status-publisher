@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 import jetbrains.buildServer.swarm.ReviewLoadResponse;
 import jetbrains.buildServer.swarm.SingleReview;
 import jetbrains.buildServer.swarm.SwarmChangelist;
-import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -79,11 +78,11 @@ public class SwarmBuildDataBean {
   }
 
   public static class SwarmServerData {
-    private final String myUrl;
     private final Set<SingleReview> myReviews = new HashSet<>();
+    private final SwarmChangelist mySwarmChangelist;
 
     public SwarmServerData(@NotNull SwarmChangelist swarmChangelist) {
-      myUrl = StringUtil.removeTailingSlash(swarmChangelist.getSwarmClient().getSwarmServerUrl());
+      mySwarmChangelist = swarmChangelist;
     }
 
     public void addAll(@NotNull List<SingleReview> reviews) {
@@ -91,7 +90,7 @@ public class SwarmBuildDataBean {
     }
 
     public String getUrl() {
-      return myUrl;
+      return mySwarmChangelist.getSwarmClient().getSwarmServerUrl();
     }
 
     public List<Long> getReviewIds() {
@@ -100,6 +99,14 @@ public class SwarmBuildDataBean {
 
     public List<SingleReview> getReviews() {
       return myReviews.stream().sorted().collect(Collectors.toList());
+    }
+
+    public boolean isShelved() {
+      return mySwarmChangelist.isShelved();
+    }
+
+    public long getChangelist() {
+      return mySwarmChangelist.getChangelist();
     }
   }
 }

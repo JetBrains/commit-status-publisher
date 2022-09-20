@@ -22,7 +22,7 @@ public class SwarmChangelist {
     return myChangelist;
   }
 
-  public boolean isShelve() {
+  public boolean isShelved() {
     return isShelve;
   }
 
