@@ -1,6 +1,5 @@
 package jetbrains.buildServer.swarm.web;
 
-import com.intellij.openapi.util.Pair;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -10,23 +9,23 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.swarm.ReviewLoadResponse;
 import jetbrains.buildServer.swarm.SingleReview;
-import jetbrains.buildServer.swarm.SwarmClient;
+import jetbrains.buildServer.swarm.SwarmChangelist;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class SwarmBuildDataBean {
 
-  private final ConcurrentMap<String, SwarmServerData> mySwarmServers = new ConcurrentHashMap<>();
-  private final Collection<Pair<SwarmClient, String>> mySwarmClientRevisions;
+  private final ConcurrentMap<SwarmChangelist, SwarmServerData> mySwarmServers = new ConcurrentHashMap<>();
+  private final Collection<SwarmChangelist> mySwarmClientRevisions;
   private Date myLastRetrievedTime;
   private Throwable myReportedError;
 
-  public SwarmBuildDataBean(@NotNull Collection<Pair<SwarmClient, String>> swarmClientRevisions) {
+  public SwarmBuildDataBean(@NotNull Collection<SwarmChangelist> swarmClientRevisions) {
     mySwarmClientRevisions = swarmClientRevisions;
   }
 
-  public void addData(@NotNull String swarmServerUrl, @NotNull ReviewLoadResponse reviews) {
+  public void addData(@NotNull SwarmChangelist swarmChangelist, @NotNull ReviewLoadResponse reviews) {
     updateLastRetrievedTimeFrom(reviews);
     
     if (reviews.getError() != null) {
@@ -34,11 +33,11 @@ public class SwarmBuildDataBean {
     }
 
     if (!reviews.getReviews().isEmpty()) {
-      mySwarmServers.computeIfAbsent(swarmServerUrl, SwarmServerData::new).addAll(reviews.getReviews());
+      mySwarmServers.computeIfAbsent(swarmChangelist, SwarmServerData::new).addAll(reviews.getReviews());
     }
   }
 
-  public Collection<Pair<SwarmClient, String>> getSwarmClientRevisions() {
+  public Collection<SwarmChangelist> getSwarmChangelists() {
     return mySwarmClientRevisions;
   }
 
@@ -83,8 +82,8 @@ public class SwarmBuildDataBean {
     private final String myUrl;
     private final Set<SingleReview> myReviews = new HashSet<>();
 
-    public SwarmServerData(@NotNull String url) {
-      myUrl = StringUtil.removeTailingSlash(url);
+    public SwarmServerData(@NotNull SwarmChangelist swarmChangelist) {
+      myUrl = StringUtil.removeTailingSlash(swarmChangelist.getSwarmClient().getSwarmServerUrl());
     }
 
     public void addAll(@NotNull List<SingleReview> reviews) {

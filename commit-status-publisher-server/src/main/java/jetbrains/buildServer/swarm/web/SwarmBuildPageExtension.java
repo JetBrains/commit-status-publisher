@@ -1,6 +1,5 @@
 package jetbrains.buildServer.swarm.web;
 
-import com.intellij.openapi.util.Pair;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -10,6 +9,7 @@ import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.swarm.ReviewLoadResponse;
+import jetbrains.buildServer.swarm.SwarmChangelist;
 import jetbrains.buildServer.swarm.SwarmClient;
 import jetbrains.buildServer.swarm.SwarmClientManager;
 import jetbrains.buildServer.web.openapi.BuildInfoFragmentTab;
@@ -57,29 +57,30 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
       return;
     }
 
-    Set<Pair<SwarmClient, String>> swarmClientRevisions = mySwarmClients.getSwarmClientRevisions(build);
+    Set<SwarmChangelist> swarmClientRevisions = mySwarmClients.getSwarmClientRevisions(build);
     SwarmBuildDataBean bean = createSwarmDataBean(build, buildType, swarmClientRevisions, false);
 
     model.put(SWARM_BEAN, bean);
   }
 
   @NotNull
-  private static SwarmBuildDataBean createSwarmDataBean(@NotNull SBuild build, @NotNull SBuildType buildType, Set<Pair<SwarmClient, String>> swarmClientRevisions, boolean forceLoadData) {
+  private static SwarmBuildDataBean createSwarmDataBean(@NotNull SBuild build, @NotNull SBuildType buildType, Set<SwarmChangelist> swarmClientRevisions, boolean forceLoadData) {
 
     SwarmBuildDataBean bean = new SwarmBuildDataBean(swarmClientRevisions);
     final String debugBuildInfo = "build [id=" + build.getBuildId() + "] in " + buildType.getExtendedFullName();
 
     Loggers.SERVER.debug("Getting Swarm data for " + debugBuildInfo + "; forced: " + forceLoadData);
-    for (Pair<SwarmClient, String> swarmClientRevision : swarmClientRevisions) {
+    for (SwarmChangelist swarmChangelist : swarmClientRevisions) {
       ReviewLoadResponse reviews = null;
       try {
-        SwarmClient swarmClient = swarmClientRevision.first;
+        SwarmClient swarmClient = swarmChangelist.getSwarmClient();
+        String changelist = String.valueOf(swarmChangelist.getChangelist());
         reviews = forceLoadData ?
-                  swarmClient.getReviews(swarmClientRevision.second, debugBuildInfo, true) :
-                  swarmClient.getCachedReviews(swarmClientRevision.second);
+                  swarmClient.getReviews(changelist, debugBuildInfo, true) :
+                  swarmClient.getCachedReviews(changelist);
 
         if (reviews != null) {
-          bean.addData(swarmClient.getSwarmServerUrl(), reviews);
+          bean.addData(swarmChangelist, reviews);
         }
       } catch (Throwable e) {
         bean.setError(e, reviews);

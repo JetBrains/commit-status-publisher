@@ -29,9 +29,9 @@
   <bs:_collapsibleBlock title="Swarm Reviews" id="smarmReviews" contentClass="swarmReviews">
 
     Perforce changelist(s):
-    <c:forEach items="${swarmBean.swarmClientRevisions}" var="change">
-        <c:set var="url"><c:out value="${change.first.swarmServerUrl}"/>/changes/${change.second}</c:set>
-        <a href="${url}" target="_blank" rel="noopener" title="Open Helix Swarm page for the changelist">${change.second}</a>
+    <c:forEach items="${swarmBean.swarmChangelists}" var="change">
+        <c:set var="url"><c:out value="${change.swarmClient.swarmServerUrl}"/>/changes/${change.changelist}</c:set>
+        <a href="${url}" target="_blank" rel="noopener" title="Open Helix Swarm page for the changelist">${change.changelist}</a>
     </c:forEach>
 
     <c:if test="${not swarmBean.reviewsPresent}">

@@ -3,7 +3,6 @@ package jetbrains.buildServer.swarm;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
-import com.intellij.openapi.util.Pair;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
 import jetbrains.buildServer.serverSide.*;
@@ -89,18 +88,26 @@ public class SwarmClientManager {
    * @param build
    * @return see above
    */
-  public Set<Pair<SwarmClient, String>> getSwarmClientRevisions(@NotNull SBuild build) {
+  public Set<SwarmChangelist> getSwarmClientRevisions(@NotNull SBuild build) {
     SBuildType buildType = build.getBuildType();
     if (buildType == null) {
       return Collections.emptySet();
     }
 
-    Set<Pair<SwarmClient, String>> swarmClientRevisions = new HashSet<>();
+    Set<SwarmChangelist> swarmClientRevisions = new HashSet<>();
 
     for (BuildRevision revision : build.getBuildPromotion().getRevisions()) {
       SwarmClient swarmClient = getSwarmClient(buildType, revision.getRoot());
       if (swarmClient != null) {
-        swarmClientRevisions.add(new Pair<>(swarmClient, getChangelist(build, revision)));
+        if (build.isPersonal()) {
+          String ver = build.getBuildOwnParameters().get("vcsRoot." + revision.getRoot().getExternalId() + ".shelvedChangelist");
+          if (StringUtil.isNotEmpty(ver)) {
+            swarmClientRevisions.add(new SwarmChangelist(swarmClient, Long.parseLong(ver), true));
+          }
+        }
+        else {
+          swarmClientRevisions.add(new SwarmChangelist(swarmClient, Long.parseLong(revision.getRevisionDisplayName()), false));
+        }
       }
     }
     return swarmClientRevisions;
