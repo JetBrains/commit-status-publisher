@@ -161,7 +161,10 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
         final String fullComment = "TeamCity: " + String.format(commentTemplate, getBuildMarkdownLink(build)) +
                                    "\nConfiguration: " + myBuildType.getExtendedFullName();
 
-        mySwarmClient.addCommentToReview(reviewId, fullComment, debugBuildInfo, !commentsNotificationsEnabled);
+        // Do not send e-mail notification for non-personal builds, they are excessive:
+        boolean silenceNotification = !commentsNotificationsEnabled || !build.isPersonal();
+
+        mySwarmClient.addCommentToReview(reviewId, fullComment, debugBuildInfo, silenceNotification);
       }
     });
   }
