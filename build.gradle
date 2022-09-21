@@ -41,7 +41,6 @@ subprojects {
     apply plugin: 'java'
 
     repositories {
-        mavenLocal()
         maven {
             url = 'https://download.jetbrains.com/teamcity-repository'
         }
@@ -49,6 +48,7 @@ subprojects {
         maven {
             url = 'https://repo.maven.apache.org/maven2'
         }
+        mavenLocal()
     }
 
     sourceCompatibility = '1.8'
