@@ -25,7 +25,8 @@
 }
 
 .swarmReviewsList__changelist {
-  flex: 0 1 160px;
+  min-width: 160px;
+  flex: 0 1 auto;
 }
 .swarmReviewsList__reviews {
   padding-left: 1em;
