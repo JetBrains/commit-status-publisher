@@ -75,6 +75,25 @@ public class SwarmChangeLinkExtensionTest extends BaseWebTestCase {
       .containsEntry("showType", "compact");
   }
 
+  @Test
+  public void should_provide_swarm_link_for_personal_change() throws Exception {
+    MockRequest request = new MockRequest();
+    MockVcsModification modification = new MockVcsModification("kir", "Some personal change (shelved changelist @=43)", new Date(), "13 09 2022 16:51");
+    modification.setPesonal(true);
+
+    request.setAttribute("modification", modification);
+    request.setAttribute("buildType", myBuildType);
+
+    then(myExtension.isAvailable(request)).isTrue();
+
+    HashMap<String, Object> model = new HashMap<>();
+    myExtension.fillModel(model, request);
+
+    then(model)
+      .containsEntry("swarmChangeUrl", SWARM_ROOT + "changes/43")
+      .containsEntry("showType", "compact");
+  }
+
   @NotNull
   private MockRequest prepareRequest() {
     MockRequest request = new MockRequest();
