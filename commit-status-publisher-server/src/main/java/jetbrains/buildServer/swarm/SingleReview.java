@@ -20,6 +20,12 @@ public class SingleReview implements Comparable {
   }
 
   public String getStatusText() {
+    if ("needsReview".equals(myStatus)) {
+      return "needs review";
+    }
+    if ("needsRevision".equals(myStatus)) {
+      return "needs revision";
+    }
     return myStatus;
   }
 
