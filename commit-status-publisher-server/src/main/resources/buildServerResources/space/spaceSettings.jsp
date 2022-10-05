@@ -48,7 +48,7 @@
       </props:selectProperty>
       <c:set var="connectorType" value="<%=SpaceOAuthProvider.TYPE%>"/>
       <span class="smallNote">Add credentials via the
-                <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank">Project Connections</a> page</span>
+                <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
       <props:hiddenProperty name="invalidConnection" value=""/>
       <span class="error" id="error_${loginProp}"></span>
     </div>
