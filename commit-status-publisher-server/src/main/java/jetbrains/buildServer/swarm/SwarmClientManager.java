@@ -28,6 +28,7 @@ public class SwarmClientManager {
 
   private final int myConnectionTimeout = TeamCityProperties.getInteger("teamcity.internal.swarm.connectionTimeout", 10000);
   private final Cache<Long, SwarmClient> mySwarmClientCache = Caffeine.newBuilder()
+                                                                      .executor(Runnable::run)
                                                                       .maximumSize(1000)
                                                                       .build();
 

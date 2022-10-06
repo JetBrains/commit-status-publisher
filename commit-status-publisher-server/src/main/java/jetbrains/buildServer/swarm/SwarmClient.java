@@ -50,6 +50,7 @@ public class SwarmClient {
     myTrustStore = trustStore;
 
     myChangelist2ReviewsCache = Caffeine.newBuilder()
+                                        .executor(Runnable::run)
                                         .maximumSize(1000)
                                         .expireAfterWrite(1, TimeUnit.DAYS)
                                         .build();
