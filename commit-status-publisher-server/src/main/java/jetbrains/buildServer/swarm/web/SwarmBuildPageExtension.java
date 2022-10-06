@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import jetbrains.buildServer.log.Loggers;
+import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -96,6 +97,8 @@ public class SwarmBuildPageExtension extends BuildInfoFragmentTab {
       return null;
     }
 
-    return createSwarmDataBean(build, buildType, mySwarmClients.getSwarmClientRevisions(build), true);
+    return IOGuard.allowNetworkCall(() -> {
+      return createSwarmDataBean(build, buildType, mySwarmClients.getSwarmClientRevisions(build), true);
+    });
   }
 }
