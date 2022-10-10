@@ -33,6 +33,6 @@ public class SwarmController {
     else {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Build not found: " + buildId);
     }
-    return ResponseEntity.ok("OK");
+    return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body("OK");
   }
 }
