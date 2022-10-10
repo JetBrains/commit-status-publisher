@@ -39,8 +39,14 @@
               Changelist:
 
               <c:if test="${serverData.shelved}">
-                <img src="<c:url value="/plugins/${pluginName}/swarm/p4v-icon-pending-changelist-with-swarm_15x15.webp"/>"
-                     class="swarmReviewsList__shelved" alt="Shelved changelist" title="Shelved changelist"/>
+                <c:set var="imageName" value="${'p4v-icon-pending-changelist-with-swarm_15x15.webp'}"/>
+                <img src="<c:url value="/plugins/${pluginName}/swarm/${imageName}"/>"
+                     class="swarmReviewsList__typeIcon" alt="Shelved changelist with Swarm review" title="Shelved changelist with Swarm review"/>
+              </c:if>
+              <c:if test="${not serverData.shelved}">
+                <c:set var="imageName" value="${'p4v-icon-submitted-changelist-with-swarm_15x15.webp'}"/>
+                <img src="<c:url value="/plugins/${pluginName}/swarm/${imageName}"/>"
+                     class="swarmReviewsList__typeIcon" alt="Submitted changelist with Swarm review" title="Submitted changelist with Swarm review"/>
               </c:if>
 
               <c:set var="url"><c:out value="${serverData.url}"/>/changes/${serverData.changelist}</c:set>
