@@ -330,6 +330,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
     long promotionId = buildPromotion.getId();
     String identity = Event.QUEUED.getName() + ":" + promotionId;
+    logEventSubmit(Event.QUEUED, buildType, DefaultStatusMessages.BUILD_QUEUED, promotionId);
     myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(Event.QUEUED.getName(), identity, promotionId, null, DefaultStatusMessages.BUILD_QUEUED));
   }
 
@@ -361,6 +362,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     if (!canNodeProcessRemovedFromQueue(promotion)) return;
     if (((BuildPromotionEx)promotion).isChangeCollectingNeeded(false)) return;
 
+    logEventSubmit(Event.REMOVED_FROM_QUEUE, buildType, comment, build.getBuildPromotion().getId());
     runAsync(() -> {
       proccessRemovedFromQueueBuild(build, user, comment);
     }, null);
@@ -444,6 +446,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     }
 
     long buildId = build.getBuildId();
+    logEventSubmit(event, build.getBuildType(), "-", buildId);
     myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(event.getName(), event.getName() + ":" + buildId, buildId, null, null));
   }
 
@@ -579,6 +582,22 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       LOG.debug("Event: " + event.getName() + ", cannot find buildType for build " + LogUtil.describe(build));
       return null;
     }
+  }
+
+  private void logEventSubmit(@NotNull Event event, @Nullable SBuildType buildType, @Nullable String comment, long id) {
+    if (!LOG.isDebugEnabled()) return;
+
+    String buildName, projectName, fullName;
+    if (buildType != null) {
+      buildName = buildType.getName();
+      projectName = buildType.getProjectName();
+      fullName = buildType.getFullName();
+    } else {
+      buildName = projectName = fullName = "!N/A!";
+    }
+    String actualComment = comment != null ? comment : "!N/A!";
+    LOG.debug(String.format("Submitting publishing task for event '%s' build type: '%s' (project: '%s') with comment '%s'. Build/Promotion ID: %d. Calculated build full name: '%s'",
+                            event.getName(), buildName, projectName, actualComment, id, fullName));
   }
 
   private interface PublishTask {
@@ -949,6 +968,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
         if (!publisher.isAvailable(promotion)) {
           return;
         }
+        logRunningTask(event, publisher, promotion, revision, additionalTaskInfo);
         doRunTask(publishTask, publisher, revision, additionalTaskInfo);
       } catch (Throwable t) {
         myProblems.reportProblem(String.format("Commit Status Publisher has failed to publish %s status", event.getName()), publisher, buildDescription, null, t, LOG);
@@ -960,5 +980,23 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
         }
       }
     }
+  }
+
+  private void logRunningTask(@NotNull Event event, @NotNull CommitStatusPublisher publisher, @Nullable BuildPromotion promotion,
+                              @NotNull BuildRevision revision, @Nullable AdditionalTaskInfo taskInfo) {
+    if (!LOG.isDebugEnabled()) return;
+
+    String buildName, projectName, fullName;
+    SBuildType buildType = promotion != null ? promotion.getBuildType() : null;
+    if (buildType != null) {
+      buildName = buildType.getName();
+      projectName = buildType.getProjectName();
+      fullName = buildType.getFullName();
+    } else {
+      buildName = projectName = fullName = "!N/A!";
+    }
+    String comment = taskInfo != null ? taskInfo.myComment : "!N/A!";
+    LOG.debug(String.format("Running task for event '%s' using publisher '%s'. Build type: '%s' (project: '%s'). Status will be published to revision %s. Comment: '%s'. Calculated full name: '%s'. Promotion ID: %s",
+                            event.getName(), publisher.getId(), buildName, projectName, revision.getRevision(), comment, fullName, promotion != null ? String.valueOf(promotion.getId()) : "!N/A!"));
   }
 }
