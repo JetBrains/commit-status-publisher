@@ -51,7 +51,7 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
     return new GitHubApiImpl(myWrapper, new GitHubApiPaths(url)){
       @Override
       protected SimpleCredentials authenticationCredentials() {
-        return new SimpleCredentials(token, "x-oauth-basic");
+        return new SimpleCredentials("x-oauth-basic", token);
       }
     };
   }
