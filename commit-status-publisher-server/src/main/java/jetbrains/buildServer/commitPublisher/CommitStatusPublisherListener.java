@@ -37,7 +37,6 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.MultiNodeTasks.PerformingTask;
 import jetbrains.buildServer.serverSide.comments.Comment;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
-import jetbrains.buildServer.serverSide.impl.DummyBuild;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.users.User;
@@ -56,6 +55,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   final static String CSP_FOR_BUILD_TYPE_CONFIGURATION_FLAG_TTL_PROPERTY_NAME = "teamcity.commitStatusPublisher.enabledForBuildCache.ttl";
   final static String QUEUE_PAUSER_SYSTEM_PROPERTY = "teamcity.plugin.queuePauser.queue.enabled";
   final static String CHECK_STATUS_BEFORE_PUBLISHING = "teamcity.commitStatusPubliser.checkStatus.enabled";
+  final static String PUBLISH_REPLACING_STATUS_ON_REMOVE = "teamcity.commitStatusPublisher.replaceStatusOnRemove";
 
   private final static int MAX_LAST_EVENTS_TO_REMEMBER = 1000;
 
@@ -357,7 +357,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       return;
     }
 
-    if (!canNodeProcessRemovedFromQueue(build.getBuildPromotion())) return;
+    BuildPromotion promotion = build.getBuildPromotion();
+    if (!canNodeProcessRemovedFromQueue(promotion)) return;
+    if (((BuildPromotionEx)promotion).isChangeCollectingNeeded(false)) return;
 
     runAsync(() -> {
       proccessRemovedFromQueueBuild(build, user, comment);
@@ -496,16 +498,17 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   }
 
   private boolean publishReplacingStatus(CommitStatusPublisher publisher, BuildRevision revision, AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+    if (!TeamCityProperties.getBoolean(PUBLISH_REPLACING_STATUS_ON_REMOVE)) return false;
     BuildPromotion replacingPromotion = additionalTaskInfo.getReplacingPromotion();
     if (replacingPromotion == null) {
       return false;
     }
-    SQueuedBuild replacingQueuedBuild = replacingPromotion.getQueuedBuild();
-    if (replacingQueuedBuild != null) {
-      return publisher.buildQueued(replacingPromotion, revision, new AdditionalTaskInfo(DefaultStatusMessages.BUILD_QUEUED, additionalTaskInfo.getCommentAuthor()));
-    }
     SBuild replacingBuild = replacingPromotion.getAssociatedBuild();
     if (replacingBuild == null) {
+      return false;
+    }
+    List<BuildRevision> revisionsForRunningBuild = getBuildRevisionForVote(publisher, replacingBuild.getRevisions());
+    if (!revisionsForRunningBuild.contains(revision)) {
       return false;
     }
     if (replacingBuild.isFinished()) {
@@ -645,30 +648,18 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
                                                             @NotNull BuildPromotion buildPromotion) {
     if (buildPromotion.isFailedToCollectChanges()) return Collections.emptyList();
 
-    SBuild b = buildPromotion.getAssociatedBuild();
-    if (b != null) {
-      List<BuildRevision> revisions = getBuildRevisionForVote(publisher, b.getRevisions());
-      if (!revisions.isEmpty())
-        return revisions;
-    }
-
-    if (!((BuildPromotionEx)buildPromotion).isChangeCollectingNeeded(true) &&
-        !buildPromotion.getRevisions().isEmpty()) {
+    if (!((BuildPromotionEx)buildPromotion).isChangeCollectingNeeded(false)) {
       return getBuildRevisionForVote(publisher, buildPromotion.getRevisions());
     }
-    if (!buildPromotion.getRevisions().isEmpty()) {
-      return getBuildRevisionForVote(publisher, buildPromotion.getRevisions());
-    }
-    LOG.debug("No revision is found for build " + buildPromotion.getBuildTypeExternalId() + ". Revision for vote will be calculated using dummy build");
-    String branchName = getBranchName(buildPromotion);
-    BranchEx branch = ((BuildTypeEx) buildType).getBranch(branchName);
-    DummyBuild dummyBuild = branch.getDummyBuild();
-    return getBuildRevisionForVote(publisher, dummyBuild.getRevisions());
+    LOG.debug("No revision is found for build " + buildPromotion.getBuildTypeExternalId() + ". Queue-related status won't be published");
+    return Collections.emptyList();
   }
 
   @NotNull
   private List<BuildRevision> getBuildRevisionForVote(@NotNull CommitStatusPublisher publisher,
                                                       @NotNull Collection<BuildRevision> revisionsToCheck) {
+    if (revisionsToCheck.isEmpty()) return Collections.emptyList();
+
     String vcsRootId = publisher.getVcsRootId();
     if (vcsRootId == null) {
       List<BuildRevision> revisions = new ArrayList<BuildRevision>();

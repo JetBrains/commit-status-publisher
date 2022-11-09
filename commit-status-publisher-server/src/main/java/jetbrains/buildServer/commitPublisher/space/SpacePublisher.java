@@ -34,8 +34,9 @@ import org.jetbrains.annotations.Nullable;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
-public class SpacePublisher extends HttpBasedCommitStatusPublisher {
+public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildStatus> {
 
+  private static final String STATUS_FOR_REMOVED_BUILD = "teamcity.commitStatusPublisher.removedBuild.space.status";
   private static final String UNKNOWN_BUILD_CONFIGURATION = "Unknown build configuration";
 
   private final SpaceConnectDescriber mySpaceConnector;
@@ -81,8 +82,19 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
     if (additionalTaskInfo.commentContains(DefaultStatusMessages.BUILD_STARTED)) {
       return false;
     }
-    SpaceBuildStatus targetStatus = additionalTaskInfo.isPromotionReplaced() ? SpaceBuildStatus.SCHEDULED : SpaceBuildStatus.TERMINATED;
+    SpaceBuildStatus targetStatus = getBuildStatusForRemovedBuild();
     return publishQueued(buildPromotion, revision, targetStatus, additionalTaskInfo);
+  }
+
+  protected SpaceBuildStatus getBuildStatusForRemovedBuild() {
+    String statusStr = TeamCityProperties.getPropertyOrNull(STATUS_FOR_REMOVED_BUILD);
+    if (statusStr == null) return getFallbackRemovedBuildStatus();
+    SpaceBuildStatus staus = SpaceBuildStatus.getByName(statusStr);
+    return staus == null ? getFallbackRemovedBuildStatus() : staus;
+  }
+
+  protected SpaceBuildStatus getFallbackRemovedBuildStatus() {
+    return SpaceBuildStatus.TERMINATED;
   }
 
   @Override
@@ -222,6 +234,11 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher {
       .map(VcsModification::getVersion)
       .collect(Collectors.toList());
     String viewUrl = getViewUrl(buildPromotion);
+    if (viewUrl == null) {
+      LOG.debug(String.format("Can not build view URL for the build #%d. Probadly build configuration was removed. Status \"%s\" won't be published",
+                              buildPromotion.getId(), status.getName()));
+      return false;
+    }
     Date timestamp = buildPromotion.getServerStartDate() != null ? buildPromotion.getServerStartDate() : buildPromotion.getQueuedDate();
     String taskName = buildPromotion.getBuildType() != null ? buildPromotion.getBuildType().getFullName() : UNKNOWN_BUILD_CONFIGURATION;
     final String payload = createPayload(

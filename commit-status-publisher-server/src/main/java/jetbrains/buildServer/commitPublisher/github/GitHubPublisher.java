@@ -193,6 +193,11 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     }
 
     String viewUrl = getViewUrl(build.getBuildPromotion());
+    if (viewUrl == null) {
+      LOG.debug(String.format("Can not build view URL for the build #%d. Probadly build configuration was removed. Status won't be published",
+                              build.getBuildId()));
+      return;
+    }
     if (isStarting) {
       h.changeStarted(revision, build, viewUrl);
     } else {
@@ -258,6 +263,11 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       return false;
     }
     String viewUrl = getViewUrl(additionalTaskInfo.isPromotionReplaced() ? additionalTaskInfo.getReplacingPromotion() : buildPromotion);
+    if (viewUrl == null) {
+      LOG.debug(String.format("Can not build view URL for the build #%d. Probadly build configuration was removed. Status won't be published",
+                              buildPromotion.getId()));
+      return false;
+    }
     boolean statusUpdated;
     if (addingToQueue) {
       statusUpdated = h.changeQueued(revision, buildPromotion, additionalTaskInfo, viewUrl);

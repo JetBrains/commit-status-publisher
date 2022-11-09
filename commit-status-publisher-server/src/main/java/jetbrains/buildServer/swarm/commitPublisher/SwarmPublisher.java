@@ -16,7 +16,7 @@ import static jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings
 /**
  * @author kir
  */
-class SwarmPublisher extends HttpBasedCommitStatusPublisher {
+class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
 
   private static final String SWARM_TESTRUNS_SUPPORT_ENABLED = "teamcity.swarm.testruns.enabled";
   private static final String SWARM_COMMENTS_NOTIFICATIONS_ENABLED = "teamcity.internal.swarm.commentsNotifications.enabled";
@@ -203,5 +203,4 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher {
     }
     return String.format("#[%d](%s)", build.getId(), url);
   }
-
 }

@@ -37,7 +37,9 @@ import org.jetbrains.annotations.Nullable;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
-class StashPublisher extends HttpBasedCommitStatusPublisher {
+class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
+
+  private static final String STATUS_FOR_REMOVED_BUILD = "teamcity.commitStatusPublisher.removedBuild.stash.status";
   public static final String PROP_PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
   private static final Pattern PULL_REQUEST_BRANCH_PATTERN = Pattern.compile("^refs\\/pull\\-requests\\/(\\d+)\\/from");
   private static final String SERVER_VERSION_BUILD_SERVER_HWM = "7.4";
@@ -77,9 +79,20 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) {
-    StashBuildStatus targetStatus = additionalTaskInfo.isPromotionReplaced() ? StashBuildStatus.INPROGRESS : StashBuildStatus.FAILED;
+    StashBuildStatus targetStatus = getBuildStatusForRemovedBuild();
     vote(buildPromotion, revision, targetStatus, additionalTaskInfo.getComment());
     return true;
+  }
+
+  protected StashBuildStatus getBuildStatusForRemovedBuild() {
+    String statusStr = TeamCityProperties.getPropertyOrNull(STATUS_FOR_REMOVED_BUILD);
+    if (statusStr == null) return getFallbackRemovedBuildStatus();
+    StashBuildStatus staus = StashBuildStatus.getByName(statusStr);
+    return staus == null ? getFallbackRemovedBuildStatus() : staus;
+  }
+
+  protected StashBuildStatus getFallbackRemovedBuildStatus() {
+    return StashBuildStatus.FAILED;
   }
 
   @Override
@@ -338,7 +351,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
   private interface StatusData extends StatusRequestData {
     @NotNull StashBuildStatus getState();
     @NotNull String getName();
-    @NotNull String getUrl();
+    @Nullable String getUrl();
     @NotNull String getDescription();
     @NotNull String getBuildNumber();
     long getBuildDurationMs();
@@ -458,7 +471,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
       return myBuildPromotion.getBuildType().getFullName();
     }
 
-    @NotNull
+    @Nullable
     @Override
     public String getUrl() {
       return getViewUrl(myBuildPromotion);
@@ -494,7 +507,13 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     public void publishBuildStatus(@NotNull StatusData data, @NotNull String buildDescription) {
       try {
         String url = getBuildEndpointUrl(data);
-        postJson(url, getUsername(), getPassword(), createBuildStatusMessage(data), null, buildDescription);
+        String msg = createBuildStatusMessage(data);
+        if (msg.isEmpty()) {
+          LOG.debug(String.format("Can not build message for the build #%s. Status \"%s\" won't be published",
+                                  data.getBuildNumber(), data.getState()));
+          return;
+        }
+        postJson(url, getUsername(), getPassword(), msg, null, buildDescription);
       } catch (PublisherException ex) {
         myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
       }
@@ -621,12 +640,17 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
     @NotNull
     @Override
     protected String createBuildStatusMessage(@NotNull final StatusData data) {
+      String url = data.getUrl();
+      if (url == null) {
+        LOG.debug(String.format("Can not build view URL for the build #%s. Probadly build configuration was removed", data.getBuildNumber()));
+        return "";
+      }
       Map<String, String> jsonData = new LinkedHashMap<String, String>();
       jsonData.put("state", data.getState().toString());
       jsonData.put("key", data.getKey());
       jsonData.put("parent", data.getKey());
       jsonData.put("name", data.getName());
-      jsonData.put("url", data.getUrl());
+      jsonData.put("url", url);
       jsonData.put("description", data.getDescription());
       return myGson.toJson(jsonData);
     }
@@ -689,8 +713,13 @@ class StashPublisher extends HttpBasedCommitStatusPublisher {
       } else {
         testResults = null;
       }
+      String url = data.getUrl();
+      if (url == null) {
+        LOG.debug(String.format("Can not build view URL for the build #%s. Probadly build configuration was removed", data.getBuildNumber()));
+        return "";
+      }
       JsonStashBuildStatus status = new JsonStashBuildStatus(data.getBuildNumber(), data.getDescription(), data.getKey(), data.getKey(), data.getName(), data.getVcsBranch(),
-                                                             data.getUrl(), data.getState().name(), data.getBuildDurationMs(), testResults);
+                                                             url, data.getState().name(), data.getBuildDurationMs(), testResults);
       return myGson.toJson(status);
     }
   }
