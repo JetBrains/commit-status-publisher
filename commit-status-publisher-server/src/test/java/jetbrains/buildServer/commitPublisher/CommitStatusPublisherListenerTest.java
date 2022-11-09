@@ -157,16 +157,17 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   }
 
   public void should_accept_pending_after_build_triggered_with_comment() {
-    prepareVcs();
+    SVcsModification modification = prepareVcs();
     BuildCustomizerFactory customizerFactory = myFixture.getSingletonService(BuildCustomizerFactory.class);
     BuildCustomizer customizer = customizerFactory.createBuildCustomizer(myBuildType, myUser);
     customizer.setBuildComment("Non-empty comment");
+    customizer.setChangesUpTo(modification);
     BuildPromotionEx promotion = (BuildPromotionEx)customizer.createPromotion();
     SQueuedBuild queuedBuild = (SQueuedBuild)addBuildToQueue(promotion);
     waitForTasksToFinish(Event.QUEUED);
     myFixture.waitForQueuedBuildToStart(queuedBuild);
     waitForTasksToFinish(Event.STARTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.COMMENTED, Event.STARTED));
   }
 
   public void should_publish_commented() {
@@ -216,7 +217,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     prepareVcs();
     addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
-    then(myPublisher.getLastComment()).isEqualTo(DefaultStatusMessages.BUILD_QUEUED);
+    waitForAssert(() -> myPublisher.getLastComment().equals(DefaultStatusMessages.BUILD_QUEUED), TASK_COMPLETION_TIMEOUT_MS);
     myServer.getQueue().removeAllFromQueue();
     waitFor(() -> myPublisher.getLastComment() != null && myPublisher.getLastComment().equals(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE), TASK_COMPLETION_TIMEOUT_MS);
     then(myPublisher.getLastComment()).isEqualTo("TeamCity build removed from queue");
@@ -282,6 +283,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     prepareVcs("vcs3", "333", "rev3_2", SetVcsRootIdMode.DONT);
     addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
+    waitForAssert(() -> myPublisher.getEventsReceived().size() >= 3, TASK_COMPLETION_TIMEOUT_MS);
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
     myFixture.finishBuild(runningBuild, false);
@@ -489,7 +491,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myFixture.getBuildQueue().removeQueuedBuilds(Collections.singleton(queuedBuild), myUser, comment);
     final String expectedComment = DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE;
     waitForAssert(() -> expectedComment.equals(myPublisher.getLastComment()), TASK_COMPLETION_TIMEOUT_MS);
-    then(myPublisher.getLastUser()).isEqualTo(myUser);
+    waitForAssert(() -> myPublisher.getLastUser().equals(myUser), TASK_COMPLETION_TIMEOUT_MS);
   }
 
   public void should_not_publish_queued_status_for_new_commit_for_queued_build() {
@@ -497,7 +499,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     QueuedBuildEx queuedBuild = (QueuedBuildEx)addBuildToQueue();
     assertNotNull(queuedBuild);
     waitForTasksToFinish(Event.QUEUED);
-    assertEquals(1, myPublisher.getCommentsReceived().size());
+    waitForAssert(() -> myPublisher.getCommentsReceived().size() == 1, TASK_COMPLETION_TIMEOUT_MS);
 
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
     VcsRootInstanceImpl root = new VcsRootInstanceImpl(vcsRootInstance.getId(), vcsRootInstance.getVcsName(), vcsRootInstance.getParentId(), vcsRootInstance.getName(),
@@ -648,11 +650,11 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     assertEquals(1L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.GET).count());
   }
 
-  private void prepareVcs() {
-   prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.EXT_ID);
+  private SVcsModification prepareVcs() {
+    return prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.EXT_ID);
   }
 
-  private void prepareVcs(String vcsRootName, String currentVersion, String revNo, SetVcsRootIdMode setVcsRootIdMode) {
+  private SVcsModification prepareVcs(String vcsRootName, String currentVersion, String revNo, SetVcsRootIdMode setVcsRootIdMode) {
     final SVcsRoot vcsRoot = myFixture.addVcsRoot("jetbrains.git", vcsRootName);
     switch (setVcsRootIdMode) {
       case EXT_ID:
@@ -664,7 +666,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myBuildType.addVcsRoot(vcsRoot);
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
     myCurrentVersions.put(vcsRoot.getName(), currentVersion);
-    myFixture.addModification(new ModificationData(new Date(),
+    return myFixture.addModification(new ModificationData(new Date(),
             Collections.singletonList(new VcsChange(VcsChangeInfo.Type.CHANGED, "changed", "file", "file","1", "2")),
             "descr2", "user", vcsRootInstance, revNo, revNo));
   }

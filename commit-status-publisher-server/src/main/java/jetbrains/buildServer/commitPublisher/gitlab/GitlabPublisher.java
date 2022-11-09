@@ -35,8 +35,9 @@ import org.jetbrains.annotations.Nullable;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
-class GitlabPublisher extends HttpBasedCommitStatusPublisher {
+class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> {
 
+  private static final String STATUS_FOR_REMOVED_BUILD = "teamcity.commitStatusPublisher.removedBuild.gitlab.status";
   private static final String REFS_HEADS = "refs/heads/";
   private static final String REFS_TAGS = "refs/tags/";
   private static final Gson myGson = new Gson();
@@ -77,9 +78,20 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    GitlabBuildStatus targetStatus = additionalTaskInfo.isPromotionReplaced() ? GitlabBuildStatus.PENDING : GitlabBuildStatus.CANCELED;
+    GitlabBuildStatus targetStatus = getBuildStatusForRemovedBuild();
     publish(buildPromotion, revision, targetStatus, additionalTaskInfo);
     return true;
+  }
+
+  protected GitlabBuildStatus getBuildStatusForRemovedBuild() {
+    String statusStr = TeamCityProperties.getPropertyOrNull(STATUS_FOR_REMOVED_BUILD);
+    if (statusStr == null) return getFallbackRemovedBuildStatus();
+    GitlabBuildStatus staus = GitlabBuildStatus.getByName(statusStr);
+    return staus == null ? getFallbackRemovedBuildStatus() : staus;
+  }
+
+  protected GitlabBuildStatus getFallbackRemovedBuildStatus() {
+    return GitlabBuildStatus.CANCELED;
   }
 
   @Override
@@ -239,6 +251,11 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher {
                        @NotNull GitlabBuildStatus status,
                        @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     String url = getViewUrl(buildPromotion);
+    if (url == null) {
+      LOG.debug(String.format("Can not build view URL for the build #%d. Probadly build configuration was removed. Status \"%s\" won't be published",
+                              buildPromotion.getId(), status.getName()));
+      return;
+    }
     String description = additionalTaskInfo.getComment();
     SBuildType buildType = buildPromotion.getBuildType();
     String buildName = buildType != null ? buildType.getFullName() : buildPromotion.getBuildTypeExternalId();

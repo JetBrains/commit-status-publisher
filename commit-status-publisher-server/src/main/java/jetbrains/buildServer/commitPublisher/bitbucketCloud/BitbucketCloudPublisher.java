@@ -35,7 +35,9 @@ import org.jetbrains.annotations.Nullable;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
-class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
+class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCloudBuildStatus> {
+
+  private static final String STATUS_FOR_REMOVED_BUILD = "teamcity.commitStatusPublisher.removedBuild.bitbucketCloud.status";
   private static final int DEFAULT_PAGE_SIZE = 25;
   private String myBaseUrl = BitbucketCloudSettings.DEFAULT_API_URL;
   private final Gson myGson = new Gson();
@@ -77,10 +79,22 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
                                        @NotNull BuildRevision revision,
                                        @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    BitbucketCloudBuildStatus targetStatus = additionalTaskInfo.isPromotionReplaced() ? BitbucketCloudBuildStatus.INPROGRESS : BitbucketCloudBuildStatus.STOPPED;
+    BitbucketCloudBuildStatus targetStatus = getBuildStatusForRemovedBuild();
     return vote(buildPromotion, revision, targetStatus, additionalTaskInfo.getComment());
   }
 
+  protected BitbucketCloudBuildStatus getBuildStatusForRemovedBuild() {
+    String statusStr = TeamCityProperties.getPropertyOrNull(STATUS_FOR_REMOVED_BUILD);
+    if (statusStr == null) return getFallbackRemovedBuildStatus();
+    BitbucketCloudBuildStatus staus = BitbucketCloudBuildStatus.getByName(statusStr);
+    return staus == null ? getFallbackRemovedBuildStatus() : staus;
+  }
+
+  protected BitbucketCloudBuildStatus getFallbackRemovedBuildStatus() {
+    return BitbucketCloudBuildStatus.STOPPED;
+  }
+
+  @Override
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     vote(build, revision, BitbucketCloudBuildStatus.INPROGRESS, DefaultStatusMessages.BUILD_STARTED);
     return true;
@@ -242,6 +256,12 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher {
 
   private boolean vote(BuildPromotion buildPromotion, BuildRevision revision, BitbucketCloudBuildStatus status, String comment) throws PublisherException {
     final String url = getViewUrl(buildPromotion);
+    if (url == null) {
+      LOG.debug(String.format("Can not build view URL for the build #%d. Probadly build configuration was removed. Status \"%s\" won't be published",
+                              buildPromotion.getId(), status.name()));
+      return false;
+    }
+
     String buildName = getBuildName(buildPromotion);
     BitbucketCloudCommitBuildStatus buildStatus = new BitbucketCloudCommitBuildStatus(buildPromotion.getBuildTypeId(), status.name(), buildName, comment, url);
     final VcsRootInstance root = revision.getRoot();

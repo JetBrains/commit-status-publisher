@@ -155,6 +155,7 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     return null;
   }
 
+  @Nullable
   protected String getViewUrl(@NotNull BuildPromotion buildPromotion) {
     SBuild build = buildPromotion.getAssociatedBuild();
     if (build != null) {
@@ -164,10 +165,10 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     if (queuedBuild != null) {
       return getLinks().getQueuedBuildUrl(queuedBuild);
     }
-    return buildPromotion.getBuildType() != null ? getLinks().getConfigurationHomePageUrl(buildPromotion.getBuildType()) :
-           getLinks().getRootUrlByProjectExternalId(buildPromotion.getProjectExternalId());
+    return buildPromotion.getBuildType() != null ? getLinks().getConfigurationHomePageUrl(buildPromotion.getBuildType()) : null;
   }
 
+  @NotNull
   protected String getViewUrl(@NotNull SBuild build) {
     return getLinks().getViewResultsUrl(build);
   }

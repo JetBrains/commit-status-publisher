@@ -30,7 +30,7 @@ import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-class UpsourcePublisher extends HttpBasedCommitStatusPublisher {
+class UpsourcePublisher extends HttpBasedCommitStatusPublisher<UpsourceStatus> {
 
   private final VcsModificationHistory myVcsHistory;
   private final Gson myGson = new Gson();

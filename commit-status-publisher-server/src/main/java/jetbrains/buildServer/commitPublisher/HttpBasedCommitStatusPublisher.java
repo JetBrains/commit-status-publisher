@@ -31,7 +31,7 @@ import org.jetbrains.annotations.Nullable;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
-public abstract class HttpBasedCommitStatusPublisher extends BaseCommitStatusPublisher implements HttpResponseProcessor {
+public abstract class HttpBasedCommitStatusPublisher<Status> extends BaseCommitStatusPublisher implements HttpResponseProcessor {
 
   private final HttpResponseProcessor myHttpResponseProcessor;
   protected final WebLinks myLinks;
