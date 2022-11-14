@@ -56,7 +56,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   final static String QUEUE_PAUSER_SYSTEM_PROPERTY = "teamcity.plugin.queuePauser.queue.enabled";
   final static String CHECK_STATUS_BEFORE_PUBLISHING = "teamcity.commitStatusPubliser.checkStatus.enabled";
   final static String PUBLISH_REPLACING_STATUS_ON_REMOVE = "teamcity.commitStatusPublisher.replaceStatusOnRemove";
+  final static String LOCKS_STRIPES = "teamcity.commitStatusPublisher.locks.stripes";
 
+  private final static int LOCKS_STRIPES_DEFAULT = 1000;
   private final static int MAX_LAST_EVENTS_TO_REMEMBER = 1000;
 
   private final PublisherManager myPublisherManager;
@@ -71,7 +73,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   private final TeamCityNodes myTeamCityNodes;
   private final UserModel myUserModel;
   private final Map<String, Event> myEventTypes = new HashMap<>();
-  private final Striped<Lock> myRevisionLocks = Striped.lazyWeakLock(100);
+  private final Striped<Lock> myPublishingLocks;
   private final Map<Long, Event> myLastEvents =
     new LinkedHashMap<Long, Event> () {
       @Override
@@ -108,6 +110,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     myProjectManager = projectManager;
     myUserModel = userModel;
     myEventTypes.putAll(Arrays.stream(Event.values()).collect(Collectors.toMap(Event::getName, et -> et)));
+    myPublishingLocks = Striped.lazyWeakLock(TeamCityProperties.getInteger(LOCKS_STRIPES, LOCKS_STRIPES_DEFAULT));
 
     events.addListener(this);
 
@@ -472,7 +475,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       public void publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
         if (!publisher.isAvailable(buildPromotion))
           return;
-        Lock lock = myRevisionLocks.get(revision.getRevision());
+        SBuildType buildType = buildPromotion.getBuildType();
+        if (buildType == null) {
+          return;
+        }
+        Lock lock = myPublishingLocks.get(getLockKey(buildType, revision));
         lock.lock();
         try {
           boolean isReplacedStatusPublished = publishReplacingStatus(publisher, revision, additionalTaskInfo);
@@ -495,6 +502,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       }
     };
     proccessPublishing(Event.REMOVED_FROM_QUEUE, buildPromotion, publishingProcessor);
+  }
+
+  private String getLockKey(SBuildType buildType, BuildRevision revision) {
+    return buildType.getBuildTypeId() + ":" + revision.getRevision();
   }
 
   private boolean publishReplacingStatus(CommitStatusPublisher publisher, BuildRevision revision, AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
@@ -803,7 +814,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       PublishingProcessor publishingProcessor = new PublishingProcessor() {
         @Override
         public void publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
-          Lock lock = myRevisionLocks.get(revision.getRevision());
+          Lock lock = myPublishingLocks.get(getLockKey(buildType, revision));
           lock.lock();
           try {
             runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision, null);
@@ -893,7 +904,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
         @Override
         public void publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
           runAsync(() -> {
-            Lock lock = myRevisionLocks.get(revision.getRevision());
+            SBuildType buildType = buildPromotion.getBuildType();
+            if (buildType == null) {
+              return;
+            }
+            Lock lock = myPublishingLocks.get(getLockKey(buildType, revision));
             lock.lock();
             try {
               doPublish(revision, publisher);
