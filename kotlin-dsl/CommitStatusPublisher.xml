@@ -318,7 +318,7 @@
       </example>
       <example>
         <description>
-          Enables publishing build statuses to commits in GitLab.com / GitLab CE/EE
+          Enables publishing build statuses to commits in GitLab.com / GitLab CE/EE.
           It is not recommended to store secure values directly in the DSL code,
           see [Managing Tokens](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Managing+Tokens)
           section of our documentation.
