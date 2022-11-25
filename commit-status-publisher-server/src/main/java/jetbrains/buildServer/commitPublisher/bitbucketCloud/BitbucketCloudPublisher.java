@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.*;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,11 +28,14 @@ import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudB
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudCommitBuildStatus;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.oauth.OAuthToken;
+import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.http.HttpHeaders;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
@@ -43,6 +47,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
   private final Gson myGson = new Gson();
 
   private final CommitStatusesCache<BitbucketCloudCommitBuildStatus> myStatusesCache;
+  private final OAuthTokensStorage myOAuthTokensStorage;
 
   private static final ResponseEntityProcessor<BitbucketCloudBuildStatuses> statusesProcessor = new BitbucketCloudResponseEntityProcessor<>(BitbucketCloudBuildStatuses.class);
 
@@ -51,9 +56,11 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
                           @NotNull WebLinks links,
                           @NotNull Map<String, String> params,
                           @NotNull CommitStatusPublisherProblems problems,
-                          @NotNull CommitStatusesCache<BitbucketCloudCommitBuildStatus> statusesCache) {
+                          @NotNull CommitStatusesCache<BitbucketCloudCommitBuildStatus> statusesCache,
+                          @NotNull OAuthTokensStorage oAuthTokensStorage) {
     super(settings, buildType, buildFeatureId, params, problems, links);
     myStatusesCache = statusesCache;
+    myOAuthTokensStorage = oAuthTokensStorage;
   }
 
   @NotNull
@@ -268,7 +275,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
     if (repository == null) {
       throw new PublisherException(String.format("Bitbucket publisher has failed to parse repository URL from VCS root '%s'", root.getName()));
     }
-    vote(revision.getRevision(), buildStatus, repository, LogUtil.describe(buildPromotion));
+    vote(revision, buildStatus, repository, LogUtil.describe(buildPromotion));
     myStatusesCache.removeStatusFromCache(revision, buildName);
     return true;
   }
@@ -295,15 +302,17 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
     BitbucketCloudCommitBuildStatus buildStatus = new BitbucketCloudCommitBuildStatus(build.getBuildPromotion().getBuildTypeId(), status.name(), buildName, comment,
                                                                                       getViewUrl(build)
     );
-    vote(revision.getRevision(), buildStatus, repository, LogUtil.describe(build));
+    vote(revision, buildStatus, repository, LogUtil.describe(build));
     myStatusesCache.removeStatusFromCache(revision, buildName);
   }
 
-  private void vote(@NotNull String commit, @NotNull BitbucketCloudCommitBuildStatus status, @NotNull Repository repository, @NotNull String buildDescription) {
+  private void vote(@NotNull BuildRevision revision, @NotNull BitbucketCloudCommitBuildStatus status, @NotNull Repository repository, @NotNull String buildDescription)
+    throws PublisherException {
+    final String commit = revision.getRevision();
     String data = myGson.toJson(status);
     LOG.debug(getBaseUrl() + " :: " + commit + " :: " + data);
     String url = getBaseUrl() + "2.0/repositories/" + repository.owner() + "/" + repository.repositoryName() + "/commit/" + commit + "/statuses/build";
-    postJson(url, getUsername(), getPassword(), data, null, buildDescription);
+    postJson(url, getUsername(), getPassword(), data, getHeaders(revision.getRoot()), buildDescription);
   }
 
   @Override
@@ -367,6 +376,21 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
 
   private String getPassword() {
     return myParams.get(Constants.BITBUCKET_CLOUD_PASSWORD);
+  }
+
+  @Nullable
+  private Map<String, String> getHeaders(@NotNull VcsRootInstance root) throws PublisherException {
+    final String authType = BitbucketCloudSettings.getAuthType(myParams);
+    if (!Constants.AUTH_TYPE_ACCESS_TOKEN.equals(authType)) {
+      return null;
+    }
+
+    final String tokenId = myParams.get(Constants.TOKEN_ID);
+    final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
+    if (token == null) {
+      throw new PublisherException("configured token was not found in storage ID: " + tokenId);
+    }
+    return ImmutableMap.of(HttpHeaders.AUTHORIZATION, "Bearer " + token.getAccessToken());
   }
 
   private static class BitbucketCloudResponseEntityProcessor<T> extends ResponseEntityProcessor<T> {

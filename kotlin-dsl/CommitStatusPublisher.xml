@@ -43,15 +43,32 @@
                 <description>
                     Publish status to Bitbucket Cloud
                 </description>
-                <param name="bitbucketUsername" dslName="userName" mandatory="true">
-                    <description>
+                <param name="authType" type="compound" mandatory="true">
+                  <description>
+                    Use username / password credentials
+                  </description>
+                  <option name="password" value="authTypePassword">
+                    <param name="bitbucketUsername" dslName="userName" mandatory="true">
+                      <description>
                         A username for Bitbucket Cloud connection
-                    </description>
-                </param>
-                <param name="secure:bitbucketPassword" dslName="password" mandatory="true">
-                    <description>
+                      </description>
+                    </param>
+                    <param name="secure:bitbucketPassword" dslName="password" mandatory="true">
+                      <description>
                         A password for Bitbucket Cloud connection
+                      </description>
+                    </param>
+                  </option>
+                  <option name="accessToken" value="authTypeAccessToken">
+                    <description>
+                      Use OAuth 2 access token credentials
                     </description>
+                    <param name="tokenId" mandatory="true">
+                      <description>
+                        The internal ID of the Access Token to use for the connection
+                      </description>
+                    </param>
+                  </option>
                 </param>
             </option>
             <option name="bitbucketServer" value="atlassianStashPublisher">

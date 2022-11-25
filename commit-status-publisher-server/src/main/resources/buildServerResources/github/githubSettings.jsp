@@ -130,7 +130,7 @@
               this.options.parameters = "projectId=${project.externalId}&connectionId=" + connectionId + "&showMode=popup";
               var that = this;
 
-              window.GitHubTokenContentUpdater = function() {
+              window.TokenContentUpdater = function() {
                 that.hidePopup(0);
                 that.showPopupNearElement(nearestElement);
               };
