@@ -118,6 +118,11 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
             }
           }
         });
+      } catch (HttpPublisherException pe) {
+        Integer statusCode = pe.getStatusCode();
+        if (Objects.equals(statusCode, 404)) {
+          throw new PublisherException(String.format("Repository \"%s\" can not be found. Please check if it was renamed or moved to another namespace", repository.repositoryName()));
+        }
       } catch (Exception ex) {
         throw new PublisherException(String.format("GitLab publisher has failed to connect to \"%s\" repository", repository.url()), ex);
       }

@@ -37,6 +37,7 @@ import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
 import org.apache.http.HttpHeaders;
+import org.apache.http.HttpStatus;
 import org.apache.http.entity.ContentType;
 import org.apache.http.message.BasicStatusLine;
 import org.jetbrains.annotations.NotNull;
@@ -53,6 +54,7 @@ import static org.apache.http.HttpVersion.HTTP_1_1;
 public abstract class GitHubApiImpl implements GitHubApi {
   private static final Pattern PULL_REQUEST_BRANCH = Pattern.compile("/?refs/pull/(\\d+)/(.*)");
   private static final String MSG_PROXY_OR_PERMISSIONS = "Please check if the error is not returned by a proxy or caused by the lack of permissions.";
+  private static final String MSG_NOT_FOUND = "Repository not found. Please check if it spelled correctly and exists.";
 
   private final HttpClientWrapper myClient;
   private final GitHubApiPaths myUrls;
@@ -184,7 +186,8 @@ public abstract class GitHubApiImpl implements GitHubApi {
         },
         response -> {
           logFailedResponse(method, url, entity, response);
-          exceptionRef.set(new IOException(getErrorMessage(response, MSG_PROXY_OR_PERMISSIONS)));
+          String additionalComment = response.getStatusCode() == HttpStatus.SC_NOT_FOUND ? MSG_NOT_FOUND : MSG_PROXY_OR_PERMISSIONS;
+          exceptionRef.set(new IOException(getErrorMessage(response, additionalComment)));
         },
         e -> exceptionRef.set(e));
     });
@@ -268,7 +271,8 @@ public abstract class GitHubApiImpl implements GitHubApi {
                    },
                    error -> {
                      logFailedResponse(HttpMethod.GET, uri, null, error, logErrorsDebugOnly);
-                     exceptionRef.set(new IOException(getErrorMessage(error, MSG_PROXY_OR_PERMISSIONS)));
+                     String additionalComment = error.getStatusCode() == HttpStatus.SC_NOT_FOUND ? MSG_NOT_FOUND : MSG_PROXY_OR_PERMISSIONS;
+                     exceptionRef.set(new IOException(getErrorMessage(error, additionalComment)));
                    },
                    e -> {
                      exceptionRef.set(e);
@@ -299,7 +303,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     if (null != additionalComment) {
       err = additionalComment + " ";
     }
-    return String.format("Failed to complete request to GitHub. %sStatus: %s", err, statusLine.toString());
+    return String.format("Failed to complete request to GitHub. %sStatus: %s", err, statusLine);
   }
 
   protected abstract SimpleCredentials authenticationCredentials();

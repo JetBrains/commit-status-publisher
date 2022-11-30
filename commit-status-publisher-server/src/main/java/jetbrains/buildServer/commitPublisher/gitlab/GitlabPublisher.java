@@ -280,7 +280,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
       publish(revision.getRevision(), message, repository, buildDescription);
     } catch (Exception e) {
       throw new PublisherException("Cannot publish status to GitLab for VCS root " +
-                                   revision.getRoot().getName() + ": " + e.toString(), e);
+                                   revision.getRoot().getName() + ": " + e, e);
     }
   }
 
@@ -295,7 +295,9 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
     final int statusCode = response.getStatusCode();
     if (statusCode >= 400) {
       String responseString = response.getContent();
-      if (!responseString.contains("Cannot transition status via :enqueue from :pending") &&
+      if (404 == statusCode) {
+        throw new HttpPublisherException(statusCode, "Repository not found. Please check if it was renamed or moved to another namespace");
+      } else if (!responseString.contains("Cannot transition status via :enqueue from :pending") &&
           !responseString.contains("Cannot transition status via :enqueue from :running") &&
           !responseString.contains("Cannot transition status via :run from :running")) {
         throw new HttpPublisherException(statusCode,
