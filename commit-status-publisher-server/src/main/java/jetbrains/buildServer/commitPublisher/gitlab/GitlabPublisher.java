@@ -17,6 +17,7 @@
 package jetbrains.buildServer.commitPublisher.gitlab;
 
 import com.google.gson.Gson;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -30,6 +31,7 @@ import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -174,7 +176,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
   private GitLabReceiveCommitStatus[] loadGitLabStatuses(@NotNull BuildRevision revision, @Nullable SBuildType buildType) throws PublisherException {
     String url = buildRevisionStatusesUrl(revision, buildType);
     ResponseEntityProcessor<GitLabReceiveCommitStatus[]> processor = new ResponseEntityProcessor<>(GitLabReceiveCommitStatus[].class);
-    GitLabReceiveCommitStatus[] commitStatuses = get(url, null, null, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), processor);
+    GitLabReceiveCommitStatus[] commitStatuses = get(url, null, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), processor);
     if (commitStatuses == null || commitStatuses.length == 0) {
       return new GitLabReceiveCommitStatus[0];
     }
@@ -287,11 +289,11 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
   private void publish(@NotNull String commit, @NotNull String data, @NotNull Repository repository, @NotNull String buildDescription) {
     String url = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/statuses/" + commit;
     LOG.debug("Request url: " + url + ", message: " + data);
-    postJson(url, null, null, data, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), buildDescription);
+    postJson(url, null, data, Collections.singletonMap("PRIVATE-TOKEN", getPrivateToken()), buildDescription);
   }
 
   @Override
-  public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException {
+  public void processResponse(HttpHelper.HttpResponse response) throws IOException, HttpPublisherException {
     final int statusCode = response.getStatusCode();
     if (statusCode >= 400) {
       String responseString = response.getContent();

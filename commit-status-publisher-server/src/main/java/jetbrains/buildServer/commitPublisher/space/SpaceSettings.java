@@ -31,6 +31,7 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.http.HttpHeaders;
@@ -190,7 +191,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
 
       IOGuard.allowNetworkCall(() ->
         HttpHelper.post(
-          url, null, null, null, ContentType.APPLICATION_JSON,
+          url, null, null, ContentType.APPLICATION_JSON,
           headers, DEFAULT_CONNECTION_TIMEOUT, trustStore(), new ContentResponseProcessor()
         )
       );

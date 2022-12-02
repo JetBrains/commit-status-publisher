@@ -32,6 +32,9 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.VersionComparatorUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
+import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -513,7 +516,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
                                   data.getBuildNumber(), data.getState()));
           return;
         }
-        postJson(url, getUsername(), getPassword(), msg, null, buildDescription);
+        final HttpCredentials credentials = new UsernamePasswordCredentials(getUsername(), getPassword());
+        postJson(url, credentials, msg, null, buildDescription);
       } catch (PublisherException ex) {
         myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
       }
@@ -529,7 +533,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
           return null;
         }
         LoggerUtil.logRequest(getId(), HttpMethod.GET, url, null);
-        IOGuard.allowNetworkCall(() -> HttpHelper.get(url, getUsername(), getPassword(), null, DEFAULT_CONNECTION_TIMEOUT, getSettings().trustStore(), new DefaultHttpResponseProcessor() {
+        IOGuard.allowNetworkCall(() -> HttpHelper.get(url, getCredentials(), null, DEFAULT_CONNECTION_TIMEOUT, getSettings().trustStore(), new DefaultHttpResponseProcessor() {
           @Override
           public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
             super.processResponse(response);
@@ -575,7 +579,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     private DeprecatedJsonStashBuildStatuses doLoadStatuses(String baseUrl, ResponseEntityProcessor<DeprecatedJsonStashBuildStatuses> processor, int start, int size, String buildDescription) {
       String endpointUrl = String.format("%s?size=%d&start=%d", baseUrl, size, start);
       try {
-        return get(endpointUrl, getUsername(), getPassword(), null, processor);
+        final HttpCredentials credentials = new UsernamePasswordCredentials(getUsername(), getPassword());
+        return get(endpointUrl, credentials, null, processor);
       } catch (PublisherException ex) {
         myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
         return null;
@@ -724,6 +729,12 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     }
   }
 
+  private HttpCredentials getCredentials() {
+    final String username = getUsername();
+    final String password = getPassword();
+    return (username != null && password != null) ? new UsernamePasswordCredentials(username, password) : null;
+  }
+
   private class ExtendedApiEndpoint extends CoreApiEndpoint {
 
     @Override
@@ -741,7 +752,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
             return true;
           }
         };
-        return get(buildEndpointUrl, getUsername(), getPassword(), null, processor);
+        final HttpCredentials credentials = new UsernamePasswordCredentials(getUsername(), getPassword());
+        return get(buildEndpointUrl, credentials, null, processor);
       } catch (PublisherException ex) {
         myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
       }

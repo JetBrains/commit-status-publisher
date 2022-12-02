@@ -35,6 +35,9 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
+import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -132,7 +135,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   }
 
   @Override
-  public void processResponse(@NotNull final HttpHelper.HttpResponse response) throws HttpPublisherException {
+  public void processResponse(@NotNull final HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
     if (response.getStatusCode() >= 400) {
       processErrorResponse(response);
     }
@@ -187,7 +190,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     final int statusesThreshold = TeamCityProperties.getInteger(Constants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY, Constants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL);
     do {
       String url = String.format("%s&top=%d&skip=%d", baseUrl, top, skip);
-      CommitStatuses commitStatuses = get(url, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN), null, processor);
+      CommitStatuses commitStatuses = get(url, getCredentials(myParams), null, processor);
       if (commitStatuses == null || commitStatuses.value == null || commitStatuses.value.isEmpty()) return result;
       result.addAll(commitStatuses.value);
 
@@ -245,11 +248,11 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
       final String url = MessageFormat.format(COMMIT_STATUS_URL_FORMAT,
         info.getServer(), info.getProject(), info.getRepository(), commitId);
       IOGuard.allowNetworkCall(() -> {
-        HttpHelper.post(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN), StringUtil.EMPTY, ContentType.DEFAULT_TEXT,
+        HttpHelper.post(url, getCredentials(params), StringUtil.EMPTY, ContentType.DEFAULT_TEXT,
                         Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
                         trustStore, new DefaultHttpResponseProcessor() {
             @Override
-            public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException {
+            public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
               final int status = response.getStatusCode();
               if (status == 401 || status == 403) {
                 throw new HttpPublisherException(ERROR_AUTHORIZATION);
@@ -301,7 +304,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
 
     try {
       IOGuard.allowNetworkCall(() -> {
-        HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
+        HttpHelper.get(url, getCredentials(params),
                        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
                        trustStore, new DefaultHttpResponseProcessor() {
             @Override
@@ -343,7 +346,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
 
     try {
       IOGuard.allowNetworkCall(() -> {
-        HttpHelper.get(url, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
+        HttpHelper.get(url, getCredentials(params),
                        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
                        trustStore, new DefaultHttpResponseProcessor() {
             @Override
@@ -402,7 +405,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     throws HttpPublisherException, IOException {
     String moreCommitsUrl = MessageFormat.format(COMMITS_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository(), nCommitsToLoad);
     List<Commit> resultingCommits = new ArrayList<>();
-    HttpHelper.get(moreCommitsUrl, StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN),
+    HttpHelper.get(moreCommitsUrl, getCredentials(params),
                    Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
                    trustStore, new DefaultHttpResponseProcessor() {
         @Override
@@ -419,7 +422,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     return resultingCommits;
   }
 
-  private static <T> T processGetResponse(@NotNull final HttpHelper.HttpResponse response, @NotNull final Class<T> type) throws HttpPublisherException {
+  private static <T> T processGetResponse(@NotNull final HttpHelper.HttpResponse response, @NotNull final Class<T> type) throws HttpPublisherException, IOException {
     final int status = response.getStatusCode();
     if (status == 401 || status == 403) {
       throw new HttpPublisherException(ERROR_AUTHORIZATION);
@@ -500,7 +503,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   private boolean publishCommitStatus(TfsRepositoryInfo info, String data, String commitId, String description) {
     final String commitStatusUrl = MessageFormat.format(COMMIT_STATUS_URL_FORMAT,
                                                         info.getServer(), info.getProject(), info.getRepository(), commitId);
-    postJson(commitStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
+    postJson(commitStatusUrl, getCredentials(myParams),
              data,
              Collections.singletonMap("Accept", "application/json"),
              description
@@ -556,7 +559,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
                                                   info.getServer(), info.getProject(), info.getRepository(), pullRequestId, iteration.id);
     }
 
-    postJson(pullRequestStatusUrl, StringUtil.EMPTY, myParams.get(TfsConstants.ACCESS_TOKEN),
+    postJson(pullRequestStatusUrl, getCredentials(myParams),
              data,
              Collections.singletonMap("Accept", "application/json"),
              description
@@ -644,6 +647,10 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     }
 
     return info;
+  }
+
+  private static HttpCredentials getCredentials(Map<String, String> params) {
+    return new UsernamePasswordCredentials(StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN));
   }
 
   private static class Error {

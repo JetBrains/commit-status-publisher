@@ -27,6 +27,9 @@ import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
+import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -128,8 +131,8 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher<UpsourceStatus> {
 
   private void publish(@NotNull String payload, @NotNull String buildDescription) {
     String url = HttpHelper.stripTrailingSlash(myParams.get(Constants.UPSOURCE_SERVER_URL)) + "/" + UpsourceSettings.ENDPOINT_BUILD_STATUS;
-    postJson(url, myParams.get(Constants.UPSOURCE_USERNAME),
-             myParams.get(Constants.UPSOURCE_PASSWORD), payload, null, buildDescription);
+    final HttpCredentials credentials = new UsernamePasswordCredentials(myParams.get(Constants.UPSOURCE_USERNAME), myParams.get(Constants.UPSOURCE_PASSWORD));
+    postJson(url, credentials, payload, null, buildDescription);
   }
 
   @NotNull

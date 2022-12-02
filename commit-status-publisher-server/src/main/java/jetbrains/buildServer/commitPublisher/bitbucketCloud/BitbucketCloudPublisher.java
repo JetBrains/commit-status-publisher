@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.gson.*;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,9 +32,12 @@ import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
+import jetbrains.buildServer.vcshostings.http.credentials.BearerTokenCredentials;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
+import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.springframework.http.HttpHeaders;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
@@ -209,7 +211,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
     final int statusesThreshold = TeamCityProperties.getInteger(Constants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY, Constants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL);
     do {
       String url = String.format("%s?pagelen=%d&page=%d", baseUrl, DEFAULT_PAGE_SIZE, page);
-      BitbucketCloudBuildStatuses statuses = get(url, getUsername(), getPassword(), null, statusesProcessor);
+      BitbucketCloudBuildStatuses statuses = get(url, getCredentials(revision.getRoot()), null, statusesProcessor);
       if (statuses != null && statuses.values != null && !statuses.values.isEmpty()) {
         result.addAll(statuses.values);
         shouldContinue = (statuses.size == null || result.size() < statuses.size) &&
@@ -229,7 +231,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
       return null;
     }
     Event event = getTriggeredEvent(commitStatus);
-    boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), commitStatus.url);;
+    boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), commitStatus.url);
     return new RevisionStatus(event, commitStatus.description, isSameBuild);
   }
 
@@ -312,7 +314,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
     String data = myGson.toJson(status);
     LOG.debug(getBaseUrl() + " :: " + commit + " :: " + data);
     String url = getBaseUrl() + "2.0/repositories/" + repository.owner() + "/" + repository.repositoryName() + "/commit/" + commit + "/statuses/build";
-    postJson(url, getUsername(), getPassword(), data, getHeaders(revision.getRoot()), buildDescription);
+    postJson(url, getCredentials(revision.getRoot()), data, null, buildDescription);
   }
 
   @Override
@@ -378,24 +380,28 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
     return myParams.get(Constants.BITBUCKET_CLOUD_PASSWORD);
   }
 
-  @Nullable
-  private Map<String, String> getHeaders(@NotNull VcsRootInstance root) throws PublisherException {
+  @NotNull
+  private HttpCredentials getCredentials(@NotNull VcsRootInstance root) throws PublisherException {
     final String authType = BitbucketCloudSettings.getAuthType(myParams);
-    if (!Constants.AUTH_TYPE_ACCESS_TOKEN.equals(authType)) {
-      return null;
-    }
+    switch (authType) {
+      case Constants.AUTH_TYPE_PASSWORD:
+        return new UsernamePasswordCredentials(getUsername(), getPassword());
 
-    final String tokenId = myParams.get(Constants.TOKEN_ID);
-    if (StringUtil.isEmptyOrSpaces(tokenId)) {
-      throw new PublisherException("authentication type is set to access token, but no token id is configured");
-    }
+      case Constants.AUTH_TYPE_ACCESS_TOKEN:
+        final String tokenId = myParams.get(Constants.TOKEN_ID);
+        if (StringUtil.isEmptyOrSpaces(tokenId)) {
+          throw new PublisherException("authentication type is set to access token, but no token id is configured");
+        }
 
-    final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
-    if (token == null) {
-      throw new PublisherException("configured token was not found in storage ID: " + tokenId);
-    }
+        final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
+        if (token == null) {
+          throw new PublisherException("configured token was not found in storage ID: " + tokenId);
+        }
+        return new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
 
-    return ImmutableMap.of(HttpHeaders.AUTHORIZATION, "Bearer " + token.getAccessToken());
+      default:
+        throw new PublisherException("unsupported authentication type " + authType);
+    }
   }
 
   private static class BitbucketCloudResponseEntityProcessor<T> extends ResponseEntityProcessor<T> {

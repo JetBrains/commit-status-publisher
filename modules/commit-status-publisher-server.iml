@@ -49,5 +49,6 @@
     <orderEntry type="module" module-name="oauth-integration" />
     <orderEntry type="library" name="jsch" level="project" />
     <orderEntry type="library" scope="TEST" name="org.mockito:mockito-core" level="project" />
+    <orderEntry type="module" module-name="vcs-hostings-plugin-api" />
   </component>
 </module>

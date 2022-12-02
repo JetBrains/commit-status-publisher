@@ -34,6 +34,11 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
+import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
+import jetbrains.buildServer.vcshostings.http.credentials.BearerTokenCredentials;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
+import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -159,7 +164,7 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
     final String repoName = repository.repositoryName();
     String url = myDefaultApiUrl + "/2.0/repositories/" + repository.owner() + "/" + repoName;
-    HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
+    HttpResponseProcessor<HttpPublisherException> processor = new DefaultHttpResponseProcessor() {
       @Override
       public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
 
@@ -182,18 +187,14 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
     headers.put(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
 
     final String authType = getAuthType(params);
-    final String username;
-    final String password;
+    final HttpCredentials credentials;
     switch (authType) {
 
       case Constants.AUTH_TYPE_PASSWORD:
-        username = params.get(Constants.BITBUCKET_CLOUD_USERNAME);
-        password = params.get(Constants.BITBUCKET_CLOUD_PASSWORD);
+        credentials = new UsernamePasswordCredentials(params.get(Constants.BITBUCKET_CLOUD_USERNAME), params.get(Constants.BITBUCKET_CLOUD_PASSWORD));
         break;
 
       case Constants.AUTH_TYPE_ACCESS_TOKEN:
-        username = null;
-        password = null;
         final String tokenId = params.get(Constants.TOKEN_ID);
         if (StringUtil.isEmptyOrSpaces(tokenId)) {
           throw new PublisherException("authentication type is set to access token, but no token id is configured");
@@ -202,7 +203,7 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
         if (token == null) {
           throw new PublisherException("configured token was not found in storage ID: " + tokenId);
         }
-        headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + token.getAccessToken());
+        credentials = new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
         break;
 
       default:
@@ -212,8 +213,7 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
     try {
       IOGuard.allowNetworkCall(() -> {
         HttpHelper.get(url,
-                       username,
-                       password,
+                       credentials,
                        headers,
                        BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
                        trustStore(),

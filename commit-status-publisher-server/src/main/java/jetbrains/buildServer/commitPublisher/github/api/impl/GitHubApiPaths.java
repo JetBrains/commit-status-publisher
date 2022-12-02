@@ -16,7 +16,7 @@
 
 package jetbrains.buildServer.commitPublisher.github.api.impl;
 
-import jetbrains.buildServer.commitPublisher.HttpHelper;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

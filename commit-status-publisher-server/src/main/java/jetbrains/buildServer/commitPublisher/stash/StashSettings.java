@@ -27,6 +27,10 @@ import jetbrains.buildServer.commitPublisher.stash.data.StashServerInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
+import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
+import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -122,7 +126,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     if (null == apiUrl || apiUrl.length() == 0)
       throw new PublisherException("Missing Bitbucket Server API URL parameter");
     String url = apiUrl + "/rest/api/1.0/projects/" + repository.owner() + "/repos/" + repository.repositoryName();
-    HttpResponseProcessor processor = new DefaultHttpResponseProcessor() {
+    HttpResponseProcessor<HttpPublisherException> processor = new DefaultHttpResponseProcessor() {
       @Override
       public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
 
@@ -150,7 +154,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     };
     try {
       IOGuard.allowNetworkCall(() -> {
-        HttpHelper.get(url, params.get(Constants.STASH_USERNAME), params.get(Constants.STASH_PASSWORD),
+        HttpHelper.get(url, getCredentials(params),
                        Collections.singletonMap("Accept", "application/json"),
                        BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processor);
       });
@@ -173,12 +177,18 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     return TeamCityProperties.getBoolean(PROP_PUBLISH_QUEUED_BUILD_STATUS) || super.isBuildQueuedSupported(buildType, params);
   }
 
+  public static HttpCredentials getCredentials(Map<String, String> params) {
+    final String username = params.get(Constants.STASH_USERNAME);
+    final String password = params.get(Constants.STASH_PASSWORD);
+    return (username != null && password != null) ? new UsernamePasswordCredentials(username, password) : null;
+  }
+
   @Nullable
   @Override
   protected String retrieveServerVersion(@NotNull String url) throws PublisherException {
     try {
       ServerVersionResponseProcessor processor = new ServerVersionResponseProcessor();
-      IOGuard.allowNetworkCall(() -> HttpHelper.get(url + "/rest/api/1.0/application-properties", null, null, null, DEFAULT_CONNECTION_TIMEOUT, null, processor));
+      IOGuard.allowNetworkCall(() -> HttpHelper.get(url + "/rest/api/1.0/application-properties", null, null, DEFAULT_CONNECTION_TIMEOUT, null, processor));
       return processor.getVersion();
     } catch (Exception e) {
       throw new PublisherException("Failed to obtain Bitbucket Server version", e);

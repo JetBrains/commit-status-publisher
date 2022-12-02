@@ -16,7 +16,7 @@
 
 package jetbrains.buildServer.commitPublisher.space;
 
-import jetbrains.buildServer.commitPublisher.HttpHelper;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import org.jetbrains.annotations.NotNull;
 
 public class SpaceApiUrls {
@@ -41,12 +41,12 @@ public class SpaceApiUrls {
                                 @NotNull String repository,
                                 @NotNull String revision) {
     return String.format("%s/%s/%s/%s/%s/%s",
-      HttpHelper.stripTrailingSlash(spaceUrl),
-      HTTP_API_PART,
-      projectKey(projectKey),
-      repository(repository),
-      revision(revision),
-      COMMIT_STATUS_PART
+                         HttpHelper.stripTrailingSlash(spaceUrl),
+                         HTTP_API_PART,
+                         projectKey(projectKey),
+                         repository(repository),
+                         revision(revision),
+                         COMMIT_STATUS_PART
     );
   }
 

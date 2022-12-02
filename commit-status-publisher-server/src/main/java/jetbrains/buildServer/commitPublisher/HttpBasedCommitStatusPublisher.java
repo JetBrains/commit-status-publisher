@@ -25,15 +25,18 @@ import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.util.http.HttpMethod;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
+import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
-public abstract class HttpBasedCommitStatusPublisher<Status> extends BaseCommitStatusPublisher implements HttpResponseProcessor {
+public abstract class HttpBasedCommitStatusPublisher<Status> extends BaseCommitStatusPublisher implements HttpResponseProcessor<HttpPublisherException> {
 
-  private final HttpResponseProcessor myHttpResponseProcessor;
+  private final HttpResponseProcessor<HttpPublisherException> myHttpResponseProcessor;
   protected final WebLinks myLinks;
 
   public HttpBasedCommitStatusPublisher(@NotNull CommitStatusPublisherSettings settings,
@@ -51,13 +54,13 @@ public abstract class HttpBasedCommitStatusPublisher<Status> extends BaseCommitS
   }
 
   protected void postJson(@NotNull final String url,
-                          @Nullable final String username, @Nullable final String password,
+                          @Nullable final HttpCredentials credentials,
                           @Nullable final String data,
                           @Nullable final Map<String, String> headers,
                           @NotNull final String buildDescription) {
     try {
       LoggerUtil.logRequest(getId(), HttpMethod.POST, url, data);
-      IOGuard.allowNetworkCall(() -> HttpHelper.post(url, username, password, data, ContentType.APPLICATION_JSON, headers, getConnectionTimeout(), getSettings().trustStore(), this));
+      IOGuard.allowNetworkCall(() -> HttpHelper.post(url, credentials, data, ContentType.APPLICATION_JSON, headers, getConnectionTimeout(), getSettings().trustStore(), this));
     } catch (Exception ex) {
       myProblems.reportProblem("Commit Status Publisher HTTP request has failed", this, buildDescription, url, ex, LOG);
     }
@@ -65,12 +68,12 @@ public abstract class HttpBasedCommitStatusPublisher<Status> extends BaseCommitS
 
   @Nullable
   protected <T> T get(@NotNull final String url,
-                     @Nullable final String username, @Nullable final String password,
+                     @Nullable final HttpCredentials credentials,
                      @Nullable final Map<String, String> headers,
                      @NotNull final ResponseEntityProcessor<T> responseProcessor) throws PublisherException {
     try {
       LoggerUtil.logRequest(getId(), HttpMethod.GET, url, null);
-      IOGuard.allowNetworkCall(() -> HttpHelper.get(url, username, password, headers, getConnectionTimeout(), getSettings().trustStore(), responseProcessor));
+      IOGuard.allowNetworkCall(() -> HttpHelper.get(url, credentials, headers, getConnectionTimeout(), getSettings().trustStore(), responseProcessor));
       return responseProcessor.getProcessingResult();
     } catch (Exception ex) {
       throw new PublisherException("Commit Status Publisher HTTP request has failed", ex);
@@ -89,4 +92,5 @@ public abstract class HttpBasedCommitStatusPublisher<Status> extends BaseCommitS
       return key + "=" + value;
     }
   }
+
 }

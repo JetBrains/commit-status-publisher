@@ -16,11 +16,12 @@
 
 package jetbrains.buildServer.commitPublisher.space;
 
-import jetbrains.buildServer.commitPublisher.HttpHelper;
+import java.io.IOException;
 import jetbrains.buildServer.commitPublisher.HttpPublisherException;
-import jetbrains.buildServer.commitPublisher.HttpResponseProcessor;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
+import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
 
-public class ContentResponseProcessor implements HttpResponseProcessor {
+public class ContentResponseProcessor implements HttpResponseProcessor<HttpPublisherException> {
 
   private String content;
 
@@ -29,7 +30,7 @@ public class ContentResponseProcessor implements HttpResponseProcessor {
   }
 
   @Override
-  public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException {
+  public void processResponse(HttpHelper.HttpResponse response) throws IOException, HttpPublisherException {
     int statusCode = response.getStatusCode();
     String responseContent = response.getContent();
 
