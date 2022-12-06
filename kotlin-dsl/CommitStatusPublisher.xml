@@ -43,6 +43,22 @@
                 <description>
                     Publish status to Bitbucket Cloud
                 </description>
+                <param name="bitbucketUsername" dslName="userName" deprecated="true">
+                  <description>
+                    A username for Bitbucket Cloud connection
+                  </description>
+                  <deprecated>
+                    Use authType property instead
+                  </deprecated>
+                </param>
+                <param name="secure:bitbucketPassword" dslName="password" deprecated="true">
+                  <description>
+                    A password for Bitbucket Cloud connection
+                  </description>
+                  <deprecated>
+                    Use authType property instead
+                  </deprecated>
+                </param>
                 <param name="authType" type="compound" mandatory="true">
                   <description>
                     Use username / password credentials
@@ -362,8 +378,10 @@
           commitStatusPublisher {
             vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
             publisher = bitbucketCloud {
-              userName = "&lt;username>"
-              password = "credentialsJSON:*****"
+              authType = password {
+                userName = "&lt;username>"
+                password = "credentialsJSON:*****"
+              }
             }
           }
         </code>
