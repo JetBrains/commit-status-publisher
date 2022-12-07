@@ -44,7 +44,6 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
 
   private final CommitStatusesCache<BitbucketCloudCommitBuildStatus> myStatusesCache;
 
-  private static final ResponseEntityProcessor<BitbucketCloudCommitBuildStatus> statusProcessor = new BitbucketCloudResponseEntityProcessor<>(BitbucketCloudCommitBuildStatus.class);
   private static final ResponseEntityProcessor<BitbucketCloudBuildStatuses> statusesProcessor = new BitbucketCloudResponseEntityProcessor<>(BitbucketCloudBuildStatuses.class);
 
   BitbucketCloudPublisher(@NotNull CommitStatusPublisherSettings settings,
