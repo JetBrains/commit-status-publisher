@@ -386,10 +386,15 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
     }
 
     final String tokenId = myParams.get(Constants.TOKEN_ID);
+    if (StringUtil.isEmptyOrSpaces(tokenId)) {
+      throw new PublisherException("authentication type is set to access token, but no token id is configured");
+    }
+
     final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
     if (token == null) {
       throw new PublisherException("configured token was not found in storage ID: " + tokenId);
     }
+
     return ImmutableMap.of(HttpHeaders.AUTHORIZATION, "Bearer " + token.getAccessToken());
   }
 
