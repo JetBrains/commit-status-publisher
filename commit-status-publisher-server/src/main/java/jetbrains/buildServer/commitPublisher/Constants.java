@@ -32,6 +32,11 @@ public class Constants {
   public static final String GIT_VCS_NAME = "jetbrains.git";
   public static final String GIT_URL_PARAMETER = "url";
 
+  public static final String AUTH_TYPE = "authType";
+  public static final String AUTH_TYPE_PASSWORD = "authTypePassword";
+  public static final String AUTH_TYPE_ACCESS_TOKEN = "authTypeAccessToken";
+  public static final String TOKEN_ID = "tokenId";
+
   public static final String UPSOURCE_PUBLISHER_ID = "upsourcePublisher";
   public static final String UPSOURCE_SERVER_URL = "upsourceServerUrl";
   public static final String UPSOURCE_PROJECT_ID = "upsourceProjectId";
@@ -82,6 +87,26 @@ public class Constants {
   @NotNull
   public String getPublisherIdParam() {
     return PUBLISHER_ID_PARAM;
+  }
+
+  @NotNull
+  public String getAuthType() {
+    return AUTH_TYPE;
+  }
+
+  @NotNull
+  public String getAuthTypePassword() {
+    return AUTH_TYPE_PASSWORD;
+  }
+
+  @NotNull
+  public String getAuthTypeAccessToken() {
+    return AUTH_TYPE_ACCESS_TOKEN;
+  }
+
+  @NotNull
+  public String getTokenId() {
+    return TOKEN_ID;
   }
 
   @NotNull

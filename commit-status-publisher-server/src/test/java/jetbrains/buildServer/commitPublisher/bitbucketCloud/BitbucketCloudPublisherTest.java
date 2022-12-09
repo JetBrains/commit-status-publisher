@@ -182,8 +182,9 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     setExpectedEndpointPrefix("/repositories/" + OWNER + "/" + CORRECT_REPO);
     super.setUp();
     Map<String, String> params = getPublisherParams();
-    myPublisherSettings = new BitbucketCloudSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
-    BitbucketCloudPublisher publisher = new BitbucketCloudPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
+    myPublisherSettings = new BitbucketCloudSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myOAuthConnectionsManager, myOAuthTokenStorage);
+    BitbucketCloudPublisher publisher = new BitbucketCloudPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(),
+                                                                    myOAuthTokenStorage);
     publisher.setBaseUrl(getServerUrl() + "/");
     ((BitbucketCloudSettings)myPublisherSettings).setDefaultApiUrl(getServerUrl() + "/");
     myPublisher = publisher;
