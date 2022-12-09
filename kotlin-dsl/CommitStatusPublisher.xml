@@ -59,7 +59,7 @@
                     Use authType property instead
                   </deprecated>
                 </param>
-                <param name="authType" type="compound" mandatory="true">
+                <param name="authType" type="compound">
                   <description>
                     Use username / password credentials
                   </description>
