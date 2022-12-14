@@ -16,10 +16,16 @@
 
 package jetbrains.buildServer.commitPublisher;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import jetbrains.buildServer.controllers.*;
 import jetbrains.buildServer.controllers.admin.projects.EditBuildTypeFormFactory;
 import jetbrains.buildServer.controllers.admin.projects.PluginPropertiesUtil;
+import jetbrains.buildServer.parameters.NullValueResolver;
 import jetbrains.buildServer.parameters.ValueResolver;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.SUser;
@@ -32,9 +38,6 @@ import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.web.servlet.ModelAndView;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
@@ -163,18 +166,14 @@ public class PublisherSettingsController extends BaseController {
   }
 
   private static Map<String, String> resolveProperties(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull Map<String, String> params) {
-    if (buildTypeOrTemplate instanceof ParametersSupport) {
-      ValueResolver valueResolver = ((ParametersSupport)buildTypeOrTemplate).getValueResolver();
-      return valueResolver.resolve(params);
-    }
-    return new HashMap<String, String>(params);
+    return getValueResolver(buildTypeOrTemplate).resolve(params);
   }
 
-  private static VcsRoot getVcsRootInstanceIfPossible(BuildTypeIdentity buildTypeOrTemplate, SVcsRoot sVcsRoot) {
+  private static VcsRoot getResolvingVcsRoot(BuildTypeIdentity buildTypeOrTemplate, SVcsRoot sVcsRoot) {
     if (buildTypeOrTemplate instanceof SBuildType) {
       return ((SBuildType)buildTypeOrTemplate).getVcsRootInstanceForParent(sVcsRoot);
     } else {
-      return sVcsRoot;
+      return new VcsRootResolvingWrapper(getValueResolver(buildTypeOrTemplate), sVcsRoot);
     }
   }
 
@@ -197,7 +196,7 @@ public class PublisherSettingsController extends BaseController {
       boolean isTested = false;
       for (SVcsRoot sVcsRoot: roots) {
         try {
-          VcsRoot vcsRoot = getVcsRootInstanceIfPossible(buildTypeOrTemplate, sVcsRoot);
+          VcsRoot vcsRoot = getResolvingVcsRoot(buildTypeOrTemplate, sVcsRoot);
           if (settings.isPublishingForVcsRoot(vcsRoot)) {
             isTested = true;
             settings.testConnection(buildTypeOrTemplate, vcsRoot, resolvedProperties);
@@ -222,8 +221,16 @@ public class PublisherSettingsController extends BaseController {
       if (null == sVcsRoot) {
         throw new PublisherException(String.format("VCS root not found for id '%s'", vcsRootId));
       }
-      VcsRoot vcsRoot = getVcsRootInstanceIfPossible(buildTypeOrTemplate, sVcsRoot);
+      VcsRoot vcsRoot = getResolvingVcsRoot(buildTypeOrTemplate, sVcsRoot);
       settings.testConnection(buildTypeOrTemplate, vcsRoot, resolvedProperties);
     }
+  }
+
+  @NotNull
+  private static ValueResolver getValueResolver(@NotNull BuildTypeIdentity buildTypeOrTemplate) {
+    if (buildTypeOrTemplate instanceof ParametersSupport) {
+      return ((ParametersSupport)buildTypeOrTemplate).getValueResolver();
+    }
+    return new NullValueResolver();
   }
 }
