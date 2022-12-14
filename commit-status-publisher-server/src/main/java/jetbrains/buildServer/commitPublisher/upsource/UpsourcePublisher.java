@@ -131,8 +131,15 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher<UpsourceStatus> {
 
   private void publish(@NotNull String payload, @NotNull String buildDescription) {
     String url = HttpHelper.stripTrailingSlash(myParams.get(Constants.UPSOURCE_SERVER_URL)) + "/" + UpsourceSettings.ENDPOINT_BUILD_STATUS;
-    final HttpCredentials credentials = new UsernamePasswordCredentials(myParams.get(Constants.UPSOURCE_USERNAME), myParams.get(Constants.UPSOURCE_PASSWORD));
+    final HttpCredentials credentials = getCredentials();
     postJson(url, credentials, payload, null, buildDescription);
+  }
+
+  @Nullable
+  private HttpCredentials getCredentials() {
+    final String username = myParams.get(Constants.UPSOURCE_USERNAME);
+    final String password = myParams.get(Constants.UPSOURCE_PASSWORD);
+    return (username != null && password != null) ? new UsernamePasswordCredentials(username, password) : null;
   }
 
   @NotNull
