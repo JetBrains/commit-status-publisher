@@ -27,12 +27,15 @@ import jetbrains.buildServer.commitPublisher.stash.data.DeprecatedJsonStashBuild
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.oauth.OAuthToken;
+import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.VersionComparatorUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
+import jetbrains.buildServer.vcshostings.http.credentials.BearerTokenCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import org.jetbrains.annotations.NotNull;
@@ -50,6 +53,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
 
   private final Gson myGson = new Gson();
   private final CommitStatusesCache<JsonStashBuildStatus> myStatusesCache;
+  private final OAuthTokensStorage myOAuthTokensStorage;
   private BitbucketEndpoint myBitbucketEndpoint = null;
 
   StashPublisher(@NotNull CommitStatusPublisherSettings settings,
@@ -58,8 +62,10 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
                  @NotNull WebLinks links,
                  @NotNull Map<String, String> params,
                  @NotNull CommitStatusPublisherProblems problems,
-                 @NotNull CommitStatusesCache<JsonStashBuildStatus> statusesCache) {
+                 @NotNull CommitStatusesCache<JsonStashBuildStatus> statusesCache,
+                 @NotNull OAuthTokensStorage oAuthTokensStorage) {
     super(settings, buildType, buildFeatureId, params, problems, links);
+    myOAuthTokensStorage = oAuthTokensStorage;
     myStatusesCache = statusesCache;
   }
 
@@ -300,6 +306,40 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     return myParams.get(Constants.STASH_PASSWORD);
   }
 
+  @NotNull
+  private HttpCredentials getCredentials(@Nullable VcsRootInstance root) throws PublisherException {
+    final String authType = StashSettings.getAuthType(myParams);
+    switch (authType) {
+      case Constants.AUTH_TYPE_PASSWORD:
+        final String username = getUsername();
+        if (StringUtil.isEmptyOrSpaces(username)) {
+          throw new PublisherException("authentication type is set to password, but username is not configured");
+        }
+        final String password = getPassword();
+        if (StringUtil.isEmptyOrSpaces(username)) {
+          throw new PublisherException("authentication type is set to password, but password is not configured");
+        }
+        return new UsernamePasswordCredentials(username, password);
+
+      case Constants.AUTH_TYPE_ACCESS_TOKEN:
+        if (root == null) {
+          throw new PublisherException("unable to determine VCS root, authentication via access token is not possible");
+        }
+        final String tokenId = myParams.get(Constants.TOKEN_ID);
+        if (StringUtil.isEmptyOrSpaces(tokenId)) {
+          throw new PublisherException("authentication type is set to access token, but no token id is configured");
+        }
+        final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
+        if (token == null) {
+          throw new PublisherException("configured token was not found in storage ID: " + tokenId);
+        }
+        return new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
+
+      default:
+        throw new PublisherException("unsupported authentication type " + authType);
+    }
+  }
+
   private BitbucketEndpoint getEndpoint() {
     if (myBitbucketEndpoint != null) return myBitbucketEndpoint;
     if (myBuildType instanceof BuildTypeEx && ((BuildTypeEx)myBuildType).getBooleanInternalParameter("commitStatusPublisher.enforceDeprecatedAPI")) {
@@ -522,8 +562,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
                                   data.getBuildNumber(), data.getState()));
           return;
         }
-        final HttpCredentials credentials = getCredentials();
-        postJson(url, credentials, msg, null, buildDescription);
+        postJson(url, getCredentials(data.getVcsRootInstance()), msg, null, buildDescription);
       } catch (PublisherException ex) {
         myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
       }
@@ -539,7 +578,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
           return null;
         }
         LoggerUtil.logRequest(getId(), HttpMethod.GET, url, null);
-        IOGuard.allowNetworkCall(() -> HttpHelper.get(url, getCredentials(), null, DEFAULT_CONNECTION_TIMEOUT, getSettings().trustStore(), new DefaultHttpResponseProcessor() {
+        IOGuard.allowNetworkCall(() -> HttpHelper.get(url, getCredentials(revision.getRoot()), null, DEFAULT_CONNECTION_TIMEOUT, getSettings().trustStore(), new DefaultHttpResponseProcessor() {
           @Override
           public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
             super.processResponse(response);
@@ -568,7 +607,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
       int start = 0;
       DeprecatedJsonStashBuildStatuses statuses;
       do {
-        statuses = doLoadStatuses(baseEndpointUrl, processor, start, size, buildDescription);
+        statuses = doLoadStatuses(baseEndpointUrl, processor, start, size, buildDescription, data);
         if (statuses == null || statuses.values == null || statuses.values.isEmpty()) return null;
         Optional<DeprecatedJsonStashBuildStatuses.Status> desiredStatusOp = statuses.values.stream()
                                                                                            .filter(status -> data.getKey().equals(status.key))
@@ -582,11 +621,15 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
       return null;
     }
 
-    private DeprecatedJsonStashBuildStatuses doLoadStatuses(String baseUrl, ResponseEntityProcessor<DeprecatedJsonStashBuildStatuses> processor, int start, int size, String buildDescription) {
+    private DeprecatedJsonStashBuildStatuses doLoadStatuses(String baseUrl,
+                                                            ResponseEntityProcessor<DeprecatedJsonStashBuildStatuses> processor,
+                                                            int start,
+                                                            int size,
+                                                            String buildDescription,
+                                                            StatusRequestData data) {
       String endpointUrl = String.format("%s?size=%d&start=%d", baseUrl, size, start);
       try {
-        final HttpCredentials credentials = getCredentials();
-        return get(endpointUrl, credentials, null, processor);
+        return get(endpointUrl, getCredentials(data.getVcsRootInstance()), null, processor);
       } catch (PublisherException ex) {
         myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
         return null;
@@ -610,7 +653,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
       boolean shouldContinueSearch = true;
       final int statusesThreshold = TeamCityProperties.getInteger(Constants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY, Constants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL);
       do {
-        DeprecatedJsonStashBuildStatuses statuses  = doLoadStatuses(baseEndpointUrl, processor, start, size, buildDescription);
+        DeprecatedJsonStashBuildStatuses statuses  = doLoadStatuses(baseEndpointUrl, processor, start, size, buildDescription, data);
         if (statuses == null || statuses.values == null || statuses.values.isEmpty()) {
           shouldContinueSearch = false;
         } else {
@@ -735,13 +778,6 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     }
   }
 
-  @Nullable
-  private HttpCredentials getCredentials() {
-    final String username = getUsername();
-    final String password = getPassword();
-    return (username != null && password != null) ? new UsernamePasswordCredentials(username, password) : null;
-  }
-
   private class ExtendedApiEndpoint extends CoreApiEndpoint {
 
     @Override
@@ -759,8 +795,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
             return true;
           }
         };
-        final HttpCredentials credentials = getCredentials();
-        return get(buildEndpointUrl, credentials, null, processor);
+        return get(buildEndpointUrl, getCredentials(data.getVcsRootInstance()), null, processor);
       } catch (PublisherException ex) {
         myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
       }

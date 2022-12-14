@@ -16,8 +16,11 @@
 
 package jetbrains.buildServer.commitPublisher.stash;
 
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
@@ -25,8 +28,15 @@ import jetbrains.buildServer.commitPublisher.stash.data.StashError;
 import jetbrains.buildServer.commitPublisher.stash.data.StashRepoInfo;
 import jetbrains.buildServer.commitPublisher.stash.data.StashServerInfo;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
+import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
+import jetbrains.buildServer.serverSide.oauth.OAuthToken;
+import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
+import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcshostings.http.credentials.BearerTokenCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
@@ -35,12 +45,16 @@ import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import static jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT;
+import static jetbrains.buildServer.commitPublisher.PropertyChecks.mandatoryString;
 import static jetbrains.buildServer.commitPublisher.stash.StashPublisher.PROP_PUBLISH_QUEUED_BUILD_STATUS;
 
 public class StashSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
+  static final String DEFAULT_AUTH_TYPE = Constants.AUTH_TYPE_PASSWORD;
   static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
@@ -59,12 +73,18 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
   }};
 
   private final CommitStatusesCache<JsonStashBuildStatus> myStatusesCache;
+  private final OAuthConnectionsManager myOAuthConnectionsManager;
+  private final OAuthTokensStorage myOAuthTokensStorage;
 
   public StashSettings(@NotNull PluginDescriptor descriptor,
                        @NotNull WebLinks links,
                        @NotNull CommitStatusPublisherProblems problems,
-                       @NotNull SSLTrustStoreProvider trustStoreProvider) {
+                       @NotNull SSLTrustStoreProvider trustStoreProvider,
+                       @NotNull OAuthConnectionsManager oAuthConnectionsManager,
+                       @NotNull OAuthTokensStorage oAuthTokensStorage) {
     super(descriptor, links, problems, trustStoreProvider);
+    myOAuthConnectionsManager = oAuthConnectionsManager;
+    myOAuthTokensStorage = oAuthTokensStorage;
     myStatusesCache = new CommitStatusesCache<>();
   }
 
@@ -85,22 +105,60 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new StashPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache);
+    return new StashPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache, myOAuthTokensStorage);
   }
 
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
-    String url = params.get(Constants.STASH_BASE_URL);
-    return super.describeParameters(params) + (url != null ? ": " + WebUtil.escapeXml(url) : "");
+    final StringBuilder sb = new StringBuilder(super.describeParameters(params));
+
+    final String url = params.get(Constants.STASH_BASE_URL);
+    if (url != null) {
+      sb.append(": ").append(WebUtil.escapeXml(url));
+    }
+
+    sb.append(", authenticating via ");
+    final String authType = getAuthType(params);
+    switch (authType) {
+      case Constants.AUTH_TYPE_PASSWORD:
+        sb.append("username / password credentials");
+        break;
+      case Constants.AUTH_TYPE_ACCESS_TOKEN:
+        sb.append("access token");
+        break;
+      default:
+        sb.append("unknown authentication type");
+    }
+
+    return sb.toString();
   }
 
   @Nullable
   public PropertiesProcessor getParametersProcessor(@NotNull BuildTypeIdentity buildTypeOrTemplate) {
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
-        List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
-        if (params.get(Constants.STASH_BASE_URL) == null)
-          errors.add(new InvalidProperty(Constants.STASH_BASE_URL, "Server URL must be specified"));
+        List<InvalidProperty> errors = new ArrayList<>();
+
+        mandatoryString(Constants.STASH_BASE_URL, "Server URL must be specified", params, errors);
+
+        final String authType = getAuthType(params);
+        switch(authType) {
+          case Constants.AUTH_TYPE_PASSWORD:
+            params.remove(Constants.TOKEN_ID);
+            mandatoryString(Constants.STASH_USERNAME, "Username must be specified", params, errors);
+            mandatoryString(Constants.STASH_PASSWORD, "Password must be specified", params, errors);
+            break;
+
+          case Constants.AUTH_TYPE_ACCESS_TOKEN:
+            params.remove(Constants.STASH_USERNAME);
+            params.remove(Constants.STASH_PASSWORD);
+            mandatoryString(Constants.TOKEN_ID, "No token configured", params, errors);
+            break;
+
+          default:
+            errors.add(new InvalidProperty(Constants.AUTH_TYPE, "Unsupported authentication type"));
+        }
+
         return errors;
       }
     };
@@ -126,6 +184,40 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     if (null == apiUrl || apiUrl.length() == 0)
       throw new PublisherException("Missing Bitbucket Server API URL parameter");
     String url = apiUrl + "/rest/api/1.0/projects/" + repository.owner() + "/repos/" + repository.repositoryName();
+
+    final Map<String, String> headers = ImmutableMap.of(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
+
+    final String authType = getAuthType(params);
+    final HttpCredentials credentials;
+    switch (authType) {
+      case Constants.AUTH_TYPE_PASSWORD:
+        final String username = params.get(Constants.STASH_USERNAME);
+        if (StringUtil.isEmptyOrSpaces(username)) {
+          throw new PublisherException("authentication type is set to password, but username is not configured");
+        }
+        final String password = params.get(Constants.STASH_PASSWORD);
+        if (StringUtil.isEmptyOrSpaces(username)) {
+          throw new PublisherException("authentication type is set to password, but password is not configured");
+        }
+        credentials = new UsernamePasswordCredentials(username, password);
+        break;
+
+      case Constants.AUTH_TYPE_ACCESS_TOKEN:
+        final String tokenId = params.get(Constants.TOKEN_ID);
+        if (StringUtil.isEmptyOrSpaces(tokenId)) {
+          throw new PublisherException("authentication type is set to access token, but no token id is configured");
+        }
+        final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
+        if (token == null) {
+          throw new PublisherException("configured token was not found in storage ID: " + tokenId);
+        }
+        credentials = new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
+        break;
+
+      default:
+        throw new PublisherException("unsupported authentication type " + authType);
+    }
+
     HttpResponseProcessor<HttpPublisherException> processor = new DefaultHttpResponseProcessor() {
       @Override
       public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
@@ -154,8 +246,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     };
     try {
       IOGuard.allowNetworkCall(() -> {
-        HttpHelper.get(url, getCredentials(params),
-                       Collections.singletonMap("Accept", "application/json"),
+        HttpHelper.get(url, credentials, headers,
                        BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processor);
       });
     } catch (Exception ex) {
@@ -178,13 +269,6 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
   }
 
   @Nullable
-  private static HttpCredentials getCredentials(Map<String, String> params) {
-    final String username = params.get(Constants.STASH_USERNAME);
-    final String password = params.get(Constants.STASH_PASSWORD);
-    return (username != null && password != null) ? new UsernamePasswordCredentials(username, password) : null;
-  }
-
-  @Nullable
   @Override
   protected String retrieveServerVersion(@NotNull String url) throws PublisherException {
     try {
@@ -194,6 +278,20 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     } catch (Exception e) {
       throw new PublisherException("Failed to obtain Bitbucket Server version", e);
     }
+  }
+
+  @NotNull
+  @Override
+  public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(@NotNull SProject project, @NotNull SUser user) {
+    return myOAuthConnectionsManager.getAvailableConnectionsOfType(project, Constants.STASH_OAUTH_PROVIDER_TYPE)
+                                    .stream()
+                                    .collect(Collectors.toMap(Function.identity(),
+                                                              c -> !myOAuthTokensStorage.getUserTokens(c.getId(), user, project, false).isEmpty()));
+  }
+
+  @NotNull
+  static String getAuthType(@NotNull Map<String, String> params) {
+    return params.getOrDefault(Constants.AUTH_TYPE, DEFAULT_AUTH_TYPE);
   }
 
   private class ServerVersionResponseProcessor extends DefaultHttpResponseProcessor {
