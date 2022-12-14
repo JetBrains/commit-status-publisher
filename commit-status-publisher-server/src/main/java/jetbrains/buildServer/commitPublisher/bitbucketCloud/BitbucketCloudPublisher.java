@@ -385,7 +385,15 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
     final String authType = BitbucketCloudSettings.getAuthType(myParams);
     switch (authType) {
       case Constants.AUTH_TYPE_PASSWORD:
-        return new UsernamePasswordCredentials(getUsername(), getPassword());
+        final String username = getUsername();
+        if (StringUtil.isEmptyOrSpaces(username)) {
+          throw new PublisherException("authentication type is set to password, but username is not configured");
+        }
+        final String password = getPassword();
+        if (StringUtil.isEmptyOrSpaces(password)) {
+          throw new PublisherException("authentication type is set to password, but password is not configured");
+        }
+        return new UsernamePasswordCredentials(username, password);
 
       case Constants.AUTH_TYPE_ACCESS_TOKEN:
         final String tokenId = myParams.get(Constants.TOKEN_ID);

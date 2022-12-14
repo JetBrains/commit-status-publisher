@@ -28,6 +28,7 @@ import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
@@ -137,6 +138,7 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
     String password = params.get(Constants.UPSOURCE_PASSWORD);
     if (null == username || null == password)
       throw new PublisherException("Missing Upsource credentials");
+    final HttpCredentials credentials = new UsernamePasswordCredentials(username, password);
     final String projectId = params.get(Constants.UPSOURCE_PROJECT_ID);
     String urlPost = apiUrl + "/" + ENDPOINT_TEST_CONNECTION;
     String urlGet = apiUrl + "/" + ENDPOINT_RPC + "/" + QUERY_GET_CURRENT_USER;
@@ -145,7 +147,7 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
       data.put(UpsourceSettings.PROJECT_FIELD, projectId);
       // Newer versions of Upsource support special test connection call, that works correctly for their CI-specific authentication
       IOGuard.allowNetworkCall(() -> {
-        HttpHelper.post(urlPost, new UsernamePasswordCredentials(username, password), myGson.toJson(data), ContentType.APPLICATION_JSON, null,
+        HttpHelper.post(urlPost, credentials, myGson.toJson(data), ContentType.APPLICATION_JSON, null,
                         BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(),
                         new DefaultHttpResponseProcessor());
       });
@@ -153,7 +155,7 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
       try {
         // If the newer method fails, we assume it may be an older version of Upsource, and test connection in a regular way
         IOGuard.allowNetworkCall(() -> {
-          HttpHelper.get(urlGet, new UsernamePasswordCredentials(username, password), null,
+          HttpHelper.get(urlGet, credentials, null,
                          BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(),
                          new TestConnectionResponseProcessor(projectId));
         });

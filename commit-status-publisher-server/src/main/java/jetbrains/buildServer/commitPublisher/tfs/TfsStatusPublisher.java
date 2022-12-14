@@ -649,8 +649,10 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     return info;
   }
 
+  @Nullable
   private static HttpCredentials getCredentials(Map<String, String> params) {
-    return new UsernamePasswordCredentials(StringUtil.EMPTY, params.get(TfsConstants.ACCESS_TOKEN));
+    final String accessToken = params.get(TfsConstants.ACCESS_TOKEN);
+    return accessToken != null ? new UsernamePasswordCredentials(StringUtil.EMPTY, accessToken) : null;
   }
 
   private static class Error {

@@ -177,7 +177,8 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
     return TeamCityProperties.getBoolean(PROP_PUBLISH_QUEUED_BUILD_STATUS) || super.isBuildQueuedSupported(buildType, params);
   }
 
-  public static HttpCredentials getCredentials(Map<String, String> params) {
+  @Nullable
+  private static HttpCredentials getCredentials(Map<String, String> params) {
     final String username = params.get(Constants.STASH_USERNAME);
     final String password = params.get(Constants.STASH_PASSWORD);
     return (username != null && password != null) ? new UsernamePasswordCredentials(username, password) : null;

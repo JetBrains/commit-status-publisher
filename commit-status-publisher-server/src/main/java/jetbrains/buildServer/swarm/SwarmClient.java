@@ -23,6 +23,7 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
@@ -70,7 +71,7 @@ public class SwarmClient {
     String url = mySwarmUrl + "/api/v9/session";
     try {
       // To ensure ticket was provided, not password:
-      HttpHelper.get(url, new UsernamePasswordCredentials(myUsername, myTicket), null, 5000, myTrustStore, new DefaultHttpResponseProcessor());
+      HttpHelper.get(url, getCredentials(), null, 5000, myTrustStore, new DefaultHttpResponseProcessor());
 
       url = mySwarmUrl + "/api/v9/login";
       final String data = "username=" + StringUtil.encodeURLParameter(myUsername) + "&password=" + StringUtil.encodeURLParameter(myTicket);
@@ -154,7 +155,7 @@ public class SwarmClient {
     String getReviewsUrl = mySwarmUrl + "/api/v9/reviews?fields=id,state,stateLabel&change[]=" + changelistId;
     try {
       final ReadReviewsProcessor processor = new ReadReviewsProcessor(debugInfo);
-      HttpHelper.get(getReviewsUrl, new UsernamePasswordCredentials(myUsername, myTicket), null, myConnectionTimeout, myTrustStore, processor);
+      HttpHelper.get(getReviewsUrl, getCredentials(), null, myConnectionTimeout, myTrustStore, processor);
 
       return new ReviewLoadResponse(processor.getReviews());
     } catch (IOException|HttpPublisherException e) {
@@ -172,7 +173,7 @@ public class SwarmClient {
     }
 
     try {
-      HttpHelper.post(addCommentUrl, new UsernamePasswordCredentials(myUsername, myTicket),
+      HttpHelper.post(addCommentUrl, getCredentials(),
                       data, ContentType.APPLICATION_FORM_URLENCODED, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
     } catch (IOException e) {
       throw new PublisherException("Cannot add a comment for review at " + addCommentUrl + " for " + debugInfo + ": " + e, e);
@@ -185,7 +186,7 @@ public class SwarmClient {
     final String createTestRunUrl = mySwarmUrl + "/api/v10/reviews/" + reviewId + "/testruns";
 
     try {
-      HttpHelper.post(createTestRunUrl, new UsernamePasswordCredentials(myUsername, myTicket),
+      HttpHelper.post(createTestRunUrl, getCredentials(),
                       createTestRunJson(reviewId, build),
                       ContentType.APPLICATION_JSON, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
     } catch (IOException e) {
@@ -226,7 +227,7 @@ public class SwarmClient {
 
     final GetRunningTestRuns processor = new GetRunningTestRuns(testNameFrom(build), debugBuildInfo);
     try {
-      HttpHelper.get(testRunUrl, new UsernamePasswordCredentials(myUsername, myTicket), null, myConnectionTimeout, myTrustStore, processor);
+      HttpHelper.get(testRunUrl, getCredentials(), null, myConnectionTimeout, myTrustStore, processor);
     } catch (IOException e) {
       throw new PublisherException("Cannot get test run list at " + testRunUrl + " for " + debugBuildInfo + ": " + e, e);
     }
@@ -245,7 +246,7 @@ public class SwarmClient {
       // Because PATCH is not supported by ServerBootstrap
       HttpMethod patch = LogInitializer.isUnitTest() ? HttpMethod.POST : HttpMethod.PATCH;
 
-      HttpHelper.http(patch, patchTestRunUrl, new UsernamePasswordCredentials(myUsername, myTicket),
+      HttpHelper.http(patch, patchTestRunUrl, getCredentials(),
                       buildJsonForUpdate(build),
                       ContentType.APPLICATION_JSON, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
     } catch (IOException e) {
@@ -276,6 +277,11 @@ public class SwarmClient {
 
   private void debug(String message) {
     LoggerUtil.LOG.info(message);
+  }
+
+  @Nullable
+  private HttpCredentials getCredentials() {
+    return  (myUsername != null && myTicket != null) ? new UsernamePasswordCredentials(myUsername, myTicket) : null;
   }
 
   /**

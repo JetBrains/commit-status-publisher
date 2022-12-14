@@ -191,7 +191,15 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
     switch (authType) {
 
       case Constants.AUTH_TYPE_PASSWORD:
-        credentials = new UsernamePasswordCredentials(params.get(Constants.BITBUCKET_CLOUD_USERNAME), params.get(Constants.BITBUCKET_CLOUD_PASSWORD));
+        final String username = params.get(Constants.BITBUCKET_CLOUD_USERNAME);
+        if (StringUtil.isEmptyOrSpaces(username)) {
+          throw new PublisherException("authentication type is set to password, but username is not configured");
+        }
+        final String password = params.get(Constants.BITBUCKET_CLOUD_PASSWORD);
+        if (StringUtil.isEmptyOrSpaces(password)) {
+          throw new PublisherException("authentication type is set to password, but password is not configured");
+        }
+        credentials = new UsernamePasswordCredentials(username, password);
         break;
 
       case Constants.AUTH_TYPE_ACCESS_TOKEN:

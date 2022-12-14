@@ -516,7 +516,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
                                   data.getBuildNumber(), data.getState()));
           return;
         }
-        final HttpCredentials credentials = new UsernamePasswordCredentials(getUsername(), getPassword());
+        final HttpCredentials credentials = getCredentials();
         postJson(url, credentials, msg, null, buildDescription);
       } catch (PublisherException ex) {
         myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
@@ -579,7 +579,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     private DeprecatedJsonStashBuildStatuses doLoadStatuses(String baseUrl, ResponseEntityProcessor<DeprecatedJsonStashBuildStatuses> processor, int start, int size, String buildDescription) {
       String endpointUrl = String.format("%s?size=%d&start=%d", baseUrl, size, start);
       try {
-        final HttpCredentials credentials = new UsernamePasswordCredentials(getUsername(), getPassword());
+        final HttpCredentials credentials = getCredentials();
         return get(endpointUrl, credentials, null, processor);
       } catch (PublisherException ex) {
         myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
@@ -729,6 +729,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     }
   }
 
+  @Nullable
   private HttpCredentials getCredentials() {
     final String username = getUsername();
     final String password = getPassword();
@@ -752,7 +753,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
             return true;
           }
         };
-        final HttpCredentials credentials = new UsernamePasswordCredentials(getUsername(), getPassword());
+        final HttpCredentials credentials = getCredentials();
         return get(buildEndpointUrl, credentials, null, processor);
       } catch (PublisherException ex) {
         myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
