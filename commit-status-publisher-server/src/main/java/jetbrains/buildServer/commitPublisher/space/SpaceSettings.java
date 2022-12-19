@@ -49,6 +49,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   static final String EXTERNAL_SERVICE_NAME_FIELD = "externalServiceName";
   static final String TASK_NAME_FIELD = "taskName";
   static final String TASK_ID_FIELD = "taskId";
+  static final String TASK_BUILD_ID_FIELD = "taskBuildId";
   static final String TIMESTAMP_FIELD = "timestamp";
   static final String DESCRIPTION_FIELD = "description";
 

@@ -250,6 +250,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
       SpaceSettings.getDisplayName(myParams),
       taskName,
       buildPromotion.getBuildTypeExternalId(),
+      buildPromotion.getId(),
       (timestamp == null ? new Date() : timestamp).getTime(),
       additionalTaskInfo.getComment()
     );
@@ -296,6 +297,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
       SpaceSettings.getDisplayName(myParams),
       build.getFullName(),
       build.getBuildTypeExternalId(),
+      build.getBuildId(),
       (finishDate == null ? build.getServerStartDate() : finishDate).getTime(),
       description
     );
@@ -348,6 +350,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
                                @NotNull String externalServiceName,
                                @NotNull String taskName,
                                @NotNull String taskId,
+                               long taskBuildId,
                                Long timestamp,
                                String description) {
     Map<String, Object> data = new HashMap<>();
@@ -357,6 +360,9 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     data.put(SpaceSettings.EXTERNAL_SERVICE_NAME_FIELD, externalServiceName);
     data.put(SpaceSettings.TASK_NAME_FIELD, taskName);
     data.put(SpaceSettings.TASK_ID_FIELD, taskId);
+    if (TeamCityProperties.getBoolean("teamcity.commitStatusPublisher.space.publishBuildId")) {
+      data.put(SpaceSettings.TASK_BUILD_ID_FIELD, taskBuildId);
+    }
 
     if (timestamp != null)
       data.put(SpaceSettings.TIMESTAMP_FIELD, timestamp);
