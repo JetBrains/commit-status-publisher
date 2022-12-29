@@ -42,6 +42,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
   private static final String STATUS_FOR_REMOVED_BUILD = "teamcity.commitStatusPublisher.removedBuild.gitlab.status";
   private static final String REFS_HEADS = "refs/heads/";
   private static final String REFS_TAGS = "refs/tags/";
+  private static final String REFS_GENERIC = "refs/";
   private static final Gson myGson = new Gson();
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
@@ -322,6 +323,8 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
         ref = ref.substring(REFS_HEADS.length());
       } else if (ref.startsWith(REFS_TAGS)) {
         ref = ref.substring(REFS_TAGS.length());
+      } else if (ref.startsWith(REFS_GENERIC)) {
+        ref = ref.substring(REFS_GENERIC.length());
       } else {
         ref = null;
       }
