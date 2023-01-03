@@ -68,7 +68,10 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
     addAll(mySupportedEvents);
   }};
 
+  @NotNull
   private final CommitStatusesCache<JsonStashBuildStatus> myStatusesCache;
+
+  @NotNull
   private final OAuthConnectionsManager myOAuthConnectionsManager;
 
   public StashSettings(@NotNull PluginDescriptor descriptor,
