@@ -27,7 +27,6 @@ import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudR
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
-import jetbrains.buildServer.serverSide.oauth.OAuthToken;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.serverSide.oauth.bitbucket.BitBucketOAuthProvider;
 import jetbrains.buildServer.users.SUser;
@@ -36,16 +35,14 @@ import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
-import jetbrains.buildServer.vcshostings.http.credentials.BearerTokenCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
-import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
-public class BitbucketCloudSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
+public class BitbucketCloudSettings extends AuthTypeAwareSettings implements CommitStatusPublisherSettings {
 
   static final String DEFAULT_API_URL = "https://api.bitbucket.org/";
   static final String DEFAULT_AUTH_TYPE = Constants.AUTH_TYPE_PASSWORD;
@@ -69,7 +66,6 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
 
   private final CommitStatusesCache<BitbucketCloudCommitBuildStatus> myStatusesCache;
   private final OAuthConnectionsManager myOAuthConnectionsManager;
-  private final OAuthTokensStorage myOAuthTokensStorage;
 
   public BitbucketCloudSettings(@NotNull PluginDescriptor descriptor,
                                 @NotNull WebLinks links,
@@ -77,9 +73,8 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
                                 @NotNull SSLTrustStoreProvider trustStoreProvider,
                                 @NotNull OAuthConnectionsManager oAuthConnectionsManager,
                                 @NotNull OAuthTokensStorage oAuthTokensStorage) {
-    super(descriptor, links, problems, trustStoreProvider);
+    super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage);
     myOAuthConnectionsManager = oAuthConnectionsManager;
-    myOAuthTokensStorage = oAuthTokensStorage;
     myStatusesCache = new CommitStatusesCache<>();
   }
 
@@ -105,7 +100,7 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new BitbucketCloudPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache, myOAuthTokensStorage);
+    return new BitbucketCloudPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache);
   }
 
   @Nullable
@@ -187,36 +182,7 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
     headers.put(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
 
     final String authType = getAuthType(params);
-    final HttpCredentials credentials;
-    switch (authType) {
-
-      case Constants.AUTH_TYPE_PASSWORD:
-        final String username = params.get(Constants.BITBUCKET_CLOUD_USERNAME);
-        if (StringUtil.isEmptyOrSpaces(username)) {
-          throw new PublisherException("authentication type is set to password, but username is not configured");
-        }
-        final String password = params.get(Constants.BITBUCKET_CLOUD_PASSWORD);
-        if (StringUtil.isEmptyOrSpaces(password)) {
-          throw new PublisherException("authentication type is set to password, but password is not configured");
-        }
-        credentials = new UsernamePasswordCredentials(username, password);
-        break;
-
-      case Constants.AUTH_TYPE_ACCESS_TOKEN:
-        final String tokenId = params.get(Constants.TOKEN_ID);
-        if (StringUtil.isEmptyOrSpaces(tokenId)) {
-          throw new PublisherException("authentication type is set to access token, but no token id is configured");
-        }
-        final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
-        if (token == null) {
-          throw new PublisherException("configured token was not found in storage ID: " + tokenId);
-        }
-        credentials = new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
-        break;
-
-      default:
-        throw new PublisherException("unsupported authentication type " + authType);
-    }
+    final HttpCredentials credentials = getCredentials(root, params);
 
     try {
       IOGuard.allowNetworkCall(() -> {
@@ -275,8 +241,21 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
   }
 
   @NotNull
-  static String getAuthType(@NotNull Map<String, String> params) {
-    return params.getOrDefault(Constants.AUTH_TYPE, DEFAULT_AUTH_TYPE);
+  @Override
+  protected String getDefaultAuthType() {
+    return DEFAULT_AUTH_TYPE;
+  }
+
+  @Nullable
+  @Override
+  protected String getUsername(@NotNull Map<String, String> params) {
+    return params.get(Constants.BITBUCKET_CLOUD_USERNAME);
+  }
+
+  @Nullable
+  @Override
+  protected String getPassword(@NotNull Map<String, String> params) {
+    return params.get(Constants.BITBUCKET_CLOUD_PASSWORD);
   }
 
   @Nullable

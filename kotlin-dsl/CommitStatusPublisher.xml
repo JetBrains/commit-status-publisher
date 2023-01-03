@@ -89,7 +89,7 @@
             </option>
             <option name="bitbucketServer" value="atlassianStashPublisher">
                 <description>
-                    Publish status to Bitbucket Server
+                    Publish status to Bitbucket Server / Data Center
                 </description>
                 <param name="stashBaseUrl" dslName="url" mandatory="true">
                     <description>
@@ -98,7 +98,7 @@
                 </param>
                 <param name="stashUsername" dslName="userName">
                     <description>
-                        A username for Bitbucket Server connection
+                        A username for Bitbucket Server / Data Center connection
                     </description>
                     <deprecated>
                       Use authType property instead
@@ -106,25 +106,25 @@
                 </param>
                 <param name="secure:stashPassword" dslName="password">
                     <description>
-                        A password for Bitbucket Server connection
+                        A password for Bitbucket Server / Data Center connection
                     </description>
                     <deprecated>
                       Use authType property instead
                     </deprecated>
                 </param>
                 <param name="authType" type="compound">
-                  <description>
-                    Use username / password credentials
-                  </description>
                   <option name="password" value="authTypePassword">
+                    <description>
+                      Use username / password credentials
+                    </description>
                     <param name="stashUsername" dslName="userName" mandatory="true">
                       <description>
-                        A username for Bitbucket Server connection
+                        A username for Bitbucket Server / Data Center connection
                       </description>
                     </param>
                     <param name="secure:stashPassword" dslName="password" mandatory="true">
                       <description>
-                        A password for Bitbucket Server connection
+                        A password for Bitbucket Server / Data Center connection
                       </description>
                     </param>
                   </option>
@@ -432,8 +432,10 @@
               vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
               publisher = bitbucketServer {
                 url = "&lt;Bitbucket Server base URL>"
-                userName = "&lt;username>"
-                password = "credentialsJSON:*****"
+                authType = password {
+                  userName = "&lt;username>"
+                  password = "credentialsJSON:*****"
+                }
               }
             }
         </code>

@@ -30,17 +30,13 @@ import jetbrains.buildServer.commitPublisher.stash.data.StashServerInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
-import jetbrains.buildServer.serverSide.oauth.OAuthToken;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
-import jetbrains.buildServer.vcshostings.http.credentials.BearerTokenCredentials;
-import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
-import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -49,10 +45,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
 import static jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT;
-import static jetbrains.buildServer.commitPublisher.PropertyChecks.mandatoryString;
 import static jetbrains.buildServer.commitPublisher.stash.StashPublisher.PROP_PUBLISH_QUEUED_BUILD_STATUS;
+import static jetbrains.buildServer.serverSide.PropertiesProcessor.mandatoryString;
 
-public class StashSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
+public class StashSettings extends AuthTypeAwareSettings implements CommitStatusPublisherSettings {
 
   static final String DEFAULT_AUTH_TYPE = Constants.AUTH_TYPE_PASSWORD;
   static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
@@ -74,7 +70,6 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
 
   private final CommitStatusesCache<JsonStashBuildStatus> myStatusesCache;
   private final OAuthConnectionsManager myOAuthConnectionsManager;
-  private final OAuthTokensStorage myOAuthTokensStorage;
 
   public StashSettings(@NotNull PluginDescriptor descriptor,
                        @NotNull WebLinks links,
@@ -82,9 +77,8 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
                        @NotNull SSLTrustStoreProvider trustStoreProvider,
                        @NotNull OAuthConnectionsManager oAuthConnectionsManager,
                        @NotNull OAuthTokensStorage oAuthTokensStorage) {
-    super(descriptor, links, problems, trustStoreProvider);
+    super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage);
     myOAuthConnectionsManager = oAuthConnectionsManager;
-    myOAuthTokensStorage = oAuthTokensStorage;
     myStatusesCache = new CommitStatusesCache<>();
   }
 
@@ -105,7 +99,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new StashPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache, myOAuthTokensStorage);
+    return new StashPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache);
   }
 
   @NotNull
@@ -187,36 +181,7 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
 
     final Map<String, String> headers = ImmutableMap.of(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
 
-    final String authType = getAuthType(params);
-    final HttpCredentials credentials;
-    switch (authType) {
-      case Constants.AUTH_TYPE_PASSWORD:
-        final String username = params.get(Constants.STASH_USERNAME);
-        if (StringUtil.isEmptyOrSpaces(username)) {
-          throw new PublisherException("authentication type is set to password, but username is not configured");
-        }
-        final String password = params.get(Constants.STASH_PASSWORD);
-        if (StringUtil.isEmptyOrSpaces(username)) {
-          throw new PublisherException("authentication type is set to password, but password is not configured");
-        }
-        credentials = new UsernamePasswordCredentials(username, password);
-        break;
-
-      case Constants.AUTH_TYPE_ACCESS_TOKEN:
-        final String tokenId = params.get(Constants.TOKEN_ID);
-        if (StringUtil.isEmptyOrSpaces(tokenId)) {
-          throw new PublisherException("authentication type is set to access token, but no token id is configured");
-        }
-        final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
-        if (token == null) {
-          throw new PublisherException("configured token was not found in storage ID: " + tokenId);
-        }
-        credentials = new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
-        break;
-
-      default:
-        throw new PublisherException("unsupported authentication type " + authType);
-    }
+    final HttpCredentials credentials = getCredentials(root, params);
 
     HttpResponseProcessor<HttpPublisherException> processor = new DefaultHttpResponseProcessor() {
       @Override
@@ -290,8 +255,21 @@ public class StashSettings extends BasePublisherSettings implements CommitStatus
   }
 
   @NotNull
-  static String getAuthType(@NotNull Map<String, String> params) {
-    return params.getOrDefault(Constants.AUTH_TYPE, DEFAULT_AUTH_TYPE);
+  @Override
+  protected String getDefaultAuthType() {
+    return DEFAULT_AUTH_TYPE;
+  }
+
+  @Nullable
+  @Override
+  protected String getUsername(@NotNull Map<String, String> params) {
+    return params.get(Constants.STASH_USERNAME);
+  }
+
+  @Nullable
+  @Override
+  protected String getPassword(@NotNull Map<String, String> params) {
+    return params.get(Constants.STASH_PASSWORD);
   }
 
   private class ServerVersionResponseProcessor extends DefaultHttpResponseProcessor {

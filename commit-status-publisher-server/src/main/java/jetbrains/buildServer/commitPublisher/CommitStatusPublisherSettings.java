@@ -25,6 +25,7 @@ import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
@@ -88,5 +89,19 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
   @Nullable
   default Map<String, Object> checkHealth(@NotNull SBuildType buildType, @NotNull Map<String, String> params) {
    return null;
+  }
+
+  /**
+   * Attempts to construct the specific {@link HttpCredentials} with the help of the provided parameters and other available data (e.g. token storage).
+   * May return null if operation is not applicable.
+   *
+   * @param root VCS root if available
+   * @param params parameters
+   * @return credentials or null
+   * @throws PublisherException on configuration errors
+   */
+  @Nullable
+  default HttpCredentials getCredentials(@Nullable VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
+    return null;
   }
 }

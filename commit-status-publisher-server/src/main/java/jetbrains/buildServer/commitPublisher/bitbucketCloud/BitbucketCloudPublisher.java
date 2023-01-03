@@ -27,15 +27,11 @@ import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudB
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudCommitBuildStatus;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
-import jetbrains.buildServer.serverSide.oauth.OAuthToken;
-import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
-import jetbrains.buildServer.vcshostings.http.credentials.BearerTokenCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
-import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -49,7 +45,6 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
   private final Gson myGson = new Gson();
 
   private final CommitStatusesCache<BitbucketCloudCommitBuildStatus> myStatusesCache;
-  private final OAuthTokensStorage myOAuthTokensStorage;
 
   private static final ResponseEntityProcessor<BitbucketCloudBuildStatuses> statusesProcessor = new BitbucketCloudResponseEntityProcessor<>(BitbucketCloudBuildStatuses.class);
 
@@ -58,11 +53,9 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
                           @NotNull WebLinks links,
                           @NotNull Map<String, String> params,
                           @NotNull CommitStatusPublisherProblems problems,
-                          @NotNull CommitStatusesCache<BitbucketCloudCommitBuildStatus> statusesCache,
-                          @NotNull OAuthTokensStorage oAuthTokensStorage) {
+                          @NotNull CommitStatusesCache<BitbucketCloudCommitBuildStatus> statusesCache) {
     super(settings, buildType, buildFeatureId, params, problems, links);
     myStatusesCache = statusesCache;
-    myOAuthTokensStorage = oAuthTokensStorage;
   }
 
   @NotNull
@@ -372,44 +365,9 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
    */
   void setBaseUrl(String url) { myBaseUrl = url; }
 
-  private String getUsername() {
-    return myParams.get(Constants.BITBUCKET_CLOUD_USERNAME);
-  }
-
-  private String getPassword() {
-    return myParams.get(Constants.BITBUCKET_CLOUD_PASSWORD);
-  }
-
-  @NotNull
+  @Nullable
   private HttpCredentials getCredentials(@NotNull VcsRootInstance root) throws PublisherException {
-    final String authType = BitbucketCloudSettings.getAuthType(myParams);
-    switch (authType) {
-      case Constants.AUTH_TYPE_PASSWORD:
-        final String username = getUsername();
-        if (StringUtil.isEmptyOrSpaces(username)) {
-          throw new PublisherException("authentication type is set to password, but username is not configured");
-        }
-        final String password = getPassword();
-        if (StringUtil.isEmptyOrSpaces(password)) {
-          throw new PublisherException("authentication type is set to password, but password is not configured");
-        }
-        return new UsernamePasswordCredentials(username, password);
-
-      case Constants.AUTH_TYPE_ACCESS_TOKEN:
-        final String tokenId = myParams.get(Constants.TOKEN_ID);
-        if (StringUtil.isEmptyOrSpaces(tokenId)) {
-          throw new PublisherException("authentication type is set to access token, but no token id is configured");
-        }
-
-        final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
-        if (token == null) {
-          throw new PublisherException("The configured authentication with the " + tokenId + " ID is missing or invalid.");
-        }
-        return new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
-
-      default:
-        throw new PublisherException("unsupported authentication type " + authType);
-    }
+    return getSettings().getCredentials(root, myParams);
   }
 
   private static class BitbucketCloudResponseEntityProcessor<T> extends ResponseEntityProcessor<T> {
@@ -426,6 +384,6 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
       }
       return true;
     }
-  };
+  }
 
 }
