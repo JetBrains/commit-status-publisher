@@ -11,13 +11,20 @@ import java.io.IOException;
 import java.security.KeyStore;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.DefaultHttpResponseProcessor;
+import jetbrains.buildServer.commitPublisher.HttpPublisherException;
+import jetbrains.buildServer.commitPublisher.LoggerUtil;
+import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.log.LogInitializer;
 import jetbrains.buildServer.serverSide.RelativeWebLinks;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
+import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
+import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -64,12 +71,12 @@ public class SwarmClient {
     String url = mySwarmUrl + "/api/v9/session";
     try {
       // To ensure ticket was provided, not password:
-      HttpHelper.get(url, myUsername, myTicket, null, 5000, myTrustStore, new DefaultHttpResponseProcessor());
+      HttpHelper.get(url, getCredentials(), null, 5000, myTrustStore, new DefaultHttpResponseProcessor());
 
       url = mySwarmUrl + "/api/v9/login";
       final String data = "username=" + StringUtil.encodeURLParameter(myUsername) + "&password=" + StringUtil.encodeURLParameter(myTicket);
       // Need to do actual login to read isAdmin flag for the user
-      HttpHelper.post(url, null, null,
+      HttpHelper.post(url, null,
                       data, ContentType.APPLICATION_FORM_URLENCODED, null, 5000, myTrustStore, createLoginProcessor());
 
     } catch (IOException e) {
@@ -148,7 +155,7 @@ public class SwarmClient {
     String getReviewsUrl = mySwarmUrl + "/api/v9/reviews?fields=id,state,stateLabel&change[]=" + changelistId;
     try {
       final ReadReviewsProcessor processor = new ReadReviewsProcessor(debugInfo);
-      HttpHelper.get(getReviewsUrl, myUsername, myTicket, null, myConnectionTimeout, myTrustStore, processor);
+      HttpHelper.get(getReviewsUrl, getCredentials(), null, myConnectionTimeout, myTrustStore, processor);
 
       return new ReviewLoadResponse(processor.getReviews());
     } catch (IOException|HttpPublisherException e) {
@@ -166,7 +173,7 @@ public class SwarmClient {
     }
 
     try {
-      HttpHelper.post(addCommentUrl, myUsername, myTicket,
+      HttpHelper.post(addCommentUrl, getCredentials(),
                       data, ContentType.APPLICATION_FORM_URLENCODED, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
     } catch (IOException e) {
       throw new PublisherException("Cannot add a comment for review at " + addCommentUrl + " for " + debugInfo + ": " + e, e);
@@ -179,7 +186,7 @@ public class SwarmClient {
     final String createTestRunUrl = mySwarmUrl + "/api/v10/reviews/" + reviewId + "/testruns";
 
     try {
-      HttpHelper.post(createTestRunUrl, myUsername, myTicket,
+      HttpHelper.post(createTestRunUrl, getCredentials(),
                       createTestRunJson(reviewId, build),
                       ContentType.APPLICATION_JSON, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
     } catch (IOException e) {
@@ -220,7 +227,7 @@ public class SwarmClient {
 
     final GetRunningTestRuns processor = new GetRunningTestRuns(testNameFrom(build), debugBuildInfo);
     try {
-      HttpHelper.get(testRunUrl, myUsername, myTicket, null, myConnectionTimeout, myTrustStore, processor);
+      HttpHelper.get(testRunUrl, getCredentials(), null, myConnectionTimeout, myTrustStore, processor);
     } catch (IOException e) {
       throw new PublisherException("Cannot get test run list at " + testRunUrl + " for " + debugBuildInfo + ": " + e, e);
     }
@@ -239,7 +246,7 @@ public class SwarmClient {
       // Because PATCH is not supported by ServerBootstrap
       HttpMethod patch = LogInitializer.isUnitTest() ? HttpMethod.POST : HttpMethod.PATCH;
 
-      HttpHelper.http(patch, patchTestRunUrl, myUsername, myTicket,
+      HttpHelper.http(patch, patchTestRunUrl, getCredentials(),
                       buildJsonForUpdate(build),
                       ContentType.APPLICATION_JSON, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
     } catch (IOException e) {
@@ -272,6 +279,11 @@ public class SwarmClient {
     LoggerUtil.LOG.info(message);
   }
 
+  @Nullable
+  private HttpCredentials getCredentials() {
+    return  (myUsername != null && myTicket != null) ? new UsernamePasswordCredentials(myUsername, myTicket) : null;
+  }
+
   /**
    * @return Swarm server URL without tailing slash
    */
@@ -279,7 +291,7 @@ public class SwarmClient {
     return mySwarmUrl;
   }
 
-  private class ReadReviewsProcessor implements HttpResponseProcessor {
+  private class ReadReviewsProcessor implements HttpResponseProcessor<HttpPublisherException> {
 
     private final List<SingleReview> myReviews = new ArrayList<>();
     private final String myDebugInfo;
@@ -328,7 +340,7 @@ public class SwarmClient {
     }
   }
 
-  private class GetRunningTestRuns implements HttpResponseProcessor {
+  private class GetRunningTestRuns implements HttpResponseProcessor<HttpPublisherException> {
 
     private final List<Long> myTestRunIds = new ArrayList<>();
     private final String myDebugInfo;

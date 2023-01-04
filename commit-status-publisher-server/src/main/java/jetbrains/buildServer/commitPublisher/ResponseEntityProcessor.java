@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import java.io.IOException;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import org.jetbrains.annotations.NotNull;
 
 public class ResponseEntityProcessor<T> extends DefaultHttpResponseProcessor {

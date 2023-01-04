@@ -47,8 +47,9 @@
     <orderEntry type="module" module-name="web-test-core" scope="TEST" />
     <orderEntry type="module" module-name="web" />
     <orderEntry type="module" module-name="oauth-integration" />
+    <orderEntry type="module" module-name="common-connections" />
     <orderEntry type="library" name="jsch" level="project" />
     <orderEntry type="library" scope="TEST" name="org.mockito:mockito-core" level="project" />
-    <orderEntry type="module" module-name="common-connections" />
+    <orderEntry type="module" module-name="vcs-hostings-plugin-api" />
   </component>
 </module>

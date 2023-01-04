@@ -18,15 +18,16 @@ package jetbrains.buildServer.commitPublisher.space;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import jetbrains.buildServer.commitPublisher.HttpHelper;
-import jetbrains.buildServer.serverSide.IOGuard;
-import org.apache.http.HttpHeaders;
-import org.apache.http.entity.ContentType;
-import org.jetbrains.annotations.NotNull;
 import java.security.KeyStore;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import jetbrains.buildServer.serverSide.IOGuard;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
+import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
+import org.apache.http.HttpHeaders;
+import org.apache.http.entity.ContentType;
+import org.jetbrains.annotations.NotNull;
 
 public class SpaceToken {
 
@@ -78,7 +79,7 @@ public class SpaceToken {
 
     IOGuard.allowNetworkCall(() ->
       HttpHelper.post(
-        urlPost, serviceId, serviceSecret, data, ContentType.APPLICATION_FORM_URLENCODED,
+        urlPost, new UsernamePasswordCredentials(serviceId, serviceSecret), data, ContentType.APPLICATION_FORM_URLENCODED,
         Collections.singletonMap(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType()),
         connectionTimeout, keyStore, contentResponseProcessor
       )

@@ -17,6 +17,7 @@
 package jetbrains.buildServer.commitPublisher.space;
 
 import com.google.gson.Gson;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -27,6 +28,7 @@ import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsModification;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
@@ -164,7 +166,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
       SpaceBuildStatusInfo[] commitStatuses;
       try {
         String url = buildStatusesUrl(revision);
-        commitStatuses = get(url, null, null, headers, processor);
+        commitStatuses = get(url, null, headers, processor);
       } catch (PublisherException e) {
         exception.set(e);
         return Collections.emptyList();
@@ -248,6 +250,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
       SpaceSettings.getDisplayName(myParams),
       taskName,
       buildPromotion.getBuildTypeExternalId(),
+      buildPromotion.getId(),
       (timestamp == null ? new Date() : timestamp).getTime(),
       additionalTaskInfo.getComment()
     );
@@ -271,7 +274,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     headers.put(HttpHeaders.ACCEPT, ContentType.TEXT_PLAIN.getMimeType());
     token.toHeader(headers);
 
-    postJson(requestUrl, null, null, payload, headers, description);
+    postJson(requestUrl, null, payload, headers, description);
     myStatusesCache.removeStatusFromCache(revision, taskName);
     return true;
   }
@@ -294,6 +297,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
       SpaceSettings.getDisplayName(myParams),
       build.getFullName(),
       build.getBuildTypeExternalId(),
+      build.getBuildId(),
       (finishDate == null ? build.getServerStartDate() : finishDate).getTime(),
       description
     );
@@ -317,7 +321,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     headers.put(HttpHeaders.ACCEPT, ContentType.TEXT_PLAIN.getMimeType());
     token.toHeader(headers);
 
-    postJson(url, null, null, payload, headers, buildDescription);
+    postJson(url, null, payload, headers, buildDescription);
     myStatusesCache.removeStatusFromCache(revision, build.getFullName());
   }
 
@@ -346,6 +350,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
                                @NotNull String externalServiceName,
                                @NotNull String taskName,
                                @NotNull String taskId,
+                               long taskBuildId,
                                Long timestamp,
                                String description) {
     Map<String, Object> data = new HashMap<>();
@@ -355,6 +360,9 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     data.put(SpaceSettings.EXTERNAL_SERVICE_NAME_FIELD, externalServiceName);
     data.put(SpaceSettings.TASK_NAME_FIELD, taskName);
     data.put(SpaceSettings.TASK_ID_FIELD, taskId);
+    if (TeamCityProperties.getBoolean("teamcity.commitStatusPublisher.space.publishBuildId")) {
+      data.put(SpaceSettings.TASK_BUILD_ID_FIELD, taskBuildId);
+    }
 
     if (timestamp != null)
       data.put(SpaceSettings.TIMESTAMP_FIELD, timestamp);
@@ -365,7 +373,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
   }
 
   @Override
-  public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException {
+  public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
     int statusCode = response.getStatusCode();
     String responseContent = response.getContent();
 

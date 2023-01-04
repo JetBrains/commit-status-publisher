@@ -31,6 +31,7 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.http.HttpHeaders;
@@ -48,6 +49,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   static final String EXTERNAL_SERVICE_NAME_FIELD = "externalServiceName";
   static final String TASK_NAME_FIELD = "taskName";
   static final String TASK_ID_FIELD = "taskId";
+  static final String TASK_BUILD_ID_FIELD = "taskBuildId";
   static final String TIMESTAMP_FIELD = "timestamp";
   static final String DESCRIPTION_FIELD = "description";
 
@@ -190,7 +192,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
 
       IOGuard.allowNetworkCall(() ->
         HttpHelper.post(
-          url, null, null, null, ContentType.APPLICATION_JSON,
+          url, null, null, ContentType.APPLICATION_JSON,
           headers, DEFAULT_CONNECTION_TIMEOUT, trustStore(), new ContentResponseProcessor()
         )
       );

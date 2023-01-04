@@ -29,6 +29,7 @@ import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabUserInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -107,11 +108,11 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
         IOGuard.allowNetworkCall(() -> {
           ProjectInfoResponseProcessor processorPrj = new ProjectInfoResponseProcessor();
           HttpHelper.get(getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName()),
-                         null, null, Collections.singletonMap("PRIVATE-TOKEN", token),
+                         null, Collections.singletonMap("PRIVATE-TOKEN", token),
                          BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorPrj);
           if (processorPrj.getAccessLevel() < 30) {
             UserInfoResponseProcessor processorUser = new UserInfoResponseProcessor();
-            HttpHelper.get(getUserUrl(apiUrl), null, null, Collections.singletonMap("PRIVATE-TOKEN", token),
+            HttpHelper.get(getUserUrl(apiUrl), null, Collections.singletonMap("PRIVATE-TOKEN", token),
                            BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorUser);
             if (!processorUser.isAdmin()) {
               throw new HttpPublisherException("GitLab does not grant enough permissions to publish a commit status");
