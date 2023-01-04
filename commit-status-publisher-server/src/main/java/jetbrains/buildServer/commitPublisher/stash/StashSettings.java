@@ -45,8 +45,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
 import static jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT;
+import static jetbrains.buildServer.commitPublisher.PropertyChecks.mandatoryString;
 import static jetbrains.buildServer.commitPublisher.stash.StashPublisher.PROP_PUBLISH_QUEUED_BUILD_STATUS;
-import static jetbrains.buildServer.serverSide.PropertyChecks.mandatoryString;
 
 public class StashSettings extends AuthTypeAwareSettings implements CommitStatusPublisherSettings {
 
