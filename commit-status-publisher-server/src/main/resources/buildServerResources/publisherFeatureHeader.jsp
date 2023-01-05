@@ -103,6 +103,7 @@
     <td>
       <props:selectProperty name="${constants.vcsRootIdParam}" className="longField" enableFilter="true" style="width: 95%;">
         <props:option value="">&lt;All attached VCS Roots&gt;</props:option>
+        <props:option value="${constants.vcsRootsByBranch}">&lt;All VCS Roots for current branch&gt;</props:option>
         <c:forEach var="vcsRoot" items="${vcsRoots}">
           <props:option value="${vcsRoot.externalId}"><c:out value="${vcsRoot.name}"/></props:option>
         </c:forEach>
@@ -120,7 +121,9 @@
       </c:if>
       <span class="error" id="error_${constants.vcsRootIdParam}"></span>
       <span class="smallNote">Choose a repository to use for publishing a build status. Choose <strong>&lt;All attached VCS roots&gt;</strong> option if you want Commit Status Publisher to attempt
-        publishing statuses for commits in all attached VCS roots.</span>
+        publishing statuses for commits in all attached VCS roots.<br/>
+        Choose <strong>&lt;All VCS Roots for current branch&gt;</strong> option if you want to skip vcs roots using the default branch.
+      </span>
     </td>
   </tr>
   <tr>

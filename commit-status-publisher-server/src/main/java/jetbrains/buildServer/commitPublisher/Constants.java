@@ -24,6 +24,9 @@ public class Constants {
   public final static String COMMIT_STATUS_PUBLISHER_PROBLEM_TYPE = "COMMIT_STATUS_PUBLISHER_PROBLEM";
 
   public static final String VCS_ROOT_ID_PARAM = "vcsRootId";
+  // Has to be ab invalid vcs root id, hence the dots
+  // ID should start with a latin letter and contain only latin letters, digits and underscores (at most 225 characters)
+  public static final String VCS_ROOTS_BY_BRANCH = "vcs.roots.by.branch";
   public static final String PUBLISHER_ID_PARAM = "publisherId";
 
   public static final String PASSWORD = "password";
@@ -84,6 +87,10 @@ public class Constants {
     return VCS_ROOT_ID_PARAM;
   }
 
+  @NotNull
+  public String getVcsRootsByBranch() {
+    return VCS_ROOTS_BY_BRANCH;
+  }
   @NotNull
   public String getPublisherIdParam() {
     return PUBLISHER_ID_PARAM;
