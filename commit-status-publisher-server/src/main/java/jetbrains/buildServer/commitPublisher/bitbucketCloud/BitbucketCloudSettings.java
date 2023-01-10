@@ -289,7 +289,9 @@ public class BitbucketCloudSettings extends BasePublisherSettings implements Com
 
     final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(buildType.getProject(), tokenId);
     if (token == null) {
-      return healthItemData("refers to a missing or invalid authentication token. Please check connection and authentication settings or try to acquire a new token.");
+      return healthItemData("refers to a missing or invalid authentication token (token id: " +
+                            tokenId +
+                            "). Please check connection and authentication settings or try to acquire a new token.");
     }
 
     return null;
