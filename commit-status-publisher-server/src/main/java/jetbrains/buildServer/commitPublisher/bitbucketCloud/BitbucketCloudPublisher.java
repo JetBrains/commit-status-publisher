@@ -403,7 +403,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
 
         final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
         if (token == null) {
-          throw new PublisherException("configured token was not found in storage ID: " + tokenId);
+          throw new PublisherException("configured authentication token is missing or invalid.");
         }
         return new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
 

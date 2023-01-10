@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.commitPublisher.reports;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
@@ -26,6 +27,7 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.healthStatus.*;
 import org.jetbrains.annotations.NotNull;
 
+import static jetbrains.buildServer.commitPublisher.Constants.BITBUCKET_PUBLISHER_ID;
 import static jetbrains.buildServer.commitPublisher.space.Constants.SPACE_PUBLISHER_ID;
 
 public class MissingSettingsReport extends HealthStatusReport {
@@ -35,6 +37,7 @@ public class MissingSettingsReport extends HealthStatusReport {
           = "Commit Status Publisher build feature refers to a missing settings";
   private static final ItemCategory CATEGORY
           = new ItemCategory(REPORT_TYPE + "Category", DISPLAY_NAME, ItemSeverity.WARN);
+  private static final Set<String> SUPPORTED_PUBLISHER_IDS = ImmutableSet.of(SPACE_PUBLISHER_ID, BITBUCKET_PUBLISHER_ID);
 
   private final PublisherManager myPublisherManager;
 
@@ -73,8 +76,10 @@ public class MissingSettingsReport extends HealthStatusReport {
         if (bt.isEnabled(feature.getId())) {
           Map<String, String> params = feature.getParameters();
           String publisherId = params.get(Constants.PUBLISHER_ID_PARAM);
-          if (publisherId == null || !publisherId.equals(SPACE_PUBLISHER_ID))
+          if (publisherId == null || !SUPPORTED_PUBLISHER_IDS.contains(publisherId)) {
             continue;
+          }
+
           CommitStatusPublisherSettings settings = myPublisherManager.findSettings(publisherId);
           if (settings != null) {
             Map<String, Object> healthItemData = settings.checkHealth(bt, params);
