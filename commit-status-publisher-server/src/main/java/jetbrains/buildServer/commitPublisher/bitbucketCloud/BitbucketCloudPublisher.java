@@ -185,14 +185,14 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
 
   private BitbucketCloudCommitBuildStatus loadCommitStatusesAndGetMatching(Repository repository, BuildRevision revision, BuildPromotion promotion) throws PublisherException {
     AtomicReference<PublisherException> exception = new AtomicReference<>(null);
-    BitbucketCloudCommitBuildStatus status = myStatusesCache.getStatusFromCache(revision, getBuildName(promotion), () -> {
+    BitbucketCloudCommitBuildStatus status = myStatusesCache.getStatusFromCache(revision, promotion.getBuildTypeId(), () -> {
       try {
         return loadCommitStatuses(repository, revision, promotion);
       } catch (PublisherException e) {
         exception.set(e);
       }
       return Collections.emptyList();
-    }, buildStatus -> buildStatus.name);
+    }, buildStatus -> buildStatus.key);
 
     if (exception.get() != null) {
       throw exception.get();
@@ -205,7 +205,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
     Collection<BitbucketCloudCommitBuildStatus> result = new ArrayList<>();
     boolean shouldContinue;
     int page = 1;
-    final String targetName = getBuildName(promotion);
+    String buildTypeId = promotion.getBuildTypeId();
     final String baseUrl = String.format("%s2.0/repositories/%s/%s/commit/%s/statuses",
                                          getBaseUrl(), repository.owner(), repository.repositoryName(), revision.getRevision());
     final int statusesThreshold = TeamCityProperties.getInteger(Constants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY, Constants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL);
@@ -216,7 +216,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
         result.addAll(statuses.values);
         shouldContinue = (statuses.size == null || result.size() < statuses.size) &&
                          result.size() < statusesThreshold &&
-                         statuses.values.stream().noneMatch(status -> targetName.equals(status.name));
+                         statuses.values.stream().noneMatch(status -> buildTypeId.equals(status.key));
         page++;
       } else {
         shouldContinue = false;
@@ -278,7 +278,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
       throw new PublisherException(String.format("Bitbucket publisher has failed to parse repository URL from VCS root '%s'", root.getName()));
     }
     vote(revision, buildStatus, repository, LogUtil.describe(buildPromotion));
-    myStatusesCache.removeStatusFromCache(revision, buildName);
+    myStatusesCache.removeStatusFromCache(revision, buildPromotion.getBuildTypeId());
     return true;
   }
 
@@ -286,7 +286,9 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
   private String getBuildName(BuildPromotion buildPromotion) {
     SBuildType buildType = buildPromotion.getBuildType();
     if (buildType != null) {
-      return buildType.getFullName();
+      SBuild build = buildPromotion.getAssociatedBuild();
+      String suffix = build != null ? " #" + build.getBuildNumber() : "";
+      return buildType.getFullName() + suffix;
     }
     return buildPromotion.getBuildTypeExternalId();
   }
@@ -301,11 +303,9 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
       throw new PublisherException(String.format("Bitbucket publisher has failed to parse repository URL from VCS root '%s'", root.getName()));
     }
     final String buildName = getBuildName(build);
-    BitbucketCloudCommitBuildStatus buildStatus = new BitbucketCloudCommitBuildStatus(build.getBuildPromotion().getBuildTypeId(), status.name(), buildName, comment,
-                                                                                      getViewUrl(build)
-    );
+    BitbucketCloudCommitBuildStatus buildStatus = new BitbucketCloudCommitBuildStatus(build.getBuildTypeId(), status.name(), buildName, comment, getViewUrl(build));
     vote(revision, buildStatus, repository, LogUtil.describe(build));
-    myStatusesCache.removeStatusFromCache(revision, buildName);
+    myStatusesCache.removeStatusFromCache(revision, build.getBuildTypeId());
   }
 
   private void vote(@NotNull BuildRevision revision, @NotNull BitbucketCloudCommitBuildStatus status, @NotNull Repository repository, @NotNull String buildDescription)
@@ -361,7 +361,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
 
   @NotNull
   private String getBuildName(@NotNull SBuild build) {
-    return build.getFullName();
+    return build.getFullName() + " #" + build.getBuildNumber();
   }
 
   private String getBaseUrl() { return myBaseUrl;  }
