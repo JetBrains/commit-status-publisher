@@ -29,6 +29,8 @@ import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.oauth.OAuthToken;
+import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsModificationHistory;
 import jetbrains.buildServer.vcs.VcsModificationOrder;
@@ -49,13 +51,18 @@ public class ChangeStatusUpdater {
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
   private final VcsModificationHistory myModificationHistory;
+
+  @NotNull
+  protected final OAuthTokensStorage myOAuthTokensStorage;
   @NotNull
   private final GitHubApiFactory myFactory;
 
   public ChangeStatusUpdater(@NotNull final GitHubApiFactory factory,
-                             @NotNull final VcsModificationHistory vcsModificationHistory) {
+                             @NotNull final VcsModificationHistory vcsModificationHistory,
+                             @NotNull final OAuthTokensStorage oAuthTokensStorage) {
     myFactory = factory;
     myModificationHistory = vcsModificationHistory;
+    myOAuthTokensStorage = oAuthTokensStorage;
   }
 
   @NotNull
@@ -79,6 +86,11 @@ public class ChangeStatusUpdater {
         final String token = params.get(C.getAccessTokenKey());
         return myFactory.openGitHubForToken(serverUrl, token);
 
+      case GITHUB_APP_AUTH:
+        final String tokenId = params.get(C.getTokenId());
+        final OAuthToken gitHubAppToken = myOAuthTokensStorage.getRefreshableToken(params.get("vcsRootId"), tokenId, false); //todo by constants
+        if (gitHubAppToken != null)
+          return myFactory.openGitHubForToken(serverUrl, gitHubAppToken.getAccessToken());
       default:
         throw new IllegalArgumentException("Failed to parse authentication type:" + authenticationType);
     }

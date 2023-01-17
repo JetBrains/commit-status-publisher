@@ -2,6 +2,7 @@
 <%@ include file="/include-internal.jsp" %>
 <%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
 <%@ taglib prefix="l" tagdir="/WEB-INF/tags/layout" %>
+<%@ taglib prefix="oauth" tagdir="/WEB-INF/tags/oauth" %>
 <%--
   ~ Copyright 2000-2022 JetBrains s.r.o.
   ~
@@ -64,6 +65,55 @@
             <strong><em>repo:status</em></strong> and
             <strong><em>public_repo</em></strong> or <strong><em>repo</em></strong> depending on the repository type
           </span>
+        </td>
+      </tr>
+    </props:selectSectionPropertyContent>
+
+    <props:selectSectionPropertyContent value="${keys.authentificationTypeGitHubAppTokenValue}" caption="GitHub App access token">
+      <script type="text/javascript">
+        BS.GitHubAppCSPTokenSupport = {
+          updateTokenMessage: () => {
+            const tokenValue = $('${keys.tokenId}').value;
+            if (tokenValue === null || tokenValue.trim().length == 0) {
+              //todo something
+            } else {
+              //todo something
+            }
+            //$j('#error_${keys.tokenId}').empty();
+          },
+
+          tokenCallback: (it) => {
+            console.log(it);
+            $('${keys.tokenId}').value = it.tokenId;
+            BS.GitHubAppCSPTokenSupport.updateTokenMessage();
+            console.log($('${keys.tokenId}').value);
+          }
+        };
+
+        BS.GitHubAppCSPTokenSupport.updateTokenMessage();
+      </script>
+      <tr>
+        <th>
+          <label for="${keys.tokenId}">GitHub App Token:</label>
+        </th>
+        <td>
+          Github app token ${oauthConnections.keySet()}
+          ${tokenId}
+
+          <props:hiddenProperty name="${keys.tokenId}" />
+          <span class="error" id="error_${keys.tokenId}"></span>
+
+          <c:forEach items="${oauthConnections.keySet()}" var="connection">
+            <div class="token-connection">
+              <span class="token-connection-diplay-name">${connection.connectionDisplayName}</span>
+              <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.GitHubAppCSPTokenSupport.tokenCallback">
+                Acquire
+              </oauth:obtainToken>
+            </div>
+          </c:forEach>
+
+          <props:hiddenProperty name="${keys.tokenId}" />
+          <span class="error" id="error_${keys.tokenId}"></span>
         </td>
       </tr>
     </props:selectSectionPropertyContent>
@@ -164,4 +214,33 @@
     </props:selectSectionPropertyContent>
 
   </props:selectSectionProperty>
+
+<style type="text/css">
+  .token-connection {
+    clear: right;
+    padding-top: 0.25em;
+    width: 60%;
+  }
+
+  .token-connection-diplay-name {
+    float: left;
+    margin-left: 1em;
+  }
+
+  .token-control {
+    float: right;
+  }
+
+  .token-connection-button {
+    font-style: normal;
+  }
+
+  .access-token-note {
+    font-style: italic;
+  }
+
+  .connection-note {
+    clear: right;
+  }
+</style>
 

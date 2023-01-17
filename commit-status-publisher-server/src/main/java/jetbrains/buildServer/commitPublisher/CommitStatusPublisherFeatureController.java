@@ -92,6 +92,11 @@ public class CommitStatusPublisherFeatureController extends BaseController {
         SVcsRoot candidate = (SVcsRoot) vcs;
         if (candidate.getExternalId().equals(vcsRootId)) {
           vcsRoot = candidate;
+          String tokenId = vcsRoot.getProperty("tokenId"); //todo via constant
+          if (tokenId != null) {
+            mv.addObject("tokenId", tokenId);
+          }
+          //here we can get connection Id
           break;
         }
         if (null != internalId && internalId.equals(candidate.getId())) {

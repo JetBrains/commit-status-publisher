@@ -23,6 +23,8 @@ import org.jetbrains.annotations.Nullable;
 public enum GitHubApiAuthenticationType {
   TOKEN_AUTH("token"),
   PASSWORD_AUTH("password"),
+
+  GITHUB_APP_AUTH("githubapp_token");
   ;
 
   private final String myValue;

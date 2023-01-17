@@ -32,6 +32,7 @@ import jetbrains.buildServer.serverSide.oauth.OAuthToken;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.serverSide.oauth.github.GHEOAuthProvider;
 import jetbrains.buildServer.serverSide.oauth.github.GitHubOAuthProvider;
+import jetbrains.buildServer.github.app.GitHubAppOAuthProvider;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
@@ -122,8 +123,9 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
     List<OAuthConnectionDescriptor> validConnections = new ArrayList<OAuthConnectionDescriptor>();
     List<OAuthConnectionDescriptor> githubConnections = myOauthConnectionsManager.getAvailableConnectionsOfType(project, GitHubOAuthProvider.TYPE);
     if (!githubConnections.isEmpty()) {
-      validConnections.add(githubConnections.get(0));
+      validConnections.add(githubConnections.get(0)); //why???
     }
+    validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GitHubAppOAuthProvider.TYPE));
     validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GHEOAuthProvider.TYPE));
     Map<OAuthConnectionDescriptor, Boolean> connections = new LinkedHashMap<OAuthConnectionDescriptor, Boolean>();
     for (OAuthConnectionDescriptor c: validConnections) {
