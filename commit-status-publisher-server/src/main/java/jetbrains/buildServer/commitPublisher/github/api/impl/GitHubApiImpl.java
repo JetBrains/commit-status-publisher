@@ -31,6 +31,7 @@ import jetbrains.buildServer.commitPublisher.Repository;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.*;
+import jetbrains.buildServer.github.app.GitHubAppClient;
 import jetbrains.buildServer.http.SimpleCredentials;
 import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
@@ -57,7 +58,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
   private static final String MSG_NOT_FOUND = "Repository not found. Please check if it spelled correctly and exists.";
 
   private final HttpClientWrapper myClient;
-  private final GitHubApiPaths myUrls;
+  protected final GitHubApiPaths myUrls;
   private final Gson myGson;
 
   public GitHubApiImpl(@NotNull final HttpClientWrapper client,
@@ -247,7 +248,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
   }
 
   @NotNull
-  private <T> T processResponse(@NotNull String uri, @NotNull final Class<T> clazz, boolean logErrorsDebugOnly) throws IOException, PublisherException {
+  protected <T> T processResponse(@NotNull String uri, @NotNull final Class<T> clazz, boolean logErrorsDebugOnly) throws IOException, PublisherException {
     LoggerUtil.logRequest(Constants.GITHUB_PUBLISHER_ID, HttpMethod.GET, uri, null);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
@@ -306,7 +307,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     return String.format("Failed to complete request to GitHub. %sStatus: %s", err, statusLine);
   }
 
-  protected abstract SimpleCredentials authenticationCredentials();
+  protected abstract SimpleCredentials authenticationCredentials() throws IOException;
 
   private void logFailedResponse(@NotNull HttpMethod method,
                                  @NotNull String uri,

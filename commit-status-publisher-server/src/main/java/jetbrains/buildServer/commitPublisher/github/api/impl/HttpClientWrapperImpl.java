@@ -22,10 +22,13 @@ import java.util.Map;
 import java.util.function.Consumer;
 import jetbrains.buildServer.http.SimpleCredentials;
 import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.oauth.OAuthToken;
+import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.util.http.HttpMethod;
 import jetbrains.buildServer.util.http.RedirectStrategy;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
+import jetbrains.buildServer.vcs.RefreshableTokenCredentials;
 import org.jetbrains.annotations.NotNull;
 
 /**

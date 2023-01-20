@@ -53,16 +53,12 @@ public class ChangeStatusUpdater {
   private final VcsModificationHistory myModificationHistory;
 
   @NotNull
-  protected final OAuthTokensStorage myOAuthTokensStorage;
-  @NotNull
   private final GitHubApiFactory myFactory;
 
   public ChangeStatusUpdater(@NotNull final GitHubApiFactory factory,
-                             @NotNull final VcsModificationHistory vcsModificationHistory,
-                             @NotNull final OAuthTokensStorage oAuthTokensStorage) {
+                             @NotNull final VcsModificationHistory vcsModificationHistory) {
     myFactory = factory;
     myModificationHistory = vcsModificationHistory;
-    myOAuthTokensStorage = oAuthTokensStorage;
   }
 
   @NotNull
@@ -88,9 +84,7 @@ public class ChangeStatusUpdater {
 
       case GITHUB_APP_AUTH:
         final String tokenId = params.get(C.getTokenId());
-        final OAuthToken gitHubAppToken = myOAuthTokensStorage.getRefreshableToken(params.get("vcsRootId"), tokenId, false); //todo by constants
-        if (gitHubAppToken != null)
-          return myFactory.openGitHubForToken(serverUrl, gitHubAppToken.getAccessToken());
+        return myFactory.openGitHubForGitHubApp(serverUrl, tokenId, params.get(Constants.VCS_ROOT_ID_PARAM));
       default:
         throw new IllegalArgumentException("Failed to parse authentication type:" + authenticationType);
     }
