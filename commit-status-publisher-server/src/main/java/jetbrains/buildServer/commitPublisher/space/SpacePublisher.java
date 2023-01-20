@@ -360,7 +360,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     data.put(SpaceSettings.EXTERNAL_SERVICE_NAME_FIELD, externalServiceName);
     data.put(SpaceSettings.TASK_NAME_FIELD, taskName);
     data.put(SpaceSettings.TASK_ID_FIELD, taskId);
-    if (TeamCityProperties.getBoolean("teamcity.commitStatusPublisher.space.publishBuildId")) {
+    if (TeamCityProperties.getBooleanOrTrue("teamcity.commitStatusPublisher.space.publishBuildId")) {
       data.put(SpaceSettings.TASK_BUILD_ID_FIELD, taskBuildId);
     }
 
