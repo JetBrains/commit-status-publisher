@@ -1,6 +1,8 @@
 package jetbrains.buildServer.commitPublisher;
 
+import java.util.HashMap;
 import java.util.Map;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.oauth.OAuthToken;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
@@ -73,13 +75,38 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
         }
         final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
         if (token == null) {
-          throw new PublisherException("configured token was not found in storage, Token-ID: " + tokenId);
+          throw new PublisherException("The configured authentication with the " + tokenId + " ID is missing or invalid.");
         }
         return new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
 
       default:
         throw new PublisherException("unsupported authentication type " + authType);
     }
+  }
+
+  @Nullable
+  @Override
+  public Map<String, Object> checkHealth(@NotNull SBuildType buildType, @NotNull Map<String, String> params) {
+    final String tokenId = params.get(Constants.TOKEN_ID);
+    if (StringUtil.isEmptyOrSpaces(tokenId)) {
+      return healthItemData("has authentication type set to access token, but no token id is configured");
+    }
+
+    final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(buildType.getProject(), tokenId);
+    if (token == null) {
+      return healthItemData("refers to a missing or invalid authentication token (token id: " +
+                            tokenId +
+                            "). Please check connection and authentication settings or try to acquire a new token.");
+    }
+
+    return null;
+  }
+
+  @NotNull
+  protected static Map<String, Object> healthItemData(String message) {
+    final Map<String, Object> healthItemData = new HashMap<>();
+    healthItemData.put("message", message);
+    return healthItemData;
   }
 
 }

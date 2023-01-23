@@ -28,6 +28,7 @@ import jetbrains.buildServer.serverSide.healthStatus.*;
 import org.jetbrains.annotations.NotNull;
 
 import static jetbrains.buildServer.commitPublisher.Constants.BITBUCKET_PUBLISHER_ID;
+import static jetbrains.buildServer.commitPublisher.Constants.STASH_PUBLISHER_ID;
 import static jetbrains.buildServer.commitPublisher.space.Constants.SPACE_PUBLISHER_ID;
 
 public class MissingSettingsReport extends HealthStatusReport {
@@ -37,7 +38,7 @@ public class MissingSettingsReport extends HealthStatusReport {
           = "Commit Status Publisher build feature refers to a missing settings";
   private static final ItemCategory CATEGORY
           = new ItemCategory(REPORT_TYPE + "Category", DISPLAY_NAME, ItemSeverity.WARN);
-  private static final Set<String> SUPPORTED_PUBLISHER_IDS = ImmutableSet.of(SPACE_PUBLISHER_ID, BITBUCKET_PUBLISHER_ID);
+  private static final Set<String> SUPPORTED_PUBLISHER_IDS = ImmutableSet.of(SPACE_PUBLISHER_ID, BITBUCKET_PUBLISHER_ID, STASH_PUBLISHER_ID);
 
   private final PublisherManager myPublisherManager;
 
