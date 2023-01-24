@@ -166,10 +166,10 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
   }
 
   private JsonStashBuildStatus getBuildStatus(BuildRevision revision, BuildPromotion promotion) {
-    return myStatusesCache.getStatusFromCache(revision, promotion.getBuildType().getFullName(), () -> {
+    return myStatusesCache.getStatusFromCache(revision, promotion.getBuildTypeExternalId(), () -> {
       StatusRequestData requestData = new SBuildPromotionRequestData(promotion, revision);
       return getEndpoint().getCommitBuildStatuses(requestData, LogUtil.describe(promotion));
-    }, buildStatus -> buildStatus.name);
+    }, buildStatus -> buildStatus.key);
   }
 
   @Nullable
@@ -224,7 +224,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     String vcsBranch = getVcsBranch(revision, LogUtil.describe(build));
     SBuildData data = new SBuildData(build, revision, status, comment, vcsBranch);
     getEndpoint().publishBuildStatus(data, LogUtil.describe(build));
-    myStatusesCache.removeStatusFromCache(revision, data.getName());
+    myStatusesCache.removeStatusFromCache(revision, data.getKey());
   }
 
   private void vote(@NotNull BuildPromotion buildPromotion,
@@ -424,7 +424,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     @NotNull
     @Override
     public String getName() {
-      return myBuild.getFullName();
+      return myBuild.getFullName() + " #" + myBuild.getBuildNumber();
     }
 
     @NotNull
@@ -468,7 +468,13 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     @NotNull
     @Override
     public String getName() {
-      return myBuildPromotion.getBuildType().getFullName();
+      SBuildType buildType = myBuildPromotion.getBuildType();
+      if (buildType != null) {
+        SBuild associatedBuild = myBuildPromotion.getAssociatedBuild();
+        String suffix = associatedBuild != null ? " #" + associatedBuild.getBuildNumber() : "";
+        return buildType.getFullName() + suffix;
+      }
+      return myBuildPromotion.getBuildTypeExternalId();
     }
 
     @Nullable
