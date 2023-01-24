@@ -447,7 +447,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     }
 
     long buildId = build.getBuildId();
-    myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(event.getName(), event.getName() + ":" + buildId, buildId));
+    myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(event.getName(), event.getName() + ":" + buildId, buildId, null, null));
   }
 
   private boolean isCurrentRevisionSuitableForRemovedBuild(Event event, SQueuedBuild removedBuild, BuildRevision revision, CommitStatusPublisher publisher) throws PublisherException {
