@@ -16,16 +16,14 @@
 
 package jetbrains.buildServer.commitPublisher.tfs;
 
+import com.google.common.collect.ImmutableList;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.regex.Pattern;
 import jetbrains.buildServer.MockBuildPromotion;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.messages.Status;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.BuildRevision;
-import jetbrains.buildServer.serverSide.SimpleParameter;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -43,6 +41,7 @@ import static org.assertj.core.api.BDDAssertions.then;
  */
 @Test
 public class TfsPublisherTest extends HttpPublisherTest {
+  private Map<String, String> myParams = getPublisherParams();
 
   TfsPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
@@ -68,8 +67,7 @@ public class TfsPublisherTest extends HttpPublisherTest {
     super.setUp();
     myPublisherSettings = new TfsPublisherSettings(new MockPluginDescriptor(), myWebLinks, myProblems,
                                                    myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext(), myTrustStoreProvider);
-    Map<String, String> params = getPublisherParams();
-    myPublisher = new TfsStatusPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
+    myPublisher = new TfsStatusPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, myParams, myProblems, new CommitStatusesCache<>());
     myVcsURL = getServerUrl() + "/_git/" + CORRECT_REPO;
     myReadOnlyVcsURL = getServerUrl()  + "/_git/" + READ_ONLY_REPO;
     myVcsRoot.setProperties(Collections.singletonMap("url", myVcsURL));
@@ -139,8 +137,48 @@ public class TfsPublisherTest extends HttpPublisherTest {
       return false;
     } else if (url.contains("statuses?api-version=2.1")) {
       respondWithStatuses(httpResponse);
+    } else if (url.contains("/commits/" + REVISION)) {
+      respondWithCommits(httpResponse);
+    } else if (url.contains("42/iterations")) {
+      respondWithSameTargetCommitsIterations(httpResponse);
     }
     return true;
+  }
+
+  private void respondWithCommits(HttpResponse httpResponse) {
+    TfsStatusPublisher.Commit obj = new TfsStatusPublisher.Commit();
+    obj.commitId = REVISION;
+    obj.parents = ImmutableList.of("f0adfd81352412ec91254943230c13c4c95c9f9f", "7c1795ca5bb609008e443498a18a2691b2738ecf");
+    TfsStatusPublisher.Author author = new TfsStatusPublisher.Author();
+    author.name = "";
+    obj.author = author;
+    String json = gson.toJson(obj);
+    httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
+    httpResponse.setStatusCode(200);
+  }
+
+  private void respondWithSameTargetCommitsIterations(HttpResponse httpResponse) {
+    TfsStatusPublisher.IterationsList obj = new TfsStatusPublisher.IterationsList();
+    obj.value = new ArrayList<>();
+    obj.value.add(createIteration("1", "2023-01-16T17:52:44.3758989Z", "e0adfd81352412ec91254943230c13c4c95c9f9f", "7c1795ca5bb609008e443498a18a2691b2738ecf"));
+    obj.value.add(createIteration("2", "2023-01-16T18:52:44.3758989Z", "f0adfd81352412ec91254943230c13c4c95c9f9f", "7c1795ca5bb609008e443498a18a2691b2738ecf"));
+    obj.value.add(createIteration("3", "2023-01-16T19:52:44.3758989Z", "f0adfd81352412ec91254943230c13c4c95c9f9f", "7c1795ca5bb609008e443498a18a2691b2738ecf"));
+    String json = gson.toJson(obj);
+    httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
+    httpResponse.setStatusCode(200);
+  }
+
+  private TfsStatusPublisher.Iteration createIteration(String id, String createDate, String srcSha, String trgtSha) {
+    TfsStatusPublisher.Iteration i = new TfsStatusPublisher.Iteration();
+    i.id = id;
+    i.createdDate = createDate;
+    TfsStatusPublisher.IterationCommit commit = new TfsStatusPublisher.IterationCommit();
+    commit.commitId = trgtSha;
+    i.targetRefCommit = commit;
+    commit = new TfsStatusPublisher.IterationCommit();
+    commit.commitId = srcSha;
+    i.sourceRefCommit = commit;
+    return i;
   }
 
   private void respondWithStatuses(HttpResponse httpResponse) {
@@ -163,5 +201,21 @@ public class TfsPublisherTest extends HttpPublisherTest {
   @Override
   protected boolean isStatusCacheNotImplemented() {
     return false;
+  }
+
+  public void should_publish_status_to_correct_commit_for_pr() throws Exception {
+    TfsStatusPublisher publisher = (TfsStatusPublisher)myPublisher;
+    myParams.put(TfsConstants.PUBLISH_PULL_REQUESTS, "true");
+    myBranch = "refs/pull/42/merge";
+    BuildPromotionEx promotion = createPromotionWithDesiredBranch(myBuildType, myBranch);
+    BuildRevision revision = new BuildRevision(myRevision.getEntry(), new RepositoryVersion(REVISION, REVISION, myBranch));
+    myPublisher.buildQueued(promotion, revision, new AdditionalTaskInfo(null, null));
+    waitFor(() -> {
+      int countRequests = countRequests();
+      if (countRequests < 4) return false;
+      Set<Integer> matchingRequestsOrderNumbers = getMatchingRequestsOrderNumbers(Pattern.compile("POST.+\\/pullRequests\\/42/iterations/3.+"));
+      if (matchingRequestsOrderNumbers.isEmpty()) return false;
+      return matchingRequestsOrderNumbers.contains((countRequests - 1) - 1);  // last but one, counting from 0
+    }, 3000);
   }
 }

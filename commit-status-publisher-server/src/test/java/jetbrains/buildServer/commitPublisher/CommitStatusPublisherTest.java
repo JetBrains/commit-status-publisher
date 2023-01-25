@@ -17,10 +17,8 @@
 package jetbrains.buildServer.commitPublisher;
 
 import java.security.KeyStore;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.regex.Pattern;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.messages.Status;
@@ -260,6 +258,10 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   }
 
   protected abstract String getRequestAsString();
+
+  protected Set<Integer> getMatchingRequestsOrderNumbers(Pattern pattern) {
+    return Collections.emptySet();
+  }
 
   protected SRunningBuild startBuildInCurrentBranch(SBuildType buildType) {
     return null == myBranch ? startBuild(buildType) : startBuildInBranch(buildType, myBranch);

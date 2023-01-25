@@ -20,10 +20,9 @@ import com.google.gson.Gson;
 import com.intellij.openapi.util.io.StreamUtil;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
@@ -216,6 +215,15 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
   @Override
   protected String getRequestAsString() {
     return myRequests.isEmpty() ? null : myRequests.get(myRequests.size() - 1);
+  }
+
+  @Override
+  protected Set<Integer> getMatchingRequestsOrderNumbers(Pattern pattern) {
+    Set<Integer> result = new HashSet<>();
+    for (int i = 0; i < myRequests.size(); i++) {
+      if (pattern.matcher(myRequests.get(i)).matches()) result.add(i);
+    }
+    return result;
   }
 
   protected int countRequests() {

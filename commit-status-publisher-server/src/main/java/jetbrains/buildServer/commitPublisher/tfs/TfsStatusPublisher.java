@@ -359,30 +359,34 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
                 return;
               }
 
-              Map<String, Iteration> targetCommitIdForPossibleIterations = iterations.value.stream()
-                                                    .filter(it -> null != it.sourceRefCommit && null != it.targetRefCommit
-                                                                  && parentCommits.contains(it.sourceRefCommit.commitId))
-                                                    .collect(Collectors.toMap(iteration -> iteration.targetRefCommit.commitId, Function.identity()));
-              if (!targetCommitIdForPossibleIterations.isEmpty()) {
-                for (Map.Entry<String, Iteration> targetCommitToIteration : targetCommitIdForPossibleIterations.entrySet()) {
-                  String targetCommitId = targetCommitToIteration.getKey();
-                  if (parentCommits.contains(targetCommitId)) {
-                    iterationRef.set(targetCommitToIteration.getValue());
-                    return;
-                  }
+              Map<String, Iteration> targetCommitIdForPossibleIterations = new HashMap<>();
+              ListIterator<Iteration> iterationsIt = iterations.value.listIterator(iterations.value.size());
+              // iterate iterations from the last one, because it's the latest one
+              while (iterationsIt.hasPrevious()) {
+                Iteration it = iterationsIt.previous();
+                if (it.sourceRefCommit == null || it.targetRefCommit == null || !parentCommits.contains(it.sourceRefCommit.commitId)) continue;
+
+                String targetCommitId = it.targetRefCommit.commitId;
+                if (parentCommits.contains(targetCommitId)) {
+                  iterationRef.set(it);
+                  return;
                 }
-                LOG.debug("Matching iteration was not found among parents. Loading more commits from repository " + info);
-                int commitsToLoad = numCommitsToLoad();
-                Optional<Commit> commitFromRepo = getNLatestCommits(info, params, trustStore, commitsToLoad).stream()
-                                                                .filter(commit -> targetCommitIdForPossibleIterations.containsKey(commit.commitId))
-                                                                .max(Comparator.comparing(c -> c.author.date));
-                if (commitFromRepo.isPresent()) {
-                  String commitId = commitFromRepo.get().commitId;
-                  Iteration iteration = targetCommitIdForPossibleIterations.get(commitId);
-                  iterationRef.set(iteration);
-                } else {
-                  LOG.debug("Iteration was not found among " + commitsToLoad + " latest commits from repository " + info);
-                }
+                targetCommitIdForPossibleIterations.put(targetCommitId, it);
+              }
+
+              if (targetCommitIdForPossibleIterations.isEmpty()) return;
+
+              LOG.debug("Matching iteration was not found among parents. Loading more commits from repository " + info);
+              int commitsToLoad = numCommitsToLoad();
+              Optional<Commit> commitFromRepo = getNLatestCommits(info, params, trustStore, commitsToLoad).stream()
+                                                              .filter(commit -> targetCommitIdForPossibleIterations.containsKey(commit.commitId))
+                                                              .max(Comparator.comparing(c -> c.author.date));
+              if (commitFromRepo.isPresent()) {
+                String commitId = commitFromRepo.get().commitId;
+                Iteration iteration = targetCommitIdForPossibleIterations.get(commitId);
+                iterationRef.set(iteration);
+              } else {
+                LOG.debug("Iteration was not found among " + commitsToLoad + " latest commits from repository " + info);
               }
             }
           });
@@ -718,28 +722,29 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     private List<Commit> value;
   }
 
-  private static class Commit {
-    private String commitId;
-    private List<String> parents;
-    private Author author;
+  static class Commit {
+    String commitId;
+    List<String> parents;
+    Author author;
   }
 
-  private static class Author {
-    private String name;
-    private Date date;
+  static class Author {
+    String name;
+    Date date;
   }
 
-  private static class IterationsList {
-    private List<Iteration> value;
+  static class IterationsList {
+    List<Iteration> value;
   }
 
-  private static class Iteration {
-    private String id;
-    private IterationCommit sourceRefCommit;
-    private IterationCommit targetRefCommit;
+  static class Iteration {
+    String id;
+    String createdDate;
+    IterationCommit sourceRefCommit;
+    IterationCommit targetRefCommit;
   }
 
-  private static class IterationCommit {
-    private String commitId;
+  static class IterationCommit {
+    String commitId;
   }
 }

@@ -198,6 +198,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     prepareVcs();
     addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
+    waitForAssert(() -> !myPublisher.getEventsReceived().isEmpty(), TASK_COMPLETION_TIMEOUT_MS);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED));
   }
 
