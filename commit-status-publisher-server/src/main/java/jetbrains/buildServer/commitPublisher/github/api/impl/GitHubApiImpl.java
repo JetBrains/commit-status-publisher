@@ -31,7 +31,6 @@ import jetbrains.buildServer.commitPublisher.Repository;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.*;
-import jetbrains.buildServer.github.app.GitHubAppClient;
 import jetbrains.buildServer.http.SimpleCredentials;
 import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.util.HTTPRequestBuilder;

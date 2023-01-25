@@ -29,8 +29,12 @@
 
 <c:set var="oauth_connection_fragment">
   <c:forEach items="${oauthConnections.keySet()}" var="connection">
-    <c:set var="title">Acquire an access token from <c:out value="${connection.parameters['gitHubUrl']}"/></c:set>
-    <span class="githubRepoControl"><i class="icon-magic" style="cursor:pointer;" title="${title}" onclick="BS.GitHubAccessTokenPopup.showPopup(this, '${connection.id}')"></i></span>
+    <c:if test="${'githubappConnection' != connection.oauthProvider.type}">
+      <c:set var="title">
+        Acquire an access token from <c:out value="${connection.parameters['gitHubUrl']}"/> (<c:out value="${connection.connectionDisplayName}"/>)
+      </c:set>
+      <span class="githubRepoControl"><i class="icon-magic" style="cursor:pointer;" title="${title}" onclick="BS.GitHubAccessTokenPopup.showPopup(this, '${connection.id}')"></i></span>
+    </c:if>
   </c:forEach>
 </c:set>
 
@@ -71,49 +75,65 @@
 
     <props:selectSectionPropertyContent value="${keys.authentificationTypeGitHubAppTokenValue}" caption="GitHub App access token">
       <script type="text/javascript">
-        BS.GitHubAppCSPTokenSupport = {
-          updateTokenMessage: () => {
-            const tokenValue = $('${keys.tokenId}').value;
-            if (tokenValue === null || tokenValue.trim().length == 0) {
-              //todo something
-            } else {
-              //todo something
-            }
-            //$j('#error_${keys.tokenId}').empty();
-          },
-
-          tokenCallback: (it) => {
-            console.log(it);
-            $('${keys.tokenId}').value = it.tokenId;
-            BS.GitHubAppCSPTokenSupport.updateTokenMessage();
-            console.log($('${keys.tokenId}').value);
+        showTokenInfo = function () {
+          const tokenValue = $('${keys.tokenId}').value;
+          if (tokenValue === null || tokenValue.trim().length == 0) {
+            $('message_acquire_token').innerHTML = "No access token configured"
+          } else {
+            $('message_acquire_token').innerHTML = "There is an access token configured"
           }
         };
 
-        BS.GitHubAppCSPTokenSupport.updateTokenMessage();
+        setAcquiredToken = function(it) {
+          const tokenValue = $('${keys.tokenId}').value;
+          if (tokenValue === null || tokenValue.trim().length == 0) {
+            $('message_acquire_token').innerHTML = "No access token configured"
+          } else {
+            console.log(tokenValue);
+            console.log(it);
+            $j('error_${keys.tokenId}').empty();
+            if (tokenValue == it["tokenId"]) {
+              $('message_acquire_token').innerHTML = "New token wasn't issued because existing token for current user is valid.";
+            } else if (it["acquiredNew"] == true) {
+              $('${keys.tokenId}').value = it["tokenId"];
+              $('message_acquire_token').innerHTML = "New token was issued";
+            } else {
+              $('${keys.tokenId}').value = it["tokenId"];
+              $('message_acquire_token').innerHTML = "Token for this Build feature was replaced by previously saved token";
+            }
+            console.log($('${keys.tokenId}').value);
+            console.log(it["tokenId"]);
+          }
+        };
+
+        showTokenInfo();
       </script>
       <tr>
         <th>
           <label for="${keys.tokenId}">GitHub App Token:</label>
         </th>
         <td>
-          Github app token ${oauthConnections.keySet()}
-          ${tokenId}
-
-          <props:hiddenProperty name="${keys.tokenId}" />
-          <span class="error" id="error_${keys.tokenId}"></span>
 
           <c:forEach items="${oauthConnections.keySet()}" var="connection">
-            <div class="token-connection">
-              <span class="token-connection-diplay-name">${connection.connectionDisplayName}</span>
-              <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.GitHubAppCSPTokenSupport.tokenCallback">
-                Acquire
-              </oauth:obtainToken>
-            </div>
+            <c:if test="${'githubappConnection' == connection.oauthProvider.type}">
+              <div class="token-connection">
+                <span title="<c:out value='${connection.id}' />" id="issuedTokenId">
+                  <span id="issuedForTitle">Issued via</span>
+                  <!-- we can't determine user by userId in tokenId now -->
+                  <strong id="connectionDisplayName">
+                    <c:out value="${connection.connectionDisplayName}" />
+                  </strong>
+                </span>
+                <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="setAcquiredToken">
+                  Acquire new
+                </oauth:obtainToken>
+              </div>
+            </c:if>
           </c:forEach>
 
           <props:hiddenProperty name="${keys.tokenId}" />
           <span class="error" id="error_${keys.tokenId}"></span>
+          <span id="message_acquire_token"></span>
         </td>
       </tr>
     </props:selectSectionPropertyContent>
