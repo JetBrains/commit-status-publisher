@@ -21,7 +21,7 @@
 
 .swarmReviewsList > li {
   display: flex;
-  border-bottom: 1px solid var(--ring-borders-color);
+  border-bottom: 1px solid var(--ring-borders-color, #c5d1db);
 }
 
 .swarmReviewsList__changelist {
@@ -47,6 +47,6 @@
   display: none;
 }
 .swarmReviewsAge__error {
-  color: var(--ring-error-color);
+  color: var(--ring-error-color, #a90f1a);
   display: block;
 }
