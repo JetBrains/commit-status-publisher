@@ -89,11 +89,9 @@
           if (tokenValue === null || tokenValue.trim().length == 0) {
             $('message_acquire_token').innerHTML = "No access token configured"
           } else {
-            console.log(tokenValue);
-            console.log(it);
-            $j('error_${keys.tokenId}').empty();
+            $('error_${keys.tokenId}').empty();
             if (tokenValue == it["tokenId"]) {
-              $('message_acquire_token').innerHTML = "New token wasn't issued because existing token for current user is valid.";
+              $('message_acquire_token').innerHTML = "New token wasn't issued because existing token is valid.";
             } else if (it["acquiredNew"] == true) {
               $('${keys.tokenId}').value = it["tokenId"];
               $('message_acquire_token').innerHTML = "New token was issued";
@@ -101,8 +99,6 @@
               $('${keys.tokenId}').value = it["tokenId"];
               $('message_acquire_token').innerHTML = "Token for this Build feature was replaced by previously saved token";
             }
-            console.log($('${keys.tokenId}').value);
-            console.log(it["tokenId"]);
           }
         };
 
