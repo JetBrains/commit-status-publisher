@@ -623,7 +623,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   }
 
   protected StatusState getFallbackRemovedBuildStatus() {
-    return StatusState.Error;
+    return StatusState.Pending;
   }
 
   @Nullable
