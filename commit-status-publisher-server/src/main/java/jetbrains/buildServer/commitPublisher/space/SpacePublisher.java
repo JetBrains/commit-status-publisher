@@ -96,7 +96,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
   }
 
   protected SpaceBuildStatus getFallbackRemovedBuildStatus() {
-    return SpaceBuildStatus.TERMINATED;
+    return SpaceBuildStatus.SCHEDULED;
   }
 
   @Override

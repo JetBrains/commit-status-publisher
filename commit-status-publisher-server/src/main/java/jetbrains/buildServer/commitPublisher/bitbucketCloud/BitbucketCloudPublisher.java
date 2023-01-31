@@ -92,7 +92,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
   }
 
   protected BitbucketCloudBuildStatus getFallbackRemovedBuildStatus() {
-    return BitbucketCloudBuildStatus.STOPPED;
+    return BitbucketCloudBuildStatus.INPROGRESS;
   }
 
   @Override

@@ -509,7 +509,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   }
 
   private boolean publishReplacingStatus(CommitStatusPublisher publisher, BuildRevision revision, AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    if (!TeamCityProperties.getBoolean(PUBLISH_REPLACING_STATUS_ON_REMOVE)) return false;
+    if (!TeamCityProperties.getBooleanOrTrue(PUBLISH_REPLACING_STATUS_ON_REMOVE)) return false;
     BuildPromotion replacingPromotion = additionalTaskInfo.getReplacingPromotion();
     if (replacingPromotion == null) {
       return false;

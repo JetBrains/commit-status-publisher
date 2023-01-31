@@ -96,7 +96,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
   }
 
   protected StashBuildStatus getFallbackRemovedBuildStatus() {
-    return StashBuildStatus.FAILED;
+    return StashBuildStatus.INPROGRESS;
   }
 
   @Override
