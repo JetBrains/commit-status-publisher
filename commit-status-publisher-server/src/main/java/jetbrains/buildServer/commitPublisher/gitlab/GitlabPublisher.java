@@ -91,7 +91,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
   }
 
   protected GitlabBuildStatus getFallbackRemovedBuildStatus() {
-    return GitlabBuildStatus.CANCELED;
+    return GitlabBuildStatus.PENDING;
   }
 
   @Override
