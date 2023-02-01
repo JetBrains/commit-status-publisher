@@ -33,7 +33,7 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
     //System.setProperty("teamcity.dev.test.retry.count", "0");
     
     myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, "POST /api/v10/reviews/19/testruns/706 HTTP/1.1\tENTITY: \\{\"completedTime\":\".*\",\"messages\":\\[\"Failure\"\\],\"status\":\"fail\"}");
-    myExpectedRegExps.put(EventToTest.STARTED, "POST /api/v10/reviews/19/testruns HTTP/1.1\tENTITY:[\\s\\S]+\"url\":\\s*\"http://localhost/viewLog.html\\?buildId=1[\\s\\S]+");
+    myExpectedRegExps.put(EventToTest.STARTED, "POST /api/v10/reviews/19/testruns HTTP/1.1\tENTITY:[\\s\\S]+\"url\":\\s*\"http://localhost:8111/viewLog.html\\?buildId=1[\\s\\S]+");
 
     myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, "POST /api/v10/reviews/19/testruns/706 HTTP/1.1\tENTITY: \\{\"messages\":\\[\"Problem description \\(new\\)\"],\"status\":\"running\"}");
     myExpectedRegExps.put(EventToTest.INTERRUPTED, "POST /api/v10/reviews/19/testruns/706 HTTP/1.1\tENTITY: \\{\"completedTime\":\"\\d+\",\"messages\":\\[\"Problem description \\(new\\)\"\\],\"status\":\"fail\"}");
