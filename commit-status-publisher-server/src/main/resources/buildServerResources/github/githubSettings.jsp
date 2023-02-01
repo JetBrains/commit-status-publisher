@@ -86,7 +86,7 @@
 
         setAcquiredToken = function(it) {
           const tokenValue = $('${keys.tokenId}').value;
-          if (tokenValue === null || tokenValue.trim().length == 0) {
+          if ((tokenValue === null || tokenValue.trim().length == 0) && (it === null || it["tokenId"] === null)) {
             $('message_acquire_token').innerHTML = "No access token configured"
           } else {
             $('error_${keys.tokenId}').empty();
