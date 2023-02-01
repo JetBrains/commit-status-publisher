@@ -50,7 +50,5 @@
     <orderEntry type="library" name="jsch" level="project" />
     <orderEntry type="library" scope="TEST" name="org.mockito:mockito-core" level="project" />
     <orderEntry type="module" module-name="vcs-hostings-plugin-api" />
-    <orderEntry type="module" module-name="teamcity-github-app.teamcity-github-app-server.main" />
-    <orderEntry type="module" module-name="github-app-server" />
   </component>
 </module>

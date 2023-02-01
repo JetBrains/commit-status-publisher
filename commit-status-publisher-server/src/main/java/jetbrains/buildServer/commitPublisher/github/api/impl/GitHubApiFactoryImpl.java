@@ -71,17 +71,17 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
 
   @NotNull
   @Override
-  public GitHubApi openGitHubForGitHubApp(@NotNull final String url,
-                                          @NotNull final String tokenId,
-                                          @NotNull final String vcsRootId) {
-
+  public GitHubApi openGitHubForOAuth(@NotNull final String url,
+                                      @NotNull final String tokenId,
+                                      @NotNull final String vcsRootId) {
 
     return new GitHubApiImpl(myWrapper, new GitHubApiPaths(url)){
       @Override
       protected SimpleCredentials authenticationCredentials() throws IOException {
-        final OAuthToken gitHubAppToken = myOAuthTokensStorage.getRefreshableToken(vcsRootId, tokenId, false);
-        if (gitHubAppToken != null) {
-          return new SimpleCredentials("oauth2", gitHubAppToken.getAccessToken());
+        final OAuthToken gitHubOAuthToken = myOAuthTokensStorage.getRefreshableToken(vcsRootId, tokenId, false);
+        if (gitHubOAuthToken != null) {
+          //must be refactored to use Bearer token
+          return new SimpleCredentials("oauth2", gitHubOAuthToken.getAccessToken());
         }
         else {
           throw new IOException("Failed to get installation token for GitHub App connection (tokenId: " + tokenId + ")");
@@ -89,16 +89,7 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
       }
 
       @Override
-      public void testConnection(@NotNull Repository repo) throws PublisherException {
-        final String uri = myUrls.getRepoInfo(repo.owner(), repo.repositoryName());
-
-        RepoInfo repoInfo;
-        try {
-          repoInfo = processResponse(uri, RepoInfo.class, true);
-        } catch (Throwable ex) {
-          throw new PublisherException(String.format("Error while retrieving \"%s\" repository information", repo.url()), ex);
-        }
-
+      protected void checkPermissions(@NotNull Repository repo, @NotNull RepoInfo repoInfo) throws PublisherException {
         if (null == repoInfo.name || null == repoInfo.permissions) {
           throw new PublisherException(String.format("Repository \"%s\" is inaccessible", repo.url()));
         }

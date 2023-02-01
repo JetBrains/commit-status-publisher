@@ -30,9 +30,6 @@ import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthToken;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
-import jetbrains.buildServer.serverSide.oauth.github.GHEOAuthProvider;
-import jetbrains.buildServer.serverSide.oauth.github.GitHubOAuthProvider;
-import jetbrains.buildServer.github.app.GitHubAppOAuthProvider;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
@@ -63,6 +60,10 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
     add(Event.REMOVED_FROM_QUEUE);
     addAll(mySupportedEvents);
   }};
+
+  public static final String GITHUB_OAUTH_PROVIDER_TYPE = "GitHub";
+  public static final String GHE_OAUTH_PROVIDER_TYPE = "GHE";
+  public static final String GITHUB_APP_OAUTH_PROVIDER_TYPE = "githubappConnection";
 
   public GitHubSettings(@NotNull ChangeStatusUpdater updater,
                         @NotNull PluginDescriptor descriptor,
@@ -121,9 +122,9 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
   @Override
   public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(final @NotNull SProject project, final @NotNull SUser user) {
     List<OAuthConnectionDescriptor> validConnections = new ArrayList<OAuthConnectionDescriptor>();
-    validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GitHubOAuthProvider.TYPE));
-    validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GitHubAppOAuthProvider.TYPE));
-    validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GHEOAuthProvider.TYPE));
+    validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GITHUB_OAUTH_PROVIDER_TYPE));
+    validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GITHUB_APP_OAUTH_PROVIDER_TYPE));
+    validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GHE_OAUTH_PROVIDER_TYPE));
     Map<OAuthConnectionDescriptor, Boolean> connections = new LinkedHashMap<OAuthConnectionDescriptor, Boolean>();
     for (OAuthConnectionDescriptor c: validConnections) {
       connections.put(c, !myOAuthTokensStorage.getUserTokens(c.getId(), user, project, false).isEmpty());
