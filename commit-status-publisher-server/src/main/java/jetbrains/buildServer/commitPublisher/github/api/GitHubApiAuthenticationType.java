@@ -24,7 +24,7 @@ public enum GitHubApiAuthenticationType {
   TOKEN_AUTH("token"),
   PASSWORD_AUTH("password"),
 
-  GITHUB_OAUTH("github_oauth");
+  OAUTH("oauth");
   ;
 
   private final String myValue;

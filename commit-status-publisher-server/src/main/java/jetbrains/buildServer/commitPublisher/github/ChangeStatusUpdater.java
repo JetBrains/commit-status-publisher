@@ -80,7 +80,7 @@ public class ChangeStatusUpdater {
         final String token = params.get(C.getAccessTokenKey());
         return myFactory.openGitHubForToken(serverUrl, token);
 
-      case GITHUB_OAUTH:
+      case OAUTH:
         final String tokenId = params.get(C.getTokenId());
         return myFactory.openGitHubForOAuth(serverUrl, tokenId, params.get(Constants.VCS_ROOT_ID_PARAM));
       default:

@@ -34,7 +34,7 @@ public class UpdateChangesConstants {
   public String getAuthenticationTypePasswordValue() { return GitHubApiAuthenticationType.PASSWORD_AUTH.getValue();}
   public String getAuthenticationTypeTokenValue() { return GitHubApiAuthenticationType.TOKEN_AUTH.getValue();}
   public String getAuthentificationTypeGitHubAppTokenValue() {
-    return GitHubApiAuthenticationType.GITHUB_OAUTH.getValue();
+    return GitHubApiAuthenticationType.OAUTH.getValue();
   }
   public String getTokenId() {
     return Constants.TOKEN_ID;
