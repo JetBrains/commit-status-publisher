@@ -83,7 +83,7 @@ public class SecurityParametersReport extends HealthStatusReport {
       ControlDescription description = p.getControlDescription();
       if (description == null)
         continue;
-      if (Constants.PASSWORD_PARAMETER_TYPE.equals(description.getParameterType()))
+      if (Constants.PASSWORD.equals(description.getParameterType()))
         return true;
     }
     return false;

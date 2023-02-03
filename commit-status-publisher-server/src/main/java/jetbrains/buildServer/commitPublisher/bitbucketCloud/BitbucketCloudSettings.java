@@ -45,7 +45,7 @@ import org.springframework.http.MediaType;
 public class BitbucketCloudSettings extends AuthTypeAwareSettings implements CommitStatusPublisherSettings {
 
   static final String DEFAULT_API_URL = "https://api.bitbucket.org/";
-  static final String DEFAULT_AUTH_TYPE = Constants.AUTH_TYPE_PASSWORD;
+  static final String DEFAULT_AUTH_TYPE = Constants.PASSWORD;
   static final BitbucketCloudRepositoryParser VCS_PROPERTIES_PARSER = new BitbucketCloudRepositoryParser();
 
   private String myDefaultApiUrl = DEFAULT_API_URL;
@@ -111,7 +111,7 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
 
         final String authType = getAuthType(params);
         switch (authType) {
-          case Constants.AUTH_TYPE_PASSWORD:
+          case Constants.PASSWORD:
             params.remove(Constants.TOKEN_ID);
 
             if (StringUtil.isEmptyOrSpaces(params.get(Constants.BITBUCKET_CLOUD_USERNAME))) {
@@ -123,7 +123,7 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
             }
             break;
 
-          case Constants.AUTH_TYPE_ACCESS_TOKEN:
+          case Constants.AUTH_TYPE_STORED_TOKEN:
             params.remove(Constants.BITBUCKET_CLOUD_USERNAME);
             params.remove(Constants.BITBUCKET_CLOUD_PASSWORD);
 
@@ -225,11 +225,11 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
     sb.append(", authenticating via ");
     final String authType = getAuthType(params);
     switch (authType) {
-      case Constants.AUTH_TYPE_PASSWORD:
+      case Constants.PASSWORD:
         sb.append("username / password credentials");
         break;
 
-      case Constants.AUTH_TYPE_ACCESS_TOKEN:
+      case Constants.AUTH_TYPE_STORED_TOKEN:
         sb.append("access token");
         break;
 

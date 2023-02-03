@@ -63,7 +63,7 @@
                   <description>
                     Use username / password credentials
                   </description>
-                  <option name="password" value="authTypePassword">
+                  <option name="password" value="password">
                     <param name="bitbucketUsername" dslName="userName" mandatory="true">
                       <description>
                         A username for Bitbucket Cloud connection
@@ -75,13 +75,13 @@
                       </description>
                     </param>
                   </option>
-                  <option name="accessToken" value="authTypeAccessToken">
+                  <option name="storedToken" value="storedToken">
                     <description>
-                      Use OAuth 2 access token credentials
+                      Use token credentials stored in TeamCity
                     </description>
                     <param name="tokenId" mandatory="true">
                       <description>
-                        The internal ID of the Access Token to use for the connection
+                        The internal ID of the token to use for the connection
                       </description>
                     </param>
                   </option>
@@ -113,7 +113,7 @@
                     </deprecated>
                 </param>
                 <param name="authType" type="compound">
-                  <option name="password" value="authTypePassword">
+                  <option name="password" value="password">
                     <description>
                       Use username / password credentials
                     </description>
@@ -128,13 +128,13 @@
                       </description>
                     </param>
                   </option>
-                  <option name="accessToken" value="authTypeAccessToken">
+                  <option name="storedToken" value="storedToken">
                     <description>
-                      Use OAuth 2 access token credentials
+                      Use token credentials stored in TeamCity
                     </description>
                     <param name="tokenId" mandatory="true">
                       <description>
-                        The internal ID of the Access Token to use for the connection
+                        The internal ID of the token to use for the connection
                       </description>
                     </param>
                   </option>

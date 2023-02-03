@@ -54,7 +54,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
 
     final String authType = getAuthType(params);
     switch (authType) {
-      case Constants.AUTH_TYPE_PASSWORD:
+      case Constants.PASSWORD:
         final String username = getUsername(params);
         if (StringUtil.isEmptyOrSpaces(username)) {
           throw new PublisherException("authentication type is set to password, but username is not configured");
@@ -65,7 +65,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
         }
         return new UsernamePasswordCredentials(username, password);
 
-      case Constants.AUTH_TYPE_ACCESS_TOKEN:
+      case Constants.AUTH_TYPE_STORED_TOKEN:
         if (root == null) {
           throw new PublisherException("unable to determine VCS root, authentication via access token is not possible");
         }

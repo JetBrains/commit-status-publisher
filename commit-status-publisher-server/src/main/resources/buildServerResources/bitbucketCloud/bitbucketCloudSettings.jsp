@@ -46,7 +46,7 @@
     </tr>
   </props:selectSectionPropertyContent>
 
-  <props:selectSectionPropertyContent value="${keys.authTypeAccessToken}" caption="Access Token">
+  <props:selectSectionPropertyContent value="${keys.authTypeStoredToken}" caption="Access Token">
     <script type="text/javascript">
       BS.BitbucketCloudTokenSupport = {
         updateTokenMessage: () => {

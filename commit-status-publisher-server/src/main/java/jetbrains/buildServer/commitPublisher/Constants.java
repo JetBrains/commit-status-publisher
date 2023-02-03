@@ -26,15 +26,14 @@ public class Constants {
   public static final String VCS_ROOT_ID_PARAM = "vcsRootId";
   public static final String PUBLISHER_ID_PARAM = "publisherId";
 
-  public static final String PASSWORD_PARAMETER_TYPE = "password";
+  public static final String PASSWORD = "password";
   public static final String TEST_CONNECTION_PARAM = "testconnection";
   public static final String TEST_CONNECTION_YES = "yes";
   public static final String GIT_VCS_NAME = "jetbrains.git";
   public static final String GIT_URL_PARAMETER = "url";
 
   public static final String AUTH_TYPE = "authType";
-  public static final String AUTH_TYPE_PASSWORD = "authTypePassword";
-  public static final String AUTH_TYPE_ACCESS_TOKEN = "authTypeAccessToken";
+  public static final String AUTH_TYPE_STORED_TOKEN = "storedToken";
   public static final String TOKEN_ID = "tokenId";
 
   public static final String UPSOURCE_PUBLISHER_ID = "upsourcePublisher";
@@ -97,12 +96,12 @@ public class Constants {
 
   @NotNull
   public String getAuthTypePassword() {
-    return AUTH_TYPE_PASSWORD;
+    return PASSWORD;
   }
 
   @NotNull
-  public String getAuthTypeAccessToken() {
-    return AUTH_TYPE_ACCESS_TOKEN;
+  public String getAuthTypeStoredToken() {
+    return AUTH_TYPE_STORED_TOKEN;
   }
 
   @NotNull

@@ -50,7 +50,7 @@ import static jetbrains.buildServer.commitPublisher.stash.StashPublisher.PROP_PU
 
 public class StashSettings extends AuthTypeAwareSettings implements CommitStatusPublisherSettings {
 
-  static final String DEFAULT_AUTH_TYPE = Constants.AUTH_TYPE_PASSWORD;
+  static final String DEFAULT_AUTH_TYPE = Constants.PASSWORD;
   static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
@@ -117,10 +117,10 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
     sb.append(", authenticating via ");
     final String authType = getAuthType(params);
     switch (authType) {
-      case Constants.AUTH_TYPE_PASSWORD:
+      case Constants.PASSWORD:
         sb.append("username / password credentials");
         break;
-      case Constants.AUTH_TYPE_ACCESS_TOKEN:
+      case Constants.AUTH_TYPE_STORED_TOKEN:
         sb.append("access token");
         break;
       default:
@@ -140,13 +140,13 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
 
         final String authType = getAuthType(params);
         switch(authType) {
-          case Constants.AUTH_TYPE_PASSWORD:
+          case Constants.PASSWORD:
             params.remove(Constants.TOKEN_ID);
             mandatoryString(Constants.STASH_USERNAME, "Username must be specified", params, errors);
             mandatoryString(Constants.STASH_PASSWORD, "Password must be specified", params, errors);
             break;
 
-          case Constants.AUTH_TYPE_ACCESS_TOKEN:
+          case Constants.AUTH_TYPE_STORED_TOKEN:
             params.remove(Constants.STASH_USERNAME);
             params.remove(Constants.STASH_PASSWORD);
             mandatoryString(Constants.TOKEN_ID, "No token configured", params, errors);
