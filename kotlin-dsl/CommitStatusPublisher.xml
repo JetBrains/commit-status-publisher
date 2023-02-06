@@ -226,7 +226,7 @@
                         </description>
                         <param name="tokenId" dslName="tokenId" mandatory="true">
                             <description>
-                              The internal ID of the Access Token to use for the connection
+                              The internal ID of the token to use for the connection
                             </description>
                         </param>
                     </option>
