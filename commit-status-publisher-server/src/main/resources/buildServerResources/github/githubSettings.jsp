@@ -76,7 +76,7 @@
     <props:selectSectionPropertyContent value="${keys.authentificationTypeGitHubAppTokenValue}" caption="GitHub App access token">
       <script type="text/javascript">
         showTokenInfo = function () {
-          const tokenValue = $('${keys.tokenId}').value;
+          const tokenValue = $('${keys.tokenIdKey}').value;
           if (tokenValue === null || tokenValue.trim().length == 0) {
             $('message_acquire_token').innerHTML = "No access token configured"
           } else {
@@ -85,18 +85,18 @@
         };
 
         setAcquiredToken = function(it) {
-          const tokenValue = $('${keys.tokenId}').value;
+          const tokenValue = $('${keys.tokenIdKey}').value;
           if ((tokenValue === null || tokenValue.trim().length == 0) && (it === null || it["tokenId"] === null)) {
             $('message_acquire_token').innerHTML = "No access token configured"
           } else {
-            $('error_${keys.tokenId}').empty();
+            $('error_${keys.tokenIdKey}').empty();
             if (tokenValue == it["tokenId"]) {
               $('message_acquire_token').innerHTML = "New token wasn't issued because existing token is valid.";
             } else if (it["acquiredNew"] == true) {
-              $('${keys.tokenId}').value = it["tokenId"];
+              $('${keys.tokenIdKey}').value = it["tokenId"];
               $('message_acquire_token').innerHTML = "New token was issued";
             } else {
-              $('${keys.tokenId}').value = it["tokenId"];
+              $('${keys.tokenIdKey}').value = it["tokenId"];
               $('message_acquire_token').innerHTML = "Token for this Build feature was replaced by previously saved token";
             }
           }
@@ -106,7 +106,7 @@
       </script>
       <tr>
         <th>
-          <label for="${keys.tokenId}">GitHub App Token:</label>
+          <label for="${keys.tokenIdKey}">GitHub App Token:</label>
         </th>
         <td>
 
@@ -127,8 +127,8 @@
             </c:if>
           </c:forEach>
 
-          <props:hiddenProperty name="${keys.tokenId}" />
-          <span class="error" id="error_${keys.tokenId}"></span>
+          <props:hiddenProperty name="${keys.tokenIdKey}" />
+          <span class="error" id="error_${keys.tokenIdKey}"></span>
           <span id="message_acquire_token"></span>
         </td>
       </tr>

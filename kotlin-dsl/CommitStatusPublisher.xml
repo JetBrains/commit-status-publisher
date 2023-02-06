@@ -220,6 +220,16 @@
                             </description>
                         </param>
                     </option>
+                    <option name="stored_token" value="stored_token">
+                        <description>
+                          Use GitHub App credentials
+                        </description>
+                        <param name="tokenId" dslName="tokenId" mandatory="true">
+                            <description>
+                              The internal ID of the Access Token to use for the connection
+                            </description>
+                        </param>
+                    </option>
                 </param>
             </option>
             <option name="gitlab" value="gitlabStatusPublisher">
@@ -317,7 +327,7 @@
                     </description>
                 </param>
           </option>
-          <option name="swarm" value="perforceSwarmPublisher">
+            <option name="swarm" value="perforceSwarmPublisher">
             <description>
               Publish build status to Perforce Helix Swarm
             </description>
@@ -343,7 +353,6 @@
               </description>
             </param>
           </option>
-
         </param>
     </params>
     <examples>

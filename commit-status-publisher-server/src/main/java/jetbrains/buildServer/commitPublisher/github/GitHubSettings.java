@@ -187,9 +187,14 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
           checkNotEmpty(p, c.getUserNameKey(), "Username must be specified", result);
           checkNotEmpty(p, c.getPasswordKey(), "Password must be specified", result);
           p.remove(c.getAccessTokenKey());
+          p.remove(c.getTokenIdKey());
+          p.remove(c.getOAuthUserKey());
+          p.remove(c.getUserNameKey());
+          p.remove(c.getOAuthProviderIdKey());
         } else if (authenticationType == GitHubApiAuthenticationType.TOKEN_AUTH) {
           p.remove(c.getUserNameKey());
           p.remove(c.getPasswordKey());
+          p.remove(c.getTokenIdKey());
           String oauthUsername = p.get(c.getOAuthUserKey());
           String oauthProviderId = p.get(c.getOAuthProviderIdKey());
           if (null != oauthUsername && null != oauthProviderId) {
@@ -204,6 +209,14 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
             }
           }
           checkNotEmpty(p, c.getAccessTokenKey(), "Personal Access Token must be specified", result);
+        } else if (authenticationType == GitHubApiAuthenticationType.STORED_TOKEN) {
+          checkNotEmpty(p, c.getTokenIdKey(), "TokenId must be specified", result);
+          p.remove(c.getAccessTokenKey());
+          p.remove(c.getOAuthUserKey());
+          p.remove(c.getUserNameKey());
+          p.remove(c.getPasswordKey());
+          p.remove(c.getOAuthUserKey());
+          p.remove(c.getOAuthProviderIdKey());
         }
 
         if (!checkNotEmpty(p, c.getServerKey(), "GitHub API URL must be specified", result)) {
