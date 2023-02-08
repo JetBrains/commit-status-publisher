@@ -263,7 +263,7 @@ public class ChangeStatusUpdater {
   }
 
   private GitHubChangeState getFallbackRemovedBuildStatus() {
-    return GitHubChangeState.Error;
+    return GitHubChangeState.Pending;
   }
 
   private abstract class GitHubCommonStatusClient {

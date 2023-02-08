@@ -331,14 +331,14 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       }
       return build.getValueResolver().resolve(value).getResult();
     }
-    if (buildPromotion.getQueuedBuild() != null) {
-      String value = myBuildType.getParameters().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM);
-      if(value != null && ReferencesResolverUtil.mayContainReference(value)) {
-        throw new GitHubContextResolveException("Variables in custom context for queued build can not be resolved");
-      }
-      return value;
+
+    String value = myBuildType.getParameters().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM);
+    if (value == null) return null;
+
+    if(ReferencesResolverUtil.mayContainReference(value)) {
+      throw new GitHubContextResolveException("Variables in custom context for build can not be resolved");
     }
-    return null;
+    return value;
   }
 
   private boolean isRemovedFromQueue(@NotNull SBuild build) {
