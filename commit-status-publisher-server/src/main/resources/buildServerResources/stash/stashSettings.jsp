@@ -56,34 +56,14 @@
     </props:selectSectionPropertyContent>
 
     <props:selectSectionPropertyContent value="${keys.authTypeStoredToken}" caption="Access Token">
-      <script type="text/javascript">
-        BS.BitbucketServerTokenSupport = {
-          updateTokenMessage: () => {
-            const tokenValue = $('${keys.tokenId}').value;
-            if (tokenValue === null || tokenValue.trim().length == 0) {
-              $('message_no_token').show();
-              $('message_we_have_token').hide();
-            } else {
-              $('message_no_token').hide();
-              $('message_we_have_token').show();
-            }
-            $j('#error_${keys.tokenId}').empty();
-          },
 
-          tokenCallback: (it) => {
-            $('${keys.tokenId}').value = it.tokenId;
-            BS.BitbucketServerTokenSupport.updateTokenMessage();
-          }
-        };
-
-        BS.BitbucketServerTokenSupport.updateTokenMessage();
-      </script>
+      <%@include file="../tokenSupport.jspf"%>
 
       <tr>
         <th><label for="${keys.tokenId}">Access Token:<l:star/></label></th>
         <td>
           <span class="access-token-note" id="message_no_token">No access token configured.</span>
-          <span class="access-token-note" id="message_we_have_token">There is an access token configured.</span>
+          <span class="access-token-note" id="message_we_have_token">[token info message]</span>
           <c:if test="${empty oauthConnections}">
             <br/>
             <span>There are no Bitbucket Server connections available to the project.</span>
@@ -93,9 +73,12 @@
           <span class="error" id="error_${keys.tokenId}"></span>
 
           <c:forEach items="${oauthConnections.keySet()}" var="connection">
+            <script type="application/javascript">
+              BS.AuthTypeTokenSupport.connections['${connection.id}'] = '${connection.connectionDisplayName}';
+            </script>
             <div class="token-connection">
               <span class="token-connection-diplay-name">${connection.connectionDisplayName}</span>
-              <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.BitbucketServerTokenSupport.tokenCallback">
+              <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.AuthTypeTokenSupport.tokenCallback">
                 Acquire
               </oauth:obtainToken>
             </div>

@@ -17,7 +17,10 @@
 package jetbrains.buildServer.commitPublisher;
 
 import java.security.KeyStore;
+import java.util.Collections;
+import java.util.Map;
 import jetbrains.buildServer.TeamCityExtension;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -28,9 +31,6 @@ import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
-
-import java.util.Map;
 
 public interface CommitStatusPublisherSettings extends TeamCityExtension {
 
@@ -104,4 +104,17 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
   default HttpCredentials getCredentials(@Nullable VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
     return null;
   }
+
+  /**
+   * Can be used by implementors to supply specific model attributes for the settings page.
+   *
+   * @param project owning project
+   * @param params  parameters
+   * @return Map of attribute name to value
+   */
+  @NotNull
+  default Map<String, Object> getSpecificAttributes(@NotNull SProject project, @NotNull Map<String, String> params) {
+    return Collections.emptyMap();
+  }
+
 }

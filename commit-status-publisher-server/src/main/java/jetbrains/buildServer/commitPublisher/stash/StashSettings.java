@@ -32,6 +32,7 @@ import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
@@ -71,17 +72,14 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
   @NotNull
   private final CommitStatusesCache<JsonStashBuildStatus> myStatusesCache;
 
-  @NotNull
-  private final OAuthConnectionsManager myOAuthConnectionsManager;
-
   public StashSettings(@NotNull PluginDescriptor descriptor,
                        @NotNull WebLinks links,
                        @NotNull CommitStatusPublisherProblems problems,
                        @NotNull SSLTrustStoreProvider trustStoreProvider,
                        @NotNull OAuthConnectionsManager oAuthConnectionsManager,
-                       @NotNull OAuthTokensStorage oAuthTokensStorage) {
-    super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage);
-    myOAuthConnectionsManager = oAuthConnectionsManager;
+                       @NotNull OAuthTokensStorage oAuthTokensStorage,
+                       @NotNull UserModel userModel) {
+    super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, oAuthConnectionsManager);
     myStatusesCache = new CommitStatusesCache<>();
   }
 
