@@ -29,7 +29,7 @@
 
 <c:set var="oauth_connection_fragment">
   <c:forEach items="${oauthConnections.keySet()}" var="connection">
-    <c:if test="${'githubappConnection' != connection.oauthProvider.type}">
+    <c:if test="${'GitHubApp' != connection.oauthProvider.type}">
       <c:set var="title">
         Acquire an access token from <c:out value="${connection.parameters['gitHubUrl']}"/> (<c:out value="${connection.connectionDisplayName}"/>)
       </c:set>
@@ -111,7 +111,7 @@
         <td>
 
           <c:forEach items="${oauthConnections.keySet()}" var="connection">
-            <c:if test="${'githubappConnection' == connection.oauthProvider.type}">
+            <c:if test="${'GitHubApp' == connection.oauthProvider.type}">
               <div class="token-connection">
                 <span title="<c:out value='${connection.id}' />" id="issuedTokenId">
                   <span id="issuedForTitle">Issued via</span>

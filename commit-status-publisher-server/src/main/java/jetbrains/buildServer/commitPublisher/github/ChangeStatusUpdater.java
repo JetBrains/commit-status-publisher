@@ -82,7 +82,7 @@ public class ChangeStatusUpdater {
 
       case STORED_TOKEN:
         final String tokenId = params.get(C.getTokenIdKey());
-        return myFactory.openGitHubForOAuth(serverUrl, tokenId, params.get(Constants.VCS_ROOT_ID_PARAM));
+        return myFactory.openGitHubForStoredToken(serverUrl, tokenId, params.get(Constants.VCS_ROOT_ID_PARAM));
       default:
         throw new IllegalArgumentException("Failed to parse authentication type:" + authenticationType);
     }

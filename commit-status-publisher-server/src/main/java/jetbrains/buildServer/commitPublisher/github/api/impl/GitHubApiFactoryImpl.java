@@ -71,9 +71,9 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
 
   @NotNull
   @Override
-  public GitHubApi openGitHubForOAuth(@NotNull final String url,
-                                      @NotNull final String tokenId,
-                                      @NotNull final String vcsRootId) {
+  public GitHubApi openGitHubForStoredToken(@NotNull final String url,
+                                            @NotNull final String tokenId,
+                                            @NotNull final String vcsRootId) {
 
     return new GitHubApiImpl(myWrapper, new GitHubApiPaths(url)){
       @Override

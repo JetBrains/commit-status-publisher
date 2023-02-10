@@ -63,7 +63,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
 
   public static final String GITHUB_OAUTH_PROVIDER_TYPE = "GitHub";
   public static final String GHE_OAUTH_PROVIDER_TYPE = "GHE";
-  public static final String GITHUB_APP_OAUTH_PROVIDER_TYPE = "githubappConnection";
+  public static final String GITHUB_APP_OAUTH_PROVIDER_TYPE = "GitHubApp";
 
   public GitHubSettings(@NotNull ChangeStatusUpdater updater,
                         @NotNull PluginDescriptor descriptor,

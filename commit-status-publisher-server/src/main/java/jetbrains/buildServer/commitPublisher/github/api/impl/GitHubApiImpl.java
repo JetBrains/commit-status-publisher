@@ -57,7 +57,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
   private static final String MSG_NOT_FOUND = "Repository not found. Please check if it spelled correctly and exists.";
 
   private final HttpClientWrapper myClient;
-  protected final GitHubApiPaths myUrls;
+  private final GitHubApiPaths myUrls;
   private final Gson myGson;
 
   public GitHubApiImpl(@NotNull final HttpClientWrapper client,
@@ -251,7 +251,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
   }
 
   @NotNull
-  protected <T> T processResponse(@NotNull String uri, @NotNull final Class<T> clazz, boolean logErrorsDebugOnly) throws IOException, PublisherException {
+  private <T> T processResponse(@NotNull String uri, @NotNull final Class<T> clazz, boolean logErrorsDebugOnly) throws IOException, PublisherException {
     LoggerUtil.logRequest(Constants.GITHUB_PUBLISHER_ID, HttpMethod.GET, uri, null);
 
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();

@@ -24,7 +24,7 @@ public enum GitHubApiAuthenticationType {
   TOKEN_AUTH("token"),
   PASSWORD_AUTH("password"),
 
-  STORED_TOKEN("stored_token");
+  STORED_TOKEN("storedToken");
   ;
 
   private final String myValue;
