@@ -7,7 +7,7 @@
         "id": 706,
         "change": 12345,
         "version": 2,
-        "test": "TESTNAME_VAR",
+        "title": "TESTNAME_VAR",
         "startTime": 1567895432,
         "messages": [
           "Test completed successfully",

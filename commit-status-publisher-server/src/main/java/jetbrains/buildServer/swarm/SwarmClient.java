@@ -222,7 +222,7 @@ public class SwarmClient {
   }
 
   @NotNull
-  private List<Long> collectTestRunIds(long reviewId, @NotNull SBuild build, @NotNull String debugBuildInfo) throws PublisherException {
+  private Collection<Long> collectTestRunIds(long reviewId, @NotNull SBuild build, @NotNull String debugBuildInfo) throws PublisherException {
     final String testRunUrl = mySwarmUrl + "/api/v10/reviews/" + reviewId + "/testruns";
 
     final GetRunningTestRuns processor = new GetRunningTestRuns(testNameFrom(build), debugBuildInfo);
@@ -342,7 +342,7 @@ public class SwarmClient {
 
   private class GetRunningTestRuns implements HttpResponseProcessor<HttpPublisherException> {
 
-    private final List<Long> myTestRunIds = new ArrayList<>();
+    private final Collection<Long> myTestRunIds = new LinkedHashSet<>();
     private final String myDebugInfo;
     private final String myExpectedTestName;
 
@@ -405,11 +405,8 @@ public class SwarmClient {
           for (Iterator<JsonNode> it = testruns.elements(); it.hasNext(); ) {
             JsonNode element = it.next();
             // Collect test runs whose test name match external build configuration ID and which are not completed
-            final JsonNode completedTime = element.get("completedTime");
-            final JsonNode test = element.get("test");
-            if (test != null && myExpectedTestName.equals(test.textValue()) && (completedTime == null || completedTime.isNull())) {
-              myTestRunIds.add(element.get("id").longValue());
-            }
+            findTestRunIdFromAttr(element, "test");
+            findTestRunIdFromAttr(element, "title");
           }
         }
         if (myTestRunIds.size() > 0) {
@@ -421,8 +418,16 @@ public class SwarmClient {
       }
     }
 
+    private void findTestRunIdFromAttr(@NotNull JsonNode element, @NotNull String attribute) {
+      final JsonNode completedTime = element.get("completedTime");
+      final JsonNode test = element.get(attribute);
+      if (test != null && myExpectedTestName.equals(test.textValue()) && (completedTime == null || completedTime.isNull())) {
+        myTestRunIds.add(element.get("id").longValue());
+      }
+    }
+
     @NotNull
-    public List<Long> getTestRunIds() {
+    public Collection<Long> getTestRunIds() {
       return myTestRunIds;
     }
   }

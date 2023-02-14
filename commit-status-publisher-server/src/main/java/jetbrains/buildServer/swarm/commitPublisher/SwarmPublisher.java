@@ -19,6 +19,7 @@ import static jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings
 class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
 
   private static final String SWARM_TESTRUNS_SUPPORT_ENABLED = "teamcity.swarm.testruns.enabled";
+  private static final String SWARM_TESTRUNS_DISCOVER = "teamcity.swarm.discover.testruns";
   private static final String SWARM_COMMENTS_NOTIFICATIONS_ENABLED = "teamcity.internal.swarm.commentsNotifications.enabled";
 
   private final SwarmClient mySwarmClient;
@@ -125,11 +126,16 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
 
   private void updateTestRunsForReviewsOnSwarm(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
 
-    if (!hasSwarmTestRunSupport()) {
+    BuildPromotion buildPromotion = build.getBuildPromotion();
+
+    boolean discoverNonTcTestRuns = ((BuildPromotionEx)buildPromotion).getBooleanInternalParameter(SWARM_TESTRUNS_DISCOVER);
+    boolean tryUpdateSwarmTests = hasSwarmTestRunSupport() || discoverNonTcTestRuns;
+
+    if (!tryUpdateSwarmTests) {
       return;
     }
 
-    postForEachReview(build.getBuildPromotion(), revision, new ReviewMessagePublisher() {
+    postForEachReview(buildPromotion, revision, new ReviewMessagePublisher() {
       @Override
       public void publishMessage(@NotNull Long reviewId, @NotNull BuildPromotion buildPromo, @NotNull String debugBuildInfo) throws PublisherException {
         mySwarmClient.updateSwarmTestRuns(reviewId, build, debugBuildInfo);
