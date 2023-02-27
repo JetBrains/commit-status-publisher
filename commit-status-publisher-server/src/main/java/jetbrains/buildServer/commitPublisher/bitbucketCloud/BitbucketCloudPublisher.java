@@ -155,8 +155,8 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
       return null;
     }
     Event event = getTriggeredEvent(buildStatus);
-    boolean isSameBuild = StringUtil.areEqual(myLinks.getQueuedBuildUrl(removedBuild), buildStatus.url);
-    return new RevisionStatus(event, buildStatus.description, isSameBuild);
+    boolean isSameBuildType = StringUtil.areEqual(removedBuild.getBuildTypeId(), buildStatus.key);
+    return new RevisionStatus(event, buildStatus.description, isSameBuildType);
   }
 
   @Override
@@ -224,8 +224,8 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
       return null;
     }
     Event event = getTriggeredEvent(commitStatus);
-    boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), commitStatus.url);
-    return new RevisionStatus(event, commitStatus.description, isSameBuild);
+    boolean isSameBuildType = StringUtil.areEqual(buildPromotion.getBuildTypeId(), commitStatus.key);
+    return new RevisionStatus(event, commitStatus.description, isSameBuildType);
   }
 
   @Nullable

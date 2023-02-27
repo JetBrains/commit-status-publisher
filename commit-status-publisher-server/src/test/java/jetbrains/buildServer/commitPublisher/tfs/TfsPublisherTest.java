@@ -28,6 +28,7 @@ import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
+import org.jmock.Mock;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -92,25 +93,30 @@ public class TfsPublisherTest extends HttpPublisherTest {
     BuildPromotion promotion = new MockBuildPromotion();
     TfsStatusPublisher publisher = (TfsStatusPublisher)myPublisher;
     assertNull(publisher.getRevisionStatus(promotion, (TfsStatusPublisher.CommitStatus)null));
-    assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(null, null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Succeeded.getName(), null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Failed.getName(), null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Error.getName(), null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus("nonsense", null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), "nonsense", null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_QUEUED, null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_STARTED, null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(null, null, null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Succeeded.getName(), null, null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Failed.getName(), null, null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Error.getName(), null, null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus("nonsense", null, null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), null, null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), "nonsense", null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_QUEUED, null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_STARTED, null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
   }
 
-  public void should_define_correctly_if_event_allowed() {
-    MockQueuedBuild removedBuild = new MockQueuedBuild();
-    removedBuild.setBuildTypeId("buildType");
-    removedBuild.setItemId("123");
+  public void should_allow_queued_depending_on_build_type() {
+    Mock removedBuildMock = new Mock(SQueuedBuild.class);
+    removedBuildMock.stubs().method("getBuildTypeId").withNoArguments().will(returnValue("buildType"));
+    removedBuildMock.stubs().method("getItemId").withNoArguments().will(returnValue("123"));
+    Mock buildPromotionMock = new Mock(BuildPromotion.class);
+    buildPromotionMock.stubs().method("getBuildTypeExternalId").withNoArguments().will(returnValue("buildTypeExtenalId"));
+    removedBuildMock.stubs().method("getBuildPromotion").withNoArguments().will(returnValue(buildPromotionMock.proxy()));
+    SQueuedBuild removedBuild = (SQueuedBuild)removedBuildMock.proxy();
+
     TfsStatusPublisher publisher = (TfsStatusPublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=123", null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321", null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=123", new TfsStatusPublisher.StatusContext("buildTypeExtenalId", "TeamCity"))).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321", new TfsStatusPublisher.StatusContext("anoterTypeExtenalId", "TeamCity"))).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
   }
 
   @Override
@@ -183,9 +189,7 @@ public class TfsPublisherTest extends HttpPublisherTest {
 
   private void respondWithStatuses(HttpResponse httpResponse) {
     TfsStatusPublisher.CommitStatuses commitStatuses = new TfsStatusPublisher.CommitStatuses();
-    TfsStatusPublisher.StatusContext context = new TfsStatusPublisher.StatusContext();
-    context.genre = "TeamCity";
-    context.name = "MyDefaultTestBuildType";
+    TfsStatusPublisher.StatusContext context = new TfsStatusPublisher.StatusContext("MyDefaultTestBuildType", "TeamCity");
     TfsStatusPublisher.CommitStatus status = new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(),
                                                                                  DefaultStatusMessages.BUILD_QUEUED, "", context);
     commitStatuses.value = Collections.singleton(status);

@@ -19,9 +19,10 @@ package jetbrains.buildServer.commitPublisher.stash;
 import jetbrains.buildServer.MockBuildPromotion;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.DefaultStatusMessages;
-import jetbrains.buildServer.commitPublisher.MockQueuedBuild;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
 import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.SQueuedBuild;
+import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -71,12 +72,17 @@ public class StashPublisherTest extends BaseStashPublisherTest {
     assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_STARTED, null, null, null, null, null, StashBuildStatus.INPROGRESS.name(), null, null)).getTriggeredEvent());
   }
 
-  public void should_define_correctly_if_event_allowed() {
-    MockQueuedBuild removedBuild = new MockQueuedBuild();
-    removedBuild.setBuildTypeId("buildType");
-    removedBuild.setItemId("123");
+  public void should_allow_queued_depending_on_build_type() {
+    Mock removedBuildMock = new Mock(SQueuedBuild.class);
+    removedBuildMock.stubs().method("getBuildTypeId").withNoArguments().will(returnValue("buildType"));
+    removedBuildMock.stubs().method("getItemId").withNoArguments().will(returnValue("123"));
+    Mock buildPromotionMock = new Mock(BuildPromotion.class);
+    buildPromotionMock.stubs().method("getBuildTypeExternalId").withNoArguments().will(returnValue("buildTypeExtenalId"));
+    removedBuildMock.stubs().method("getBuildPromotion").withNoArguments().will(returnValue(buildPromotionMock.proxy()));
+    SQueuedBuild removedBuild = (SQueuedBuild)removedBuildMock.proxy();
+
     StashPublisher publisher = (StashPublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_QUEUED, null, null, null, null, "http://localhost:8111/viewQueued.html?itemId=123", StashBuildStatus.INPROGRESS.name(), null, null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_QUEUED, null, null, null, null, "http://localhost:8111/viewQueued.html?itemId=321", StashBuildStatus.INPROGRESS.name(), null, null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_QUEUED, "buildTypeExtenalId", null, null, null, "http://localhost:8111/viewQueued.html?itemId=123", StashBuildStatus.INPROGRESS.name(), null, null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_QUEUED, "anotherBuildTypeExtenalId", null, null, null, "http://localhost:8111/viewQueued.html?itemId=321", StashBuildStatus.INPROGRESS.name(), null, null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
   }
 }

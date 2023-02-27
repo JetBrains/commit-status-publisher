@@ -11,12 +11,12 @@ public class RevisionStatus {
 
   private final CommitStatusPublisher.Event myTriggeredEvent;
   private final String myDescription;
-  private final boolean myIsLastStatusForRevision;
+  private final boolean myIsSameBuildType;
 
-  public RevisionStatus(@Nullable CommitStatusPublisher.Event triggeredEvent, @Nullable String description, boolean isLastStatusForRevision) {
+  public RevisionStatus(@Nullable CommitStatusPublisher.Event triggeredEvent, @Nullable String description, boolean isSameBuildType) {
     myTriggeredEvent = triggeredEvent;
     myDescription = description;
-    myIsLastStatusForRevision = isLastStatusForRevision;
+    myIsSameBuildType = isSameBuildType;
   }
 
   @Nullable
@@ -29,16 +29,15 @@ public class RevisionStatus {
     return myDescription;
   }
 
-  public boolean isEventAllowed(@NotNull CommitStatusPublisher.Event event) {
+  public boolean isEventAllowed(@NotNull CommitStatusPublisher.Event pendingEvent) {
     if (myTriggeredEvent == null) {
       return true;
     }
-    switch (event) {
+    switch (pendingEvent) {
       case QUEUED:
-        return event == myTriggeredEvent || CommitStatusPublisher.Event.REMOVED_FROM_QUEUE == myTriggeredEvent ||
-               (CommitStatusPublisher.Event.STARTED == myTriggeredEvent && !myIsLastStatusForRevision);
+        return myIsSameBuildType && CommitStatusPublisher.Event.QUEUED == myTriggeredEvent;
       case REMOVED_FROM_QUEUE:
-        return myIsLastStatusForRevision && CommitStatusPublisher.Event.QUEUED == myTriggeredEvent;
+        return myIsSameBuildType && CommitStatusPublisher.Event.QUEUED == myTriggeredEvent;
       case STARTED:
       case FINISHED:
       case INTERRUPTED:
@@ -47,7 +46,7 @@ public class RevisionStatus {
       case MARKED_AS_SUCCESSFUL:
         return true;
       default:
-        LOG.info("Unknown Comit Status Publisher event received: \"" + event + "\". It will be allowed to be processed");
+        LOG.info("Unknown Comit Status Publisher event received: \"" + pendingEvent + "\". It will be allowed to be processed");
     }
     return true;
   }

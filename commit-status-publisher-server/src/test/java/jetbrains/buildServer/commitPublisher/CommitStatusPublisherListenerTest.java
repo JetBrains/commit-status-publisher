@@ -58,8 +58,6 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   private CommitStatusPublisherListener myListener;
   private MockPublisher myPublisher;
   private PublisherLogger myLogger;
-  private PublisherManager myPublisherManager;
-  private BuildHistory myHistory;
   private SUser myUser;
   private Event myLastEventProcessed;
   private final Consumer<Event> myEventProcessedCallback = event -> myLastEventProcessed = event;
@@ -69,9 +67,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     super.setUp();
     myLastEventProcessed = null;
     myLogger = new PublisherLogger();
-    myPublisherManager = new PublisherManager(myServer);
-    myHistory = myFixture.getHistory();
-    myListener = new CommitStatusPublisherListener(myFixture.getEventDispatcher(), myPublisherManager, myHistory, myBuildsManager, myFixture.getBuildPromotionManager(), myProblems,
+    myListener = new CommitStatusPublisherListener(myFixture.getEventDispatcher(), new PublisherManager(myServer), myFixture.getHistory(), myBuildsManager, myFixture.getBuildPromotionManager(), myProblems,
                                                    myFixture.getServerResponsibility(), myFixture.getSingletonService(ExecutorServices.class),
                                                    myFixture.getSingletonService(ProjectManager.class), myFixture.getSingletonService(TeamCityNodes.class),
                                                    myFixture.getSingletonService(UserModel.class), myMultiNodeTasks);
@@ -590,14 +586,15 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     addBuildToQueue();
     waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 4, TASK_COMPLETION_TIMEOUT_MS);
 
-    waitFor(() -> myPublisher.getSentRequests().size() >= 8, TASK_COMPLETION_TIMEOUT_MS); // 4 x GET current status (cache is implemented in publisher) + 4 x POST new statuses
-    assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.GET).count());
-    assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitForNRequestsToBeSent(5); // 4 x GET + 1 x POST
+
+    assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.GET).count()); // 4 x GET current status (for each build type)
+    assertEquals(1L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count()); // 1 x POST new status (we publish queued only when there is no other statuses for revision)
   }
 
-  public void should_be_sent_excepted_number_of_requests_for_build_chain_toggle_on() {
+  public void should_be_sent_excepted_number_of_requests_for_build_chain_toggle_off() {
     prepareVcs();
-    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "true");
+    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "false");
     String projectName = myProject.getName();
     SBuildFeatureDescriptor myBuildFeature = myBuildType.getBuildFeatures().iterator().next();
     SVcsRoot commonVcsRoot = myBuildType.getVcsRoots().iterator().next();
@@ -627,9 +624,17 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     addBuildToQueue();
     waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 4, TASK_COMPLETION_TIMEOUT_MS);
 
-    waitFor(() -> myPublisher.getSentRequests().size() >= 8, TASK_COMPLETION_TIMEOUT_MS); // 4 x GET current status (cache is implemented in publisher) + 4 x POST new statuses
+    waitForNRequestsToBeSent(4); // we post 4 queued statuses
     assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
-    assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.GET).count());
+    assertEquals(0L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.GET).count());
+  }
+
+  private void waitForNRequestsToBeSent(int expected) {
+    try {
+      waitFor(() -> myPublisher.getSentRequests().size() >= expected, TASK_COMPLETION_TIMEOUT_MS);
+    } catch (AssertionError e) {
+      fail(String.format("Only %d requests was sent, when it was expexted %d", myPublisher.getSentRequests().size(), expected));
+    }
   }
 
   public void should_be_sent_excepted_number_of_requests_for_single_build() {

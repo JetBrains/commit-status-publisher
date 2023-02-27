@@ -24,6 +24,7 @@ import jetbrains.buildServer.MockBuildPromotion;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.space.data.SpaceBuildStatusInfo;
 import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.SQueuedBuild;
 import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.serverSide.oauth.OAuthConstants;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
@@ -31,6 +32,7 @@ import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthKeys;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
+import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -127,7 +129,7 @@ public class SpacePublisherTest extends HttpPublisherTest {
 
   private void responseWithCommitStatuses(HttpResponse httpResponse) {
     SpaceBuildStatusInfo status =
-      new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), DefaultStatusMessages.BUILD_QUEUED, System.currentTimeMillis(), "My Default Test Project / My Default Test Build Type", "");
+      new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), DefaultStatusMessages.BUILD_QUEUED, System.currentTimeMillis(), "My Default Test Project / My Default Test Build Type", "", "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId");
     String json = gson.toJson(Collections.singleton(status));
     httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
   }
@@ -160,29 +162,34 @@ public class SpacePublisherTest extends HttpPublisherTest {
     BuildPromotion promotion = new MockBuildPromotion();
     SpacePublisher publisher = (SpacePublisher)myPublisher;
     assertNull(publisher.getRevisionStatus(promotion, (SpaceBuildStatusInfo)null));
-    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(null, null, null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo("nonsense", null, null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.FAILED.getName(), null, null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.FAILING.getName(), null, null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.TERMINATED.getName(), null, null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SUCCEEDED.getName(), null, null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.RUNNING.getName(), DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL, null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.RUNNING.getName(), "", null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.RUNNING.getName(), null, null, null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.RUNNING.getName(), DefaultStatusMessages.BUILD_STARTED, null, null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), DefaultStatusMessages.BUILD_QUEUED, null, null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), "", null, null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(null, null, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo("nonsense", null, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.FAILED.getName(), null, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.FAILING.getName(), null, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.TERMINATED.getName(), null, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SUCCEEDED.getName(), null, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.RUNNING.getName(), DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.RUNNING.getName(), "", null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.RUNNING.getName(), null, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.RUNNING.getName(), DefaultStatusMessages.BUILD_STARTED, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), DefaultStatusMessages.BUILD_QUEUED, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), "", null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
   }
 
-  public void should_define_correctly_if_event_allowed() {
-    MockQueuedBuild removedBuild = new MockQueuedBuild();
-    removedBuild.setBuildTypeId("buildType");
-    removedBuild.setItemId("123");
+  public void should_allow_queued_depending_on_build_type() {
+    Mock removedBuildMock = new Mock(SQueuedBuild.class);
+    removedBuildMock.stubs().method("getBuildTypeId").withNoArguments().will(returnValue("buildType"));
+    removedBuildMock.stubs().method("getItemId").withNoArguments().will(returnValue("123"));
+    Mock buildPromotionMock = new Mock(BuildPromotion.class);
+    buildPromotionMock.stubs().method("getBuildTypeExternalId").withNoArguments().will(returnValue("buildTypeExtenalId"));
+    removedBuildMock.stubs().method("getBuildPromotion").withNoArguments().will(returnValue(buildPromotionMock.proxy()));
+    SQueuedBuild removedBuild = (SQueuedBuild)removedBuildMock.proxy();
+
     SpacePublisher publisher = (SpacePublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=123")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=123", "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321", "anotherBuildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
   }
 
   @Override

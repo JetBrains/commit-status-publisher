@@ -113,8 +113,19 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       return null;
     }
     Event triggeredEvent = getTriggeredEvent(commitStatus);
-    boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), commitStatus.target_url);
-    return new RevisionStatus(triggeredEvent, commitStatus.description, isSameBuild);
+    boolean isSameBuildType = isSameBuildType(buildPromotion, commitStatus);
+    return new RevisionStatus(triggeredEvent, commitStatus.description, isSameBuildType);
+  }
+
+  private boolean isSameBuildType(BuildPromotion buildPromotion, CommitStatus commitStatus) {
+    String buildContext;
+    try {
+      buildContext = getBuildContext(buildPromotion);
+    } catch (GitHubContextResolveException e) {
+      LOG.debug("Context was not resolved for promotion #" + buildPromotion.getId(), e);
+      return false;
+    }
+    return StringUtil.areEqual(buildContext, commitStatus.context);
   }
 
   @Override
@@ -133,8 +144,8 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       return null;
     }
     Event triggeredEvent = getTriggeredEvent(commitStatus);
-    boolean isSameBuild = StringUtil.areEqual(myWebLinks.getQueuedBuildUrl(removedBuild), commitStatus.target_url);
-    return new RevisionStatus(triggeredEvent, commitStatus.description, isSameBuild);
+    boolean isSameBuildType = isSameBuildType(removedBuild.getBuildPromotion(), commitStatus);
+    return new RevisionStatus(triggeredEvent, commitStatus.description, isSameBuildType);
   }
 
   @Nullable

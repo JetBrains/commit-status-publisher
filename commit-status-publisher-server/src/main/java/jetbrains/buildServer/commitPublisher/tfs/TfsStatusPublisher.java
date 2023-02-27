@@ -150,8 +150,12 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @Nullable CommitStatus commitStatus) {
     if (commitStatus == null) return null;
     Event event = getTriggeredEvent(commitStatus);
-    boolean isSameBuild = StringUtil.areEqual(myLinks.getQueuedBuildUrl(removedBuild), commitStatus.targetUrl);
-    return new RevisionStatus(event, commitStatus.description, isSameBuild);
+    boolean isSameBuildType = StringUtil.areEqual(getBuildName(removedBuild.getBuildPromotion()), commitStatus.context.name);
+    return new RevisionStatus(event, commitStatus.description, isSameBuildType);
+  }
+
+  private String getBuildName(BuildPromotion buildPromotion) {
+    return buildPromotion.getBuildTypeExternalId();
   }
 
   @Override
@@ -205,8 +209,8 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @Nullable CommitStatus commitStatus) {
     if (commitStatus == null) return null;
     Event event = getTriggeredEvent(commitStatus);
-    boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), commitStatus.targetUrl);
-    return new RevisionStatus(event, commitStatus.description, isSameBuild);
+    boolean isSameBuildType = StringUtil.areEqual(getBuildName(buildPromotion), commitStatus.context.name);
+    return new RevisionStatus(event, commitStatus.description, isSameBuildType);
   }
 
   private Event getTriggeredEvent(CommitStatus commitStatus) {
@@ -588,9 +592,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
 
   @NotNull
   private CommitStatus getCommitStatus(final SBuild build, final boolean isStarting) {
-    StatusContext context = new StatusContext();
-    context.name = build.getBuildTypeExternalId();
-    context.genre = "TeamCity";
+    StatusContext context = new StatusContext(getBuildName(build.getBuildPromotion()), "TeamCity");
 
     BuildPromotion buildPromotion = build.getBuildPromotion();
     boolean isCanceled = buildPromotion.isCanceled();
@@ -614,9 +616,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
 
   @NotNull
   private CommitStatus getCommitStatus(@NotNull BuildPromotion buildPromotion, @NotNull AdditionalTaskInfo additionalTaskInfo) {
-    final StatusContext context = new StatusContext();
-    context.name = buildPromotion.getBuildTypeExternalId();
-    context.genre = "TeamCity";
+    final StatusContext context = new StatusContext(getBuildName(buildPromotion), "TeamCity");
 
     String targetStatus = buildPromotion.isCanceled() ? getBuildStatusForRemovedBuild().getName() : StatusState.Pending.getName();
     return new CommitStatus(targetStatus, additionalTaskInfo.getComment(), getViewUrl(buildPromotion), context);
@@ -714,6 +714,12 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   }
 
   static class StatusContext {
+
+    public StatusContext(String name, String genre) {
+      this.name = name;
+      this.genre = genre;
+    }
+
     String name;
     String genre;
   }

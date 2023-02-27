@@ -814,7 +814,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       PublishingProcessor publishingProcessor = new PublishingProcessor() {
         @Override
         public void publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
-          Lock lock = myPublishingLocks.get(getLockKey(buildType, revision));
+          Lock lock = myPublishingLocks.get(revision.getRevision());
           lock.lock();
           try {
             runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision, null);
@@ -908,7 +908,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
             if (buildType == null) {
               return;
             }
-            Lock lock = myPublishingLocks.get(getLockKey(buildType, revision));
+            Lock lock = myPublishingLocks.get(revision.getRevision());
             lock.lock();
             try {
               doPublish(revision, publisher);

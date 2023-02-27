@@ -159,8 +159,12 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
       return null;
     }
     Event event = getTriggeredEvent(buildStatus);
-    boolean isSameBuild = StringUtil.areEqual(myLinks.getQueuedBuildUrl(removedBuild), buildStatus.url);
-    return new RevisionStatus(event, buildStatus.description, isSameBuild);
+    boolean isSameBuildType = StringUtil.areEqual(getBuildKey(removedBuild.getBuildPromotion()), buildStatus.key);
+    return new RevisionStatus(event, buildStatus.description, isSameBuildType);
+  }
+
+  private String getBuildKey(BuildPromotion buildPromotion) {
+    return buildPromotion.getBuildTypeExternalId();
   }
 
   @Override
@@ -182,8 +186,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
       return null;
     }
     Event event = getTriggeredEvent(buildStatus);
-    boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), buildStatus.url);
-    return new RevisionStatus(event, buildStatus.description, isSameBuild);
+    boolean isSameBuildType = StringUtil.areEqual(getBuildKey(buildPromotion), buildStatus.key);
+    return new RevisionStatus(event, buildStatus.description, isSameBuildType);
   }
 
   private Event getTriggeredEvent(JsonStashBuildStatus buildStatus) {

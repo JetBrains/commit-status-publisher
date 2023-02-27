@@ -39,6 +39,7 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
 import org.jetbrains.annotations.NotNull;
+import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -134,13 +135,25 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null)).getTriggeredEvent());
   }
 
-  public void should_define_correctly_if_event_allowed() {
-    MockQueuedBuild removedBuild = new MockQueuedBuild();
-    removedBuild.setBuildTypeId("buildType");
-    removedBuild.setItemId("123");
+  public void should_allow_queued_depending_on_build_type() {
+    Mock removedBuildMock = new Mock(SQueuedBuild.class);
+    removedBuildMock.stubs().method("getBuildTypeId").withNoArguments().will(returnValue("buildType"));
+    removedBuildMock.stubs().method("getItemId").withNoArguments().will(returnValue("123"));
+    Mock buildPromotionMock = new Mock(BuildPromotion.class);
+    buildPromotionMock.stubs().method("getBuildTypeExternalId").withNoArguments().will(returnValue("buildTypeExtenalId"));
+    buildPromotionMock.stubs().method("getAssociatedBuild").withNoArguments().will(returnValue(null));
+    Mock buildTypeMock = new Mock(SBuildType.class);
+    buildTypeMock.stubs().method("getName").withNoArguments().will(returnValue("buildName"));
+    Mock projectMock = new Mock(SProject.class);
+    projectMock.stubs().method("getName").withNoArguments().will(returnValue("projectName"));
+    buildTypeMock.stubs().method("getProject").withNoArguments().will(returnValue(projectMock.proxy()));
+    buildPromotionMock.stubs().method("getBuildType").withNoArguments().will(returnValue(buildTypeMock.proxy()));
+    removedBuildMock.stubs().method("getBuildPromotion").withNoArguments().will(returnValue(buildPromotionMock.proxy()));
+    SQueuedBuild removedBuild = (SQueuedBuild)removedBuildMock.proxy();
+
     GitHubPublisher publisher = (GitHubPublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost:8111/viewQueued.html?itemId=123", DefaultStatusMessages.BUILD_QUEUED, null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost:8111/viewQueued.html?itemId=321", DefaultStatusMessages.BUILD_QUEUED, null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost:8111/viewQueued.html?itemId=123", DefaultStatusMessages.BUILD_QUEUED, "buildName (projectName)")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost:8111/viewQueued.html?itemId=321", DefaultStatusMessages.BUILD_QUEUED, "custom context")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
   }
 
   public void should_use_build_name_as_context() throws Exception {

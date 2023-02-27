@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.space.data.SpaceBuildStatusInfo;
+import jetbrains.buildServer.commitPublisher.space.data.SpaceBuildStatusInfoPayload;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
@@ -141,8 +142,12 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
       return null;
     }
     Event event = getTriggeredEvent(buildStatus);
-    boolean isSameBuild = StringUtil.areEqual(myLinks.getQueuedBuildUrl(removedBuild), buildStatus.url);
-    return new RevisionStatus(event, buildStatus.description, isSameBuild);
+    boolean isSameBuildType = StringUtil.areEqual(getTaskId(removedBuild.getBuildPromotion()), buildStatus.taskId);
+    return new RevisionStatus(event, buildStatus.description, isSameBuildType);
+  }
+
+  private String getTaskId(BuildPromotion buildPromotion) {
+    return buildPromotion.getBuildTypeExternalId();
   }
 
   @Override
@@ -195,7 +200,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
       return null;
     }
     Event event = getTriggeredEvent(commitStatus);
-    boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), commitStatus.url);
+    boolean isSameBuild = StringUtil.areEqual(getTaskId(buildPromotion), commitStatus.taskId);
     return new RevisionStatus(event, commitStatus.description, isSameBuild);
   }
 
@@ -249,7 +254,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
       viewUrl,
       SpaceSettings.getDisplayName(myParams),
       taskName,
-      buildPromotion.getBuildTypeExternalId(),
+      getTaskId(buildPromotion),
       buildPromotion.getId(),
       (timestamp == null ? new Date() : timestamp).getTime(),
       additionalTaskInfo.getComment()
@@ -296,7 +301,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
       getViewUrl(build),
       SpaceSettings.getDisplayName(myParams),
       build.getFullName(),
-      build.getBuildTypeExternalId(),
+      getTaskId(build.getBuildPromotion()),
       build.getBuildId(),
       (finishDate == null ? build.getServerStartDate() : finishDate).getTime(),
       description
@@ -351,25 +356,14 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
                                @NotNull String taskName,
                                @NotNull String taskId,
                                long taskBuildId,
-                               Long timestamp,
-                               String description) {
-    Map<String, Object> data = new HashMap<>();
-    data.put(SpaceSettings.CHANGES_FIELD, changes);
-    data.put(SpaceSettings.EXECUTION_STATUS_FIELD, executionStatus.getName());
-    data.put(SpaceSettings.BUILD_URL_FIELD, url);
-    data.put(SpaceSettings.EXTERNAL_SERVICE_NAME_FIELD, externalServiceName);
-    data.put(SpaceSettings.TASK_NAME_FIELD, taskName);
-    data.put(SpaceSettings.TASK_ID_FIELD, taskId);
-    if (TeamCityProperties.getBooleanOrTrue("teamcity.commitStatusPublisher.space.publishBuildId")) {
-      data.put(SpaceSettings.TASK_BUILD_ID_FIELD, taskBuildId);
-    }
-
-    if (timestamp != null)
-      data.put(SpaceSettings.TIMESTAMP_FIELD, timestamp);
-    if (description != null)
-      data.put(SpaceSettings.DESCRIPTION_FIELD, description);
-
-    return myGson.toJson(data);
+                               @Nullable Long timestamp,
+                               @Nullable String description) {
+    final String effectiveTaskBuildId = TeamCityProperties.getBooleanOrTrue("teamcity.commitStatusPublisher.space.publishBuildId") ?
+                                        String.valueOf(taskBuildId) : null;
+    SpaceBuildStatusInfoPayload statusInfoPayload = new SpaceBuildStatusInfoPayload(changes, executionStatus.getName(), description,
+                                                                                    timestamp, taskName, url, taskId, externalServiceName,
+                                                                                    effectiveTaskBuildId);
+    return myGson.toJson(statusInfoPayload);
   }
 
   @Override
