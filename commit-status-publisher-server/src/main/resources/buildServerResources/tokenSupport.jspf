@@ -10,9 +10,9 @@
 <script type="text/javascript">
   BS.AuthTypeTokenSupport = {
 
-    tokenUser: '${user}'.escapeHTML(),
-    tokenUsername: '${username}'.escapeHTML(),
-    tokenConnection: '${connectionName}'.escapeHTML(),
+    tokenUser: '<bs:forJs>${user}</bs:forJs>',
+    tokenUsername: '<bs:forJs>${username}</bs:forJs>',
+    tokenConnection: '<bs:forJs>${connectionName}</bs:forJs>',
 
     connections: {},
 
@@ -23,7 +23,7 @@
         $('message_we_have_token').hide();
       } else {
         const userInfo = this.buildUserInfo();
-        const tokenInfo = 'Currently configured access token was issued for <strong>' + userInfo + '</strong> via <strong>' + this.tokenConnection + '</strong>.';
+        const tokenInfo = 'Currently configured access token was issued for <strong>' + userInfo.escapeHTML() + '</strong> via <strong>' + this.tokenConnection.escapeHTML() + '</strong>.';
         $('message_no_token').hide();
         $('message_we_have_token').innerHTML = tokenInfo;
         $('message_we_have_token').show();
@@ -34,9 +34,9 @@
     tokenCallback: (it) => {
       $('${keys.tokenId}').value = it.tokenId;
 
-      BS.AuthTypeTokenSupport.tokenUser = it['teamcityName'].escapeHTML();
-      BS.AuthTypeTokenSupport.tokenUsername = it['teamcityUsername'].escapeHTML();
-      BS.AuthTypeTokenSupport.tokenConnection = BS.AuthTypeTokenSupport.nvl(BS.AuthTypeTokenSupport.connections[it.connectionId]).escapeHTML();
+      BS.AuthTypeTokenSupport.tokenUser = it['teamcityName'];
+      BS.AuthTypeTokenSupport.tokenUsername = it['teamcityUsername'];
+      BS.AuthTypeTokenSupport.tokenConnection = BS.AuthTypeTokenSupport.nvl(BS.AuthTypeTokenSupport.connections[it.connectionId]);
 
       BS.AuthTypeTokenSupport.updateTokenMessage();
     },

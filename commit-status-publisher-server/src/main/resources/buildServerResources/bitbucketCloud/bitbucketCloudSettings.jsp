@@ -65,10 +65,10 @@
 
         <c:forEach items="${oauthConnections.keySet()}" var="connection">
           <script type="application/javascript">
-            BS.AuthTypeTokenSupport.connections['${connection.id}'] = '${connection.connectionDisplayName}';
+            BS.AuthTypeTokenSupport.connections['${connection.id}'] = '<bs:forJs>${connection.connectionDisplayName}</bs:forJs>';
           </script>
           <div class="token-connection">
-            <span class="token-connection-diplay-name">${connection.connectionDisplayName}</span>
+            <span class="token-connection-diplay-name"><c:out value="${connection.connectionDisplayName}" /></span>
             <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.AuthTypeTokenSupport.tokenCallback">
               Acquire
             </oauth:obtainToken>
