@@ -21,6 +21,7 @@ import jetbrains.buildServer.controllers.BasePropertiesBean;
 import jetbrains.buildServer.controllers.admin.projects.BuildTypeForm;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
@@ -92,6 +93,10 @@ public class CommitStatusPublisherFeatureController extends BaseController {
         SVcsRoot candidate = (SVcsRoot) vcs;
         if (candidate.getExternalId().equals(vcsRootId)) {
           vcsRoot = candidate;
+          String tokenId = vcsRoot.getProperty("tokenId");
+          if (tokenId != null) {
+            mv.addObject("tokenId", tokenId);
+          }
           break;
         }
         if (null != internalId && internalId.equals(candidate.getId())) {
@@ -116,7 +121,11 @@ public class CommitStatusPublisherFeatureController extends BaseController {
     mv.addObject("project", project);
     mv.addObject("projectId", project.getExternalId());
     SUser user = SessionUser.getUser(request);
-    mv.addObject("oauthConnections", user == null || null == settings ? null : settings.getOAuthConnections(project, user));
+    Map<OAuthConnectionDescriptor, Boolean> oauthConnections = user == null || null == settings ?
+                                                               null :
+                                                               settings.getOAuthConnections(project, user);
+    mv.addObject("oauthConnections", oauthConnections);
+    mv.addObject("refreshTokenSupported", oauthConnections != null && oauthConnections.keySet().stream().anyMatch(c -> c.getOauthProvider().isTokenRefreshSupported()));
 
     if (settings != null) {
       settings.getSpecificAttributes(project, params).forEach(mv::addObject);

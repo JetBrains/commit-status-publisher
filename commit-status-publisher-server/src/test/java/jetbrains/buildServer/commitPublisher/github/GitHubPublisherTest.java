@@ -32,6 +32,7 @@ import jetbrains.buildServer.commitPublisher.github.api.impl.data.Permissions;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.RepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -198,7 +199,8 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     Map<String, String> params = getPublisherParams();
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
 
-    myChangeStatusUpdater = new ChangeStatusUpdater(new GitHubApiFactoryImpl(new HttpClientWrapperImpl(new HTTPRequestBuilder.ApacheClient43RequestHandler(), () -> null)), myFixture.getVcsHistory());
+    myChangeStatusUpdater = new ChangeStatusUpdater(new GitHubApiFactoryImpl(new HttpClientWrapperImpl(new HTTPRequestBuilder.ApacheClient43RequestHandler(), () -> null),
+                                                                             myFixture.getSingletonService(OAuthTokensStorage.class)), myFixture.getVcsHistory());
 
     myPublisherSettings = new GitHubSettings(myChangeStatusUpdater, new MockPluginDescriptor(), myWebLinks, myProblems,
                                              myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext(),

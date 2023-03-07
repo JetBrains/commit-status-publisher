@@ -94,6 +94,10 @@ public abstract class GitHubApiImpl implements GitHubApi {
       throw new PublisherException(String.format("Error while retrieving \"%s\" repository information", repo.url()), ex);
     }
 
+    checkPermissions(repo, repoInfo);
+  }
+
+  protected void checkPermissions(@NotNull final Repository repo, @NotNull RepoInfo repoInfo) throws PublisherException {
     if (null == repoInfo.name || null == repoInfo.permissions) {
       throw new PublisherException(String.format("Repository \"%s\" is inaccessible", repo.url()));
     }
@@ -306,7 +310,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     return String.format("Failed to complete request to GitHub. %sStatus: %s", err, statusLine);
   }
 
-  protected abstract SimpleCredentials authenticationCredentials();
+  protected abstract SimpleCredentials authenticationCredentials() throws IOException;
 
   private void logFailedResponse(@NotNull HttpMethod method,
                                  @NotNull String uri,

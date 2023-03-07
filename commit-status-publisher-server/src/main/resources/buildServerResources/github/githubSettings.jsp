@@ -2,6 +2,7 @@
 <%@ include file="/include-internal.jsp" %>
 <%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
 <%@ taglib prefix="l" tagdir="/WEB-INF/tags/layout" %>
+<%@ taglib prefix="oauth" tagdir="/WEB-INF/tags/oauth" %>
 <%--
   ~ Copyright 2000-2022 JetBrains s.r.o.
   ~
@@ -20,6 +21,7 @@
 
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants"/>
 <jsp:useBean id="oauthConnections" scope="request" type="java.util.Map"/>
+<jsp:useBean id="refreshTokenSupported" scope="request" type="java.lang.Boolean"/>
 
 <c:url value="/oauth/github/token.html" var="getTokenPage"/>
 <c:set var="cameFromUrl" value="${empty param['cameFromUrl'] ? pageUrl : param['cameFromUrl']}"/>
@@ -28,8 +30,12 @@
 
 <c:set var="oauth_connection_fragment">
   <c:forEach items="${oauthConnections.keySet()}" var="connection">
-    <c:set var="title">Acquire an access token from <c:out value="${connection.parameters['gitHubUrl']}"/></c:set>
-    <span class="githubRepoControl"><i class="icon-magic" style="cursor:pointer;" title="${title}" onclick="BS.GitHubAccessTokenPopup.showPopup(this, '${connection.id}')"></i></span>
+    <c:if test="${'GitHubApp' != connection.oauthProvider.type}">
+      <c:set var="title">
+        Acquire an access token from <c:out value="${connection.parameters['gitHubUrl']}"/> (<c:out value="${connection.connectionDisplayName}"/>)
+      </c:set>
+      <span class="githubRepoControl"><i class="icon-magic" style="cursor:pointer;" title="${title}" onclick="BS.GitHubAccessTokenPopup.showPopup(this, '${connection.id}')"></i></span>
+    </c:if>
   </c:forEach>
 </c:set>
 
@@ -67,6 +73,69 @@
         </td>
       </tr>
     </props:selectSectionPropertyContent>
+
+   <c:if test='${refreshTokenSupported}'>
+     <props:selectSectionPropertyContent value="${keys.authentificationTypeGitHubAppTokenValue}" caption="GitHub App access token">
+       <script type="text/javascript">
+         showTokenInfo = function () {
+           const tokenValue = $('${keys.tokenIdKey}').value;
+           if (tokenValue === null || tokenValue.trim().length == 0) {
+             $('message_acquire_token').innerHTML = "No access token configured"
+           } else {
+             $('message_acquire_token').innerHTML = "There is an access token configured"
+           }
+         };
+
+         setAcquiredToken = function(it) {
+           const tokenValue = $('${keys.tokenIdKey}').value;
+           if ((tokenValue === null || tokenValue.trim().length == 0) && (it === null || it["tokenId"] === null)) {
+             $('message_acquire_token').innerHTML = "No access token configured"
+           } else {
+             $('error_${keys.tokenIdKey}').empty();
+             if (tokenValue == it["tokenId"]) {
+               $('message_acquire_token').innerHTML = "New token wasn't issued because existing token is valid.";
+             } else if (it["acquiredNew"] == true) {
+               $('${keys.tokenIdKey}').value = it["tokenId"];
+               $('message_acquire_token').innerHTML = "New token was issued";
+             } else {
+               $('${keys.tokenIdKey}').value = it["tokenId"];
+               $('message_acquire_token').innerHTML = "Token for this Build feature was replaced by previously saved token";
+             }
+           }
+         };
+
+         showTokenInfo();
+       </script>
+       <tr>
+         <th>
+           <label for="${keys.tokenIdKey}">GitHub App Token:</label>
+         </th>
+         <td>
+
+           <c:forEach items="${oauthConnections.keySet()}" var="connection">
+             <c:if test="${connection.oauthProvider.isTokenRefreshSupported()}">
+               <div class="token-connection">
+                <span title="<c:out value='${connection.id}' />" id="issuedTokenId">
+                  <span id="issuedForTitle">Issued via</span>
+                  <!-- we can't determine user by userId in tokenId now -->
+                  <strong id="connectionDisplayName">
+                    <c:out value="${connection.connectionDisplayName}" />
+                  </strong>
+                </span>
+                 <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="setAcquiredToken">
+                   Acquire new
+                 </oauth:obtainToken>
+               </div>
+             </c:if>
+           </c:forEach>
+
+           <props:hiddenProperty name="${keys.tokenIdKey}" />
+           <span class="error" id="error_${keys.tokenIdKey}"></span>
+           <span id="message_acquire_token"></span>
+         </td>
+       </tr>
+     </props:selectSectionPropertyContent>
+   </c:if>
 
     <props:selectSectionPropertyContent value="${keys.authenticationTypePasswordValue}" caption="Password">
       <tr>

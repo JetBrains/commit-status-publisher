@@ -16,9 +16,15 @@
 
 package jetbrains.buildServer.commitPublisher.github.api.impl;
 
+import java.io.IOException;
+import jetbrains.buildServer.commitPublisher.PublisherException;
+import jetbrains.buildServer.commitPublisher.Repository;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
+import jetbrains.buildServer.commitPublisher.github.api.impl.data.RepoInfo;
 import jetbrains.buildServer.http.SimpleCredentials;
+import jetbrains.buildServer.serverSide.oauth.OAuthToken;
+import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -28,12 +34,18 @@ import org.jetbrains.annotations.NotNull;
 public class GitHubApiFactoryImpl implements GitHubApiFactory {
   private final HttpClientWrapper myWrapper;
 
-  public GitHubApiFactoryImpl(@NotNull final HttpClientWrapper wrapper) {
+  @NotNull
+  protected final OAuthTokensStorage myOAuthTokensStorage;
+
+  public GitHubApiFactoryImpl(@NotNull final HttpClientWrapper wrapper,
+                              @NotNull OAuthTokensStorage oAuthTokensStorage) {
     myWrapper = wrapper;
+    myOAuthTokensStorage = oAuthTokensStorage;
   }
 
 
   @NotNull
+  @Override
   public GitHubApi openGitHubForUser(@NotNull final String url,
                                      @NotNull final String username,
                                      @NotNull final String password) {
@@ -46,12 +58,41 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
   }
 
   @NotNull
+  @Override
   public GitHubApi openGitHubForToken(@NotNull final String url,
                                       @NotNull final String token) {
     return new GitHubApiImpl(myWrapper, new GitHubApiPaths(url)){
       @Override
       protected SimpleCredentials authenticationCredentials() {
         return new SimpleCredentials("x-oauth-basic", token);
+      }
+    };
+  }
+
+  @NotNull
+  @Override
+  public GitHubApi openGitHubForStoredToken(@NotNull final String url,
+                                            @NotNull final String tokenId,
+                                            @NotNull final String vcsRootId) {
+
+    return new GitHubApiImpl(myWrapper, new GitHubApiPaths(url)){
+      @Override
+      protected SimpleCredentials authenticationCredentials() throws IOException {
+        final OAuthToken gitHubOAuthToken = myOAuthTokensStorage.getRefreshableToken(vcsRootId, tokenId, false);
+        if (gitHubOAuthToken != null) {
+          //must be refactored to use Bearer token
+          return new SimpleCredentials("oauth2", gitHubOAuthToken.getAccessToken());
+        }
+        else {
+          throw new IOException("Failed to get installation token for GitHub App connection (tokenId: " + tokenId + ")");
+        }
+      }
+
+      @Override
+      protected void checkPermissions(@NotNull Repository repo, @NotNull RepoInfo repoInfo) throws PublisherException {
+        if (null == repoInfo.name || null == repoInfo.permissions) {
+          throw new PublisherException(String.format("Repository \"%s\" is inaccessible", repo.url()));
+        }
       }
     };
   }

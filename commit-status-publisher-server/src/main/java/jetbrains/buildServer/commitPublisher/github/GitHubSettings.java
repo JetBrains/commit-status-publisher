@@ -30,8 +30,6 @@ import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthToken;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
-import jetbrains.buildServer.serverSide.oauth.github.GHEOAuthProvider;
-import jetbrains.buildServer.serverSide.oauth.github.GitHubOAuthProvider;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
@@ -62,6 +60,10 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
     add(Event.REMOVED_FROM_QUEUE);
     addAll(mySupportedEvents);
   }};
+
+  public static final String GITHUB_OAUTH_PROVIDER_TYPE = "GitHub";
+  public static final String GHE_OAUTH_PROVIDER_TYPE = "GHE";
+  public static final String GITHUB_APP_OAUTH_PROVIDER_TYPE = "GitHubApp";
 
   public GitHubSettings(@NotNull ChangeStatusUpdater updater,
                         @NotNull PluginDescriptor descriptor,
@@ -120,11 +122,9 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
   @Override
   public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(final @NotNull SProject project, final @NotNull SUser user) {
     List<OAuthConnectionDescriptor> validConnections = new ArrayList<OAuthConnectionDescriptor>();
-    List<OAuthConnectionDescriptor> githubConnections = myOauthConnectionsManager.getAvailableConnectionsOfType(project, GitHubOAuthProvider.TYPE);
-    if (!githubConnections.isEmpty()) {
-      validConnections.add(githubConnections.get(0));
-    }
-    validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GHEOAuthProvider.TYPE));
+    validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GITHUB_OAUTH_PROVIDER_TYPE));
+    validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GITHUB_APP_OAUTH_PROVIDER_TYPE));
+    validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GHE_OAUTH_PROVIDER_TYPE));
     Map<OAuthConnectionDescriptor, Boolean> connections = new LinkedHashMap<OAuthConnectionDescriptor, Boolean>();
     for (OAuthConnectionDescriptor c: validConnections) {
       connections.put(c, !myOAuthTokensStorage.getUserTokens(c.getId(), user, project, false).isEmpty());
@@ -187,9 +187,14 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
           checkNotEmpty(p, c.getUserNameKey(), "Username must be specified", result);
           checkNotEmpty(p, c.getPasswordKey(), "Password must be specified", result);
           p.remove(c.getAccessTokenKey());
+          p.remove(c.getTokenIdKey());
+          p.remove(c.getOAuthUserKey());
+          p.remove(c.getUserNameKey());
+          p.remove(c.getOAuthProviderIdKey());
         } else if (authenticationType == GitHubApiAuthenticationType.TOKEN_AUTH) {
           p.remove(c.getUserNameKey());
           p.remove(c.getPasswordKey());
+          p.remove(c.getTokenIdKey());
           String oauthUsername = p.get(c.getOAuthUserKey());
           String oauthProviderId = p.get(c.getOAuthProviderIdKey());
           if (null != oauthUsername && null != oauthProviderId) {
@@ -204,6 +209,14 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
             }
           }
           checkNotEmpty(p, c.getAccessTokenKey(), "Personal Access Token must be specified", result);
+        } else if (authenticationType == GitHubApiAuthenticationType.STORED_TOKEN) {
+          checkNotEmpty(p, c.getTokenIdKey(), "TokenId must be specified", result);
+          p.remove(c.getAccessTokenKey());
+          p.remove(c.getOAuthUserKey());
+          p.remove(c.getUserNameKey());
+          p.remove(c.getPasswordKey());
+          p.remove(c.getOAuthUserKey());
+          p.remove(c.getOAuthProviderIdKey());
         }
 
         if (!checkNotEmpty(p, c.getServerKey(), "GitHub API URL must be specified", result)) {

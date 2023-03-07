@@ -28,6 +28,7 @@ import jetbrains.buildServer.controllers.admin.projects.PluginPropertiesUtil;
 import jetbrains.buildServer.parameters.NullValueResolver;
 import jetbrains.buildServer.parameters.ValueResolver;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
@@ -90,8 +91,11 @@ public class PublisherSettingsController extends BaseController {
     request.setAttribute("testConnectionSupported", settings.isTestConnectionSupported());
 
     SUser user = SessionUser.getUser(request);
-    if (project != null && user != null)
-      request.setAttribute("oauthConnections", settings.getOAuthConnections(project, user));
+    if (project != null && user != null) {
+      Map<OAuthConnectionDescriptor, Boolean> oauthConnections = settings.getOAuthConnections(project, user);
+      request.setAttribute("oauthConnections", oauthConnections);
+      request.setAttribute("refreshTokenSupported", oauthConnections.keySet().stream().anyMatch(c -> c.getOauthProvider().isTokenRefreshSupported()));
+    }
 
     if (settingsUrl != null)
       request.getRequestDispatcher(settingsUrl).include(request, response);

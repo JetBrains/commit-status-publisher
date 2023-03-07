@@ -33,4 +33,9 @@ public interface GitHubApiFactory {
   @NotNull
   GitHubApi openGitHubForToken(@NotNull String url,
                                @NotNull String token);
+
+  @NotNull
+  GitHubApi openGitHubForStoredToken(@NotNull String url,
+                                     @NotNull String tokenId,
+                                     @NotNull String vcsRootId);
 }

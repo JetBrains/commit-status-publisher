@@ -49,6 +49,7 @@ public class ChangeStatusUpdater {
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
   private final VcsModificationHistory myModificationHistory;
+
   @NotNull
   private final GitHubApiFactory myFactory;
 
@@ -79,6 +80,9 @@ public class ChangeStatusUpdater {
         final String token = params.get(C.getAccessTokenKey());
         return myFactory.openGitHubForToken(serverUrl, token);
 
+      case STORED_TOKEN:
+        final String tokenId = params.get(C.getTokenIdKey());
+        return myFactory.openGitHubForStoredToken(serverUrl, tokenId, params.get(Constants.VCS_ROOT_ID_PARAM));
       default:
         throw new IllegalArgumentException("Failed to parse authentication type:" + authenticationType);
     }
