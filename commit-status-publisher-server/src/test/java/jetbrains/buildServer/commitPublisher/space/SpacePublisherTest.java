@@ -78,7 +78,8 @@ public class SpacePublisherTest extends HttpPublisherTest {
       put(SpaceOAuthKeys.SPACE_CLIENT_SECRET, FAKE_CLIENT_SECRET);
       put(Constants.SPACE_SERVER_URL, getServerUrl());
     }}).getId();
-    myPublisherSettings = new SpaceSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myOAuthConnectionsManager, myOAuthTokenStorage);
+    myPublisherSettings = new SpaceSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myOAuthConnectionsManager, myOAuthTokenStorage,
+                                            myFixture.getSecurityContext());
     Map<String, String> params = getPublisherParams();
     SpaceConnectDescriber connector = SpaceUtils.getConnectionData(params, myOAuthConnectionsManager, myBuildType.getProject());
     myPublisher = new SpacePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, connector, new CommitStatusesCache<>());

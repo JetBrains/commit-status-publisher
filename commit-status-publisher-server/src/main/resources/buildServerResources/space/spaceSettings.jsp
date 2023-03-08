@@ -46,10 +46,15 @@
           </props:option>
         </c:forEach>
       </props:selectProperty>
-      <c:set var="connectorType" value="<%=SpaceOAuthProvider.TYPE%>"/>
-      <span class="smallNote">Add credentials via the
+
+      <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
+      <c:if test="${canEditProject}">
+        <c:set var="connectorType" value="<%=SpaceOAuthProvider.TYPE%>"/>
+        <span class="smallNote">Add credentials via the
                 <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
-      <props:hiddenProperty name="invalidConnection" value=""/>
+        <props:hiddenProperty name="invalidConnection" value=""/>
+      </c:if>
+
       <span class="error" id="error_${loginProp}"></span>
     </div>
   </td>

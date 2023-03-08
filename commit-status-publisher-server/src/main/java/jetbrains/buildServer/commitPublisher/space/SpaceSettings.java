@@ -16,11 +16,14 @@
 
 package jetbrains.buildServer.commitPublisher.space;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.space.data.SpaceBuildStatusInfo;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
@@ -56,6 +59,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   private final OAuthConnectionsManager myOAuthConnectionManager;
   private final OAuthTokensStorage myOAuthTokensStorage;
   private final CommitStatusesCache<SpaceBuildStatusInfo> myStatusesCache;
+  @NotNull private final SecurityContext mySecurityContext;
 
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     add(Event.STARTED);
@@ -76,10 +80,12 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
                        @NotNull CommitStatusPublisherProblems problems,
                        @NotNull SSLTrustStoreProvider trustStoreProvider,
                        @NotNull OAuthConnectionsManager oAuthConnectionsManager,
-                       @NotNull OAuthTokensStorage oauthTokensStorage) {
+                       @NotNull OAuthTokensStorage oauthTokensStorage,
+                       @NotNull SecurityContext securityContext) {
     super(descriptor, links, problems, trustStoreProvider);
     myOAuthConnectionManager = oAuthConnectionsManager;
     myOAuthTokensStorage = oauthTokensStorage;
+    mySecurityContext = securityContext;
     myStatusesCache = new CommitStatusesCache<>();
   }
 
@@ -239,5 +245,11 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   static String getDisplayName(@NotNull Map<String, String> params) {
     String displayName = params.get(Constants.SPACE_COMMIT_STATUS_PUBLISHER_DISPLAY_NAME);
     return displayName == null ? Constants.SPACE_DEFAULT_DISPLAY_NAME : displayName;
+  }
+
+  @NotNull
+  @Override
+  public Map<String, Object> getSpecificAttributes(@NotNull SProject project, @NotNull Map<String, String> params) {
+    return ImmutableMap.of("canEditProject", AuthUtil.hasPermissionToManageProject(mySecurityContext.getAuthorityHolder(), project.getProjectId()));
   }
 }
