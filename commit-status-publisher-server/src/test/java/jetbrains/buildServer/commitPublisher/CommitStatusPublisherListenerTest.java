@@ -212,10 +212,10 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_publish_removed_from_queue() {
     prepareVcs();
-    addBuildToQueue();
+    QueuedBuild queuedBuild = addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     waitForAssert(() -> myPublisher.getLastComment().equals(DefaultStatusMessages.BUILD_QUEUED), TASK_COMPLETION_TIMEOUT_MS);
-    myServer.getQueue().removeAllFromQueue();
+    myServer.getQueue().removeAllFromQueue(queuedBuild.getBuildTypeId(), myUser, null);
     waitFor(() -> myPublisher.getLastComment() != null && myPublisher.getLastComment().equals(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE), TASK_COMPLETION_TIMEOUT_MS);
     then(myPublisher.getLastComment()).isEqualTo("TeamCity build removed from queue");
   }

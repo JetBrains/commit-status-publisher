@@ -44,7 +44,6 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
  * Date: 06.09.12 3:29
  */
 public class ChangeStatusUpdater {
-  private static final String STATUS_FOR_REMOVED_BUILD = "teamcity.commitStatusPublisher.removedBuild.github.status";
   private static final UpdateChangesConstants C = new UpdateChangesConstants();
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
@@ -240,7 +239,8 @@ public class ChangeStatusUpdater {
                                            @NotNull AdditionalTaskInfo additionalTaskInfo,
                                            @NotNull String viewUrl) throws PublisherException {
         final RepositoryVersion version = revision.getRepositoryVersion();
-        final GitHubChangeState targetStatus = buildPromotion.isCanceled() ? getBuildStatusForRemovedBuild() : GitHubChangeState.Pending;
+        final GitHubChangeState targetStatus = buildPromotion.isCanceled() ? getBuildStatusForRemovedBuild(additionalTaskInfo) : GitHubChangeState.Pending;
+        if (targetStatus == null) return false;
         LOG.info("Scheduling GitHub status update for " +
                  "hash: " + version.getVersion() + ", " +
                  "branch: " + version.getVcsBranch() + ", " +
@@ -255,15 +255,8 @@ public class ChangeStatusUpdater {
     };
   }
 
-  private GitHubChangeState getBuildStatusForRemovedBuild() {
-    String statusStr = TeamCityProperties.getPropertyOrNull(STATUS_FOR_REMOVED_BUILD);
-    if (statusStr == null) return getFallbackRemovedBuildStatus();
-    GitHubChangeState staus = GitHubChangeState.getByState(statusStr);
-    return staus == null ? getFallbackRemovedBuildStatus() : staus;
-  }
-
-  private GitHubChangeState getFallbackRemovedBuildStatus() {
-    return GitHubChangeState.Pending;
+  private GitHubChangeState getBuildStatusForRemovedBuild(AdditionalTaskInfo additionalTaskInfo) {
+    return additionalTaskInfo.isBuildManuallyRemoved() ? GitHubChangeState.Failure : null;
   }
 
   private abstract class GitHubCommonStatusClient {

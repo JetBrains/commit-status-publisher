@@ -41,8 +41,6 @@ import org.jetbrains.annotations.Nullable;
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
-
-  private static final String STATUS_FOR_REMOVED_BUILD = "teamcity.commitStatusPublisher.removedBuild.stash.status";
   public static final String PROP_PUBLISH_QUEUED_BUILD_STATUS = "teamcity.stashCommitStatusPublisher.publishQueuedBuildStatus";
   private static final Pattern PULL_REQUEST_BRANCH_PATTERN = Pattern.compile("^refs\\/pull\\-requests\\/(\\d+)\\/from");
   private static final String SERVER_VERSION_BUILD_SERVER_HWM = "7.4";
@@ -83,20 +81,9 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) {
-    StashBuildStatus targetStatus = getBuildStatusForRemovedBuild();
-    vote(buildPromotion, revision, targetStatus, additionalTaskInfo.getComment());
+    if (!additionalTaskInfo.isBuildManuallyRemoved()) return false;
+    vote(buildPromotion, revision, StashBuildStatus.FAILED, additionalTaskInfo.getComment());
     return true;
-  }
-
-  protected StashBuildStatus getBuildStatusForRemovedBuild() {
-    String statusStr = TeamCityProperties.getPropertyOrNull(STATUS_FOR_REMOVED_BUILD);
-    if (statusStr == null) return getFallbackRemovedBuildStatus();
-    StashBuildStatus staus = StashBuildStatus.getByName(statusStr);
-    return staus == null ? getFallbackRemovedBuildStatus() : staus;
-  }
-
-  protected StashBuildStatus getFallbackRemovedBuildStatus() {
-    return StashBuildStatus.INPROGRESS;
   }
 
   @Override

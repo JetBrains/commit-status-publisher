@@ -38,8 +38,6 @@ import org.jetbrains.annotations.Nullable;
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildStatus> {
-
-  private static final String STATUS_FOR_REMOVED_BUILD = "teamcity.commitStatusPublisher.removedBuild.space.status";
   private static final String UNKNOWN_BUILD_CONFIGURATION = "Unknown build configuration";
 
   private final SpaceConnectDescriber mySpaceConnector;
@@ -85,19 +83,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     if (additionalTaskInfo.commentContains(DefaultStatusMessages.BUILD_STARTED)) {
       return false;
     }
-    SpaceBuildStatus targetStatus = getBuildStatusForRemovedBuild();
-    return publishQueued(buildPromotion, revision, targetStatus, additionalTaskInfo);
-  }
-
-  protected SpaceBuildStatus getBuildStatusForRemovedBuild() {
-    String statusStr = TeamCityProperties.getPropertyOrNull(STATUS_FOR_REMOVED_BUILD);
-    if (statusStr == null) return getFallbackRemovedBuildStatus();
-    SpaceBuildStatus staus = SpaceBuildStatus.getByName(statusStr);
-    return staus == null ? getFallbackRemovedBuildStatus() : staus;
-  }
-
-  protected SpaceBuildStatus getFallbackRemovedBuildStatus() {
-    return SpaceBuildStatus.SCHEDULED;
+    return additionalTaskInfo.isBuildManuallyRemoved() && publishQueued(buildPromotion, revision, SpaceBuildStatus.TERMINATED, additionalTaskInfo);
   }
 
   @Override

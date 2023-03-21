@@ -39,7 +39,6 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> {
 
-  private static final String STATUS_FOR_REMOVED_BUILD = "teamcity.commitStatusPublisher.removedBuild.gitlab.status";
   private static final String REFS_HEADS = "refs/heads/";
   private static final String REFS_TAGS = "refs/tags/";
   private static final Gson myGson = new Gson();
@@ -80,20 +79,9 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    GitlabBuildStatus targetStatus = getBuildStatusForRemovedBuild();
-    publish(buildPromotion, revision, targetStatus, additionalTaskInfo);
+    if (!additionalTaskInfo.isBuildManuallyRemoved()) return false;
+    publish(buildPromotion, revision, GitlabBuildStatus.CANCELED , additionalTaskInfo);
     return true;
-  }
-
-  protected GitlabBuildStatus getBuildStatusForRemovedBuild() {
-    String statusStr = TeamCityProperties.getPropertyOrNull(STATUS_FOR_REMOVED_BUILD);
-    if (statusStr == null) return getFallbackRemovedBuildStatus();
-    GitlabBuildStatus staus = GitlabBuildStatus.getByName(statusStr);
-    return staus == null ? getFallbackRemovedBuildStatus() : staus;
-  }
-
-  protected GitlabBuildStatus getFallbackRemovedBuildStatus() {
-    return GitlabBuildStatus.PENDING;
   }
 
   @Override

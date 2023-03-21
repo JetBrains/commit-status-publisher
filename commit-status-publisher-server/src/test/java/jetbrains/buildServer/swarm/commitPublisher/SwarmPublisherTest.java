@@ -33,7 +33,6 @@ public class SwarmPublisherTest extends HttpPublisherTest {
 
   public SwarmPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*viewQueued.html.*");
-    myExpectedRegExps.put(EventToTest.MERGED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*viewQueued.html.*" + COMMENT + ".*");
     myExpectedRegExps.put(EventToTest.REMOVED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*viewLog.html%3F.*removed.*" + COMMENT + ".*");
     myExpectedRegExps.put(EventToTest.STARTED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*viewLog.html%3F.*started.*");
 
@@ -121,7 +120,7 @@ public class SwarmPublisherTest extends HttpPublisherTest {
   public void test_buildRemovedFromQueue() throws Exception {
     SQueuedBuild build = addBuildToQueue();
     build.removeFromQueue(myUser, null);
-    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(COMMENT, myUser, null));
+    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(build.getBuildPromotion(), COMMENT, myUser, null));
     then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.REMOVED));
   }
 

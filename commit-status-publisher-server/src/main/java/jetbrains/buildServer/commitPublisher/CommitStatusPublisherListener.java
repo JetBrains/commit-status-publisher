@@ -55,7 +55,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   final static String CSP_FOR_BUILD_TYPE_CONFIGURATION_FLAG_TTL_PROPERTY_NAME = "teamcity.commitStatusPublisher.enabledForBuildCache.ttl";
   final static String QUEUE_PAUSER_SYSTEM_PROPERTY = "teamcity.plugin.queuePauser.queue.enabled";
   final static String CHECK_STATUS_BEFORE_PUBLISHING = "teamcity.commitStatusPubliser.checkStatus.enabled";
-  final static String PUBLISH_REPLACING_STATUS_ON_REMOVE = "teamcity.commitStatusPublisher.replaceStatusOnRemove";
   final static String LOCKS_STRIPES = "teamcity.commitStatusPublisher.locks.stripes";
 
   private final static int LOCKS_STRIPES_DEFAULT = 1000;
@@ -360,6 +359,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       return;
     }
 
+    if (user == null) { // build removal is processed only for manual remove build from the queue
+      return;
+    }
+
     BuildPromotion promotion = build.getBuildPromotion();
     if (!canNodeProcessRemovedFromQueue(promotion)) return;
     if (((BuildPromotionEx)promotion).isChangeCollectingNeeded(false)) return;
@@ -450,14 +453,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(event.getName(), event.getName() + ":" + buildId, buildId));
   }
 
-  private boolean isCurrentRevisionSuitableForRemovedBuild(Event event, SQueuedBuild removedBuild, BuildRevision revision, CommitStatusPublisher publisher) throws PublisherException {
-    if (TeamCityProperties.getBooleanOrTrue(CHECK_STATUS_BEFORE_PUBLISHING)) {
-      RevisionStatus revisionStatus = publisher.getRevisionStatusForRemovedBuild(removedBuild, revision);
-      return revisionStatus == null || revisionStatus.isEventAllowed(event);
-    }
-    return true;
-  }
-
   private boolean isCurrentRevisionSuitable(Event event, BuildPromotion buildPromotion, BuildRevision revision, CommitStatusPublisher publisher) throws PublisherException {
     if (TeamCityProperties.getBooleanOrTrue(CHECK_STATUS_BEFORE_PUBLISHING)) {
       RevisionStatus revisionStatus = publisher.getRevisionStatus(buildPromotion, revision);
@@ -482,13 +477,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
         Lock lock = myPublishingLocks.get(getLockKey(buildType, revision));
         lock.lock();
         try {
-          boolean isReplacedStatusPublished = publishReplacingStatus(publisher, revision, additionalTaskInfo);
-          if (isReplacedStatusPublished) {
-            return;
-          }
-          if (isCurrentRevisionSuitableForRemovedBuild(event, queuedBuild, revision, publisher)) {
-            publisher.buildRemovedFromQueue(buildPromotion, revision, additionalTaskInfo);
-          }
+          publisher.buildRemovedFromQueue(buildPromotion, revision, additionalTaskInfo);
         } catch (PublisherException e) {
           LOG.warn("Cannot publish removed build status to VCS for " + publisher.getBuildType() + ", commit: " + revision.getRevision(), e);
         } finally {
@@ -506,26 +495,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   private String getLockKey(SBuildType buildType, BuildRevision revision) {
     return buildType.getBuildTypeId() + ":" + revision.getRevision();
-  }
-
-  private boolean publishReplacingStatus(CommitStatusPublisher publisher, BuildRevision revision, AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    if (!TeamCityProperties.getBooleanOrTrue(PUBLISH_REPLACING_STATUS_ON_REMOVE)) return false;
-    BuildPromotion replacingPromotion = additionalTaskInfo.getReplacingPromotion();
-    if (replacingPromotion == null) {
-      return false;
-    }
-    SBuild replacingBuild = replacingPromotion.getAssociatedBuild();
-    if (replacingBuild == null) {
-      return false;
-    }
-    List<BuildRevision> revisionsForRunningBuild = getBuildRevisionForVote(publisher, replacingBuild.getRevisions());
-    if (!revisionsForRunningBuild.contains(revision)) {
-      return false;
-    }
-    if (replacingBuild.isFinished()) {
-      return publisher.buildFinished(replacingBuild, revision);
-    }
-    return publisher.buildStarted(replacingBuild, revision);
   }
 
   private void proccessPublishing(Event event, BuildPromotion buildPromotion, PublishingProcessor publishingProcessor) {
@@ -563,15 +532,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       actualCommentAuthor = commentWithAuthor.getSecond();
     }
     BuildPromotion replacingPromotion = myBuildPromotionManager.findPromotionOrReplacement(buildPromotion.getId());
-    return new AdditionalTaskInfo(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, actualCommentAuthor, (replacingPromotion == null || replacingPromotion.getId() == buildPromotion.getId()) ? null : replacingPromotion);
-  }
-
-  @NotNull
-  private String getBranchName(@NotNull BuildPromotion p) {
-    Branch b = p.getBranch();
-    if (b == null)
-      return Branch.DEFAULT_BRANCH_NAME;
-    return b.getName();
+    return new AdditionalTaskInfo(buildPromotion, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, actualCommentAuthor, (replacingPromotion == null || replacingPromotion.getId() == buildPromotion.getId()) ? null : replacingPromotion);
   }
 
   @Nullable
@@ -867,7 +828,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
       User commentAuthor = getUser(task);
       String comment = getComment(task);
-      AdditionalTaskInfo additionalTaskInfo = new AdditionalTaskInfo(comment, commentAuthor);
+      AdditionalTaskInfo additionalTaskInfo = new AdditionalTaskInfo(promotion, comment, commentAuthor);
 
       runAsync(() -> runForEveryPublisher(eventType, promotion, additionalTaskInfo), () -> { eventProcessed(eventType); });
     }

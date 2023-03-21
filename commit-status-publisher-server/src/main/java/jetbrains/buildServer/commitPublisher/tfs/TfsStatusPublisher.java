@@ -49,8 +49,6 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
  * Updates TFS Git commit statuses via REST API.
  */
 class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublisher.StatusState> {
-
-  private static final String STATUS_FOR_REMOVED_BUILD = "teamcity.commitStatusPublisher.removedBuild.tfs.status";
   private static final String COMMITS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits?api-version=1.0&$top={3}";
   private static final String COMMIT_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits/{3}?api-version=1.0";
   private static final String COMMIT_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/commits/{3}/statuses?api-version=2.1";
@@ -488,6 +486,9 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
                               buildPromotion.getId(), status.state));
       return false;
     }
+    if (status.state == null) {
+      return false;
+    }
     final String description = LogUtil.describe(buildPromotion);
     final String data = myGson.toJson(status);
     final String commitId = publishPullRequestStatus(info, revision, data, description);
@@ -618,19 +619,12 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   private CommitStatus getCommitStatus(@NotNull BuildPromotion buildPromotion, @NotNull AdditionalTaskInfo additionalTaskInfo) {
     final StatusContext context = new StatusContext(getBuildName(buildPromotion), "TeamCity");
 
-    String targetStatus = buildPromotion.isCanceled() ? getBuildStatusForRemovedBuild().getName() : StatusState.Pending.getName();
+    String targetStatus = buildPromotion.isCanceled() ? getBuildStatusForRemovedBuild(additionalTaskInfo).getName() : StatusState.Pending.getName();
     return new CommitStatus(targetStatus, additionalTaskInfo.getComment(), getViewUrl(buildPromotion), context);
   }
 
-  protected StatusState getBuildStatusForRemovedBuild() {
-    String statusStr = TeamCityProperties.getPropertyOrNull(STATUS_FOR_REMOVED_BUILD);
-    if (statusStr == null) return getFallbackRemovedBuildStatus();
-    StatusState staus = StatusState.getByName(statusStr);
-    return staus == null ? getFallbackRemovedBuildStatus() : staus;
-  }
-
-  protected StatusState getFallbackRemovedBuildStatus() {
-    return StatusState.Pending;
+  protected StatusState getBuildStatusForRemovedBuild(AdditionalTaskInfo additionalTaskInfo) {
+    return additionalTaskInfo.isBuildManuallyRemoved() ? StatusState.Failed : null;
   }
 
   @Nullable

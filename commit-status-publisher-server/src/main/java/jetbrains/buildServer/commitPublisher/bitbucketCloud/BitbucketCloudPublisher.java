@@ -39,7 +39,6 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCloudBuildStatus> {
 
-  private static final String STATUS_FOR_REMOVED_BUILD = "teamcity.commitStatusPublisher.removedBuild.bitbucketCloud.status";
   private static final int DEFAULT_PAGE_SIZE = 25;
   private String myBaseUrl = BitbucketCloudSettings.DEFAULT_API_URL;
   private final Gson myGson = new Gson();
@@ -80,19 +79,8 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
                                        @NotNull BuildRevision revision,
                                        @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    BitbucketCloudBuildStatus targetStatus = getBuildStatusForRemovedBuild();
-    return vote(buildPromotion, revision, targetStatus, additionalTaskInfo.getComment());
-  }
-
-  protected BitbucketCloudBuildStatus getBuildStatusForRemovedBuild() {
-    String statusStr = TeamCityProperties.getPropertyOrNull(STATUS_FOR_REMOVED_BUILD);
-    if (statusStr == null) return getFallbackRemovedBuildStatus();
-    BitbucketCloudBuildStatus staus = BitbucketCloudBuildStatus.getByName(statusStr);
-    return staus == null ? getFallbackRemovedBuildStatus() : staus;
-  }
-
-  protected BitbucketCloudBuildStatus getFallbackRemovedBuildStatus() {
-    return BitbucketCloudBuildStatus.INPROGRESS;
+    return additionalTaskInfo.isBuildManuallyRemoved() &&
+           vote(buildPromotion, revision, BitbucketCloudBuildStatus.STOPPED, additionalTaskInfo.getComment());
   }
 
   @Override
