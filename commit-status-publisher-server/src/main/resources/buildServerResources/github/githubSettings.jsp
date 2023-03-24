@@ -137,7 +137,7 @@
      </props:selectSectionPropertyContent>
    </c:if>
 
-    <props:selectSectionPropertyContent value="${keys.authenticationTypePasswordValue}" caption="Password">
+   <props:selectSectionPropertyContent value="${keys.authenticationTypePasswordValue}" caption="Password">
       <tr>
         <td colspan="2">
           <em>
@@ -231,6 +231,15 @@
         </td>
       </tr>
     </props:selectSectionPropertyContent>
+
+   <props:selectSectionPropertyContent value="vcsRoot" caption="Use VCS root(-s) credentials">
+     <tr><td colspan="2">
+       <em>
+         TeamCity will try to extract personal access token/'x-oauth-basic' or refreshable access token or username/password credentials from the VCS root settings
+         if the VCS root uses HTTP(S) fetch URL. Please note that username/password authentication is not supported. This option will also not work if the VCS root uses an SSH fetch URL or employs anonymous authentication.
+       </em>
+     </td></tr>
+   </props:selectSectionPropertyContent>
 
   </props:selectSectionProperty>
 

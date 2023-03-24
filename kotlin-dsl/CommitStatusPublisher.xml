@@ -220,6 +220,11 @@
                             </description>
                         </param>
                     </option>
+                    <option name="vcsRoot" value="vcsRoot">
+                      <description>
+                        Use VCS root credentials
+                      </description>
+                    </option>
                 </param>
             </option>
             <option name="gitlab" value="gitlabStatusPublisher">
@@ -317,7 +322,7 @@
                     </description>
                 </param>
           </option>
-          <option name="swarm" value="perforceSwarmPublisher">
+            <option name="swarm" value="perforceSwarmPublisher">
             <description>
               Publish build status to Perforce Helix Swarm
             </description>

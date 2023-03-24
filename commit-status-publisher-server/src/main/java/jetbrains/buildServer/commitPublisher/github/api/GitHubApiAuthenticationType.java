@@ -24,7 +24,9 @@ public enum GitHubApiAuthenticationType {
   TOKEN_AUTH("token"),
   PASSWORD_AUTH("password"),
 
-  STORED_TOKEN("storedToken");
+  STORED_TOKEN("storedToken"),
+
+  VCS_ROOT("vcsRoot");
   ;
 
   private final String myValue;

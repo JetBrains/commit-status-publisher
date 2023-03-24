@@ -21,6 +21,7 @@ import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
+import jetbrains.buildServer.commitPublisher.github.api.SupportedVcsRootAuthentificationType;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.parameters.ReferencesResolverUtil;
@@ -217,6 +218,17 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
           p.remove(c.getPasswordKey());
           p.remove(c.getOAuthUserKey());
           p.remove(c.getOAuthProviderIdKey());
+        } else if (authenticationType == GitHubApiAuthenticationType.VCS_ROOT) {
+          if (!buildTypeOrTemplate.getProject().getVcsRootInstances().stream().map(vr -> (vr.getProperty("authMethod"))).allMatch(auth -> SupportedVcsRootAuthentificationType.contains(auth))) {
+            result.add(new InvalidProperty(c.getAuthenticationTypeKey(), "Using SSH key or Anonymous authentication method to extract pull request information is impossible. Please provide an access token"));
+          }
+          p.remove(c.getAccessTokenKey());
+          p.remove(c.getOAuthUserKey());
+          p.remove(c.getUserNameKey());
+          p.remove(c.getPasswordKey());
+          p.remove(c.getOAuthUserKey());
+          p.remove(c.getOAuthProviderIdKey());
+          p.remove(c.getTokenIdKey());
         }
 
         if (!checkNotEmpty(p, c.getServerKey(), "GitHub API URL must be specified", result)) {

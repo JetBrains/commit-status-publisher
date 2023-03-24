@@ -58,8 +58,9 @@ public class ChangeStatusUpdater {
     myModificationHistory = vcsModificationHistory;
   }
 
+
   @NotNull
-  private GitHubApi getGitHubApi(@NotNull Map<String, String> params) {
+  private GitHubApi getGitHubApi(@NotNull Map<String, String> params, @NotNull VcsRoot root) {
     final String serverUrl = params.get(C.getServerKey());
     if (serverUrl == null || StringUtil.isEmptyOrSpaces(serverUrl)) {
       throw new IllegalArgumentException("Failed to read GitHub URL from the feature settings");
@@ -81,14 +82,42 @@ public class ChangeStatusUpdater {
 
       case STORED_TOKEN:
         final String tokenId = params.get(C.getTokenIdKey());
-        return myFactory.openGitHubForStoredToken(serverUrl, tokenId, params.get(Constants.VCS_ROOT_ID_PARAM));
+        return myFactory.openGitHubForStoredToken(serverUrl, tokenId, root.getExternalId());
+      case VCS_ROOT:
+        return getGitHubApiForVcsRootCredentials(root, serverUrl);
       default:
         throw new IllegalArgumentException("Failed to parse authentication type:" + authenticationType);
     }
   }
 
+  @NotNull
+  private GitHubApi getGitHubApiForVcsRootCredentials(@NotNull VcsRoot root, @NotNull String serverUrl) {
+    String vcsRootAuthType = root.getProperty("authMethod");
+    if (vcsRootAuthType == null) {
+      throw new IllegalArgumentException("Failed to parse VCS authentication type");
+    }
+
+    switch (vcsRootAuthType) {
+      case "ACCESS_TOKEN": //refreshable token auth
+        final String tokenId = root.getProperty("tokenId");
+        if (tokenId == null) {
+          throw new IllegalArgumentException("Failed to get tokenId in VCS authentication type");
+        }
+        return myFactory.openGitHubForStoredToken(serverUrl, tokenId, root.getExternalId());
+      case "PASSWORD": //token auth
+        final String username = root.getProperty("username");
+        String password = root.getProperty("secure:password");
+        if (username == null || password == null) {
+          throw new IllegalArgumentException("Failed to get username/token in VCS authentication type");
+        }
+        return myFactory.openGitHubForUser(serverUrl, username, password);
+      default:
+        throw new IllegalArgumentException("Failed to parse VCS authentication type:" + vcsRootAuthType);
+    }
+  }
+
   void testConnection(@NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    getGitHubApi(params).testConnection(parseRepository(root));
+    getGitHubApi(params, root).testConnection(parseRepository(root));
   }
 
   @NotNull
@@ -170,7 +199,7 @@ public class ChangeStatusUpdater {
                   "build: " + buildContext);
 
         Repository repo = parseRepository(root);
-        GitHubStatusClient statusClient = new GitHubStatusClient(params, publisher);
+        GitHubStatusClient statusClient = new GitHubStatusClient(params, publisher, root);
         try {
           return statusClient.getStatus(revision, repo);
         } catch (IOException e) {
@@ -190,7 +219,7 @@ public class ChangeStatusUpdater {
                   "build: " + buildContext);
 
         Repository repo = parseRepository(root);
-        GitHubStatusClient statusClient = new GitHubStatusClient(params, publisher);
+        GitHubStatusClient statusClient = new GitHubStatusClient(params, publisher, root);
 
         final int perPage = 25;
         int page = 1;
@@ -230,7 +259,7 @@ public class ChangeStatusUpdater {
 
         Repository repo = parseRepository(root);
 
-        GitHubStatusClient statusClient = new GitHubStatusClient(params, publisher);
+        GitHubStatusClient statusClient = new GitHubStatusClient(params, publisher, root);
         statusClient.update(revision, build, message, targetStatus, repo, viewUrl);
       }
 
@@ -249,7 +278,7 @@ public class ChangeStatusUpdater {
 
         Repository repo = parseRepository(root);
 
-        GitHubQueuedStatusClient statusClient = new GitHubQueuedStatusClient(params, publisher);
+        GitHubQueuedStatusClient statusClient = new GitHubQueuedStatusClient(params, publisher, root);
         return statusClient.update(revision, buildPromotion, targetStatus, repo, additionalTaskInfo, viewUrl);
       }
     };
@@ -266,11 +295,11 @@ public class ChangeStatusUpdater {
     protected final GitHubApi myApi;
     protected final String myContext;
 
-    GitHubCommonStatusClient(Map<String, String> params, GitHubPublisher publisher) {
+    GitHubCommonStatusClient(Map<String, String> params, GitHubPublisher publisher, @NotNull VcsRoot root) {
       myPublisher = publisher;
       String ctx = params.get(Constants.GITHUB_CONTEXT);
       myContext = StringUtil.isEmpty(ctx) ? DEFAULT_CONTEXT : ctx;
-      myApi = getGitHubApi(params);
+      myApi = getGitHubApi(params, root);
     }
 
     @NotNull
@@ -371,8 +400,8 @@ public class ChangeStatusUpdater {
 
   private class GitHubQueuedStatusClient extends GitHubCommonStatusClient {
 
-    GitHubQueuedStatusClient(Map<String, String> params, GitHubPublisher publisher) {
-      super(params, publisher);
+    GitHubQueuedStatusClient(Map<String, String> params, GitHubPublisher publisher, @NotNull VcsRoot root) {
+      super(params, publisher, root);
     }
 
     public boolean update(@NotNull BuildRevision revision,
@@ -413,8 +442,8 @@ public class ChangeStatusUpdater {
   private class GitHubStatusClient extends GitHubCommonStatusClient {
     private final boolean myAddComment = false;
 
-    GitHubStatusClient(Map<String, String> params, GitHubPublisher publisher) {
-      super(params, publisher);
+    GitHubStatusClient(Map<String, String> params, GitHubPublisher publisher, @NotNull VcsRoot root) {
+      super(params, publisher, root);
     }
 
     public void update(BuildRevision revision, SBuild build, String message, GitHubChangeState targetStatus, Repository repo, String viewUrl) {
