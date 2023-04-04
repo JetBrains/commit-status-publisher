@@ -331,7 +331,9 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
       LOG.debug(message, e);
       throw new PublisherException(message, e);
     }
-
+    
+    commits.add(parentCommitId); //include the current revision in search
+      
     return commits;
   }
 
