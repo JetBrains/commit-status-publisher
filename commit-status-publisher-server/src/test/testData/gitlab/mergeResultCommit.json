@@ -1,0 +1,27 @@
+{
+  "id": "31337",
+  "short_id": "a0d82f6b",
+  "created_at": "2023-04-05T16:28:38.000+00:00",
+  "parent_ids": [
+    "100000",
+    "314159"
+  ],
+  "title": "Merge branch 'feature/stuff' into 'master'",
+  "message": "Merge branch 'feature/stuff' into 'master'\n\nDo Stuff\n\nSee merge request aetest2/spring-template!1",
+  "author_name": "Test User",
+  "author_email": "testuser@test.test",
+  "authored_date": "2023-04-05T16:28:38.000+00:00",
+  "committer_name": "Test User",
+  "committer_email": "testuser@test.test",
+  "committed_date": "2023-04-05T16:28:38.000+00:00",
+  "trailers": {},
+  "web_url": "https://gitlab.com/test/spring-template/-/commit/31337",
+  "stats": {
+    "additions": 11,
+    "deletions": 1,
+    "total": 12
+  },
+  "status": null,
+  "project_id": 44866879,
+  "last_pipeline": null
+}

@@ -30,6 +30,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -184,6 +185,22 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
     return isBuildQueuedSupported(buildType, params) ? mySupportedEventsWithQueued : mySupportedEvents;
+  }
+
+  @Nullable
+  @Override
+  public HttpCredentials getCredentials(@Nullable VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
+    final HttpCredentials credentials = super.getCredentials(root, params);
+    if (credentials != null) {
+      return credentials;
+    }
+
+    final String token = params.get(Constants.GITLAB_TOKEN);
+    if (token == null) {
+      return null;
+    }
+
+    return new PrivateTokenCredentials(token);
   }
 
   private abstract class JsonResponseProcessor<T> extends DefaultHttpResponseProcessor {

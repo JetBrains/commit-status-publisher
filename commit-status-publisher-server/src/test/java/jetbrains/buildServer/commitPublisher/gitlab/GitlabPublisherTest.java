@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.commitPublisher.gitlab;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -31,7 +33,10 @@ import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabReceiveCommitStat
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcs.VcsRootInstanceEntry;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
@@ -48,6 +53,7 @@ import static org.assertj.core.api.BDDAssertions.then;
 public class GitlabPublisherTest extends HttpPublisherTest {
 
   private static final String GROUP_REPO = "group_repo";
+  private static final String MERGE_RESULT_COMMIT = "31337";
 
   public GitlabPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
@@ -165,6 +171,22 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, "anotherTypeFullName", "http://localhost:8111/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
   }
 
+  public void buildFinishedSuccessfully_on_merge_result_ref() throws Exception {
+    final String mergeResultRevision = MERGE_RESULT_COMMIT;
+    final String mergeResultRef = "refs/merge-requests/1/merge";
+    final Map<String, String> params = getPublisherParams();
+    setExpectedApiPath("/api/v4");
+    params.put(Constants.GITLAB_API_URL, getServerUrl() + "/api/v4");
+    myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/owner/project"));
+    final VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
+    final VcsRootInstanceEntry rootEntry = new VcsRootInstanceEntry(vcsRootInstance, CheckoutRules.createOn(""));
+    final RepositoryVersion repositoryVersion = new RepositoryVersion(mergeResultRevision, mergeResultRevision, mergeResultRef);
+    myRevision = new BuildRevision(rootEntry, repositoryVersion);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
+
+    test_buildFinished_Successfully();
+  }
+
   @Override
   protected boolean isStatusCacheNotImplemented() {
     return false;
@@ -201,7 +223,16 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   @Override
   protected boolean respondToGet(String url, HttpResponse httpResponse) {
     if (url.contains("/projects/" + OWNER + "%2F" + CORRECT_REPO + "/repository/commits")) {
-      respondWithCommits(httpResponse, url.substring(url.lastIndexOf('=') + 1).replace('+', ' '));
+      if (url.endsWith("/" + MERGE_RESULT_COMMIT)) {    // /api/v4/projects/test%2Fspring-template/repository/commits/5b01037812d17f741d94e2c8819cb8775e9cce6d
+        respondWithMergeResultCommit(httpResponse);
+      } else if (url.endsWith("/refs")) {               // /api/v4/projects/test%2Fspring-template/repository/commits/4071e1f3606ea74964146499a165b163b5f11821/refs
+        final String[] tokens = url.split("/");
+        respondWithCommitRefs(httpResponse, tokens[tokens.length - 2]);
+      } else {
+        respondWithCommits(httpResponse, url.substring(url.lastIndexOf('=') + 1).replace('+', ' '));
+      }
+    } else if (url.contains("/projects/" + OWNER + "%2F" + CORRECT_REPO + "/merge_requests")) {
+      respondWithMergeRequest(httpResponse);
     } else if (url.contains("/projects" +  "/" + OWNER + "%2F" + CORRECT_REPO)) {
       respondWithRepoInfo(httpResponse, CORRECT_REPO, false, true);
     } else if (url.contains("/projects"  + "/" + OWNER + "%2F" +  GROUP_REPO)) {
@@ -226,6 +257,30 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     statuses.add(new GitLabReceiveCommitStatus(1L, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, decodedName, ""));
     String json = gson.toJson(statuses);
     httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
+  }
+
+  private void respondWithMergeRequest(HttpResponse httpResponse) {
+    respondFromResource(httpResponse, "/gitlab/mergeRequest.json");
+  }
+
+  private void respondWithMergeResultCommit(HttpResponse httpResponse) {
+    respondFromResource(httpResponse, "/gitlab/mergeResultCommit.json");
+  }
+
+  private void respondWithCommitRefs(HttpResponse httpResponse, String commit) {
+    respondFromResource(httpResponse, "/gitlab/refs_" + commit + ".json");
+  }
+
+  private void respondFromResource(HttpResponse httpResponse, String resourceName) {
+    try (final InputStream in = getClass().getResourceAsStream(resourceName)) {
+      if (in == null) {
+        fail("response json resource not found " + resourceName);
+      }
+      final String body = IOUtils.toString(in);
+      httpResponse.setEntity(new StringEntity(body, StandardCharsets.UTF_8));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

@@ -1,0 +1,14 @@
+[
+  {
+    "type": "branch",
+    "name": "feature/stuff"
+  },
+  {
+    "type": "branch",
+    "name": "master"
+  },
+  {
+    "type": "something",
+    "name": "else"
+  }
+]
