@@ -361,8 +361,8 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
                 return;
               }
 
-              Map<String, Iteration> targetCommitIdForPossibleIterations = new HashMap<>();
               ListIterator<Iteration> iterationsIt = iterations.value.listIterator(iterations.value.size());
+              Iteration likelyIteration = null;
               // iterate iterations from the last one, because it's the latest one
               while (iterationsIt.hasPrevious()) {
                 Iteration it = iterationsIt.previous();
@@ -373,22 +373,17 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
                   iterationRef.set(it);
                   return;
                 }
-                targetCommitIdForPossibleIterations.put(targetCommitId, it);
+
+                //get max iteration where sourceRefCommit is presented in parents if it is impossible to determine iteration by parents only
+                if (likelyIteration == null)
+                  likelyIteration = it;
               }
 
-              if (targetCommitIdForPossibleIterations.isEmpty()) return;
-
-              LOG.debug("Matching iteration was not found among parents. Loading more commits from repository " + info);
-              int commitsToLoad = numCommitsToLoad();
-              Optional<Commit> commitFromRepo = getNLatestCommits(info, params, trustStore, commitsToLoad).stream()
-                                                              .filter(commit -> targetCommitIdForPossibleIterations.containsKey(commit.commitId))
-                                                              .max(Comparator.comparing(c -> c.author.date));
-              if (commitFromRepo.isPresent()) {
-                String commitId = commitFromRepo.get().commitId;
-                Iteration iteration = targetCommitIdForPossibleIterations.get(commitId);
-                iterationRef.set(iteration);
+              if (likelyIteration != null) {
+                LOG.debug("Matching iteration was not found among parents. Assuming most likely iteration by sourceRefCommit. " + info);
+                iterationRef.set(likelyIteration);
               } else {
-                LOG.debug("Iteration was not found among " + commitsToLoad + " latest commits from repository " + info);
+                LOG.debug("Iteration was not found " + info);
               }
             }
           });
