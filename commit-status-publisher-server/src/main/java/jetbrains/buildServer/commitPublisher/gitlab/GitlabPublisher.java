@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.commitPublisher.gitlab;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.gson.Gson;
 import java.io.IOException;
 import java.util.*;
@@ -28,6 +29,8 @@ import jetbrains.buildServer.commitPublisher.gitlab.data.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.vcs.SVcsModification;
+import jetbrains.buildServer.vcs.VcsModificationHistoryEx;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
@@ -47,7 +50,8 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
   private static final Gson myGson = new Gson();
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
-  private final CommitStatusesCache<GitLabReceiveCommitStatus> myStatusesCache;
+  @NotNull private final CommitStatusesCache<GitLabReceiveCommitStatus> myStatusesCache;
+  @NotNull private final VcsModificationHistoryEx myVcsModificationHistory;
 
   GitlabPublisher(@NotNull CommitStatusPublisherSettings settings,
                   @NotNull SBuildType buildType,
@@ -55,9 +59,11 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
                   @NotNull WebLinks links,
                   @NotNull Map<String, String> params,
                   @NotNull CommitStatusPublisherProblems problems,
-                  @NotNull CommitStatusesCache<GitLabReceiveCommitStatus> statusesCache) {
+                  @NotNull CommitStatusesCache<GitLabReceiveCommitStatus> statusesCache,
+                  @NotNull VcsModificationHistoryEx vcsModificationHistory) {
     super(settings, buildType, buildFeatureId, params, problems, links);
     myStatusesCache = statusesCache;
+    myVcsModificationHistory = vcsModificationHistory;
   }
 
 
@@ -273,10 +279,12 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
     if (repository == null)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
 
+    final HttpCredentials credentials = getSettings().getCredentials(root, myParams);
     try {
-      final String commit = determineStatusCommit(root, repository, revision);
-      final HttpCredentials credentials = getSettings().getCredentials(root, myParams);
-      publish(credentials, commit, message, repository, buildDescription);
+      final String commit = determineStatusCommit(credentials, root, repository, revision);
+      if (commit != null) {
+        publish(credentials, commit, message, repository, buildDescription);
+      }
     } catch (Exception e) {
       throw new PublisherException("Cannot publish status to GitLab for VCS root " +
                                    revision.getRoot().getName() + ": " + e, e);
@@ -351,12 +359,17 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
    * Determines the commit to publish the status to.
    * By default, this is the build revision's revision.
    * For merge result commits (<code>refs/merge-requests/x/merge</code>) this is the parent that belongs to the merge request's source branch.
+   * @param credentials HTTP credentials for GitLab Rest API
+   * @param root VCS root
    * @param repository repository coordinates
    * @param buildRevision the build revision
-   * @return commit SHA
+   * @return commit SHA or null if determining commit was not possible
    */
-  @NotNull
-  private String determineStatusCommit(@NotNull VcsRoot root, @NotNull Repository repository, @NotNull BuildRevision buildRevision) throws PublisherException {
+  @Nullable
+  private String determineStatusCommit(@Nullable HttpCredentials credentials,
+                                       @NotNull VcsRoot root,
+                                       @NotNull Repository repository,
+                                       @NotNull BuildRevision buildRevision) throws PublisherException {
     final String revision = buildRevision.getRevision();
     final String vcsBranch = buildRevision.getRepositoryVersion().getVcsBranch();
     if (vcsBranch == null) {
@@ -369,56 +382,64 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
     }
 
     final String mergeRequestNumber = matcher.group(MERGE_REQUEST_GROUP_NO);
-    final HttpCredentials credentials = getSettings().getCredentials(root, myParams);
     final GitLabMergeRequest mergeRequest = getMergeRequest(credentials, repository, mergeRequestNumber);
-    final List<String> parentRevisions = getParentRevisions(credentials, repository, revision);
+    if (mergeRequest == null) {
+      return null;
+    }
 
-    String sourceParent = null;
-    for (String parentRevision : parentRevisions) {
-      if (isOnlyInSourceBranch(credentials, repository, mergeRequest, parentRevision)) {
-        sourceParent = parentRevision;
-        break;
-      }
-    }
-    if (sourceParent == null) {
-      throw new HttpPublisherException("unable to determine merge result parent commit contained in source branch, merge request number: " + mergeRequestNumber);
-    }
-    return sourceParent;
+    final Set<String> parentRevisions = getParentRevisions(buildRevision.getRoot(), revision);
+    return determineParentInSourceBranch(credentials, repository, mergeRequest, parentRevisions);
   }
 
-  @NotNull
+  @Nullable
   private GitLabMergeRequest getMergeRequest(@Nullable HttpCredentials credentials, @NotNull Repository repository, @NotNull String mergeRequestNumber) throws PublisherException {
     final String url = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/merge_requests/" + mergeRequestNumber;
     final ResponseEntityProcessor<GitLabMergeRequest> processor = new ResponseEntityProcessor<>(GitLabMergeRequest.class);
     final GitLabMergeRequest mergeRequest = get(url, credentials, null, processor);
     if (mergeRequest == null) {
-      throw new HttpPublisherException("unable to load GitLab merge request " + mergeRequestNumber);
-    }
-    if (mergeRequest.source_branch == null) {
-      throw new HttpPublisherException("GitLab merge request source branch information is null, merge reqest " + mergeRequestNumber);
-    }
-    if (mergeRequest.target_branch == null) {
-      throw new HttpPublisherException("GitLab merge request target branch information is null, merge reqest " + mergeRequestNumber);
+      LOG.warn("unable to retrieve Gitlab merge request " + mergeRequestNumber);
     }
     return mergeRequest;
   }
 
   @NotNull
-  private List<String> getParentRevisions(HttpCredentials credentials, @NotNull Repository repository, @NotNull String revision) throws PublisherException {
-    final String url = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/repository/commits/" + revision;
-    final ResponseEntityProcessor<GitLabCommit> processor = new ResponseEntityProcessor<>(GitLabCommit.class);
-    final GitLabCommit commit = get(url, credentials, null, processor);
-    if (commit == null) {
-      throw new HttpPublisherException("unable to load GitLab commit " + revision);
+  private Set<String> getParentRevisions(@NotNull VcsRootInstance root, @NotNull String revision) {
+    final SVcsModification modification = myVcsModificationHistory.findModificationByVersion(root, revision);
+    if (modification == null) {
+      LOG.warn("unable to find GitLab merge result revision " + revision + " in VCS root " + root + ", status publishing will be skipped");
+      return Collections.emptySet();
     }
-    return Arrays.asList(commit.parent_ids);
+    final Collection<String> parentRevisions = modification.getParentRevisions();
+    if (parentRevisions.isEmpty()) {
+      LOG.warn("no parent revisions found for revision " + revision + " in VCS root " + root + ", status publishing will be skipped");
+    }
+    return ImmutableSet.copyOf(parentRevisions);
+  }
+
+  @Nullable
+  private String determineParentInSourceBranch(@Nullable HttpCredentials credentials,
+                                               @NotNull Repository repository,
+                                               @NotNull GitLabMergeRequest mergeRequest,
+                                               @NotNull Set<String> parentRevisions) throws PublisherException {
+    final String headSha = mergeRequest.sha;
+    if (headSha != null && parentRevisions.contains(headSha)) {
+      return headSha;
+    }
+
+    for (String parentRevision : parentRevisions) {
+      if (isOnlyInSourceBranch(credentials, repository, mergeRequest, parentRevision)) {
+        return parentRevision;
+      }
+    }
+
+    return null;
   }
 
   private boolean isOnlyInSourceBranch(HttpCredentials credentials,
                                        @NotNull Repository repository,
                                        @NotNull GitLabMergeRequest mergeRequest,
                                        @NotNull String revision) throws PublisherException {
-    final String url = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/repository/commits/" + revision + "/refs";
+    final String url = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/repository/commits/" + revision + "/refs?type=branch";
     final ResponseEntityProcessor<GitLabCommitReference[]> processor = new ResponseEntityProcessor<>(GitLabCommitReference[].class);
     final GitLabCommitReference[] references = get(url, credentials, null, processor);
     if (references == null) {

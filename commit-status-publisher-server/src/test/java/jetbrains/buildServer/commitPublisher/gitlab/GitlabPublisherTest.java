@@ -34,6 +34,7 @@ import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.vcs.CheckoutRules;
+import jetbrains.buildServer.vcs.VcsModificationHistoryEx;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcs.VcsRootInstanceEntry;
 import org.apache.commons.io.IOUtils;
@@ -44,6 +45,7 @@ import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static jetbrains.buildServer.buildTriggers.vcs.ModificationDataBuilder.modification;
 import static org.assertj.core.api.BDDAssertions.then;
 
 /**
@@ -54,6 +56,8 @@ public class GitlabPublisherTest extends HttpPublisherTest {
 
   private static final String GROUP_REPO = "group_repo";
   private static final String MERGE_RESULT_COMMIT = "31337";
+
+  private VcsModificationHistoryEx myVcsModificationHistory;
 
   public GitlabPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/projects/owner%%2Fproject/statuses/%s.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
@@ -80,7 +84,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory);
     test_buildFinished_Successfully();
   }
 
@@ -91,7 +95,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory);
     test_buildFinished_Successfully();
   }
 
@@ -182,7 +186,8 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     final VcsRootInstanceEntry rootEntry = new VcsRootInstanceEntry(vcsRootInstance, CheckoutRules.createOn(""));
     final RepositoryVersion repositoryVersion = new RepositoryVersion(mergeResultRevision, mergeResultRevision, mergeResultRef);
     myRevision = new BuildRevision(rootEntry, repositoryVersion);
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory);
+    myFixture.addModification(modification().in(vcsRootInstance).version(mergeResultRevision).parentVersions("100000", REVISION));
 
     test_buildFinished_Successfully();
   }
@@ -198,9 +203,10 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     setExpectedApiPath("/api/v4");
     setExpectedEndpointPrefix("/projects/" + OWNER + "%2F" + CORRECT_REPO);
     super.setUp();
-    myPublisherSettings = new GitlabSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
+    myVcsModificationHistory = myFixture.getVcsHistory();
+    myPublisherSettings = new GitlabSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myVcsModificationHistory);
     Map<String, String> params = getPublisherParams();
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory);
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }
 
@@ -223,9 +229,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   @Override
   protected boolean respondToGet(String url, HttpResponse httpResponse) {
     if (url.contains("/projects/" + OWNER + "%2F" + CORRECT_REPO + "/repository/commits")) {
-      if (url.endsWith("/" + MERGE_RESULT_COMMIT)) {    // /api/v4/projects/test%2Fspring-template/repository/commits/5b01037812d17f741d94e2c8819cb8775e9cce6d
-        respondWithMergeResultCommit(httpResponse);
-      } else if (url.endsWith("/refs")) {               // /api/v4/projects/test%2Fspring-template/repository/commits/4071e1f3606ea74964146499a165b163b5f11821/refs
+      if (url.endsWith("/refs?type=branch")) {               // /api/v4/projects/test%2Fspring-template/repository/commits/4071e1f3606ea74964146499a165b163b5f11821/refs
         final String[] tokens = url.split("/");
         respondWithCommitRefs(httpResponse, tokens[tokens.length - 2]);
       } else {
@@ -261,10 +265,6 @@ public class GitlabPublisherTest extends HttpPublisherTest {
 
   private void respondWithMergeRequest(HttpResponse httpResponse) {
     respondFromResource(httpResponse, "/gitlab/mergeRequest.json");
-  }
-
-  private void respondWithMergeResultCommit(HttpResponse httpResponse) {
-    respondFromResource(httpResponse, "/gitlab/mergeResultCommit.json");
   }
 
   private void respondWithCommitRefs(HttpResponse httpResponse, String commit) {

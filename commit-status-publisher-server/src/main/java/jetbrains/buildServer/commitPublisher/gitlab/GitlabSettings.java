@@ -28,6 +28,7 @@ import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabUserInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
+import jetbrains.buildServer.vcs.VcsModificationHistoryEx;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
@@ -54,13 +55,16 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     addAll(mySupportedEvents);
   }};
 
-  private final CommitStatusesCache<GitLabReceiveCommitStatus> myStatusesCache;
+  @NotNull private final CommitStatusesCache<GitLabReceiveCommitStatus> myStatusesCache;
+  @NotNull private final VcsModificationHistoryEx myVcsModificationHistory;
 
   public GitlabSettings(@NotNull PluginDescriptor descriptor,
                         @NotNull WebLinks links,
                         @NotNull CommitStatusPublisherProblems problems,
-                        @NotNull SSLTrustStoreProvider trustStoreProvider) {
+                        @NotNull SSLTrustStoreProvider trustStoreProvider,
+                        @NotNull VcsModificationHistoryEx vcsModificationHistory) {
     super(descriptor, links, problems, trustStoreProvider);
+    myVcsModificationHistory = vcsModificationHistory;
     myStatusesCache = new CommitStatusesCache<>();
   }
 
@@ -85,7 +89,7 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
   @NotNull
   @Override
   public GitlabPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new GitlabPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache);
+    return new GitlabPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache, myVcsModificationHistory);
   }
 
   @Override
