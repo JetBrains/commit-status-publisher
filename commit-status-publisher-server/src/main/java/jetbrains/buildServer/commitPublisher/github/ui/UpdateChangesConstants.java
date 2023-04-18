@@ -39,4 +39,12 @@ public class UpdateChangesConstants {
   public String getTokenIdKey() {
     return Constants.TOKEN_ID;
   }
+
+  public String getVcsRootId() {
+    return Constants.VCS_ROOT_ID_PARAM;
+  }
+
+  public String getVcsAuthMethod() {
+    return Constants.VCS_AUTH_METHOD;
+  }
 }

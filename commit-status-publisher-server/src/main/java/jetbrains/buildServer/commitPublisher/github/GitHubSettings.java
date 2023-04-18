@@ -17,6 +17,8 @@
 package jetbrains.buildServer.commitPublisher.github;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
@@ -35,6 +37,7 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
@@ -219,9 +222,31 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
           p.remove(c.getOAuthUserKey());
           p.remove(c.getOAuthProviderIdKey());
         } else if (authenticationType == GitHubApiAuthenticationType.VCS_ROOT) {
-          if (!buildTypeOrTemplate.getProject().getVcsRootInstances().stream().map(vr -> (vr.getProperty("authMethod"))).allMatch(auth -> SupportedVcsRootAuthentificationType.contains(auth))) {
-            result.add(new InvalidProperty(c.getAuthenticationTypeKey(), "Using SSH key or Anonymous authentication method to extract pull request information is impossible. Please provide an access token"));
+          List<SVcsRoot> roots = null;
+          if (buildTypeOrTemplate instanceof BuildTypeSettings) {
+            roots = ((BuildTypeSettings) buildTypeOrTemplate).getVcsRoots();
           }
+
+          if (null == roots || roots.isEmpty()) {
+            result.add(new InvalidProperty(c.getVcsRootId(), "No VCS Roots attached"));
+          }
+          else {
+            if (p.containsKey(c.getVcsRootId())) {
+              roots = roots.stream().filter(root -> root.getExternalId().equals(p.get(c.getVcsRootId()))).collect(Collectors.toList());
+              if (roots.isEmpty()) {
+                result.add(new InvalidProperty(c.getVcsRootId(), "Attached VCS Root (" + p.get(c.getVcsRootId()) + ") doesn't belong to the current build configuration"));
+              }
+            }
+
+            for (VcsRoot vcsRoot : roots) {
+              if (!SupportedVcsRootAuthentificationType.contains(vcsRoot.getProperty(c.getVcsAuthMethod()))) {
+                result.add(new InvalidProperty(c.getAuthenticationTypeKey(), "Using " + vcsRoot.getProperty(c.getVcsAuthMethod()) + " authentication method in attached VCS Root (" + vcsRoot.getExternalId() +
+                                                                             ") to extract statuses information is impossible. " +
+                                                                             "Please provide an access token or GitHub App connection"));
+              }
+            }
+          }
+
           p.remove(c.getAccessTokenKey());
           p.remove(c.getOAuthUserKey());
           p.remove(c.getUserNameKey());

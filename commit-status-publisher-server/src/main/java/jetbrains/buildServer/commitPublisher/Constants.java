@@ -35,6 +35,7 @@ public class Constants {
   public static final String AUTH_TYPE = "authType";
   public static final String AUTH_TYPE_STORED_TOKEN = "storedToken";
   public static final String TOKEN_ID = "tokenId";
+  public static final String VCS_AUTH_METHOD = "authMethod";
 
   public static final String UPSOURCE_PUBLISHER_ID = "upsourcePublisher";
   public static final String UPSOURCE_SERVER_URL = "upsourceServerUrl";
