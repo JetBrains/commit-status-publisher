@@ -235,8 +235,13 @@
    <props:selectSectionPropertyContent value="vcsRoot" caption="Use VCS root(-s) credentials">
      <tr><td colspan="2">
        <em>
-         TeamCity will try to extract personal access token/'x-oauth-basic' or refreshable access token or username/password credentials from the VCS root settings
-         if the VCS root uses HTTP(S) fetch URL. Please note that username/password authentication is not supported. This option will also not work if the VCS root uses an SSH fetch URL or employs anonymous authentication.
+         TeamCity obtains token based credentials from the VCS root settings.
+         This option will not work if the VCS root uses an SSH fetch URL,
+         employs anonymous authentication or uses
+         <a href="https://docs.github.com/en/rest/overview/authenticating-to-the-rest-api?apiVersion=2022-11-28#authenticating-with-username-and-password" target="_blank" rel="noreferrer">
+           an actual password
+         </a>
+         of the user rather than a token.
        </em>
      </td></tr>
    </props:selectSectionPropertyContent>
