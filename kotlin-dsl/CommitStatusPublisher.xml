@@ -225,6 +225,16 @@
                         Use VCS root credentials
                       </description>
                     </option>
+                    <option name="storedToken" value="storedToken">
+                      <description>
+                        Use GitHub App credentials
+                      </description>
+                      <param name="tokenId" dslName="tokenId" mandatory="true">
+                        <description>
+                          Internal ID of a token in TeamCity token storage
+                        </description>
+                      </param>
+                    </option>
                 </param>
             </option>
             <option name="gitlab" value="gitlabStatusPublisher">
