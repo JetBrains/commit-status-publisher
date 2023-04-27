@@ -26,6 +26,8 @@
 <jsp:useBean id="oauthConnections" scope="request" type="java.util.Map"/>
 <jsp:useBean id="project" scope="request" type="jetbrains.buildServer.serverSide.SProject"/>
 
+<%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
+
 <props:selectSectionProperty name="${keys.authType}" title="Authentication Type">
 
   <props:selectSectionPropertyContent value="${keys.authTypePassword}" caption="Username / Password">
@@ -63,20 +65,19 @@
         <props:hiddenProperty name="${keys.tokenId}" />
         <span class="error" id="error_${keys.tokenId}"></span>
 
-        <c:forEach items="${oauthConnections.keySet()}" var="connection">
-          <script type="application/javascript">
-            BS.AuthTypeTokenSupport.connections['${connection.id}'] = '<bs:forJs>${connection.connectionDisplayName}</bs:forJs>';
-          </script>
-          <div class="token-connection">
-            <span class="token-connection-diplay-name"><c:out value="${connection.connectionDisplayName}" /></span>
-            <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.AuthTypeTokenSupport.tokenCallback">
-              Acquire
-            </oauth:obtainToken>
-          </div>
-        </c:forEach>
-
-        <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
         <c:if test="${canEditProject}">
+          <c:forEach items="${oauthConnections.keySet()}" var="connection">
+            <script type="application/javascript">
+              BS.AuthTypeTokenSupport.connections['${connection.id}'] = '<bs:forJs>${connection.connectionDisplayName}</bs:forJs>';
+            </script>
+            <div class="token-connection">
+              <span class="token-connection-diplay-name"><c:out value="${connection.connectionDisplayName}" /></span>
+              <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.AuthTypeTokenSupport.tokenCallback">
+                Acquire
+              </oauth:obtainToken>
+            </div>
+          </c:forEach>
+
           <c:set var="connectorType" value="<%=BitBucketOAuthProvider.TYPE%>"/>
           <span class="smallNote connection-note">Add credentials via the
                   <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
