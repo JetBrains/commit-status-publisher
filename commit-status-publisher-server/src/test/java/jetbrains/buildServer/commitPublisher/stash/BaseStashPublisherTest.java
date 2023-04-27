@@ -43,7 +43,14 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
   protected void setUp() throws Exception {
     super.setUp();
     Map<String, String> params = getPublisherParams();
-    myPublisherSettings = new StashSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getUserModel());
+    myPublisherSettings = new StashSettings(new MockPluginDescriptor(),
+                                            myWebLinks,
+                                            myProblems,
+                                            myTrustStoreProvider,
+                                            myOAuthConnectionsManager,
+                                            myOAuthTokenStorage,
+                                            myFixture.getUserModel(),
+                                            myFixture.getSecurityContext());
     myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }

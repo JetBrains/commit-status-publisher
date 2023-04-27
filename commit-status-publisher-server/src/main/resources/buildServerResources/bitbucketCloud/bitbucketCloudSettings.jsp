@@ -75,9 +75,12 @@
           </div>
         </c:forEach>
 
-        <c:set var="connectorType" value="<%=BitBucketOAuthProvider.TYPE%>"/>
-        <span class="smallNote connection-note">Add credentials via the
-                <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
+        <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
+        <c:if test="${canEditProject}">
+          <c:set var="connectorType" value="<%=BitBucketOAuthProvider.TYPE%>"/>
+          <span class="smallNote connection-note">Add credentials via the
+                  <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
+        </c:if>
       </td>
     </tr>
   </props:selectSectionPropertyContent>

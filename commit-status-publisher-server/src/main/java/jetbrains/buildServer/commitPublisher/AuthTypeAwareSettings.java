@@ -7,6 +7,8 @@ import java.util.Map;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.oauth.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
@@ -31,17 +33,22 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
   @NotNull
   protected final OAuthConnectionsManager myOAuthConnectionsManager;
 
+  @NotNull
+  private final SecurityContext mySecurityContext;
+
   public AuthTypeAwareSettings(@NotNull PluginDescriptor descriptor,
                                @NotNull WebLinks links,
                                @NotNull CommitStatusPublisherProblems problems,
                                @NotNull SSLTrustStoreProvider trustStoreProvider,
                                @NotNull OAuthTokensStorage oAuthTokensStorage,
                                @NotNull UserModel userModel,
-                               @NotNull OAuthConnectionsManager oAuthConnectionsManager) {
+                               @NotNull OAuthConnectionsManager oAuthConnectionsManager,
+                               @NotNull SecurityContext securityContext) {
     super(descriptor, links, problems, trustStoreProvider);
     myOAuthTokensStorage = oAuthTokensStorage;
     myUserModel = userModel;
     myOAuthConnectionsManager = oAuthConnectionsManager;
+    mySecurityContext = securityContext;
   }
 
   @NotNull
@@ -151,10 +158,13 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
       return Collections.emptyMap();
     }
 
+    final boolean canEditProject = AuthUtil.hasPermissionToManageProject(mySecurityContext.getAuthorityHolder(), project.getProjectId());
+
     return ImmutableMap.of(
       "tokenUsername", user.getUsername(),
       "tokenUser", user.getName(),
-      "tokenConnection", connection.getConnectionDisplayName()
+      "tokenConnection", connection.getConnectionDisplayName(),
+      "canEditProject", canEditProject
     );
   }
 }

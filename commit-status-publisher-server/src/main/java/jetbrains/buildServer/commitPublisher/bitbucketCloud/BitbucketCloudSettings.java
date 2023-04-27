@@ -25,6 +25,7 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudCommitBuildStatus;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudRepoInfo;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
@@ -73,8 +74,9 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
                                 @NotNull SSLTrustStoreProvider trustStoreProvider,
                                 @NotNull OAuthConnectionsManager oAuthConnectionsManager,
                                 @NotNull OAuthTokensStorage oAuthTokensStorage,
-                                @NotNull UserModel userModel) {
-    super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, oAuthConnectionsManager);
+                                @NotNull UserModel userModel,
+                                @NotNull SecurityContext securityContext) {
+    super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, oAuthConnectionsManager, securityContext);
     myStatusesCache = new CommitStatusesCache<>();
   }
 
