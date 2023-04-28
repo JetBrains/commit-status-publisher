@@ -8,6 +8,7 @@ import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.connections.RefreshableToken;
 import jetbrains.buildServer.serverSide.oauth.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
@@ -94,7 +95,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
         if (StringUtil.isEmptyOrSpaces(tokenId)) {
           throw new PublisherException("authentication type is set to access token, but no token id is configured");
         }
-        final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
+        final RefreshableToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
         if (token == null) {
           throw new PublisherException("The configured authentication with the " + tokenId + " ID is missing or invalid.");
         }
@@ -193,7 +194,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
         return healthItemData("has authentication type set to access token, but no token id is configured");
       }
 
-      final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(buildType.getProject(), tokenId);
+      final RefreshableToken token = myOAuthTokensStorage.getRefreshableToken(buildType.getProject(), tokenId);
       if (token == null) {
         return healthItemData("refers to a missing or invalid authentication token (token id: " +
                               tokenId +
@@ -224,7 +225,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
       return result;
     }
 
-    final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(project, tokenId);
+    final RefreshableToken token = myOAuthTokensStorage.getRefreshableToken(project, tokenId);
     if (token == null) {
       return result;
     }

@@ -27,6 +27,7 @@ import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.oauth.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.serverSide.connections.RefreshableToken;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -90,7 +91,7 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
     return new GitHubApiImpl(myWrapper, new GitHubApiPaths(url)){
       @Override
       protected SimpleCredentials authenticationCredentials() throws IOException {
-        final OAuthToken gitHubOAuthToken = myOAuthTokensStorage.getRefreshableToken(vcsRootId, tokenId, false);
+        final RefreshableToken gitHubOAuthToken = myOAuthTokensStorage.getRefreshableToken(vcsRootId, tokenId, false);
         if (gitHubOAuthToken != null) {
           //must be refactored to use Bearer token
           return new SimpleCredentials("oauth2", gitHubOAuthToken.getAccessToken());
@@ -111,7 +112,7 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
           throw new PublisherException("Unable to find VCS root by external id " + vcsRootId);
         }
 
-        final OAuthToken gitHubOAuthToken = myOAuthTokensStorage.getRefreshableToken(vcsRootId, tokenId, false);
+        final RefreshableToken gitHubOAuthToken = myOAuthTokensStorage.getRefreshableToken(vcsRootId, tokenId, false);
         if (gitHubOAuthToken == null) {
           throw new PublisherException("Failed to retrieve configured token from storage (tokenId: " + tokenId + ")");
         }

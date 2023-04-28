@@ -30,6 +30,7 @@ import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.connections.RefreshableToken;
 import jetbrains.buildServer.serverSide.oauth.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
@@ -208,7 +209,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
           if (null != oauthUsername && null != oauthProviderId) {
             User currentUser = mySecurityContext.getAuthorityHolder().getAssociatedUser();
             if (null != currentUser && currentUser instanceof SUser) {
-              for (OAuthToken token: myOAuthTokensStorage.getUserTokens(oauthProviderId, (SUser) currentUser, buildTypeOrTemplate.getProject(), false)) {
+              for (RefreshableToken token: myOAuthTokensStorage.getUserTokens(oauthProviderId, (SUser) currentUser, buildTypeOrTemplate.getProject(), false)) {
                 if (token.getOauthLogin().equals(oauthUsername)) {
                   p.put(c.getAccessTokenKey(), token.getAccessToken());
                   p.remove(c.getOAuthProviderIdKey());
@@ -306,7 +307,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
       return result;
     }
 
-    final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(project, tokenId);
+    final RefreshableToken token = myOAuthTokensStorage.getRefreshableToken(project, tokenId);
     if (token == null) {
       return result;
     }

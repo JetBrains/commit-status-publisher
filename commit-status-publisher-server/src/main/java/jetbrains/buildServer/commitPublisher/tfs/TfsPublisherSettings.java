@@ -22,9 +22,9 @@ import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.connections.RefreshableToken;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
-import jetbrains.buildServer.serverSide.oauth.OAuthToken;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.serverSide.oauth.tfs.TfsAuthProvider;
 import jetbrains.buildServer.users.SUser;
@@ -174,7 +174,7 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
         if (authUsername != null && authProviderId != null) {
           final User currentUser = mySecurityContext.getAuthorityHolder().getAssociatedUser();
           if (currentUser != null && currentUser instanceof SUser) {
-            for (OAuthToken token : myOAuthTokensStorage.getUserTokens(authProviderId, (SUser) currentUser, buildTypeOrTemplate.getProject(), false)) {
+            for (RefreshableToken token : myOAuthTokensStorage.getUserTokens(authProviderId, (SUser) currentUser, buildTypeOrTemplate.getProject(), false)) {
               if (token.getOauthLogin().equals(authUsername)) {
                 p.put(TfsConstants.ACCESS_TOKEN, token.getAccessToken());
                 p.remove(TfsConstants.AUTH_USER);
