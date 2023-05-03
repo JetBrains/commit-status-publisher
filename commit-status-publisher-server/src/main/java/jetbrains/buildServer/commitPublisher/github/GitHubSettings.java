@@ -16,6 +16,7 @@
 
 package jetbrains.buildServer.commitPublisher.github;
 
+import com.google.common.collect.Sets;
 import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildType;
@@ -68,6 +69,13 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
   public static final String GITHUB_OAUTH_PROVIDER_TYPE = "GitHub";
   public static final String GHE_OAUTH_PROVIDER_TYPE = "GHE";
   public static final String GITHUB_APP_OAUTH_PROVIDER_TYPE = "GitHubApp";
+
+  public static final String CONNECTION_SUBTYPE = "connectionSubtype";
+
+  public static final String ALL_IN_ONE_SUBTYPE = "gitHubApp";
+  public static final String INSTALLATION_SUBTYPE = "gitHubAppInstallation";
+
+  public static final Set<String> ALLOWED_SUBTYPES = Sets.newHashSet(ALL_IN_ONE_SUBTYPE, INSTALLATION_SUBTYPE);
 
   public GitHubSettings(@NotNull ChangeStatusUpdater updater,
                         @NotNull PluginDescriptor descriptor,
@@ -127,7 +135,9 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
   public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(final @NotNull SProject project, final @NotNull SUser user) {
     List<OAuthConnectionDescriptor> validConnections = new ArrayList<OAuthConnectionDescriptor>();
     validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GITHUB_OAUTH_PROVIDER_TYPE));
-    validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GITHUB_APP_OAUTH_PROVIDER_TYPE));
+    validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GITHUB_APP_OAUTH_PROVIDER_TYPE)
+                                                     .stream().filter(c -> ALLOWED_SUBTYPES.contains(c.getParameters().get(CONNECTION_SUBTYPE)))
+                                                     .collect(Collectors.toList()));
     validConnections.addAll(myOauthConnectionsManager.getAvailableConnectionsOfType(project, GHE_OAUTH_PROVIDER_TYPE));
     Map<OAuthConnectionDescriptor, Boolean> connections = new LinkedHashMap<OAuthConnectionDescriptor, Boolean>();
     for (OAuthConnectionDescriptor c: validConnections) {
