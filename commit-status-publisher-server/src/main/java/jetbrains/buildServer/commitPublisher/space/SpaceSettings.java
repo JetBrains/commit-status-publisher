@@ -26,6 +26,7 @@ import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
+import jetbrains.buildServer.serverSide.oauth.OAuthConstants;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConstants;
@@ -231,6 +232,12 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   @NotNull
   @Override
   public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(@NotNull SProject project, @NotNull SUser user) {
+    final boolean capabilitiesEnabled = TeamCityProperties.getBoolean(OAuthConstants.FEATURE_TOGGLE_CAPABILITIES);
+    if (capabilitiesEnabled) {
+      // connections will be loaded via JS in this case
+      return Collections.emptyMap();
+    }
+
     final Map<OAuthConnectionDescriptor, Boolean> connections = new HashMap<>();
     final List<OAuthConnectionDescriptor> spaceConnections = myOAuthConnectionManager.getAvailableConnectionsOfType(project, SpaceOAuthProvider.TYPE);
 

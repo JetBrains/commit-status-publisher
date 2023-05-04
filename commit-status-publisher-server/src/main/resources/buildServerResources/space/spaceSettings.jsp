@@ -1,4 +1,6 @@
 <%@ page import="jetbrains.buildServer.commitPublisher.space.Constants" %>
+<%@ page import="jetbrains.buildServer.serverSide.TeamCityProperties" %>
+<%@ page import="jetbrains.buildServer.serverSide.oauth.OAuthConstants" %>
 <%@ page import="jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthProvider" %>
 <%@ include file="/include-internal.jsp" %>
 <%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
@@ -30,6 +32,10 @@
 <jsp:useBean id="oauthConnections" scope="request" type="java.util.Map"/>
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.space.Constants"/>
 
+<c:set var="capabilitiesEnabled" value='<%=TeamCityProperties.getBoolean(OAuthConstants.FEATURE_TOGGLE_CAPABILITIES)%>'/>
+<c:set var="idSelectedConnection" value="selectedConnection"/>
+<c:set var="idConnectionsWaiter" value="connectionsWaiter"/>
+
 <tr class="${keys.spaceCredentialsConnection}_row">
   <th><label for="prop:loginCheckbox">Connection:<l:star/></label></th>
   <td>
@@ -38,14 +44,20 @@
     <c:set var="initialLoginVal" value="${propertiesBean.properties[keys.spaceConnectionId]}"/>
     <div style="float:left">
       <props:selectProperty name="${loginProp}">
-        <props:option value="">No connection provided</props:option>
-        <c:forEach var="conn" items="${oauthConnections.keySet()}">
-          <props:option value="${conn.id}">
-            <c:out value="${conn.connectionDisplayName}"/>
-            <c:if test="${fn:startsWith(conn.parameters[keys.spaceServerUrl], 'http://')}"> (insecure)</c:if>
-          </props:option>
-        </c:forEach>
+        <c:if test="${not capabilitiesEnabled}">
+          <c:forEach var="conn" items="${oauthConnections.keySet()}">
+            <props:option value="">No connection provided</props:option>
+            <props:option value="${conn.id}">
+              <c:out value="${conn.connectionDisplayName}"/>
+              <c:if test="${fn:startsWith(conn.parameters[keys.spaceServerUrl], 'http://')}"> (insecure)</c:if>
+            </props:option>
+          </c:forEach>
+        </c:if>
       </props:selectProperty>
+      <c:if test="${capabilitiesEnabled}">
+        <props:hiddenProperty id="${idSelectedConnection}" name="${loginProp}"/>
+        <forms:progressRing id="${idConnectionsWaiter}" progressTitle="Loading Space connections..."/>
+      </c:if>
 
       <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
       <c:if test="${canEditProject}">
@@ -88,6 +100,35 @@
     </c:if>
   </td>
 </tr>
+
+<jsp:include page="/oauth/space/spaceConnectionsService.jsp"/>
+<script type="text/javascript">
+  BS.SpaceCspSettings = {
+    fetchConnections: function () {
+      BS.SpaceConnectionsService.fetchConnectionsWithCapabilitiesIntoSelect({
+        waiterElement: $('${idConnectionsWaiter}'),
+        selectElement: $j('#${loginProp}'),
+        selectedElement: $('${idSelectedConnection}'),
+        projectId: '${project.projectId}',
+        capabilities: ['PUBLISH_BUILD_STATUS'],
+        addSpecialOptions: function (select) {
+          select.append(new Option("No connection provided", ""));
+        },
+        buildDescription: function (connection) {
+          let description = connection.displayName;
+          if (connection.serverUrl && connection.serverUrl.startsWith('http://')) {
+            description += ' (insecure)';
+          }
+          return description;
+        }
+      });
+    }
+  };
+
+  <c:if test="${capabilitiesEnabled}">
+    BS.SpaceCspSettings.fetchConnections();
+  </c:if>
+</script>
 
 <script>
   var updateVisibility = function () {
