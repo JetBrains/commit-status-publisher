@@ -281,7 +281,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
 
     final HttpCredentials credentials = getSettings().getCredentials(root, myParams);
     try {
-      final String commit = determineStatusCommit(credentials, root, repository, revision);
+      final String commit = determineStatusCommit(credentials, repository, revision);
       if (commit != null) {
         publish(credentials, commit, message, repository, buildDescription);
       }
@@ -360,17 +360,20 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
    * By default, this is the build revision's revision.
    * For merge result commits (<code>refs/merge-requests/x/merge</code>) this is the parent that belongs to the merge request's source branch.
    * @param credentials HTTP credentials for GitLab Rest API
-   * @param root VCS root
    * @param repository repository coordinates
    * @param buildRevision the build revision
    * @return commit SHA or null if determining commit was not possible
    */
   @Nullable
   private String determineStatusCommit(@Nullable HttpCredentials credentials,
-                                       @NotNull VcsRoot root,
                                        @NotNull Repository repository,
                                        @NotNull BuildRevision buildRevision) throws PublisherException {
     final String revision = buildRevision.getRevision();
+
+    if (!supportMergeResults(myBuildType)) {
+      return revision;
+    }
+
     final String vcsBranch = buildRevision.getRepositoryVersion().getVcsBranch();
     if (vcsBranch == null) {
       return revision;
@@ -461,4 +464,11 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
     return inSource && !inTarget;
   }
 
+  private static boolean supportMergeResults(@NotNull BuildType buildType) {
+    if (buildType instanceof InternalParameters) {
+      return ((InternalParameters)buildType).getBooleanInternalParameter(Constants.GITLAB_FEATURE_TOGGLE_MERGE_RESULTS);
+    }
+
+    return false;
+  }
 }
