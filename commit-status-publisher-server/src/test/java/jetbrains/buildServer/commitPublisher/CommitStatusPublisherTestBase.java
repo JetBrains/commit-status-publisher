@@ -27,6 +27,7 @@ import jetbrains.buildServer.controllers.admin.projects.MultipleRunnersBean;
 import jetbrains.buildServer.controllers.admin.projects.VcsSettingsBean;
 import jetbrains.buildServer.parameters.ValueResolver;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
@@ -66,7 +67,7 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     final PublisherManager publisherManager = new PublisherManager(myServer);
 
     myCurrentVersions = new HashMap<String, String>();
-    mySettingsController = new PublisherSettingsController(wcm, pluginDescr, publisherManager, myProjectManager);
+    mySettingsController = new PublisherSettingsController(wcm, pluginDescr, publisherManager, myProjectManager, myFixture.getSingletonService(SecurityContext.class));
 
     myFeatureController = new CommitStatusPublisherFeatureController(myProjectManager, wcm, pluginDescr, publisherManager, mySettingsController);
     myVcsManager = myFixture.getVcsManager();

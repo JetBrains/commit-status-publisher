@@ -133,38 +133,41 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
   @NotNull
   @Override
   public Map<String, Object> getSpecificAttributes(@NotNull SProject project, @NotNull Map<String, String> params) {
+    Map<String, Object> result = new HashMap<>();
+    final boolean canEditProject = AuthUtil.hasPermissionToManageProject(mySecurityContext.getAuthorityHolder(), project.getProjectId());
+
+    result.put("canEditProject", canEditProject);
+
     final String tokenId = params.get(Constants.TOKEN_ID);
     if (StringUtil.isEmptyOrSpaces(tokenId)) {
-      return Collections.emptyMap();
+      return result;
     }
 
     final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(project, tokenId);
     if (token == null) {
-      return Collections.emptyMap();
-    }
-
-    final SUser user = myUserModel.findUserById(token.getTeamCityUserId());
-    if (user == null) {
-      return Collections.emptyMap();
+      return result;
     }
 
     final TokenFullIdComponents tokenIdComponents = OAuthTokensStorage.parseFullTokenId(tokenId);
     if (tokenIdComponents == null) {
-      return Collections.emptyMap();
+      return result;
     }
 
     final OAuthConnectionDescriptor connection = myOAuthConnectionsManager.findConnectionByTokenStorageId(project, tokenIdComponents.getTokenStorageId());
     if (connection == null) {
-      return Collections.emptyMap();
+      return result;
     }
 
-    final boolean canEditProject = AuthUtil.hasPermissionToManageProject(mySecurityContext.getAuthorityHolder(), project.getProjectId());
+    result.put("tokenConnection", connection.getConnectionDisplayName());
 
-    return ImmutableMap.of(
-      "tokenUsername", user.getUsername(),
-      "tokenUser", user.getName(),
-      "tokenConnection", connection.getConnectionDisplayName(),
-      "canEditProject", canEditProject
-    );
+    final SUser user = myUserModel.findUserById(token.getTeamCityUserId());
+    if (user == null) {
+      return result;
+    }
+
+    result.put("tokenUsername", user.getUsername());
+    result.put("tokenUser", user.getName());
+
+    return result;
   }
 }

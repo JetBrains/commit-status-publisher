@@ -28,6 +28,8 @@ import jetbrains.buildServer.controllers.admin.projects.PluginPropertiesUtil;
 import jetbrains.buildServer.parameters.NullValueResolver;
 import jetbrains.buildServer.parameters.ValueResolver;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
@@ -48,15 +50,20 @@ public class PublisherSettingsController extends BaseController {
   private final PublisherManager myPublisherManager;
   private final ProjectManager myProjectManager;
 
+  @NotNull
+  private final SecurityContext mySecurityContext;
+
 
   public PublisherSettingsController(@NotNull WebControllerManager controllerManager,
                                      @NotNull PluginDescriptor descriptor,
                                      @NotNull PublisherManager publisherManager,
-                                     @NotNull ProjectManager projectManager) {
+                                     @NotNull ProjectManager projectManager,
+                                     @NotNull SecurityContext securityContext) {
     myUrl = descriptor.getPluginResourcesPath("publisherSettings.html");
     myPublisherManager = publisherManager;
     controllerManager.registerController(myUrl, this);
     myProjectManager = projectManager;
+    mySecurityContext = securityContext;
   }
 
   public String getUrl() {
@@ -95,6 +102,7 @@ public class PublisherSettingsController extends BaseController {
       Map<OAuthConnectionDescriptor, Boolean> oauthConnections = settings.getOAuthConnections(project, user);
       request.setAttribute("oauthConnections", oauthConnections);
       request.setAttribute("refreshTokenSupported", oauthConnections.keySet().stream().anyMatch(c -> c.getOauthProvider().isTokenRefreshSupported()));
+      request.setAttribute("canEditProject", AuthUtil.hasPermissionToManageProject(mySecurityContext.getAuthorityHolder(), project.getProjectId()));
     }
 
     if (settingsUrl != null)
