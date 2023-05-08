@@ -176,6 +176,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   }
 
   public void buildFinishedSuccessfully_on_merge_result_ref() throws Exception {
+    setInternalProperty("teamcity.internal." + Constants.GITLAB_FEATURE_TOGGLE_MERGE_RESULTS, true);
     final String mergeResultRevision = MERGE_RESULT_COMMIT;
     final String mergeResultRef = "refs/merge-requests/1/merge";
     final Map<String, String> params = getPublisherParams();
