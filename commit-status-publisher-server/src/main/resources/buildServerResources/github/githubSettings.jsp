@@ -76,8 +76,6 @@
 
    <c:if test='${refreshTokenSupported}'>
      <props:selectSectionPropertyContent value="${keys.authentificationTypeGitHubAppTokenValue}" caption="GitHub App access token">
-       <%@include file="../tokenSupport.jspf"%>
-
        <script type="text/javascript">
          showTokenInfo = function () {
            const tokenValue = $('${keys.tokenIdKey}').value;
@@ -116,9 +114,6 @@
 
            <c:forEach items="${oauthConnections.keySet()}" var="connection">
              <c:if test="${connection.oauthProvider.isTokenRefreshSupported()}">
-               <script type="application/javascript">
-                 BS.AuthTypeTokenSupport.connections['${connection.id}'] = '<bs:forJs>${connection.connectionDisplayName}</bs:forJs>';
-               </script>
                <div class="token-connection">
                 <span title="<c:out value='${connection.id}' />" id="issuedTokenId">
                   <span id="issuedForTitle">Issued via</span>
@@ -127,7 +122,7 @@
                     <c:out value="${connection.connectionDisplayName}" />
                   </strong>
                 </span>
-                 <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.AuthTypeTokenSupport.tokenCallback">
+                 <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="setAcquiredToken">
                    Acquire new
                  </oauth:obtainToken>
                </div>
@@ -137,16 +132,6 @@
            <props:hiddenProperty name="${keys.tokenIdKey}" />
            <span class="error" id="error_${keys.tokenIdKey}"></span>
            <span id="message_acquire_token"></span>
-
-           <span class="error" id="error_tokenId"></span>
-           <span id="message_acquire_token"></span>
-
-           <span class="access-token-note" id="message_no_token">No access token configured.</span>
-           <span class="access-token-note" id="message_we_have_token">[token info message]</strong>.</span>
-           <c:if test="${empty oauthConnections}">
-             <br/>
-             <span>There are no GitHub App connections available to the project.</span>
-           </c:if>
          </td>
        </tr>
      </props:selectSectionPropertyContent>
