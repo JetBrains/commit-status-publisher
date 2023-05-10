@@ -54,7 +54,7 @@ import static org.apache.http.HttpVersion.HTTP_1_1;
 public abstract class GitHubApiImpl implements GitHubApi {
   private static final Pattern PULL_REQUEST_BRANCH = Pattern.compile("/?refs/pull/(\\d+)/(.*)");
   private static final String MSG_PROXY_OR_PERMISSIONS = "Please check if the error is not returned by a proxy or caused by the lack of permissions.";
-  private static final String MSG_NOT_FOUND = "Repository not found. Please check if it spelled correctly and exists.";
+  private static final String MSG_NOT_FOUND = "Repository not found. Make sure the repository exists and the URL is correct.";
 
   private final HttpClientWrapper myClient;
   private final GitHubApiPaths myUrls;
@@ -91,7 +91,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     try {
       repoInfo = processResponse(uri, RepoInfo.class, true);
     } catch (Throwable ex) {
-      throw new PublisherException(String.format("Error while retrieving \"%s\" repository information", repo.url()), ex);
+      throw new PublisherException(String.format("Could not retrieve information about the \"%s\" repository", repo.url()), ex);
     }
 
     checkPermissions(repo, repoInfo);
