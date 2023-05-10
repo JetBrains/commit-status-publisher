@@ -19,7 +19,6 @@ package jetbrains.buildServer.commitPublisher.github;
 import com.google.common.collect.Sets;
 import java.util.*;
 import java.util.stream.Collectors;
-import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
@@ -29,11 +28,9 @@ import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
 import jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants;
 import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
-import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
-import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
-import jetbrains.buildServer.serverSide.oauth.OAuthToken;
-import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
+import jetbrains.buildServer.serverSide.oauth.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
@@ -286,5 +283,38 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
     return isBuildQueuedSupported(buildType, params) ? mySupportedEventsWithQueued : mySupportedEvents;
+  }
+
+  @NotNull
+  @Override
+  public Map<String, Object> getSpecificAttributes(@NotNull SProject project, @NotNull Map<String, String> params) {
+    Map<String, Object> result = new HashMap<>();
+    final boolean canEditProject = AuthUtil.hasPermissionToManageProject(mySecurityContext.getAuthorityHolder(), project.getProjectId());
+
+    result.put("canEditProject", canEditProject);
+
+    final String tokenId = params.get(Constants.TOKEN_ID);
+    if (StringUtil.isEmptyOrSpaces(tokenId)) {
+      return result;
+    }
+
+    final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(project, tokenId);
+    if (token == null) {
+      return result;
+    }
+
+    final TokenFullIdComponents tokenIdComponents = OAuthTokensStorage.parseFullTokenId(tokenId);
+    if (tokenIdComponents == null) {
+      return result;
+    }
+
+    final OAuthConnectionDescriptor connection = myOauthConnectionsManager.findConnectionByTokenStorageId(project, tokenIdComponents.getTokenStorageId());
+    if (connection == null) {
+      return result;
+    }
+
+    result.put("tokenConnection", connection.getConnectionDisplayName());
+
+    return result;
   }
 }

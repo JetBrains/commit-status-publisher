@@ -59,13 +59,13 @@
 
     <props:selectSectionPropertyContent value="${keys.authTypeStoredToken}" caption="Access Token">
 
-      <%@include file="../tokenSupport.jspf"%>
+      <%@include file="/admin/_tokenSupport.jspf"%>
 
       <tr>
         <th><label for="${keys.tokenId}">Access Token:<l:star/></label></th>
         <td>
           <span class="access-token-note" id="message_no_token">No access token configured.</span>
-          <span class="access-token-note" id="message_we_have_token">[token info message]</span>
+          <span class="access-token-note" id="message_we_have_token"></span>
           <c:if test="${empty oauthConnections}">
             <br/>
             <span>There are no Bitbucket Server connections available to the project.</span>
