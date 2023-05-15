@@ -106,7 +106,7 @@
                      <c:out value="${connection.connectionDisplayName}" />
                    </span>
                    <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.AuthTypeTokenSupport.tokenCallback">
-                     Acquire new
+                     Acquire
                    </oauth:obtainToken>
                  </div>
                </c:if>

@@ -103,33 +103,3 @@
     </c:if>
 
   </props:selectSectionProperty>
-
-<style type="text/css">
-  .token-connection {
-    clear: right;
-    padding-top: 0.25em;
-    width: 60%;
-  }
-
-  .token-connection-diplay-name {
-    float: left;
-    margin-left: 1em;
-  }
-
-  .token-control {
-    float: right;
-  }
-
-  .token-connection-button {
-    font-style: normal;
-  }
-
-  .access-token-note {
-    font-style: italic;
-  }
-
-  .connection-note {
-    clear: right;
-  }
-</style>
-
