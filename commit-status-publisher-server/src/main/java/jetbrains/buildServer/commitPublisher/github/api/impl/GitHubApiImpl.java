@@ -307,7 +307,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     if (null != additionalComment) {
       err = additionalComment + " ";
     }
-    return String.format("Failed to complete request to GitHub. %sStatus: %s", err, statusLine);
+    return String.format("Failed to complete request to GitHub. %s", err);
   }
 
   protected abstract SimpleCredentials authenticationCredentials() throws IOException;
