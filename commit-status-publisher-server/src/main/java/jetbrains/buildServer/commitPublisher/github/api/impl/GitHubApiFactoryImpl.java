@@ -23,8 +23,10 @@ import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.RepoInfo;
 import jetbrains.buildServer.http.SimpleCredentials;
-import jetbrains.buildServer.serverSide.oauth.OAuthToken;
-import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
+import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.serverSide.oauth.*;
+import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -37,10 +39,20 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
   @NotNull
   protected final OAuthTokensStorage myOAuthTokensStorage;
 
+  @NotNull
+  protected final OAuthConnectionsManager myConnectionsManager;
+
+  @NotNull
+  protected final ProjectManager myProjectManager;
+
   public GitHubApiFactoryImpl(@NotNull final HttpClientWrapper wrapper,
-                              @NotNull OAuthTokensStorage oAuthTokensStorage) {
+                              @NotNull OAuthTokensStorage oAuthTokensStorage,
+                              @NotNull OAuthConnectionsManager connectionsManager,
+                              @NotNull ProjectManager projectManager) {
     myWrapper = wrapper;
     myOAuthTokensStorage = oAuthTokensStorage;
+    myConnectionsManager = connectionsManager;
+    myProjectManager = projectManager;
   }
 
 
@@ -93,6 +105,45 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
         if (null == repoInfo.name || null == repoInfo.permissions) {
           throw new PublisherException(String.format("Repository \"%s\" is inaccessible", repo.url()));
         }
+
+        final SVcsRoot vcsRoot = myProjectManager.findVcsRootByExternalId(vcsRootId);
+        if (vcsRoot == null) {
+          throw new PublisherException("Unable to find VCS root by external id " + vcsRootId);
+        }
+
+        final OAuthToken gitHubOAuthToken = myOAuthTokensStorage.getRefreshableToken(vcsRootId, tokenId, false);
+        if (gitHubOAuthToken == null) {
+          throw new PublisherException("Failed to retrieve configured token from storage (tokenId: " + tokenId + ")");
+        }
+
+        if (SUser.UKNOWN_USER_ID == gitHubOAuthToken.getTeamCityUserId()) { // GitHub App Connection
+          final OAuthConnectionDescriptor connection = getConnection(vcsRoot, tokenId);
+          final TokenIntent intent = new TokenIntent(TokenIntentType.PUBLISH_STATUS, vcsRoot.getProperty("url"));
+          if (!connection.getOauthProvider().isSuitableToken(gitHubOAuthToken, intent)) {
+            throw new PublisherException(String.format("The stored token doesn't have push access to the repository \"%s\"", repo.url()));
+          }
+
+        } else { // OAuth connection
+          if (!repoInfo.permissions.push) {
+            throw new PublisherException(String.format("There is no push access to the repository \"%s\"", repo.url()));
+          }
+        }
+      }
+
+
+      @NotNull
+      private OAuthConnectionDescriptor getConnection(@NotNull SVcsRoot vcsRoot, @NotNull String tokenId) throws PublisherException {
+        final TokenFullIdComponents components = OAuthTokensStorage.parseFullTokenId(tokenId);
+        if (components == null) {
+          throw new PublisherException("Unable to parse token id " + tokenId);
+        }
+
+        final OAuthConnectionDescriptor connection = myConnectionsManager.findConnectionByTokenStorageId(vcsRoot.getProject(), components.getTokenStorageId());
+        if (connection == null) {
+          throw new PublisherException("Unable to find connection by token id " + tokenId);
+        }
+
+        return connection;
       }
     };
   }

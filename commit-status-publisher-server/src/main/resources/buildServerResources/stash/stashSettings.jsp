@@ -97,7 +97,13 @@
     <c:if test="${testConnectionSupported}">
       <script>
         $j(document).ready(function() {
-          PublisherFeature.showTestConnection("This ensures that the repository is reachable under the provided credentials.\nIf status publishing still fails, it can be due to insufficient permissions of the corresponding BitBucket Server user.");
+          PublisherFeature.showTestConnection(() => {
+            return {
+              text: `This test confirms that TeamCity can <strong>pull/read</strong> data from the target repository under the provided credentials.<br/></br/>
+                     If builds fail to publish their statuses, check whether the current Bitbucket server user has corresponding <strong>push/write</strong> permissions.`,
+              preserveHtml: true
+            };
+          });
         });
       </script>
     </c:if>

@@ -77,7 +77,18 @@
 
         onCompleteSave: function (form, responseXML, err) {
           BS.XMLResponse.processErrors(responseXML, that, null);
-          BS.TestConnectionDialog.show(success, success ? (testConnectionSuccessInfo  ? testConnectionSuccessInfo : "") : info, null);
+          let successInfo = "";
+          let preserveHtml = false;
+          if (testConnectionSuccessInfo) {
+            if (testConnectionSuccessInfo instanceof Function) {
+              const info = testConnectionSuccessInfo.call();
+              successInfo = info.text;
+              preserveHtml = info.preserveHtml;
+            } else {
+              successInfo = testConnectionSuccessInfo;
+            }
+          }
+          BS.TestConnectionDialog.show(success, success ? successInfo : info, null, preserveHtml);
           form.setSaving(false);
           form.enable();
         }
