@@ -146,7 +146,17 @@
           <c:if test="${testConnectionSupported}">
             <script>
               $j(document).ready(function() {
-                PublisherFeature.showTestConnection();
+                PublisherFeature.showTestConnection(() => {
+                  const selectedAuthType = $('${keys.authenticationTypeKey}').value;
+                  if (selectedAuthType === '${keys.authentificationTypeGitHubAppTokenValue}' || selectedAuthType === 'vcsRoot') {
+                    return {
+                      text: `This test confirms that TeamCity can <strong>pull/read</strong> data from the target repository under the provided credentials.<br/></br/>
+                             If builds fail to publish their statuses, check whether the current credentials have corresponding <strong>push/write</strong> permissions.`,
+                      preserveHtml: true
+                    };
+                  }
+                  return "";
+                });
               });
             </script>
           </c:if>
