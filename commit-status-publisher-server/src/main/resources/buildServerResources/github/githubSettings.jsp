@@ -76,7 +76,7 @@
       </tr>
     </props:selectSectionPropertyContent>
 
-   <c:if test='${refreshTokenSupported}'>
+   <c:if test='${refreshTokenSupported and !isAcquiringTokensDisabled}'>
      <props:selectSectionPropertyContent value="${keys.authentificationTypeGitHubAppTokenValue}" caption="GitHub App access token">
        <%@include file="/admin/_tokenSupport.jspf"%>
        <tr>
