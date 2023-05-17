@@ -204,14 +204,18 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   @Override
   public void buildTypeAddedToQueue(@NotNull SQueuedBuild queuedBuild) {  // required only in case of starting build for exact commit
     BuildPromotionEx promotion = (BuildPromotionEx)queuedBuild.getBuildPromotion();
-    if (promotion.isChangeCollectingNeeded(true)) {
-      return;
-    }
+    BuildTypeEx buildType = promotion.getBuildType();
+
+    if (isBuildFeatureAbsent(buildType) || promotion.isChangeCollectingNeeded(true)) return;
+
     buildAddedToQueue(queuedBuild);
   }
 
   @Override
   public void changesLoaded(@NotNull BuildPromotion buildPromotion) {
+    SBuildType buildType = buildPromotion.getBuildType();
+    if (isBuildFeatureAbsent(buildType)) return;
+
     SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
     if (queuedBuild != null) {
       if (buildPromotion.isPartOfBuildChain() && buildPromotion.getContainingChanges().isEmpty() && buildPromotion.getNumberOfDependedOnMe() != 0) {
@@ -221,10 +225,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       buildAddedToQueue(queuedBuild);
     } else {
       SBuild build = buildPromotion.getAssociatedBuild();
-      SBuildType buildType = buildPromotion.getBuildType();
-      if (build == null || isBuildFeatureAbsent(buildType)) return;
 
-      if (isBuildInProgress(build)) {
+      if (build != null && isBuildInProgress(build)) {
         submitTaskForBuild(Event.STARTED, build);
       }
     }
@@ -322,10 +324,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   private void buildAddedToQueue(@NotNull SQueuedBuild build) {
     if (isQueueDisabled()) return;
-
-    SBuildType buildType = getBuildType(Event.QUEUED, build);
-    if (isBuildFeatureAbsent(buildType))
-      return;
 
     BuildPromotion buildPromotion = build.getBuildPromotion();
     if (isCreatedOnOtherNode(buildPromotion)) return;
