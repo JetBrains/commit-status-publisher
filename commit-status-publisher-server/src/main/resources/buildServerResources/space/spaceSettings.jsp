@@ -111,6 +111,7 @@
         selectedElement: $('${idSelectedConnection}'),
         projectId: '${project.projectId}',
         capabilities: ['PUBLISH_BUILD_STATUS'],
+        fullMatch: true,
         addSpecialOptions: function (select) {
           select.append(new Option("No connection provided", ""));
         },
