@@ -24,6 +24,7 @@ import jetbrains.buildServer.commitPublisher.gitea.data.GiteaUserInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -109,19 +110,24 @@ public class GiteaSettings extends BasePublisherSettings implements CommitStatus
           ProjectInfoResponseProcessor processorPrj = new ProjectInfoResponseProcessor();
           String url = getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName());
           url += "?access_token=" + token;
-          HttpHelper.get(url, null, null, null,
+          HttpHelper.get(url, null, null,
                          BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorPrj);
           if (!processorPrj.hasPushAccess()) {
             UserInfoResponseProcessor processorUser = new UserInfoResponseProcessor();
             url = getUserUrl(apiUrl);
             url += "?access_token=" + token;
-            HttpHelper.get(url, null, null, null,
+            HttpHelper.get(url, null, null,
                            BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorUser);
             if (!processorUser.isAdmin()) {
               throw new HttpPublisherException("Gitea does not grant enough permissions to publish a commit status");
             }
           }
         });
+      } catch (HttpPublisherException pe) {
+        Integer statusCode = pe.getStatusCode();
+        if (Objects.equals(statusCode, 404)) {
+          throw new PublisherException(String.format("Repository \"%s\" can not be found. Please check if it was renamed or moved to another namespace", repository.repositoryName()));
+        }
       } catch (Exception ex) {
         throw new PublisherException(String.format("Gitea publisher has failed to connect to \"%s\" repository", repository.url()), ex);
       }
