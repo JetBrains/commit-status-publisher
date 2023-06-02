@@ -17,6 +17,8 @@
 package jetbrains.buildServer.commitPublisher.gitea;
 
 import com.google.gson.Gson;
+
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -30,17 +32,18 @@ import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
-class GiteaPublisher extends HttpBasedCommitStatusPublisher {
+class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
 
   private static final Gson myGson = new Gson();
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
-  private final CommitStatusesCache<GiteaCommitStatus> myStatusesCache;
+  @NotNull private final CommitStatusesCache<GiteaCommitStatus> myStatusesCache;
 
   GiteaPublisher(@NotNull CommitStatusPublisherSettings settings,
                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
@@ -74,8 +77,8 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    GiteaBuildStatus targetStatus = additionalTaskInfo.isPromotionReplaced() ? GiteaBuildStatus.PENDING : GiteaBuildStatus.WARNING;
-    publish(buildPromotion, revision, targetStatus, additionalTaskInfo);
+    if (!additionalTaskInfo.isBuildManuallyRemoved()) return false;
+    publish(buildPromotion, revision, GiteaBuildStatus.WARNING , additionalTaskInfo);
     return true;
   }
 
@@ -125,8 +128,13 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
       return null;
     }
     Event event = getTriggeredEvent(commitStatus);
-    boolean isSameBuild = StringUtil.areEqual(myLinks.getQueuedBuildUrl(removedBuild), commitStatus.target_url);
-    return new RevisionStatus(event, commitStatus.description, isSameBuild);
+    boolean isSameBuildType = StringUtil.areEqual(getBuildName(removedBuild.getBuildPromotion()), commitStatus.context);
+    return new RevisionStatus(event, commitStatus.description, isSameBuildType);
+  }
+
+  private String getBuildName(BuildPromotion promotion) {
+    SBuildType buildType = promotion.getBuildType();
+    return buildType != null ? buildType.getFullName() : promotion.getBuildTypeExternalId();
   }
 
   @Override
@@ -160,7 +168,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
     String url = buildRevisionStatusesUrl(revision, buildType);
     url += "?access_token=" + getPrivateToken();
     ResponseEntityProcessor<GiteaCommitStatus[]> processor = new ResponseEntityProcessor<>(GiteaCommitStatus[].class);
-    GiteaCommitStatus[] commitStatuses = get(url, null, null, null, processor);
+    GiteaCommitStatus[] commitStatuses = get(url, null, null, processor);
     if (commitStatuses == null || commitStatuses.length == 0) {
       return new GiteaCommitStatus[0];
     }
@@ -173,8 +181,8 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
       return null;
     }
     Event event = getTriggeredEvent(commitStatus);
-    boolean isSameBuild = StringUtil.areEqual(getViewUrl(buildPromotion), commitStatus.target_url);
-    return new RevisionStatus(event, commitStatus.description, isSameBuild);
+    boolean isSameBuildType = StringUtil.areEqual(getBuildName(buildPromotion), commitStatus.context);
+    return new RevisionStatus(event, commitStatus.description, isSameBuildType);
   }
 
   private String buildRevisionStatusesUrl(@NotNull BuildRevision revision, @Nullable BuildType buildType) throws PublisherException {
@@ -225,8 +233,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
                        @NotNull BuildRevision revision,
                        @NotNull GiteaBuildStatus status,
                        @NotNull String description) throws PublisherException {
-    SBuildType buildType = build.getBuildType();
-    String buildName = buildType != null ? buildType.getFullName() : build.getBuildTypeExternalId();
+    String buildName = getBuildName(build.getBuildPromotion());
     String message = createMessage(status, buildName, revision, getViewUrl(build), description);
     publish(message, revision, LogUtil.describe(build));
     myStatusesCache.removeStatusFromCache(revision, buildName);
@@ -237,9 +244,13 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
                        @NotNull GiteaBuildStatus status,
                        @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     String url = getViewUrl(buildPromotion);
+    if (url == null) {
+      LOG.debug(String.format("Can not build view URL for the build #%d. Probably build configuration was removed. Status \"%s\" won't be published",
+        buildPromotion.getId(), status.getName()));
+      return;
+    }
     String description = additionalTaskInfo.getComment();
-    SBuildType buildType = buildPromotion.getBuildType();
-    String buildName = buildType != null ? buildType.getFullName() : buildPromotion.getBuildTypeExternalId();
+    String buildName = getBuildName(buildPromotion);
     String message = createMessage(status, buildName, revision, url, description);
     publish(message, revision, LogUtil.describe(buildPromotion));
     myStatusesCache.removeStatusFromCache(revision, buildName);
@@ -269,15 +280,17 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
     String url = GiteaSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/statuses/" + commit;
     LOG.debug("Request url: " + url + ", message: " + data);
     url += "?access_token=" + getPrivateToken();
-    postJson(url, null, null, data, null, buildDescription);
+    postJson(url, null, data, null, buildDescription);
   }
 
   @Override
-  public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException {
+  public void processResponse(HttpHelper.HttpResponse response) throws IOException, HttpPublisherException {
     final int statusCode = response.getStatusCode();
     if (statusCode >= 400) {
       String responseString = response.getContent();
-      if (!responseString.contains("Cannot transition status via :enqueue from :pending") &&
+      if (404 == statusCode) {
+        throw new HttpPublisherException(statusCode, "Repository not found. Please check if it was renamed or moved to another namespace");
+      } else if (!responseString.contains("Cannot transition status via :enqueue from :pending") &&
           !responseString.contains("Cannot transition status via :enqueue from :running") &&
           !responseString.contains("Cannot transition status via :run from :running")) {
         throw new HttpPublisherException(statusCode,
@@ -320,4 +333,12 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher {
     return myParams.get(Constants.GITEA_TOKEN);
   }
 
+  /* Currently not needed
+   * determineStatusCommit
+   * getMergeRequest
+   * getParentRevisions
+   * determineParentInSourceBranch
+   * isOnlyInSourceBranch
+   * supportMergeResults
+   */
 }
