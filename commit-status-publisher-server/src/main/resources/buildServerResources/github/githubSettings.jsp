@@ -154,8 +154,12 @@
                              If builds fail to publish their statuses, check whether the current credentials have corresponding <strong>push/write</strong> permissions.`,
                       preserveHtml: true
                     };
+                  } else {
+                    return {
+                      text: "",
+                      preserveHtml: false
+                    };
                   }
-                  return "";
                 });
               });
             </script>
