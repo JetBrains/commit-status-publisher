@@ -1,6 +1,4 @@
 <%@ page import="jetbrains.buildServer.commitPublisher.space.Constants" %>
-<%@ page import="jetbrains.buildServer.serverSide.TeamCityProperties" %>
-<%@ page import="jetbrains.buildServer.serverSide.oauth.OAuthConstants" %>
 <%@ page import="jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthProvider" %>
 <%@ include file="/include-internal.jsp" %>
 <%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
@@ -31,8 +29,9 @@
 <jsp:useBean id="project" scope="request" type="jetbrains.buildServer.serverSide.SProject"/>
 <jsp:useBean id="oauthConnections" scope="request" type="java.util.Map"/>
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.space.Constants"/>
+<jsp:useBean id="spaceFeatures" scope="request" type="jetbrains.buildServer.serverSide.oauth.space.SpaceFeatures"/>
 
-<c:set var="capabilitiesEnabled" value='<%=TeamCityProperties.getBoolean(OAuthConstants.FEATURE_TOGGLE_CAPABILITIES)%>'/>
+<c:set var="capabilitiesEnabled" value='${spaceFeatures.capabilitiesEnabled()}'/>
 <c:set var="idSelectedConnection" value="selectedConnection"/>
 <c:set var="idConnectionsWaiter" value="connectionsWaiter"/>
 

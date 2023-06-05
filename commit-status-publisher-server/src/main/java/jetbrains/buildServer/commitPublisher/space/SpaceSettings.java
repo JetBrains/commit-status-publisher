@@ -26,10 +26,9 @@ import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
-import jetbrains.buildServer.serverSide.oauth.OAuthConstants;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
-import jetbrains.buildServer.serverSide.oauth.space.SpaceConstants;
+import jetbrains.buildServer.serverSide.oauth.space.SpaceFeatures;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthProvider;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
@@ -165,7 +164,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
 
   @Override
   public boolean isEnabled() {
-    return TeamCityProperties.getBooleanOrTrue(SpaceConstants.COMMIT_STATUS_PUBLISHER_FEATURE_TOGGLE);
+    return SpaceFeatures.global().commitStatusEnabled();
   }
 
   @Override
@@ -232,8 +231,8 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   @NotNull
   @Override
   public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(@NotNull SProject project, @NotNull SUser user) {
-    final boolean capabilitiesEnabled = TeamCityProperties.getBoolean(OAuthConstants.FEATURE_TOGGLE_CAPABILITIES);
-    if (capabilitiesEnabled) {
+    final SpaceFeatures spaceFeatures = SpaceFeatures.forScope(project);
+    if (spaceFeatures.capabilitiesEnabled()) {
       // connections will be loaded via JS in this case
       return Collections.emptyMap();
     }
@@ -257,6 +256,9 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   @NotNull
   @Override
   public Map<String, Object> getSpecificAttributes(@NotNull SProject project, @NotNull Map<String, String> params) {
-    return ImmutableMap.of("canEditProject", AuthUtil.hasPermissionToManageProject(mySecurityContext.getAuthorityHolder(), project.getProjectId()));
+    return ImmutableMap.of(
+      "canEditProject", AuthUtil.hasPermissionToManageProject(mySecurityContext.getAuthorityHolder(), project.getProjectId()),
+      "spaceFeatures", SpaceFeatures.forScope(project)
+    );
   }
 }
