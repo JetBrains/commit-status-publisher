@@ -105,11 +105,13 @@ public class ChangeStatusUpdater {
         }
         return myFactory.openGitHubForStoredToken(serverUrl, tokenId, root.getExternalId());
       case "PASSWORD": //token auth
-        final String username = root.getProperty("username");
         String password = root.getProperty("secure:password");
-        if (username == null || password == null) {
+        if (password == null) {
           throw new IllegalArgumentException("Failed to get username/token in VCS authentication type");
         }
+        String username = root.getProperty("username");
+        if (username == null)
+          username = "oauth2";
         return myFactory.openGitHubForUser(serverUrl, username, password);
       default:
         throw new IllegalArgumentException("Failed to parse VCS authentication type:" + vcsRootAuthType);
