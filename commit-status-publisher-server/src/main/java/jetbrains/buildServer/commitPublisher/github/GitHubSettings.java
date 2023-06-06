@@ -214,9 +214,15 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
                 if (token.getOauthLogin().equals(oauthUsername)) {
                   p.put(c.getAccessTokenKey(), token.getAccessToken());
                   p.remove(c.getOAuthProviderIdKey());
+                  p.remove(c.getOAuthUserKey());
+                  break;
                 }
               }
             }
+          }
+          else {
+            p.remove(c.getOAuthProviderIdKey());
+            p.remove(c.getOAuthUserKey());
           }
           checkNotEmpty(p, c.getAccessTokenKey(), "Personal Access Token must be specified", result);
         } else if (authenticationType == GitHubApiAuthenticationType.STORED_TOKEN) {
