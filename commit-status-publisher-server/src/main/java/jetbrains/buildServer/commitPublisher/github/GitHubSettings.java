@@ -200,7 +200,6 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
           p.remove(c.getAccessTokenKey());
           p.remove(c.getTokenIdKey());
           p.remove(c.getOAuthUserKey());
-          p.remove(c.getUserNameKey());
           p.remove(c.getOAuthProviderIdKey());
         } else if (authenticationType == GitHubApiAuthenticationType.TOKEN_AUTH) {
           p.remove(c.getUserNameKey());
@@ -226,7 +225,6 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
           p.remove(c.getOAuthUserKey());
           p.remove(c.getUserNameKey());
           p.remove(c.getPasswordKey());
-          p.remove(c.getOAuthUserKey());
           p.remove(c.getOAuthProviderIdKey());
         } else if (authenticationType == GitHubApiAuthenticationType.VCS_ROOT) {
           List<SVcsRoot> roots = null;
@@ -258,7 +256,6 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
           p.remove(c.getOAuthUserKey());
           p.remove(c.getUserNameKey());
           p.remove(c.getPasswordKey());
-          p.remove(c.getOAuthUserKey());
           p.remove(c.getOAuthProviderIdKey());
           p.remove(c.getTokenIdKey());
         }
