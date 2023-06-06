@@ -82,8 +82,14 @@
           if (testConnectionSuccessInfo) {
             if (testConnectionSuccessInfo instanceof Function) {
               const info = testConnectionSuccessInfo.call();
-              successInfo = info.text;
-              preserveHtml = info.preserveHtml;
+              if (typeof info === 'string') {
+                successInfo = info;
+                preserveHtml = false;
+              }
+              else {
+                successInfo = info.text;
+                preserveHtml = info.preserveHtml;
+              }
             } else {
               successInfo = testConnectionSuccessInfo;
             }
