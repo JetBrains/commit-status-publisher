@@ -108,16 +108,18 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
   @Nullable
   @Override
   public Map<String, Object> checkHealth(@NotNull SBuildType buildType, @NotNull Map<String, String> params) {
-    final String tokenId = params.get(Constants.TOKEN_ID);
-    if (StringUtil.isEmptyOrSpaces(tokenId)) {
-      return healthItemData("has authentication type set to access token, but no token id is configured");
-    }
+    if (Constants.AUTH_TYPE_STORED_TOKEN.equals(getAuthType(params))) {
+      final String tokenId = params.get(Constants.TOKEN_ID);
+      if (StringUtil.isEmptyOrSpaces(tokenId)) {
+        return healthItemData("has authentication type set to access token, but no token id is configured");
+      }
 
-    final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(buildType.getProject(), tokenId);
-    if (token == null) {
-      return healthItemData("refers to a missing or invalid authentication token (token id: " +
-                            tokenId +
-                            "). Please check connection and authentication settings or try to acquire a new token.");
+      final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(buildType.getProject(), tokenId);
+      if (token == null) {
+        return healthItemData("refers to a missing or invalid authentication token (token id: " +
+                              tokenId +
+                              "). Please check connection and authentication settings or try to acquire a new token.");
+      }
     }
 
     return null;
