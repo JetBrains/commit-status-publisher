@@ -227,6 +227,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
           checkNotEmpty(p, c.getAccessTokenKey(), "Personal Access Token must be specified", result);
         } else if (authenticationType == GitHubApiAuthenticationType.STORED_TOKEN) {
           checkNotEmpty(p, c.getTokenIdKey(), "TokenId must be specified", result);
+          checkNotEmpty(p, c.getVcsRootId(), "A VCS root must be selected to use this authentication type", result);
           p.remove(c.getAccessTokenKey());
           p.remove(c.getOAuthUserKey());
           p.remove(c.getUserNameKey());
