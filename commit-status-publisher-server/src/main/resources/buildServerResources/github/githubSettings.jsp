@@ -181,9 +181,21 @@
             PublisherFeature.resetAccessTokenNote = function() {
               $('${keys.OAuthUserKey}').value = '';
               PublisherFeature.updateAccessTokenNote();
-            }
+            };
 
-            $j(document).ready(PublisherFeature.updateAccessTokenNote());
+            BS.GitHubCspSettings = {
+              onVcsRootChanged: function() {
+                BS.AuthTypeTokenSupport.disableStoredTokenWhenNoRootSelected('vcsRootId', '${keys.authenticationTypeKey}');
+              }
+            };
+
+            $j(document).ready(() => {
+              $('${keys.vcsRootId}').onchange = () => {
+                BS.GitHubCspSettings.onVcsRootChanged();
+              };
+              BS.GitHubCspSettings.onVcsRootChanged();
+              PublisherFeature.updateAccessTokenNote();
+            });
 
             BS.GitHubAccessTokenPopup = new BS.Popup('gitHubGetToken', {
               url: "${getTokenPage}",
@@ -212,6 +224,12 @@
                 PublisherFeature.updateAccessTokenNote();
               }
               BS.GitHubAccessTokenPopup.hidePopup(0, true);
+            };
+
+            window.getRepositoryUrl = function () {
+              const selectedId = $('${keys.vcsRootId}').value;
+              const vcsRoot = PublisherFeature.vcsRoots.get(selectedId);
+              return (vcsRoot) ? vcsRoot.url : null;
             };
           </script>
 

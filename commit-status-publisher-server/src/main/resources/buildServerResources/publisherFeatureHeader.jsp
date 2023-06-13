@@ -31,6 +31,9 @@
   var testConnectionSuccessInfo = "";
 
   PublisherFeature = OO.extend(BS.BuildFeatureDialog, {
+
+    vcsRoots: new Map(),
+
     showTestConnection: function() {
       testConnectionSuccessInfo = "";
       $j("#testConnectionButton").show()
@@ -122,6 +125,12 @@
         <props:option value="">&lt;All attached VCS Roots&gt;</props:option>
         <c:forEach var="vcsRoot" items="${vcsRoots}">
           <props:option value="${vcsRoot.externalId}"><c:out value="${vcsRoot.name}"/></props:option>
+          <script type="text/javascript">
+            PublisherFeature.vcsRoots.set('${vcsRoot.externalId}', {
+              name: '${vcsRoot.name}',
+              url: '${vcsRoot.getProperty('url')}'
+            });
+          </script>
         </c:forEach>
       </props:selectProperty>
       <c:if test="${hasMissingVcsRoot}">
