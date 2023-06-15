@@ -126,9 +126,9 @@
         <c:forEach var="vcsRoot" items="${vcsRoots}">
           <props:option value="${vcsRoot.externalId}"><c:out value="${vcsRoot.name}"/></props:option>
           <script type="text/javascript">
-            PublisherFeature.vcsRoots.set('${vcsRoot.externalId}', {
-              name: '${vcsRoot.name}',
-              url: '${vcsRoot.getProperty('url')}'
+            PublisherFeature.vcsRoots.set('<bs:forJs>${vcsRoot.externalId}</bs:forJs>', {
+              name: '<bs:forJs>${vcsRoot.name}</bs:forJs>',
+              url: '<bs:forJs>${vcsRoot.getProperty('url')}</bs:forJs>'
             });
           </script>
         </c:forEach>
