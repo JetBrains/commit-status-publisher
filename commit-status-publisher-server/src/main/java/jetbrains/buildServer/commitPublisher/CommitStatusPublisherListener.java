@@ -468,12 +468,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     PublishingProcessor publishingProcessor = new PublishingProcessor() {
       @Override
       public void publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
-        if (!publisher.isAvailable(buildPromotion))
-          return;
         SBuildType buildType = buildPromotion.getBuildType();
         if (buildType == null) {
           return;
         }
+        if (!publisher.isAvailable(buildPromotion)) return;
+
         Lock lock = myPublishingLocks.get(getLockKey(buildType, revision));
         lock.lock();
         try {
@@ -764,21 +764,20 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     }
 
     private void runForEveryPublisher(@NotNull Event event, @NotNull SBuild build) {
-
       PublishTask task = myTaskSupplier.apply(build);
-
       SBuildType buildType = build.getBuildType();
-      if (buildType == null)
-        return;
-      BuildPromotion buildPromotion = build.getBuildPromotion();
+      if (buildType == null) return;
 
+      final BuildPromotion buildPromotion = build.getBuildPromotion();
       PublishingProcessor publishingProcessor = new PublishingProcessor() {
         @Override
         public void publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
+          if (!publisher.isAvailable(buildPromotion)) return;
+
           Lock lock = myPublishingLocks.get(revision.getRevision());
           lock.lock();
           try {
-            runTask(event, build.getBuildPromotion(), LogUtil.describe(build), task, publisher, revision, null);
+            runTask(event, buildPromotion, LogUtil.describe(build), task, publisher, revision, null);
           } finally {
             lock.unlock();
           }
@@ -869,6 +868,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
             if (buildType == null) {
               return;
             }
+            if (!publisher.isAvailable(buildPromotion)) return;
+
             Lock lock = myPublishingLocks.get(revision.getRevision());
             lock.lock();
             try {
@@ -922,9 +923,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
                            @NotNull BuildRevision revision,
                            @Nullable AdditionalTaskInfo additionalTaskInfo) {
       try {
-        if (!publisher.isAvailable(promotion)) {
-          return;
-        }
         doRunTask(publishTask, publisher, revision, additionalTaskInfo);
       } catch (Throwable t) {
         myProblems.reportProblem(String.format("Commit Status Publisher has failed to publish %s status", event.getName()), publisher, buildDescription, null, t, LOG);
