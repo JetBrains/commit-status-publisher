@@ -225,16 +225,6 @@
               Use VCS root credentials
             </description>
           </option>
-          <option name="storedToken" value="storedToken">
-            <description>
-              Use GitHub App credentials
-            </description>
-            <param name="tokenId" dslName="tokenId" mandatory="true">
-              <description>
-                Internal ID of a token in TeamCity token storage
-              </description>
-            </param>
-          </option>
         </param>
       </option>
       <option name="gitlab" value="gitlabStatusPublisher">
@@ -408,23 +398,6 @@
           publisher = github {
             githubUrl = "&lt;GitHub URL, https://api.github.com for github.com>"
             authType = vcsRoot()
-          }
-        }
-      </code>
-    </example>
-    <example>
-      <description>
-        Enables publishing build statuses to commits in GitHub.com / GitHub Enterprise.
-        Uses a GitHub App installation token stored in TeamCity.
-      </description>
-      <code>
-        commitStatusPublisher {
-          vcsRootExtId = "${&lt;VCS root object>.id}" // A VCS root must be specified to use this authentication type
-          publisher = github {
-            githubUrl = "&lt;GitHub URL, https://api.github.com for github.com>"
-            authType = storedToken {
-              tokenId = "tc_token_id:*****"
-            }
           }
         }
       </code>

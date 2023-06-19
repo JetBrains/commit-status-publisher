@@ -297,7 +297,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
 
     result.put("canEditProject", canEditProject);
 
-    final boolean isAcquiringTokensEnable = TeamCityProperties.getBooleanOrTrue("teamcity.oauth.github.app.acquiring.token.buttons.enable");
+    final boolean isAcquiringTokensEnable = TeamCityProperties.getBoolean("teamcity.oauth.github.app.acquiring.token.buttons.enable");
     if (!isAcquiringTokensEnable) {
       result.put("isAcquiringTokensDisabled", true);
       return result;
