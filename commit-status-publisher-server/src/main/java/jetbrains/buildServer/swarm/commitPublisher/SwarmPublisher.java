@@ -18,12 +18,11 @@ import static jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings
  */
 class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
 
-  private static final String SWARM_TESTRUNS_SUPPORT_ENABLED = "teamcity.swarm.testruns.enabled";
   private static final String SWARM_TESTRUNS_DISCOVER = "teamcity.swarm.discover.testruns";
   private static final String SWARM_COMMENTS_NOTIFICATIONS_ENABLED = "teamcity.internal.swarm.commentsNotifications.enabled";
 
   private final SwarmClient mySwarmClient;
-  private final boolean myCreateTestRuns;
+  private final boolean myShouldCreateTestRuns;
 
   public SwarmPublisher(@NotNull SwarmPublisherSettings swarmPublisherSettings,
                         @NotNull SBuildType buildType,
@@ -33,7 +32,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
                         @NotNull WebLinks links,
                         @NotNull SwarmClient swarmClient) {
     super(swarmPublisherSettings, buildType, buildFeatureId, params, problems, links);
-    myCreateTestRuns = StringUtil.isTrue(params.get(SwarmPublisherSettings.PARAM_CREATE_SWARM_TEST));
+    myShouldCreateTestRuns = StringUtil.isTrue(params.get(SwarmPublisherSettings.PARAM_CREATE_SWARM_TEST));
 
     mySwarmClient = swarmClient;
   }
@@ -85,7 +84,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **has started**");
 
-    if (hasSwarmTestRunSupport()) {
+    if (myShouldCreateTestRuns) {
       createTestRunsForReviewsOnSwarm(build, revision);
     }
 
@@ -111,10 +110,6 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
     return true;
   }
 
-  private boolean hasSwarmTestRunSupport() {
-    return myCreateTestRuns || TeamCityProperties.getBoolean(SWARM_TESTRUNS_SUPPORT_ENABLED);
-  }
-
   @Override
   public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **was interrupted**: " + build.getStatusDescriptor().getText());
@@ -128,8 +123,8 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
 
     BuildPromotion buildPromotion = build.getBuildPromotion();
 
-    boolean discoverNonTcTestRuns = ((BuildPromotionEx)buildPromotion).getBooleanInternalParameter(SWARM_TESTRUNS_DISCOVER);
-    boolean tryUpdateSwarmTests = hasSwarmTestRunSupport() || discoverNonTcTestRuns;
+    boolean discoverNonTcTestRuns = ((BuildPromotionEx)buildPromotion).getBooleanInternalParameterOrTrue(SWARM_TESTRUNS_DISCOVER);
+    boolean tryUpdateSwarmTests = myShouldCreateTestRuns || discoverNonTcTestRuns;
 
     if (!tryUpdateSwarmTests) {
       return;

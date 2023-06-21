@@ -420,8 +420,10 @@ public class SwarmClient {
 
     private void findTestRunIdFromAttr(@NotNull JsonNode element, @NotNull String attribute) {
       final JsonNode completedTime = element.get("completedTime");
+      final JsonNode status = element.get("status");
       final JsonNode test = element.get(attribute);
-      if (test != null && myExpectedTestName.equals(test.textValue()) && (completedTime == null || completedTime.isNull())) {
+      if (test != null && myExpectedTestName.equals(test.textValue()) &&
+          (completedTime == null || completedTime.isNull() || "running".equals(status.textValue()))) {
         myTestRunIds.add(element.get("id").longValue());
       }
     }
