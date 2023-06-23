@@ -19,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static jetbrains.buildServer.swarm.commitPublisher.SwarmPublisher.SWARM_TESTRUNS_DISCOVER;
 import static org.assertj.core.api.BDDAssertions.then;
 
 /**
@@ -63,6 +64,8 @@ public class SwarmPublisherTest extends HttpPublisherTest {
 
     addShelvedChangelistParameter(CHANGELIST);
     myCreatePersonal = true;
+
+    setInternalProperty(SWARM_TESTRUNS_DISCOVER, "false"); // Skip branch for detecting Swarm-originated test runs
   }
 
   protected SRunningBuild startBuildInCurrentBranch(SBuildType buildType) {

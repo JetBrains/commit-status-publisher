@@ -18,7 +18,7 @@ import static jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings
  */
 class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
 
-  private static final String SWARM_TESTRUNS_DISCOVER = "teamcity.swarm.discover.testruns";
+  static final String SWARM_TESTRUNS_DISCOVER = "teamcity.swarm.discover.testruns";
   private static final String SWARM_COMMENTS_NOTIFICATIONS_ENABLED = "teamcity.internal.swarm.commentsNotifications.enabled";
 
   private final SwarmClient mySwarmClient;
