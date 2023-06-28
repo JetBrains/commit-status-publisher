@@ -46,19 +46,23 @@
   <th><label for="${pwdField}">Ticket:<l:star/></label></th>
   <td>
     <props:passwordProperty name="${pwdField}" className="mediumField"/>
+    <span class="smallNote">Get the ticket with the command <code>p4 login -a -p</code></span>
     <span class="error" id="error_${pwdField}"></span>
   </td>
 </tr>
 
 <tr>
-  <th><label for="${createSwarmTestField}">Create Swarm Test</label></th>
+  <th><label for="${createSwarmTestField}">Create Swarm Test:</label></th>
   <td>
     <div style="display: flex; gap: 5px; align-items: flex-start;">
       <props:checkboxProperty name="${createSwarmTestField}" style="margin-top: 5px"/>
       <span class="error" id="error_${createSwarmTestField}"></span>
       <span class="note">
-      If set, TeamCity will create a test run on the Swarm server and update its status according to
+        If set, TeamCity will create a test run on the Swarm server and update its status according to
                 the build status in TeamCity. Requires an admin-level access for the credentials above.
+        <p>
+        If unset, Helix Swarm workflow and test should be configured inside Swarm installation.
+        </p>
     </span>
     </div>
   </td>
