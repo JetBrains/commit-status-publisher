@@ -15,6 +15,7 @@ import jetbrains.buildServer.commitPublisher.DefaultHttpResponseProcessor;
 import jetbrains.buildServer.commitPublisher.HttpPublisherException;
 import jetbrains.buildServer.commitPublisher.LoggerUtil;
 import jetbrains.buildServer.commitPublisher.PublisherException;
+import jetbrains.buildServer.log.LogInitializer;
 import jetbrains.buildServer.serverSide.RelativeWebLinks;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.util.Dates;
@@ -215,13 +216,13 @@ public class SwarmClient {
   }
 
   public void updateSwarmTestRuns(long reviewId, @NotNull SBuild build, @NotNull String debugBuildInfo) throws PublisherException {
-    for (SwarmTestRunData runData : collectSwarmTestRuns(reviewId, build, debugBuildInfo)) {
-      changeTestRunStatus(runData, build, debugBuildInfo);
+    for (Long testRunId : collectTestRunIds(reviewId, build, debugBuildInfo)) {
+      changeTestRunStatus(reviewId, testRunId, build, debugBuildInfo);
     }
   }
 
   @NotNull
-  private Collection<SwarmTestRunData> collectSwarmTestRuns(long reviewId, @NotNull SBuild build, @NotNull String debugBuildInfo) throws PublisherException {
+  private Collection<Long> collectTestRunIds(long reviewId, @NotNull SBuild build, @NotNull String debugBuildInfo) throws PublisherException {
     final String testRunUrl = mySwarmUrl + "/api/v10/reviews/" + reviewId + "/testruns";
 
     final GetRunningTestRuns processor = new GetRunningTestRuns(testNameFrom(build), debugBuildInfo);
@@ -230,49 +231,44 @@ public class SwarmClient {
     } catch (IOException e) {
       throw new PublisherException("Cannot get test run list at " + testRunUrl + " for " + debugBuildInfo + ": " + e, e);
     }
-    return processor.getSwarmTestRuns();
+    return processor.getTestRunIds();
   }
 
-  // No admin permissions: https://www.perforce.com/manuals/swarm/Content/Swarm/test-add.html#Pass_special_arguments_to_your_test_suite
-  private void changeTestRunStatus(@NotNull SwarmTestRunData swarmTestRun,
+  // https://www.perforce.com/manuals/swarm/Content/Swarm/swarm-apidoc_endpoint_integration_tests.html#Update_details_for_a_testrun_-_PATCH
+  private void changeTestRunStatus(long reviewId,
+                                   @NotNull Long testRunId,
                                    @NotNull SBuild build,
                                    @NotNull String debugBuildInfo)
     throws PublisherException {
-
-    final String updateTestRunUrl = mySwarmUrl + "/api/v10/testruns/" + swarmTestRun.testRunId + "/" + swarmTestRun.uuid;
+    final String patchTestRunUrl = mySwarmUrl + "/api/v10/reviews/" + reviewId + "/testruns/" + testRunId;
 
     try {
-      HttpHelper.http(HttpMethod.POST, updateTestRunUrl, getCredentials(),
+      // Because PATCH is not supported by ServerBootstrap
+      HttpMethod patch = LogInitializer.isUnitTest() ? HttpMethod.POST : HttpMethod.PATCH;
+
+      HttpHelper.http(patch, patchTestRunUrl, getCredentials(),
                       buildJsonForUpdate(build),
                       ContentType.APPLICATION_JSON, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
     } catch (IOException e) {
-      throw new PublisherException("Cannot update test run at " + updateTestRunUrl + " for " + debugBuildInfo + ": " + e, e);
+      throw new PublisherException("Cannot update test run at " + patchTestRunUrl + " for " + debugBuildInfo + ": " + e, e);
     }
   }
 
-  private String buildJsonForUpdate(@NotNull SBuild build) {
+  private static String buildJsonForUpdate(@NotNull SBuild build) {
     final Long completedTime = build.getFinishDate() != null ? build.getFinishDate().getTime() : null;
     final String status = completedTime == null ? "running" : build.getBuildStatus().isSuccessful() ? "pass" : "fail";
 
     final HashMap<String, Object> data = new HashMap<String, Object>();
     data.put("status", status);
-    data.put("messages", getMessages(build));
-    data.put("url", myWebLinks.getViewResultsUrl(build));
-
+    if (completedTime != null) {
+      data.put("completedTime", completedTime.toString());
+    }
+    data.put("messages", Collections.singletonList(build.getStatusDescriptor().getText()));
     try {
       return new ObjectMapper().writeValueAsString(data);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  @NotNull
-  private static List<String> getMessages(@NotNull SBuild build) {
-    return Arrays.asList(
-      "Build queued: " + build.getQueuedDate(),
-      "Build started: " + build.getServerStartDate(),
-      "Current status: " + build.getStatusDescriptor().getText()
-    );
   }
 
   private void info(String message) {
@@ -346,7 +342,7 @@ public class SwarmClient {
 
   private class GetRunningTestRuns implements HttpResponseProcessor<HttpPublisherException> {
 
-    private final Collection<SwarmTestRunData> mySwarmRuns = new LinkedHashSet<>();
+    private final Collection<Long> myTestRunIds = new LinkedHashSet<>();
     private final String myDebugInfo;
     private final String myExpectedTestName;
 
@@ -413,8 +409,8 @@ public class SwarmClient {
             findTestRunIdFromAttr(element, "title");
           }
         }
-        if (mySwarmRuns.size() > 0) {
-          info(String.format("Found Perforce Swarm testruns %s for %s", mySwarmRuns, myDebugInfo));
+        if (myTestRunIds.size() > 0) {
+          info(String.format("Found Perforce Swarm testruns %s for %s", myTestRunIds, myDebugInfo));
         }
 
       } catch (JsonProcessingException e) {
@@ -428,44 +424,13 @@ public class SwarmClient {
       final JsonNode test = element.get(attribute);
       if (test != null && myExpectedTestName.equals(test.textValue()) &&
           (completedTime == null || completedTime.isNull() || "running".equals(status.textValue()))) {
-        mySwarmRuns.add(new SwarmTestRunData(element.get("id").longValue(), element.get("uuid").asText()));
+        myTestRunIds.add(element.get("id").longValue());
       }
     }
 
     @NotNull
-    public Collection<SwarmTestRunData> getSwarmTestRuns() {
-      return mySwarmRuns;
-    }
-  }
-  
-  private static class SwarmTestRunData {
-    public final long testRunId;
-    public final String uuid;
-
-    public SwarmTestRunData(long testRunId, @NotNull String uuid) {
-      this.testRunId = testRunId;
-      this.uuid = uuid;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) return true;
-      if (o == null || getClass() != o.getClass()) return false;
-      SwarmTestRunData that = (SwarmTestRunData)o;
-      return testRunId == that.testRunId;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(testRunId);
-    }
-
-    @Override
-    public String toString() {
-      return "SwarmTestRunData{" +
-             "testRunId=" + testRunId +
-             ", uuid='" + uuid + '\'' +
-             '}';
+    public Collection<Long> getTestRunIds() {
+      return myTestRunIds;
     }
   }
 
