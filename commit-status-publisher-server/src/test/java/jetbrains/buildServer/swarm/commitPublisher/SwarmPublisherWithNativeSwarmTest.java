@@ -32,11 +32,11 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
   public SwarmPublisherWithNativeSwarmTest() {
     //System.setProperty("teamcity.dev.test.retry.count", "0");
     
-    String updateUrl = "POST /api/v10/testruns/706/FAE4501C-E4BC-73E4-A11A-FF710601BC3F HTTP/1.1";
+    String updateUrl = "POST /api/v11/testruns/706/FAE4501C-E4BC-73E4-A11A-FF710601BC3F HTTP/1.1";
     String generalMessagesRegexp = "\"Build queued: [^\"]+\",\"Build started: [^\"]+\",";
     String urlParam = ",\"url\":\"http://localhost:8111/viewLog\\.html\\?buildId=\\d+&buildTypeId=MyDefaultTestBuildType\"";
 
-    myExpectedRegExps.put(EventToTest.STARTED, "POST /api/v10/reviews/19/testruns HTTP/1.1\tENTITY:[\\s\\S]+\"url\":\\s*\"http://localhost:8111/viewLog.html\\?buildId=1[\\s\\S]+");
+    myExpectedRegExps.put(EventToTest.STARTED, "POST /api/v11/reviews/19/testruns HTTP/1.1\tENTITY:[\\s\\S]+\"url\":\\s*\"http://localhost:8111/viewLog.html\\?buildId=1[\\s\\S]+");
     
     myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, updateUrl + "\tENTITY: \\{\"messages\":\\["+ generalMessagesRegexp + "\"Status: Failure\"\\]" + urlParam + ",\"status\":\"fail\"}");
 
@@ -110,7 +110,7 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
       myReviewsRequested = true;
       return true;
     }
-    if (url.contains("/api/v10/reviews/19/testruns")) {
+    if (url.contains("/api/v11/reviews/19/testruns")) {
       String responseJson = "perforce/sampleTestRunsResponse.json";
       try (InputStream stream = getClass().getClassLoader().getResourceAsStream(responseJson)) {
         String responseTemplate = new String(StreamUtil.loadFromStream(stream));
@@ -140,13 +140,13 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
     }
 
     // Create test run call
-    if (url.equals("/api/v10/reviews/19/testruns")) {
+    if (url.equals("/api/v11/reviews/19/testruns")) {
       httpResponse.setEntity(new StringEntity("{}", "UTF-8"));
       return true;
     }
 
     // Update existing test run call
-    if (url.contains("/api/v10/testruns/706/FAE4501C-E4BC-73E4-A11A-FF710601BC3F")) {
+    if (url.contains("/api/v11/testruns/706/FAE4501C-E4BC-73E4-A11A-FF710601BC3F")) {
       httpResponse.setEntity(new StringEntity("{}", "UTF-8"));
       return true;
     }

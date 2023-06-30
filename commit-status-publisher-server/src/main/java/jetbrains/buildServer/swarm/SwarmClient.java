@@ -17,6 +17,7 @@ import jetbrains.buildServer.commitPublisher.LoggerUtil;
 import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.serverSide.RelativeWebLinks;
 import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
@@ -34,6 +35,9 @@ import static jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings
  * @author kir
  */
 public class SwarmClient {
+
+  private final static String SWARM_API =
+    TeamCityProperties.getProperty("teamcity.swarm.api-version","v11");
 
   private final String mySwarmUrl;
   private final String myUsername;
@@ -182,7 +186,7 @@ public class SwarmClient {
 
   // https://www.perforce.com/manuals/swarm/Content/Swarm/swarm-apidoc_endpoint_integration_tests.html#Create_a__testrun_for_a_review_version
   public void createSwarmTestRun(long reviewId, @NotNull SBuild build, @NotNull String debugBuildInfo) throws PublisherException {
-    final String createTestRunUrl = mySwarmUrl + "/api/v10/reviews/" + reviewId + "/testruns";
+    final String createTestRunUrl = mySwarmUrl + "/api/" + SWARM_API + "/reviews/" + reviewId + "/testruns";
 
     try {
       HttpHelper.post(createTestRunUrl, getCredentials(),
@@ -222,7 +226,7 @@ public class SwarmClient {
 
   @NotNull
   private Collection<SwarmTestRunData> collectSwarmTestRuns(long reviewId, @NotNull SBuild build, @NotNull String debugBuildInfo) throws PublisherException {
-    final String testRunUrl = mySwarmUrl + "/api/v10/reviews/" + reviewId + "/testruns";
+    final String testRunUrl = mySwarmUrl + "/api/" + SWARM_API + "/reviews/" + reviewId + "/testruns";
 
     final GetRunningTestRuns processor = new GetRunningTestRuns(testNameFrom(build), debugBuildInfo);
     try {
@@ -239,7 +243,7 @@ public class SwarmClient {
                                    @NotNull String debugBuildInfo)
     throws PublisherException {
 
-    final String updateTestRunUrl = mySwarmUrl + "/api/v10/testruns/" + swarmTestRun.testRunId + "/" + swarmTestRun.uuid;
+    final String updateTestRunUrl = mySwarmUrl + "/api/" + SWARM_API + "/testruns/" + swarmTestRun.testRunId + "/" + swarmTestRun.uuid;
 
     try {
       HttpHelper.http(HttpMethod.POST, updateTestRunUrl, getCredentials(),

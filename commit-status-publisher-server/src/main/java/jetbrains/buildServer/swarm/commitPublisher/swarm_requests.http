@@ -15,7 +15,7 @@ Authorization: Basic swarm 23809001C26183349A3DACE80001F1FF
 
 #  status: pass, fail, running
 #  completedTime: msecs
-POST http://kir-linux.labs.intellij.net/api/v10/reviews/101/testruns
+POST http://kir-linux.labs.intellij.net/api/v11/reviews/101/testruns
 Content-Type: application/json
 Authorization: Basic admin 289EBADDA4D8F8A2AE3C9065E1188274
 
@@ -69,8 +69,8 @@ Authorization: Basic admin 289EBADDA4D8F8A2AE3C9065E1188274
 
 ###
 
-# curl -X PATCH -H "Content-Type: application/json" -u "username:ticket" -d "@mybodyfilename.txt" "https://myswarm.url/api/v10/reviews/12345/testruns/706"
-PATCH http://kir-linux.labs.intellij.net/api/v10/reviews/101/testruns/42
+# curl -X PATCH -H "Content-Type: application/json" -u "username:ticket" -d "@mybodyfilename.txt" "https://myswarm.url/api/v11/reviews/12345/testruns/706"
+PATCH http://kir-linux.labs.intellij.net/api/v11/reviews/101/testruns/42
 Content-Type: application/json
 Authorization: Basic admin 289EBADDA4D8F8A2AE3C9065E1188274
 
