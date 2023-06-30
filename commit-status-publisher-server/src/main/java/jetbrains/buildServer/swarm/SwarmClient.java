@@ -271,7 +271,7 @@ public class SwarmClient {
     return Arrays.asList(
       "Build queued: " + build.getQueuedDate(),
       "Build started: " + build.getServerStartDate(),
-      "Current status: " + build.getStatusDescriptor().getText()
+      "Status: " + build.getStatusDescriptor().getText()
     );
   }
 

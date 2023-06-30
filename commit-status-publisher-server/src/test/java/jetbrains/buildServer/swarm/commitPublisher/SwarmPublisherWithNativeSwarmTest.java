@@ -32,17 +32,22 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
   public SwarmPublisherWithNativeSwarmTest() {
     //System.setProperty("teamcity.dev.test.retry.count", "0");
     
-    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, "POST /api/v10/reviews/19/testruns/706 HTTP/1.1\tENTITY: \\{\"completedTime\":\".*\",\"messages\":\\[\"Failure\"\\],\"status\":\"fail\"}");
+    String updateUrl = "POST /api/v10/testruns/706/FAE4501C-E4BC-73E4-A11A-FF710601BC3F HTTP/1.1";
+    String generalMessagesRegexp = "\"Build queued: [^\"]+\",\"Build started: [^\"]+\",";
+    String urlParam = ",\"url\":\"http://localhost:8111/viewLog\\.html\\?buildId=\\d+&buildTypeId=MyDefaultTestBuildType\"";
+
     myExpectedRegExps.put(EventToTest.STARTED, "POST /api/v10/reviews/19/testruns HTTP/1.1\tENTITY:[\\s\\S]+\"url\":\\s*\"http://localhost:8111/viewLog.html\\?buildId=1[\\s\\S]+");
+    
+    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, updateUrl + "\tENTITY: \\{\"messages\":\\["+ generalMessagesRegexp + "\"Status: Failure\"\\]" + urlParam + ",\"status\":\"fail\"}");
 
-    myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, "POST /api/v10/reviews/19/testruns/706 HTTP/1.1\tENTITY: \\{\"messages\":\\[\"Problem description \\(new\\)\"],\"status\":\"running\"}");
-    myExpectedRegExps.put(EventToTest.INTERRUPTED, "POST /api/v10/reviews/19/testruns/706 HTTP/1.1\tENTITY: \\{\"completedTime\":\"\\d+\",\"messages\":\\[\"Problem description \\(new\\)\"\\],\"status\":\"fail\"}");
+    myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, updateUrl + "\tENTITY: \\{\"messages\":\\["+ generalMessagesRegexp + "\"Status: Problem description \\(new\\)\"]" + urlParam + ",\"status\":\"running\"}");
+    myExpectedRegExps.put(EventToTest.INTERRUPTED, updateUrl + "\tENTITY: \\{\"messages\":\\["+ generalMessagesRegexp + "\"Status: Problem description \\(new\\)\"\\]" + urlParam + ",\"status\":\"fail\"}");
 
-    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, "POST /api/v10/reviews/19/testruns/706 HTTP/1.1\tENTITY: \\{\"completedTime\":\"\\d+\",\"messages\":\\[\"Success\"\\],\"status\":\"pass\"}");
-    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, "POST /api/v10/reviews/19/testruns/706 HTTP/1.1\tENTITY: \\{\"messages\":\\[\"Running\"\\],\"status\":\"running\"}");
+    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, updateUrl + "\tENTITY: \\{\"messages\":\\["+ generalMessagesRegexp + "\"Status: Success\"\\]" + urlParam + ",\"status\":\"pass\"}");
+    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, updateUrl + "\tENTITY: \\{\"messages\":\\["+ generalMessagesRegexp + "\"Status: Running\"\\]" + urlParam + ",\"status\":\"running\"}");
 
-    myExpectedRegExps.put(EventToTest.FAILED, "POST /api/v10/reviews/19/testruns/706 HTTP/1.1\tENTITY: \\{\"completedTime\":\"\\d+\",\"messages\":\\[\"Failure\"\\],\"status\":\"fail\"}");
-    myExpectedRegExps.put(EventToTest.FINISHED, "POST /api/v10/reviews/19/testruns/706 HTTP/1.1\tENTITY: \\{\"completedTime\":\"\\d+\",\"messages\":\\[\"Success\"\\],\"status\":\"pass\"}");
+    myExpectedRegExps.put(EventToTest.FAILED, updateUrl + "\tENTITY: \\{\"messages\":\\["+ generalMessagesRegexp + "\"Status: Failure\"\\]" + urlParam + ",\"status\":\"fail\"}");
+    myExpectedRegExps.put(EventToTest.FINISHED, updateUrl + "\tENTITY: \\{\"messages\":\\["+ generalMessagesRegexp + "\"Status: Success\"\\]" + urlParam + ",\"status\":\"pass\"}");
 
   }
 
@@ -141,7 +146,7 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
     }
 
     // Update existing test run call
-    if (url.contains("/api/v10/reviews/19/testruns/706")) {
+    if (url.contains("/api/v10/testruns/706/FAE4501C-E4BC-73E4-A11A-FF710601BC3F")) {
       httpResponse.setEntity(new StringEntity("{}", "UTF-8"));
       return true;
     }
