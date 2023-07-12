@@ -185,7 +185,7 @@
 
             BS.GitHubCspSettings = {
               onVcsRootChanged: function() {
-                BS.AuthTypeTokenSupport.disableStoredTokenWhenNoRootSelected('vcsRootId', '${keys.authenticationTypeKey}');
+                BS.AuthTypeTokenSupport.disableStoredTokenWhenNoRootSelected('vcsRootId', '${keys.authenticationTypeKey}', 'error_${keys.authenticationTypeKey}');
               }
             };
 
