@@ -105,7 +105,7 @@
                    <span class="token-connection-diplay-name" title="<c:out value='${connection.id}' />">
                      <c:out value="${connection.connectionDisplayName}" />
                    </span>
-                   <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.AuthTypeTokenSupport.tokenCallback">
+                   <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.AuthTypeTokenSupport.tokenCallback" useAlertService="false">
                      Acquire
                    </oauth:obtainToken>
                  </div>
