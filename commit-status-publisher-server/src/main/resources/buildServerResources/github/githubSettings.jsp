@@ -24,6 +24,7 @@
 <jsp:useBean id="refreshTokenSupported" scope="request" type="java.lang.Boolean"/>
 
 <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
+<%--@elvariable id="project" type="jetbrains.buildServer.serverSide.SProject"--%>
 
 <c:url value="/oauth/github/token.html" var="getTokenPage"/>
 <c:set var="cameFromUrl" value="${empty param['cameFromUrl'] ? pageUrl : param['cameFromUrl']}"/>
@@ -95,7 +96,7 @@
            <props:hiddenProperty name="${keys.tokenIdKey}" />
            <span class="error" id="error_${keys.tokenIdKey}"></span>
 
-           <c:if test="${canEditProject}">
+           <c:if test="${canEditProject and not project.readOnly}">
              <c:forEach items="${oauthConnections.keySet()}" var="connection">
                <c:if test="${connection.oauthProvider.isTokenRefreshSupported()}">
                  <script type="application/javascript">
