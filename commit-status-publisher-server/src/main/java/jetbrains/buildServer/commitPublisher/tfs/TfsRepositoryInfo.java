@@ -131,7 +131,9 @@ public class TfsRepositoryInfo {
     int lastSlash = path.lastIndexOf('/');
     String project = null;
 
-    if (lastSlash >= 0) {
+    if (lastSlash == 0) {
+      project = repository;
+    } else if (lastSlash > 0) {
       final String lastPathSegment = path.substring(lastSlash + 1);
       if (!"defaultCollection".equalsIgnoreCase(lastPathSegment)) {
         final String collection = path.substring(0, lastSlash);

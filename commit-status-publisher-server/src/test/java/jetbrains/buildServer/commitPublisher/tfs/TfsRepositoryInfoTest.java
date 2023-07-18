@@ -89,6 +89,10 @@ public class TfsRepositoryInfoTest {
         new TfsRepositoryInfo("https://dev.azure.com/org", "Repository", "Project")
       },
       {
+        "https://dev.azure.com/org/_git/Project",
+        new TfsRepositoryInfo("https://dev.azure.com/org", "Project", "Project")
+      },
+      {
         "http://host:81/tfs/CustomCollection/_git/Repository",
         new TfsRepositoryInfo("http://host:81/tfs/CustomCollection", "Repository", null)
       },
