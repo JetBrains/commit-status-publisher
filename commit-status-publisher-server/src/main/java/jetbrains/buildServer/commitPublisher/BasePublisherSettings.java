@@ -18,9 +18,7 @@ package jetbrains.buildServer.commitPublisher;
 
 import com.google.gson.Gson;
 import java.security.KeyStore;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
@@ -43,6 +41,7 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
   private final SSLTrustStoreProvider myTrustStoreProvider;
   private final ConcurrentHashMap<String, TimestampedServerVersion> myServerVersions;
   protected final Gson myGson = new Gson();
+  protected final Comparator<OAuthConnectionDescriptor> CONNECTION_DESCRIPTOR_NAME_COMPARATOR = Comparator.comparing(desc -> desc.getConnectionDisplayName());
 
   public BasePublisherSettings(@NotNull PluginDescriptor descriptor,
                                @NotNull WebLinks links,
@@ -74,8 +73,8 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
 
   @NotNull
   @Override
-  public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(final @NotNull SProject project, final @NotNull SUser user) {
-    return Collections.emptyMap();
+  public List<OAuthConnectionDescriptor> getOAuthConnections(final @NotNull SProject project, final @NotNull SUser user) {
+    return Collections.emptyList();
   }
 
   public boolean isEnabled() {

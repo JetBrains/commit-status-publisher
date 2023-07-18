@@ -18,6 +18,8 @@ package jetbrains.buildServer.commitPublisher;
 
 import java.security.KeyStore;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -27,8 +29,6 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Map;
 
 class DummyPublisherSettings implements CommitStatusPublisherSettings {
   static final String ID = "--";
@@ -76,8 +76,8 @@ class DummyPublisherSettings implements CommitStatusPublisherSettings {
 
   @NotNull
   @Override
-  public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(final @NotNull SProject project, final @NotNull SUser user) {
-    return Collections.emptyMap();
+  public List<OAuthConnectionDescriptor> getOAuthConnections(final @NotNull SProject project, final @NotNull SUser user) {
+    return Collections.emptyList();
   }
 
   public boolean isEnabled() {

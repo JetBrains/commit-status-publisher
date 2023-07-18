@@ -23,7 +23,7 @@
   --%>
 
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
-<jsp:useBean id="oauthConnections" scope="request" type="java.util.Map"/>
+<jsp:useBean id="oauthConnections" scope="request" type="java.util.List"/>
 <jsp:useBean id="project" scope="request" type="jetbrains.buildServer.serverSide.SProject"/>
 
 <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
@@ -66,7 +66,7 @@
         <span class="error" id="error_${keys.tokenId}"></span>
 
         <c:if test="${canEditProject}">
-          <c:forEach items="${oauthConnections.keySet()}" var="connection">
+          <c:forEach items="${oauthConnections}" var="connection">
             <script type="application/javascript">
               BS.AuthTypeTokenSupport.connections['${connection.id}'] = '<bs:forJs>${connection.connectionDisplayName}</bs:forJs>';
             </script>

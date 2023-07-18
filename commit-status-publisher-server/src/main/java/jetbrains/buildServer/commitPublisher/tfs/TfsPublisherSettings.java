@@ -17,6 +17,7 @@
 package jetbrains.buildServer.commitPublisher.tfs;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.serverSide.*;
@@ -93,13 +94,10 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
 
   @NotNull
   @Override
-  public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(final @NotNull SProject project, final @NotNull SUser user) {
-    final List<OAuthConnectionDescriptor> tfsConnections = myOauthConnectionsManager.getAvailableConnectionsOfType(project, TfsAuthProvider.TYPE);
-    final Map<OAuthConnectionDescriptor, Boolean> connections = new LinkedHashMap<OAuthConnectionDescriptor, Boolean>();
-    for (OAuthConnectionDescriptor c : tfsConnections) {
-      connections.put(c, !myOAuthTokensStorage.getUserTokens(c.getId(), user, project, false).isEmpty());
-    }
-    return connections;
+  public List<OAuthConnectionDescriptor> getOAuthConnections(final @NotNull SProject project, final @NotNull SUser user) {
+    return myOauthConnectionsManager.getAvailableConnectionsOfType(project, TfsAuthProvider.TYPE).stream()
+      .sorted(CONNECTION_DESCRIPTOR_NAME_COMPARATOR)
+      .collect(Collectors.toList());
   }
 
   @Override

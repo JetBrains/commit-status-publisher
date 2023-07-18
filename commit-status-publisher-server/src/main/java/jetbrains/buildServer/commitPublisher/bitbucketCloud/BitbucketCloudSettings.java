@@ -18,7 +18,6 @@ package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
@@ -212,11 +211,11 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
 
   @NotNull
   @Override
-  public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(@NotNull SProject project, @NotNull SUser user) {
+  public List<OAuthConnectionDescriptor> getOAuthConnections(@NotNull SProject project, @NotNull SUser user) {
     return myOAuthConnectionsManager.getAvailableConnectionsOfType(project, BitBucketOAuthProvider.TYPE)
                                     .stream()
-                                    .collect(Collectors.toMap(Function.identity(),
-                                                              c -> !myOAuthTokensStorage.getUserTokens(c.getId(), user, project, false).isEmpty()));
+                                    .sorted(CONNECTION_DESCRIPTOR_NAME_COMPARATOR)
+                                    .collect(Collectors.toList());
   }
 
   @NotNull

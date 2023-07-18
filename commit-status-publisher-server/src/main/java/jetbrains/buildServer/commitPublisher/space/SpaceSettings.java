@@ -18,6 +18,7 @@ package jetbrains.buildServer.commitPublisher.space;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.space.data.SpaceBuildStatusInfo;
@@ -230,21 +231,16 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
 
   @NotNull
   @Override
-  public Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(@NotNull SProject project, @NotNull SUser user) {
+  public List<OAuthConnectionDescriptor> getOAuthConnections(@NotNull SProject project, @NotNull SUser user) {
     final SpaceFeatures spaceFeatures = SpaceFeatures.forScope(project);
     if (spaceFeatures.capabilitiesEnabled()) {
       // connections will be loaded via JS in this case
-      return Collections.emptyMap();
+      return Collections.emptyList();
     }
 
-    final Map<OAuthConnectionDescriptor, Boolean> connections = new HashMap<>();
-    final List<OAuthConnectionDescriptor> spaceConnections = myOAuthConnectionManager.getAvailableConnectionsOfType(project, SpaceOAuthProvider.TYPE);
-
-    for (OAuthConnectionDescriptor c : spaceConnections) {
-      connections.put(c, !myOAuthTokensStorage.getUserTokens(c.getId(), user, project, false).isEmpty());
-    }
-
-    return connections;
+    return myOAuthConnectionManager.getAvailableConnectionsOfType(project, SpaceOAuthProvider.TYPE).stream()
+      .sorted(CONNECTION_DESCRIPTOR_NAME_COMPARATOR)
+      .collect(Collectors.toList());
   }
 
   @NotNull

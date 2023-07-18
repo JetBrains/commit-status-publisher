@@ -1,4 +1,3 @@
-<%@ page import="jetbrains.buildServer.web.openapi.PlaceId" %>
 <%@ include file="/include-internal.jsp" %>
 <%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
 <%@ taglib prefix="l" tagdir="/WEB-INF/tags/layout" %>
@@ -22,14 +21,14 @@
   --%>
 
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.tfs.TfsConstants"/>
-<jsp:useBean id="oauthConnections" scope="request" type="java.util.Map"/>
+<jsp:useBean id="oauthConnections" scope="request" type="java.util.List"/>
 
 <c:url value="/oauth/tfs/token.html" var="getTokenPage"/>
 <c:set var="cameFromUrl" value="${empty param['cameFromUrl'] ? pageUrl : param['cameFromUrl']}"/>
 <c:set var="getTokenPage" value="${getTokenPage}?cameFromUrl=${util:urlEscape(cameFromUrl)}"/>
 
 <c:set var="oauth_connection_fragment">
-  <c:forEach items="${oauthConnections.keySet()}" var="connection">
+  <c:forEach items="${oauthConnections}" var="connection">
     <c:set var="title">Acquire an access token from <c:out value="${connection.parameters['serverUrl']}"/></c:set>
     <span class="tfsRepoControl">
       <i class="icon-magic" style="cursor:pointer;" title="${title}"

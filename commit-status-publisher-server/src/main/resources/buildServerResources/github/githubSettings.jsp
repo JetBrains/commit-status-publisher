@@ -1,4 +1,3 @@
-<%@ page import="jetbrains.buildServer.web.openapi.PlaceId" %>
 <%@ include file="/include-internal.jsp" %>
 <%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
 <%@ taglib prefix="l" tagdir="/WEB-INF/tags/layout" %>
@@ -20,7 +19,7 @@
   --%>
 
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.github.ui.UpdateChangesConstants"/>
-<jsp:useBean id="oauthConnections" scope="request" type="java.util.Map"/>
+<jsp:useBean id="oauthConnections" scope="request" type="java.util.List"/>
 <jsp:useBean id="refreshTokenSupported" scope="request" type="java.lang.Boolean"/>
 
 <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
@@ -32,7 +31,7 @@
 
 
 <c:set var="oauth_connection_fragment">
-  <c:forEach items="${oauthConnections.keySet()}" var="connection">
+  <c:forEach items="${oauthConnections}" var="connection">
     <c:if test="${'GitHubApp' != connection.oauthProvider.type}">
       <c:set var="title">
         Acquire an access token from <c:out value="${connection.parameters['gitHubUrl']}"/> (<c:out value="${connection.connectionDisplayName}"/>)
@@ -97,7 +96,7 @@
            <span class="error" id="error_${keys.tokenIdKey}"></span>
 
            <c:if test="${canEditProject and not project.readOnly}">
-             <c:forEach items="${oauthConnections.keySet()}" var="connection">
+             <c:forEach items="${oauthConnections}" var="connection">
                <c:if test="${connection.oauthProvider.isTokenRefreshSupported()}">
                  <script type="application/javascript">
                    BS.AuthTypeTokenSupport.connections['${connection.id}'] = '<bs:forJs>${connection.connectionDisplayName}</bs:forJs>';

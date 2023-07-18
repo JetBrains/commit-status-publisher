@@ -27,7 +27,7 @@
 
 <jsp:useBean id="propertiesBean" scope="request" type="jetbrains.buildServer.controllers.BasePropertiesBean"/>
 <jsp:useBean id="project" scope="request" type="jetbrains.buildServer.serverSide.SProject"/>
-<jsp:useBean id="oauthConnections" scope="request" type="java.util.Map"/>
+<jsp:useBean id="oauthConnections" scope="request" type="java.util.List"/>
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.space.Constants"/>
 <jsp:useBean id="spaceFeatures" scope="request" type="jetbrains.buildServer.serverSide.oauth.space.SpaceFeatures"/>
 
@@ -44,7 +44,7 @@
     <div style="float:left">
       <props:selectProperty name="${loginProp}">
         <c:if test="${not capabilitiesEnabled}">
-          <c:forEach var="conn" items="${oauthConnections.keySet()}">
+          <c:forEach var="conn" items="${oauthConnections}">
             <props:option value="">No connection provided</props:option>
             <props:option value="${conn.id}">
               <c:out value="${conn.connectionDisplayName}"/>

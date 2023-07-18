@@ -18,6 +18,7 @@ package jetbrains.buildServer.commitPublisher;
 
 import java.security.KeyStore;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import jetbrains.buildServer.TeamCityExtension;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
@@ -64,7 +65,7 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
   PropertiesProcessor getParametersProcessor(@NotNull BuildTypeIdentity buildTypeOrTemplate);
 
   @NotNull
-  Map<OAuthConnectionDescriptor, Boolean> getOAuthConnections(@NotNull final SProject project, @NotNull final SUser user);
+  List<OAuthConnectionDescriptor> getOAuthConnections(@NotNull final SProject project, @NotNull final SUser user);
 
   boolean isEnabled();
 

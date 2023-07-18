@@ -16,6 +16,11 @@
 
 package jetbrains.buildServer.commitPublisher;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.controllers.BasePropertiesBean;
 import jetbrains.buildServer.controllers.admin.projects.BuildTypeForm;
@@ -32,10 +37,6 @@ import jetbrains.buildServer.web.util.SessionUser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.web.servlet.ModelAndView;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.util.*;
 
 public class CommitStatusPublisherFeatureController extends BaseController {
 
@@ -121,11 +122,11 @@ public class CommitStatusPublisherFeatureController extends BaseController {
     mv.addObject("project", project);
     mv.addObject("projectId", project.getExternalId());
     SUser user = SessionUser.getUser(request);
-    Map<OAuthConnectionDescriptor, Boolean> oauthConnections = user == null || null == settings ?
+    List<OAuthConnectionDescriptor> oauthConnections = user == null || null == settings ?
                                                                null :
                                                                settings.getOAuthConnections(project, user);
     mv.addObject("oauthConnections", oauthConnections);
-    mv.addObject("refreshTokenSupported", oauthConnections != null && oauthConnections.keySet().stream().anyMatch(c -> c.getOauthProvider().isTokenRefreshSupported()));
+    mv.addObject("refreshTokenSupported", oauthConnections != null && oauthConnections.stream().anyMatch(c -> c.getOauthProvider().isTokenRefreshSupported()));
 
     if (settings != null) {
       settings.getSpecificAttributes(project, params).forEach(mv::addObject);

@@ -103,9 +103,9 @@ public class PublisherSettingsController extends BaseController {
 
     SUser user = SessionUser.getUser(request);
     if (project != null && user != null) {
-      Map<OAuthConnectionDescriptor, Boolean> oauthConnections = settings.getOAuthConnections(project, user);
+      List<OAuthConnectionDescriptor> oauthConnections = settings.getOAuthConnections(project, user);
       request.setAttribute("oauthConnections", oauthConnections);
-      request.setAttribute("refreshTokenSupported", oauthConnections.keySet().stream().anyMatch(c -> c.getOauthProvider().isTokenRefreshSupported()));
+      request.setAttribute("refreshTokenSupported", oauthConnections.stream().anyMatch(c -> c.getOauthProvider().isTokenRefreshSupported()));
       request.setAttribute("canEditProject", AuthUtil.hasPermissionToManageProject(mySecurityContext.getAuthorityHolder(), project.getProjectId()));
     }
 
