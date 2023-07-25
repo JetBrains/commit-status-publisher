@@ -28,6 +28,7 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import org.jetbrains.annotations.NotNull;
@@ -57,6 +58,16 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
 
   @Nullable
   CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params);
+
+  /**
+   * Creates a publisher instance for the given VCS root, without the need for a build feature, if supported.
+   *
+   * @param buildType the build configuration
+   * @param vcsRoot   VCS root
+   * @return created publisher or null
+   */
+  @Nullable
+  CommitStatusPublisher createFeaturelessPublisher(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot);
 
   @NotNull
   String describeParameters(@NotNull Map<String, String> params);
@@ -118,4 +129,5 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
     return Collections.emptyMap();
   }
 
+  boolean isFeatureLessPublishingSupported(@NotNull SBuildType buildType);
 }

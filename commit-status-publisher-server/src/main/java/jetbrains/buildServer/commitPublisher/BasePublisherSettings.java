@@ -26,6 +26,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
@@ -103,6 +104,17 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
   @Override
   public KeyStore trustStore() {
     return myTrustStoreProvider.getTrustStore();
+  }
+
+  @Override
+  public boolean isFeatureLessPublishingSupported(@NotNull SBuildType buildType) {
+    return false;
+  }
+
+  @Nullable
+  @Override
+  public CommitStatusPublisher createFeaturelessPublisher(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot) {
+    return null;
   }
 
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {

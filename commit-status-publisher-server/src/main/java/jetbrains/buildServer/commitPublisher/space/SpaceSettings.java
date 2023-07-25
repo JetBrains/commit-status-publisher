@@ -25,15 +25,15 @@ import jetbrains.buildServer.commitPublisher.space.data.SpaceBuildStatusInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
-import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
-import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
-import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.oauth.*;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceFeatures;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthProvider;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
@@ -44,6 +44,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT;
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 public class SpaceSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
@@ -113,6 +114,31 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
     SpaceConnectDescriber connector = SpaceUtils.getConnectionData(params, myOAuthConnectionManager, buildType.getProject());
     return new SpacePublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, connector, myStatusesCache);
+  }
+
+  @Override
+  public boolean isFeatureLessPublishingSupported(@NotNull SBuildType buildType) {
+    return SpaceFeatures.forScope(buildType).publishCommitStatusUnconditionally();
+  }
+
+  @Override
+  public CommitStatusPublisher createFeaturelessPublisher(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot) {
+    if (!SpaceFeatures.forScope(buildType).publishCommitStatusUnconditionally()) {
+      LOG.debug(() -> "unconditional commit status publishing is not supported for " + LogUtil.describe(buildType) + ": the feature toggle is disabled");
+      return null;
+    }
+
+    final SpaceConnectDescriber spaceConnection = findConnectionByVcsRoot(buildType, vcsRoot);
+    if (spaceConnection == null) {
+      return null;
+    }
+
+    final Map<String, String> params = ImmutableMap.of(
+      jetbrains.buildServer.commitPublisher.Constants.VCS_ROOT_ID_PARAM, String.valueOf(vcsRoot.getId())
+    );
+    final String buildFeatureId = String.format(Constants.SPACE_UNCONDITIONAL_FEATURE_FORMAT, buildType.getInternalId(), vcsRoot.getId());
+
+    return new SpacePublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, spaceConnection, myStatusesCache);
   }
 
   @NotNull
@@ -256,5 +282,35 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
       "canEditProject", AuthUtil.hasPermissionToManageProject(mySecurityContext.getAuthorityHolder(), project.getProjectId()),
       "spaceFeatures", SpaceFeatures.forScope(project)
     );
+  }
+
+  @Nullable
+  private SpaceConnectDescriber findConnectionByVcsRoot(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot) {
+    final String tokenId = vcsRoot.getProperty("tokenId");
+    if (tokenId == null) {
+      LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used for unconditional status publishing: its not using refreshable tokens");
+      return null;
+    }
+
+    final TokenFullIdComponents tokenFullIdComponents = OAuthTokensStorage.parseFullTokenId(tokenId);
+    if (tokenFullIdComponents == null) {
+      LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used for unconditional status publishing: unparseable token ID " + tokenId);
+      return null;
+    }
+
+    final OAuthConnectionDescriptor connection = myOAuthConnectionManager.findConnectionByTokenStorageId(buildType.getProject(), tokenFullIdComponents.getTokenStorageId());
+    if (!SpaceOAuthProvider.TYPE.equals(connection.getOauthProvider().getType())) {
+      LOG.debug(() -> "Space connection " + LogUtil.describe(connection) + " can't be used for unconditional status publishing: not a Space connection");
+      return null;
+    }
+
+    if (!connection.hasCapability(ConnectionCapability.PUBLISH_BUILD_STATUS)) {
+      LOG.debug(() -> "Space connection " + LogUtil.describe(connection) + " can't be used for unconditional status publishing: missing capability");
+      return null;
+    }
+
+    LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " on " + LogUtil.describe(buildType) +
+                    " is using Space refreshable tokens, unconditional status publishing is supported");
+    return new SpaceConnectDescriber(connection);
   }
 }

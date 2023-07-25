@@ -37,6 +37,8 @@
       <class name="jetbrains.buildServer.commitPublisher.tfs.TfsRepositoryInfoTest" />
       <class name="jetbrains.buildServer.commitPublisher.upsource.UpsourcePublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.space.SpacePublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.space.SpaceFeatureLessPublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.space.SpaceSettingsTest" />
       <class name="jetbrains.buildServer.commitPublisher.CommitStatusesCacheTest" />
 
       <class name="jetbrains.buildServer.swarm.SwarmClientManagerTest" />
@@ -46,6 +48,7 @@
       <class name="jetbrains.buildServer.swarm.web.SwarmChangeLinkExtensionTest" />
 
       <class name="jetbrains.buildServer.commitPublisher.reports.MissingVcsRootReportTest" />
+      <class name="jetbrains.buildServer.commitPublisher.PublisherManagerTest" />
     </classes>
   </test>
 </suite>

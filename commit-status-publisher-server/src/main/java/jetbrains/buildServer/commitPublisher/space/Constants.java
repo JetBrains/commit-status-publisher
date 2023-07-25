@@ -32,6 +32,8 @@ public class Constants {
 
   public static final String SPACE_DEFAULT_DISPLAY_NAME = "TeamCity";
 
+  public static final String SPACE_UNCONDITIONAL_FEATURE_FORMAT = "SPACE_UNCONDITIONAL_PUBLISHER_BT_%s_VCSR_%s";
+
   @NotNull
   public String getSpacePublisherId() {
     return SPACE_PUBLISHER_ID;

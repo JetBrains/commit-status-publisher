@@ -80,7 +80,6 @@ public class Constants {
   public static final int STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL = 50;
   public static final String GITLAB_FEATURE_TOGGLE_MERGE_RESULTS = "commitStatusPubliser.gitlab.supportMergeResults";
 
-
   @NotNull
   public String getVcsRootIdParam() {
     return VCS_ROOT_ID_PARAM;

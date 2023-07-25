@@ -16,13 +16,15 @@
 
 package jetbrains.buildServer.commitPublisher;
 
+import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.ExtensionsCollection;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.vcs.SVcsRootEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.*;
 
 public class PublisherManager {
 
@@ -43,9 +45,48 @@ public class PublisherManager {
     return settings.createPublisher(buildType, buildFeatureId, params);
   }
 
+  @NotNull
+  public Map<String, CommitStatusPublisher> createSupplementaryPublishers(@NotNull SBuildType buildType, @NotNull Map<String, CommitStatusPublisher> existingPublishers) {
+    final Set<CommitStatusPublisherSettings> settingsSupportingFeatureless = myPublisherSettings.getExtensions().stream()
+                                                                                                .filter(settings -> settings.isEnabled() &&
+                                                                                                                    settings.isFeatureLessPublishingSupported(buildType))
+                                                                                                .collect(Collectors.toSet());
+    if (settingsSupportingFeatureless.isEmpty()) {
+      return Collections.emptyMap();
+    }
+
+    final Map<String, CommitStatusPublisher> supplementaryPublishers = new HashMap<>();
+    final Set<SVcsRoot> notCoveredVcsRoots = findNotCoveredVcsRoots(buildType, existingPublishers.values());
+
+    for (SVcsRoot notCoveredVcsRoot : notCoveredVcsRoots) {
+      for (CommitStatusPublisherSettings settings : settingsSupportingFeatureless) {
+        final CommitStatusPublisher featurelessPublisher = settings.createFeaturelessPublisher(buildType, notCoveredVcsRoot);
+        if (featurelessPublisher != null) {
+          supplementaryPublishers.put(featurelessPublisher.getBuildFeatureId(), featurelessPublisher);
+          break;
+        }
+      }
+    }
+
+    return supplementaryPublishers;
+  }
+
   @Nullable
   public CommitStatusPublisherSettings findSettings(@NotNull String publisherId) {
     return myPublisherSettings.getExtensions().stream().filter(s -> publisherId.equals(s.getId())).findFirst().orElse(null);
+  }
+
+  public boolean isFeatureLessPublishingPossible(@Nullable SBuildType buildType) {
+    if (buildType == null) {
+      return false;
+    }
+    for (CommitStatusPublisherSettings settings : myPublisherSettings.getExtensions()) {
+      if (settings.isFeatureLessPublishingSupported(buildType)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   @NotNull
@@ -61,5 +102,32 @@ public class PublisherManager {
       }
     });
     return settings;
+  }
+
+  @NotNull
+  private Set<SVcsRoot> findNotCoveredVcsRoots(@NotNull SBuildType buildType, @NotNull Collection<CommitStatusPublisher> existingPublishers) {
+    final Set<String> coveredRootIds = new HashSet<>();
+    for (CommitStatusPublisher existingPublisher : existingPublishers) {
+      final String vcsRootId = existingPublisher.getVcsRootId();
+      if (vcsRootId == null) {
+        return Collections.emptySet();
+      }
+
+      coveredRootIds.add(vcsRootId);
+    }
+
+    return buildType.getVcsRoots().stream()
+                    .filter(vcsRoot -> !coveredRootIds.contains(String.valueOf(vcsRoot.getId())) &&
+                                       !coveredRootIds.contains(vcsRoot.getExternalId()) &&
+                                       !containsAlias(coveredRootIds, vcsRoot))
+                    .collect(Collectors.toSet());
+  }
+
+  private static boolean containsAlias(@NotNull Set<String> rootIds, @NotNull SVcsRoot vcsRoot) {
+    if (vcsRoot instanceof SVcsRootEx) {
+      return rootIds.stream().anyMatch(((SVcsRootEx)vcsRoot)::isAliasExternalId);
+    }
+
+    return false;
   }
 }

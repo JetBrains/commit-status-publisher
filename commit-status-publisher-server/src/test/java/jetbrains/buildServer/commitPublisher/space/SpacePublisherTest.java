@@ -45,9 +45,9 @@ import static jetbrains.buildServer.commitPublisher.space.SpaceToken.TOKEN_TYPE_
 @Test
 public class SpacePublisherTest extends HttpPublisherTest {
 
-  private static final String FAKE_CLIENT_ID = "clientid";
-  private static final String FAKE_CLIENT_SECRET = "clientsecret";
-  private String myProjectFeatureId;
+  protected static final String FAKE_CLIENT_ID = "clientid";
+  protected static final String FAKE_CLIENT_SECRET = "clientsecret";
+  protected String myProjectFeatureId;
 
   public SpacePublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/projects/key:owner/repositories/project/revisions/%s/commit-statuses.*ENTITY:.*SCHEDULED.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));

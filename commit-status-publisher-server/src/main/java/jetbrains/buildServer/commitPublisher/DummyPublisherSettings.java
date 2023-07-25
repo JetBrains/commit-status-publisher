@@ -26,6 +26,7 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -50,6 +51,12 @@ class DummyPublisherSettings implements CommitStatusPublisherSettings {
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
+    return null;
+  }
+
+  @Nullable
+  @Override
+  public CommitStatusPublisher createFeaturelessPublisher(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot) {
     return null;
   }
 
@@ -108,5 +115,10 @@ class DummyPublisherSettings implements CommitStatusPublisherSettings {
   @Override
   public KeyStore trustStore() {
     return null;
+  }
+
+  @Override
+  public boolean isFeatureLessPublishingSupported(@NotNull SBuildType buildType) {
+    return false;
   }
 }
