@@ -326,7 +326,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     if (isQueueDisabled()) return;
 
     BuildPromotion buildPromotion = build.getBuildPromotion();
-    if (isCreatedOnOtherNode(buildPromotion)) return;
 
     long promotionId = buildPromotion.getId();
     String identity = Event.QUEUED.getName() + ":" + promotionId;
@@ -336,12 +335,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   public boolean isQueueDisabled() {
     String isQueueEnabled = System.getProperty(QUEUE_PAUSER_SYSTEM_PROPERTY);
     return Boolean.FALSE.toString().equalsIgnoreCase(isQueueEnabled);
-  }
-
-  private boolean isCreatedOnOtherNode(BuildPromotion buildPromotion) {
-    String creatorNodeId = buildPromotion.getCreatorNodeId();
-    String currentNodeId = CurrentNodeInfo.getNodeId();
-    return !creatorNodeId.equals(currentNodeId);
   }
 
   @Override
@@ -808,11 +801,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
     QueuedBuildPublisherTaskConsumer(Function<BuildPromotion, PublishQueuedTask> taskSupplier) {
       myTaskSupplier = taskSupplier;
-    }
-
-    @Override
-    public boolean beforeAccept(@NotNull final PerformingTask task) {
-      return myServerResponsibility.canManageBuilds();
     }
 
     @Override
