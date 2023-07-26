@@ -40,12 +40,14 @@
     <orderEntry type="module" module-name="common" />
     <orderEntry type="module" module-name="runtime-util" />
     <orderEntry type="module" module-name="server" />
+    <orderEntry type="module" module-name="server-core" />
     <orderEntry type="module" module-name="common-vcs" />
     <orderEntry type="module" module-name="utils" />
     <orderEntry type="module" module-name="vcs-plugin-api" scope="TEST" />
     <orderEntry type="module" module-name="server-test-core" scope="TEST" />
     <orderEntry type="module" module-name="web-test-core" scope="TEST" />
     <orderEntry type="module" module-name="web" />
+    <orderEntry type="module" module-name="web-core" />
     <orderEntry type="module" module-name="oauth-integration" />
     <orderEntry type="library" name="jsch" level="project" />
     <orderEntry type="library" scope="TEST" name="org.mockito:mockito-core" level="project" />
