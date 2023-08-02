@@ -61,6 +61,9 @@ public class TfsRepositoryInfoTest {
       {"https://test.visualstudio.com/DefaultCollection/Project/_git/Repository",
         new TfsRepositoryInfo("https://test.visualstudio.com/DefaultCollection", "Repository", "Project")
       },
+      {"https://test.visualstudio.com/Project/_git/Repository",
+        new TfsRepositoryInfo("https://test.visualstudio.com", "Repository", "Project")
+      },
       {"http://host:81/tfs/DefaultCollection/Project/_git/Repository",
         new TfsRepositoryInfo("http://host:81/tfs/DefaultCollection", "Repository", "Project")
       },
