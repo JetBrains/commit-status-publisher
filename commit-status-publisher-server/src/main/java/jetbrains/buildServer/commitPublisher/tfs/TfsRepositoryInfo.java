@@ -86,9 +86,12 @@ public class TfsRepositoryInfo {
     String urlPath = StringUtil.notEmpty(urlMatcher.group(4), StringUtil.EMPTY);
 
     String server;
+
+    boolean isDevAzureCom = StringUtil.endsWith(hostname, "dev.azure.com");
+
     if (StringUtil.isEmpty(schema) || "ssh".equalsIgnoreCase(schema)) {
       // DevOps URL
-      if (StringUtil.endsWith(hostname, "dev.azure.com")) {
+      if (isDevAzureCom) {
         final Matcher pathMatcher = TFS_DEVOPS_PATH_PATTERN.matcher(urlPath);
         if (!pathMatcher.find()) {
           return null;
@@ -141,9 +144,9 @@ public class TfsRepositoryInfo {
     int lastSlash = path.lastIndexOf('/');
     String project = null;
 
-    if (lastSlash == 0) {
+    if (isDevAzureCom && lastSlash == 0) {
       project = repository;
-    } else if (lastSlash > 0) {
+    } else if (lastSlash >= 0) {
       final String lastPathSegment = path.substring(lastSlash + 1);
       if (!"defaultCollection".equalsIgnoreCase(lastPathSegment)) {
         final String collection = path.substring(0, lastSlash);
