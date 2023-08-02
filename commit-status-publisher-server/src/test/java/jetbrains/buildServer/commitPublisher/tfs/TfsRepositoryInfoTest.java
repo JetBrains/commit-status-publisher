@@ -30,9 +30,7 @@ public class TfsRepositoryInfoTest {
       Assert.assertNull(repositoryInfo);
     } else {
       Assert.assertNotNull(repositoryInfo);
-      Assert.assertEquals(repositoryInfo.getServer(), info.getServer());
-      Assert.assertEquals(repositoryInfo.getProject(), info.getProject());
-      Assert.assertEquals(repositoryInfo.getRepository(), info.getRepository());
+      Assert.assertEquals(repositoryInfo, info);
     }
   }
 
@@ -41,9 +39,7 @@ public class TfsRepositoryInfoTest {
     TfsRepositoryInfo repositoryInfo = TfsRepositoryInfo.parse(repositoryUrl, hintUrl);
 
     Assert.assertNotNull(repositoryInfo);
-    Assert.assertEquals(repositoryInfo.getServer(), info.getServer());
-    Assert.assertEquals(repositoryInfo.getProject(), info.getProject());
-    Assert.assertEquals(repositoryInfo.getRepository(), info.getRepository());
+    Assert.assertEquals(repositoryInfo, info);
   }
 
   @DataProvider

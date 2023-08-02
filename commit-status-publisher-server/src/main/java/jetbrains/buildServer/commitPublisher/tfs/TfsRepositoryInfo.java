@@ -44,14 +44,24 @@ public class TfsRepositoryInfo {
   private static final String TEAMCITY_TFS_HOSTED_DOMAINS = "teamcity.tfs.hosted.domains";
   private static final Pattern TFS_HOSTS_SEPARATOR = Pattern.compile(",");
 
-  private final String myServer;
-  private final String myRepository;
-  private final String myProject;
+  @NotNull private final String myServer;
+  @NotNull private final String myRepository;
+  @Nullable private final String myProject;
 
   TfsRepositoryInfo(@NotNull String server, @NotNull String repository, @Nullable String project) {
     myServer = server;
     myRepository = repository;
     myProject = project;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    TfsRepositoryInfo other = (TfsRepositoryInfo) o;
+
+    return getServer().equals(other.getServer()) && getRepository().equals(other.getRepository()) && getProject().equals(other.getProject());
   }
 
   @Nullable
