@@ -663,17 +663,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   @NotNull
   private Map<String, CommitStatusPublisher> getPublishers(@NotNull SBuildType buildType) {
-    Map<String, CommitStatusPublisher> publishers = new LinkedHashMap<String, CommitStatusPublisher>();
-    for (SBuildFeatureDescriptor buildFeatureDescriptor : buildType.getResolvedSettings().getBuildFeatures()) {
-      BuildFeature buildFeature = buildFeatureDescriptor.getBuildFeature();
-      if (buildFeature instanceof CommitStatusPublisherFeature) {
-        String featureId = buildFeatureDescriptor.getId();
-        CommitStatusPublisher publisher = myPublisherManager.createPublisher(buildType, featureId, buildFeatureDescriptor.getParameters());
-        if (publisher != null) {
-          publishers.put(featureId, publisher);
-        }
-      }
-    }
+    final Map<String, CommitStatusPublisher> publishers = myPublisherManager.createConfiguredPublishers(buildType);
 
     final Map<String, CommitStatusPublisher> supplementaryPublishers = myPublisherManager.createSupplementaryPublishers(buildType, Collections.unmodifiableMap(publishers));
     publishers.putAll(supplementaryPublishers);
