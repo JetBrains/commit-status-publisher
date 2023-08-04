@@ -11,6 +11,7 @@ import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.log.LogInitializer;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.swarm.SwarmClient;
 import jetbrains.buildServer.swarm.SwarmClientManager;
 import jetbrains.buildServer.util.cache.ResetCacheRegisterImpl;
 import org.apache.http.HttpRequest;
@@ -28,6 +29,7 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
   private static final String CHANGELIST = "1234321";
   private boolean myCreatePersonal;
   private boolean myReviewsRequested;
+  private boolean myPassUrlViaBuild;
 
   public SwarmPublisherWithNativeSwarmTest() {
     //System.setProperty("teamcity.dev.test.retry.count", "0");
@@ -77,6 +79,9 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
 
   private BuildBuilder theBuild(SBuildType buildType) {
     final BuildBuilder result = build().in(buildType);
+    if (myPassUrlViaBuild) {
+      result.addTriggerParam(SwarmClient.SWARM_UPDATE_URL, getServerUrl() + "/api/v11/testruns/706/FAE4501C-E4BC-73E4-A11A-FF710601BC3F");
+    }
     return myCreatePersonal ? result.personalForUser("fedor") : result;
   }
 
@@ -111,6 +116,10 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
       return true;
     }
     if (url.contains("/api/v11/reviews/19/testruns")) {
+      if (myPassUrlViaBuild) {
+        throw new RuntimeException("This URL should not be called");
+      }
+
       String responseJson = "perforce/sampleTestRunsResponse.json";
       try (InputStream stream = getClass().getClassLoader().getResourceAsStream(responseJson)) {
         String responseTemplate = new String(StreamUtil.loadFromStream(stream));
@@ -152,6 +161,12 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
     }
     return false;
   }
+
+  public void test_pass_swarm_url_via_build() throws Exception {
+    myPassUrlViaBuild = true;
+    super.test_buildFinished_Successfully();
+  }
+
 
   @Test(enabled = false)
   @Override

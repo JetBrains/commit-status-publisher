@@ -38,7 +38,7 @@ public class SwarmClient {
 
   private final static String SWARM_API =
     TeamCityProperties.getProperty("teamcity.swarm.api-version","v11");
-  private static final String SWARM_UPDATE_URL = "swarmUpdateUrl";
+  public static final String SWARM_UPDATE_URL = "swarmUpdateUrl";
 
   private final String mySwarmUrl;
   private final String myUsername;
