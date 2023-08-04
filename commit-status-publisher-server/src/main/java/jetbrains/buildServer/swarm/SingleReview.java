@@ -46,4 +46,9 @@ public class SingleReview implements Comparable {
   public int hashCode() {
     return Long.hashCode(myId);
   }
+
+  @Override
+  public String toString() {
+    return "Review{" + myId + ": '" + myStatus + '\'' + '}';
+  }
 }
