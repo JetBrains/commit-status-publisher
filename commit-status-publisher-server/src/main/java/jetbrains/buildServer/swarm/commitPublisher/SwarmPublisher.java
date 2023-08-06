@@ -65,7 +65,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
 
   @Override
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    publishCommentIfNeeded(buildPromotion, revision, "build %s is queued");
+    publishCommentIfNeeded(buildPromotion, revision, "build is queued");
     return true;
   }
 
@@ -162,13 +162,22 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
     postForEachReview(build, revision, new ReviewMessagePublisher() {
       @Override
       public void publishMessage(@NotNull Long reviewId, @NotNull BuildPromotion build, @NotNull String debugBuildInfo) throws PublisherException {
-        final String fullComment = "TeamCity: " + String.format(commentTemplate, getBuildMarkdownLink(build)) +
+        final String fullComment = "TeamCity: " + buildMessage(build) +
                                    "\nConfiguration: " + myBuildType.getExtendedFullName();
 
         // Do not send e-mail notification for non-personal builds, they are excessive:
-        boolean silenceNotification = !commentsNotificationsEnabled || !build.isPersonal();
+        boolean enableNotification = commentsNotificationsEnabled && build.isPersonal();
 
-        mySwarmClient.addCommentToReview(reviewId, fullComment, debugBuildInfo, silenceNotification);
+        mySwarmClient.addCommentToReview(reviewId, fullComment, debugBuildInfo, !enableNotification);
+      }
+
+      private String buildMessage(@NotNull BuildPromotion build) {
+        if (commentTemplate.contains("%s")) {
+          return String.format(commentTemplate, getBuildMarkdownLink(build));
+        }
+        else {
+          return commentTemplate + String.format(" ([view](%s))", getUrl(build));
+        }
       }
     });
   }
@@ -196,9 +205,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
   private String getBuildMarkdownLink(@NotNull BuildPromotion build) {
     SBuild associatedBuild = build.getAssociatedBuild();
     SQueuedBuild queuedBuild = build.getQueuedBuild();
-    String url = associatedBuild != null ? myLinks.getViewResultsUrl(associatedBuild) :
-                     queuedBuild != null ? myLinks.getQueuedBuildUrl(queuedBuild) :
-                     myLinks.getRootUrlByProjectExternalId(build.getProjectExternalId()) + "/build/" + build.getId();
+    String url = getUrl(build);
     if (associatedBuild != null) {
       return String.format("#[%s](%s)", associatedBuild.getBuildNumber(), url);
     }
@@ -206,5 +213,14 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
       return String.format("#[%s](%s)", queuedBuild.getOrderNumber(), url);
     }
     return String.format("#[%d](%s)", build.getId(), url);
+  }
+
+  @NotNull
+  private String getUrl(@NotNull BuildPromotion build) {
+    SBuild associatedBuild = build.getAssociatedBuild();
+    SQueuedBuild queuedBuild = build.getQueuedBuild();
+    return associatedBuild != null ? myLinks.getViewResultsUrl(associatedBuild) :
+                 queuedBuild != null ? myLinks.getQueuedBuildUrl(queuedBuild) :
+                 myLinks.getRootUrlByProjectExternalId(build.getProjectExternalId()) + "/build/" + build.getId();
   }
 }
