@@ -87,6 +87,9 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
     if (myShouldCreateTestRuns) {
       createTestRunsForReviewsOnSwarm(build, revision);
     }
+    else {
+      updateTestRunsForReviewsOnSwarm(build, revision);
+    }
 
     return true;
   }

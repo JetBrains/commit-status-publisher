@@ -13,8 +13,7 @@
           "Test completed successfully",
           "another message"
         ],
-        "url": "http://my.server.com/some/url",
-        "uuid": "FAE4501C-E4BC-73E4-A11A-FF710601BC3F"
+        "url": "http://my.server.com/some/url"
       },
       {
       }

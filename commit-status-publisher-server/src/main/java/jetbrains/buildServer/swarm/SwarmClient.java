@@ -15,9 +15,7 @@ import jetbrains.buildServer.commitPublisher.DefaultHttpResponseProcessor;
 import jetbrains.buildServer.commitPublisher.HttpPublisherException;
 import jetbrains.buildServer.commitPublisher.LoggerUtil;
 import jetbrains.buildServer.commitPublisher.PublisherException;
-import jetbrains.buildServer.serverSide.RelativeWebLinks;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
@@ -39,6 +37,7 @@ public class SwarmClient {
   private final static String SWARM_API =
     TeamCityProperties.getProperty("teamcity.swarm.api-version","v11");
   public static final String SWARM_UPDATE_URL = "swarmUpdateUrl";
+  public static final String SWARM_UPDATE_UUID = "swarmUpdateUuid_";
 
   private final String mySwarmUrl;
   private final String myUsername;
@@ -190,9 +189,16 @@ public class SwarmClient {
     final String createTestRunUrl = mySwarmUrl + "/api/" + SWARM_API + "/reviews/" + reviewId + "/testruns";
 
     try {
+      info("Creating Swarm test run at " + createTestRunUrl + " for build " + debugBuildInfo);
       HttpHelper.post(createTestRunUrl, getCredentials(),
                       createTestRunJson(reviewId, build),
-                      ContentType.APPLICATION_JSON, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
+                      ContentType.APPLICATION_JSON, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor() {
+          @Override
+          public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+            debug("Response for creating Swarm test run for " + debugBuildInfo + ":" + response.getContent());
+            super.processResponse(response);
+          }
+        });
     } catch (IOException e) {
       throw new PublisherException("Cannot create test run at " + createTestRunUrl + " for " + debugBuildInfo + ": " + e, e);
     }
@@ -206,11 +212,24 @@ public class SwarmClient {
                          "  \"test\": \"%s\",\n" +
                          "  \"startTime\": %d,\n" +
                          "  \"status\": \"running\",\n" +
-                         "  \"url\": \"" + myWebLinks.getViewResultsUrl(build) + "\"\n" +
+                         "  \"url\": \"" + myWebLinks.getViewResultsUrl(build) + "\",\n" +
+                         "  \"uuid\": \"" + createSwarmRunUUIDForUpdate(build, reviewId) + "\"\n" +
                          "}",
                          reviewId,
                          testNameFrom(build),
                          build.getServerStartDate().getTime());
+  }
+
+  @NotNull
+  private static String createSwarmRunUUIDForUpdate(@NotNull SBuild build, long reviewId) {
+    String swarmUuid = UUID.randomUUID().toString();
+    BuildPromotion buildPromotion = build.getBuildPromotion();
+    if (buildPromotion instanceof BuildPromotionEx) {
+      BuildPromotionEx promotion = (BuildPromotionEx)buildPromotion;
+      promotion.setAttribute(SWARM_UPDATE_UUID + reviewId, swarmUuid);
+      promotion.persist();
+    }
+    return swarmUuid;
   }
 
   @NotNull
@@ -228,9 +247,19 @@ public class SwarmClient {
       Collection<SwarmTestUpdateUrl> updateUrls = collectSwarmTestRuns(reviewId, build, debugBuildInfo);
       if (updateUrls.isEmpty()) {
         debug(String.format("Could not find relevant Swarm test runs for review %d and build %s", reviewId, debugBuildInfo));
+        return;
       }
+
+      ArrayList<PublisherException> problems = new ArrayList<PublisherException>();
       for (SwarmTestUpdateUrl runData : updateUrls) {
-        changeTestRunStatus(runData, build, debugBuildInfo);
+        try {
+          changeTestRunStatus(runData, build, debugBuildInfo);
+        } catch (PublisherException e) {
+          problems.add(e);
+        }
+      }
+      if (problems.size() == updateUrls.size()) {
+        throw problems.get(0);
       }
     }
 
@@ -240,13 +269,23 @@ public class SwarmClient {
   private Collection<SwarmTestUpdateUrl> collectSwarmTestRuns(long reviewId, @NotNull SBuild build, @NotNull String debugBuildInfo) throws PublisherException {
     final String testRunUrl = mySwarmUrl + "/api/" + SWARM_API + "/reviews/" + reviewId + "/testruns";
 
-    final GetRunningTestRuns processor = new GetRunningTestRuns(testNameFrom(build), debugBuildInfo);
+    final GetRunningTestRuns processor = new GetRunningTestRuns(testNameFrom(build), getUuidIfTestRunCreatedByTc(build, reviewId), debugBuildInfo);
     try {
       HttpHelper.get(testRunUrl, getCredentials(), null, myConnectionTimeout, myTrustStore, processor);
     } catch (IOException e) {
       throw new PublisherException("Cannot get test run list at " + testRunUrl + " for " + debugBuildInfo + ": " + e, e);
     }
     return processor.getSwarmTestRuns();
+  }
+
+  @Nullable
+  private static String getUuidIfTestRunCreatedByTc(SBuild build, long reviewId) {
+    BuildPromotion promotion = build.getBuildPromotion();
+    if (promotion instanceof BuildPromotionEx) {
+      BuildPromotionEx promotionEx = (BuildPromotionEx)promotion;
+      return (String)promotionEx.getAttribute(SWARM_UPDATE_UUID + reviewId);
+    }
+    return null;
   }
 
   @Nullable
@@ -372,10 +411,12 @@ public class SwarmClient {
     private final Collection<SwarmTestUpdateUrl> mySwarmRuns = new LinkedHashSet<>();
     private final String myDebugInfo;
     private final String myExpectedTestName;
+    private final String mySwarmTestUuidIfCreatedByTc;
 
-    private GetRunningTestRuns(@NotNull String expectedTestName, @NotNull String debugInfo) {
+    private GetRunningTestRuns(@NotNull String expectedTestName, @Nullable String swarmTestUuidIfCreatedByTc, @NotNull String debugInfo) {
       myExpectedTestName = expectedTestName;
       myDebugInfo = debugInfo;
+      mySwarmTestUuidIfCreatedByTc = swarmTestUuidIfCreatedByTc;
     }
 
     @Override
@@ -432,8 +473,8 @@ public class SwarmClient {
           for (Iterator<JsonNode> it = testruns.elements(); it.hasNext(); ) {
             JsonNode element = it.next();
             // Collect test runs whose test name match external build configuration ID and which are not completed
-            findTestRunIdFromAttr(element, "test");
-            findTestRunIdFromAttr(element, "title");
+            fillTestRunUsingAttr(element, "test");
+            fillTestRunUsingAttr(element, "title");
           }
         }
         if (mySwarmRuns.size() > 0) {
@@ -445,16 +486,22 @@ public class SwarmClient {
       }
     }
 
-    private void findTestRunIdFromAttr(@NotNull JsonNode element, @NotNull String attribute) {
+    private void fillTestRunUsingAttr(@NotNull JsonNode element, @NotNull String attribute) {
       final JsonNode completedTime = element.get("completedTime");
       final JsonNode status = element.get("status");
       final JsonNode test = element.get(attribute);
       if (test != null && myExpectedTestName.equals(test.textValue()) &&
           (completedTime == null || completedTime.isNull() || "running".equals(status.textValue()))) {
 
-        JsonNode testRunUuid = element.get("uuid");
-        if (mySwarmUrl != null && testRunUuid != null) {
-          mySwarmRuns.add(new SwarmTestUpdateUrl(mySwarmUrl, element.get("id").longValue(), testRunUuid.asText()));
+        if (mySwarmUrl != null) {
+          String uuid = mySwarmTestUuidIfCreatedByTc;
+          JsonNode uuidAttr = element.get("uuid");
+          if (uuidAttr != null) {
+            uuid = uuidAttr.asText();
+          }
+          if (uuid != null) {
+            mySwarmRuns.add(new SwarmTestUpdateUrl(mySwarmUrl, element.get("id").longValue(), uuid));
+          }
         }
       }
     }

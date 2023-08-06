@@ -13,6 +13,7 @@ import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.swarm.SwarmClient;
 import jetbrains.buildServer.swarm.SwarmClientManager;
+import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.util.cache.ResetCacheRegisterImpl;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -21,23 +22,29 @@ import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static org.assertj.core.api.BDDAssertions.then;
+
 /**
  * @author kir
  */
 public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
 
   private static final String CHANGELIST = "1234321";
-  private boolean myCreatePersonal;
-  private boolean myReviewsRequested;
+  private boolean myCreatePersonalBuild;
+  private boolean myReviewsAlreadyRequested;
+  private boolean myCreateTestRun;
+
   private boolean myPassUrlViaBuild;
+  private SwarmClientManager myClientManager;
 
   public SwarmPublisherWithNativeSwarmTest() {
     //System.setProperty("teamcity.dev.test.retry.count", "0");
     
-    String updateUrl = "POST /api/v11/testruns/706/FAE4501C-E4BC-73E4-A11A-FF710601BC3F HTTP/1.1";
+    String updateUrl = "POST /api/v11/testruns/706/[0-9a-fA-F-]{36} HTTP/1.1";
     String generalMessagesRegexp = "\"Build queued: [^\"]+\",\"Build started: [^\"]+\",";
     String urlParam = ",\"url\":\"http://localhost:8111/viewLog\\.html\\?buildId=\\d+&buildTypeId=MyDefaultTestBuildType\"";
 
+    // This is a message for "create test run" call
     myExpectedRegExps.put(EventToTest.STARTED, "POST /api/v11/reviews/19/testruns HTTP/1.1\tENTITY:[\\s\\S]+\"url\":\\s*\"http://localhost:8111/viewLog.html\\?buildId=1[\\s\\S]+");
     
     myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, updateUrl + "\tENTITY: \\{\"messages\":\\["+ generalMessagesRegexp + "\"Status: Failure\"\\]" + urlParam + ",\"status\":\"fail\"}");
@@ -60,17 +67,23 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
 
     LogInitializer.setUnitTest(true);
 
-    SwarmClientManager clientManager = new SwarmClientManager(myWebLinks, () -> null, new ResetCacheRegisterImpl());
-    myPublisherSettings = new SwarmPublisherSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, clientManager);
+    myCreateTestRun = false;   // by default, do not create Swarm Test Run in swarm
+    myPassUrlViaBuild = true;  // But expect swarmUpdateUrl passed via build triggering information
+
+    myCreatePersonalBuild = true;
+    myReviewsAlreadyRequested = false;
+
+    myClientManager = new SwarmClientManager(myWebLinks, () -> null, new ResetCacheRegisterImpl());
+    myPublisherSettings = new SwarmPublisherSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myClientManager);
+    myBuildType.addParameter(new SimpleParameter("vcsRoot." + myVcsRoot.getExternalId() + ".shelvedChangelist", CHANGELIST));
+
+    recreateSwarmPublisher();
+  }
+
+  private void recreateSwarmPublisher() {
     Map<String, String> params = getPublisherParams();
     myPublisher = new SwarmPublisher((SwarmPublisherSettings)myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks,
-                                     clientManager.getSwarmClient(params));
-
-
-    myBuildType.addParameter(new SimpleParameter("vcsRoot." + myVcsRoot.getExternalId() + ".shelvedChangelist", CHANGELIST));
-    myCreatePersonal = true;
-
-    myReviewsRequested = false;
+                                     myClientManager.getSwarmClient(params));
   }
 
   protected SRunningBuild startBuildInCurrentBranch(SBuildType buildType) {
@@ -82,7 +95,7 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
     if (myPassUrlViaBuild) {
       result.addTriggerParam(SwarmClient.SWARM_UPDATE_URL, getServerUrl() + "/api/v11/testruns/706/FAE4501C-E4BC-73E4-A11A-FF710601BC3F");
     }
-    return myCreatePersonal ? result.personalForUser("fedor") : result;
+    return myCreatePersonalBuild ? result.personalForUser("fedor") : result;
   }
 
   protected SFinishedBuild createBuildInCurrentBranch(SBuildType buildType, Status status) {
@@ -101,18 +114,20 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
       put(SwarmPublisherSettings.PARAM_URL, getServerUrl());
       put(SwarmPublisherSettings.PARAM_USERNAME, "admin");
       put(SwarmPublisherSettings.PARAM_PASSWORD, "admin");
-      put(SwarmPublisherSettings.PARAM_CREATE_SWARM_TEST, "true");
+      if (myCreateTestRun) {
+        put(SwarmPublisherSettings.PARAM_CREATE_SWARM_TEST, "true");
+      }
     }};
   }
 
   @Override
   protected boolean respondToGet(String url, HttpResponse httpResponse) {
     if (url.contains("/api/v9/reviews?fields=id,state,stateLabel&change[]=" + CHANGELIST)) {
-      if (myReviewsRequested) {
+      if (myReviewsAlreadyRequested) {
         throw new AssertionError("Should not request reviews twice, should cache");
       }
       httpResponse.setEntity(new StringEntity("{\"lastSeen\":19,\"reviews\":[{\"id\":19,\"state\":\"needsReview\"}],\"totalCount\":1}", "UTF-8"));
-      myReviewsRequested = true;
+      myReviewsAlreadyRequested = true;
       return true;
     }
     if (url.contains("/api/v11/reviews/19/testruns")) {
@@ -149,24 +164,54 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
     }
 
     // Create test run call
-    if (url.equals("/api/v11/reviews/19/testruns")) {
+    if (url.equals("/api/v11/reviews/19/testruns") && myCreateTestRun) {
       httpResponse.setEntity(new StringEntity("{}", "UTF-8"));
       return true;
     }
 
     // Update existing test run call
-    if (url.contains("/api/v11/testruns/706/FAE4501C-E4BC-73E4-A11A-FF710601BC3F")) {
+    if (url.matches(".*/api/v11/testruns/706/[0-9a-fA-F-]{36}.*")) {
       httpResponse.setEntity(new StringEntity("{}", "UTF-8"));
       return true;
     }
     return false;
   }
 
-  public void test_pass_swarm_url_via_build() throws Exception {
-    myPassUrlViaBuild = true;
-    super.test_buildFinished_Successfully();
+  public void test_buildStarted() throws Exception {
+    myCreateTestRun = true;
+    recreateSwarmPublisher();
+    super.test_buildStarted();
   }
 
+  public void test_buildStarted_update_test_run() throws Exception {
+    myCreateTestRun = false;
+    recreateSwarmPublisher();
+
+    String toRestore = myExpectedRegExps.get(EventToTest.STARTED);
+
+    try {
+      myExpectedRegExps.put(EventToTest.STARTED, myExpectedRegExps.get(EventToTest.MARKED_RUNNING_SUCCESSFUL));
+      super.test_buildStarted();
+    } finally {
+      myExpectedRegExps.put(EventToTest.STARTED, toRestore);
+    }
+  }
+
+  @TestFor(issues = "TW-83006")
+  public void test_start_and_finish_build_with_creating_test_run() throws Exception {
+    myCreateTestRun = true;
+    recreateSwarmPublisher();
+
+    SRunningBuild build = startBuildInCurrentBranch(myBuildType);
+    myPublisher.buildStarted(build, myRevision);
+    then(getRequestAsString()).matches(myExpectedRegExps.get(EventToTest.STARTED));
+
+    finishBuild(build, false);
+    myReviewsAlreadyRequested = false;
+    myPublisher.buildFinished(build.getBuildPromotion().getAssociatedBuild(), myRevision);
+
+    then(getRequestAsString()).matches(myExpectedRegExps.get(EventToTest.FINISHED));
+  }
 
   @Test(enabled = false)
   @Override
