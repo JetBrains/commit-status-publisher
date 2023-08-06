@@ -34,7 +34,7 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
   private boolean myReviewsAlreadyRequested;
   private boolean myCreateTestRun;
 
-  private boolean myPassUrlViaBuild;
+  private boolean myTriggerBySwarm;
   private SwarmClientManager myClientManager;
 
   public SwarmPublisherWithNativeSwarmTest() {
@@ -68,7 +68,7 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
     LogInitializer.setUnitTest(true);
 
     myCreateTestRun = false;   // by default, do not create Swarm Test Run in swarm
-    myPassUrlViaBuild = true;  // But expect swarmUpdateUrl passed via build triggering information
+    myTriggerBySwarm = true;  // But expect swarmUpdateUrl passed via build triggering information
 
     myCreatePersonalBuild = true;
     myReviewsAlreadyRequested = false;
@@ -92,7 +92,7 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
 
   private BuildBuilder theBuild(SBuildType buildType) {
     final BuildBuilder result = build().in(buildType);
-    if (myPassUrlViaBuild) {
+    if (myTriggerBySwarm) {
       result.addTriggerParam(SwarmClient.SWARM_UPDATE_URL, "http://localhost/api/v11/testruns/706/FAE4501C-E4BC-73E4-A11A-FF710601BC3F");
     }
     return myCreatePersonalBuild ? result.personalForUser("fedor") : result;
@@ -131,7 +131,7 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
       return true;
     }
     if (url.contains("/api/v11/reviews/19/testruns")) {
-      if (myPassUrlViaBuild) {
+      if (myTriggerBySwarm) {
         throw new RuntimeException("This URL should not be called");
       }
 
@@ -178,6 +178,7 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
   }
 
   public void test_buildStarted() throws Exception {
+    myTriggerBySwarm = false;
     myCreateTestRun = true;
     recreateSwarmPublisher();
     super.test_buildStarted();
@@ -199,6 +200,8 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
 
   @TestFor(issues = "TW-83006")
   public void test_start_and_finish_build_with_creating_test_run() throws Exception {
+    // Check that TC creates a test run and updates this build at the end
+    myTriggerBySwarm = false;
     myCreateTestRun = true;
     recreateSwarmPublisher();
 
@@ -211,6 +214,27 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
     myPublisher.buildFinished(build.getBuildPromotion().getAssociatedBuild(), myRevision);
 
     then(getRequestAsString()).matches(myExpectedRegExps.get(EventToTest.FINISHED));
+    then(getRequestAsString()).doesNotContain("FAE4501C-E4BC-73E4-A11A-FF710601BC3F");
+  }
+
+  @TestFor(issues = "TW-83006")
+  public void test_start_and_finish_build_when_triggered_by_swarm() throws Exception {
+    // Check that TC does not create another swarm test run when
+    // build is triggered by Swarm, i.e. test run is already created
+    myTriggerBySwarm = true;
+    myCreateTestRun = true;
+    recreateSwarmPublisher();
+
+    SRunningBuild build = startBuildInCurrentBranch(myBuildType);
+    myPublisher.buildStarted(build, myRevision);
+    then(getRequestAsString()).matches(myExpectedRegExps.get(EventToTest.MARKED_RUNNING_SUCCESSFUL));
+
+    finishBuild(build, false);
+    myReviewsAlreadyRequested = false;
+    myPublisher.buildFinished(build.getBuildPromotion().getAssociatedBuild(), myRevision);
+
+    then(getRequestAsString()).matches(myExpectedRegExps.get(EventToTest.FINISHED));
+    then(getRequestAsString()).contains("FAE4501C-E4BC-73E4-A11A-FF710601BC3F"); // From Swarm
   }
 
   @Test(enabled = false)

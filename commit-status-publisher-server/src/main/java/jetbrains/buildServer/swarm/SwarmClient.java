@@ -291,7 +291,7 @@ public class SwarmClient {
   }
 
   @Nullable
-  private String getSwarmUpdateUrlFromTriggeringAttr(@NotNull SBuild build) {
+  public String getSwarmUpdateUrlFromTriggeringAttr(@NotNull SBuild build) {
     // Provided by TeamCity Perforce plugin for builds triggered from Swarm REST endpoint
     return build.getTriggeredBy().getParameters().get(SWARM_UPDATE_URL);
   }
