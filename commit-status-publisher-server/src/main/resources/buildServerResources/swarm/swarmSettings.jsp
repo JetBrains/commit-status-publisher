@@ -4,6 +4,7 @@
 <%@ taglib prefix="l" tagdir="/WEB-INF/tags/layout" %>
 <%@ taglib prefix="forms" tagdir="/WEB-INF/tags/forms" %>
 <%@ taglib prefix="bs" tagdir="/WEB-INF/tags" %>
+<%@ taglib prefix="admin" tagdir="/WEB-INF/tags/admin" %>
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
 <%--
   ~ Copyright 2000-2022 JetBrains s.r.o.
@@ -52,16 +53,20 @@
 </tr>
 
 <tr>
-  <th><label for="${createSwarmTestField}">Create Swarm Test:</label></th>
+  <th><label for="${createSwarmTestField}">Create Swarm Tests:</label><bs:help file="integrating-with-helix-swarm"/></th>
   <td>
     <div style="display: flex; gap: 5px; align-items: flex-start;">
-      <props:checkboxProperty name="${createSwarmTestField}" style="margin-top: 5px"/>
+      <props:checkboxProperty name="${createSwarmTestField}" style="margin-top: 5px" />
       <span class="error" id="error_${createSwarmTestField}"></span>
       <span class="note">
-        If set, TeamCity will create a test run on the Swarm server and update its status according to
-                the build status in TeamCity. Requires an admin-level access for the credentials above.
+        If this setting is enabled, TeamCity will create new Swarm tests to publish build statuses.
+        Enter username and ticket of a user with administrator permissions to employ this approach.
         <p>
-        If unset, Helix Swarm workflow and test should be configured inside Swarm installation.
+          Leave this setting disabled to use existing Swarm tests instead of creating new ones.
+
+          This approach allows the Commit Status Publisher to use regular users' credentials.
+
+          See <bs:helpLink file="integrating-with-helix-swarm">this documentation article</bs:helpLink> to learn how to set up Swarm workflows and tests for TeamCity.
         </p>
     </span>
     </div>
