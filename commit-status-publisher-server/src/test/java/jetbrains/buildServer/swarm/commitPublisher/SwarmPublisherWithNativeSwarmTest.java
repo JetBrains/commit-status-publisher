@@ -93,7 +93,7 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
   private BuildBuilder theBuild(SBuildType buildType) {
     final BuildBuilder result = build().in(buildType);
     if (myPassUrlViaBuild) {
-      result.addTriggerParam(SwarmClient.SWARM_UPDATE_URL, getServerUrl() + "/api/v11/testruns/706/FAE4501C-E4BC-73E4-A11A-FF710601BC3F");
+      result.addTriggerParam(SwarmClient.SWARM_UPDATE_URL, "http://localhost/api/v11/testruns/706/FAE4501C-E4BC-73E4-A11A-FF710601BC3F");
     }
     return myCreatePersonalBuild ? result.personalForUser("fedor") : result;
   }

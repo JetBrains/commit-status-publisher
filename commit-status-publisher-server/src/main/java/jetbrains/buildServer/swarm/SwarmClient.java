@@ -241,7 +241,9 @@ public class SwarmClient {
   public void updateSwarmTestRuns(long reviewId, @NotNull SBuild build, @NotNull String debugBuildInfo) throws PublisherException {
     String swarmUpdateUrl = getSwarmUpdateUrlFromTriggeringAttr(build);
     if (swarmUpdateUrl != null) {
-      changeTestRunStatus(new SwarmTestUpdateUrl(swarmUpdateUrl), build, debugBuildInfo);
+      int pathIdx = swarmUpdateUrl.indexOf("/api/");
+      String fixedUrl = mySwarmUrl + swarmUpdateUrl.substring(pathIdx);
+      changeTestRunStatus(new SwarmTestUpdateUrl(fixedUrl), build, debugBuildInfo);
     }
     else {
       Collection<SwarmTestUpdateUrl> updateUrls = collectSwarmTestRuns(reviewId, build, debugBuildInfo);
