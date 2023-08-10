@@ -45,6 +45,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   private int myFailuresReceived = 0;
   private int mySuccessReceived = 0;
   private final Set<Event> myEventsToWait = new HashSet<Event>();
+  private int myShouldFailToPublish = 0;
 
   private final PublisherLogger myLogger;
 
@@ -142,6 +143,17 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
 
   void shouldReportError() {myShouldReportError = true; }
 
+  void shouldFailToPublish(int cntFailures) {
+    myShouldFailToPublish = cntFailures;
+  }
+
+  private void checkShouldFailToPublish() throws PublisherException {
+    if (myShouldFailToPublish > 0) {
+      myShouldFailToPublish -= 1;
+      throw new PublisherException("Network failure");
+    }
+  }
+
   private void pretendToHandleEvent(Event event) throws PublisherException {
     if (myEventsToWait.contains(event)) {
       try {
@@ -166,14 +178,17 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     SBuildType buildType = buildPromotion.getBuildType();
     pretendToHandleEvent(Event.QUEUED);
     myHttpRequests.add(HttpMethod.POST);
+    checkShouldFailToPublish();
     saveStatus(revision, buildType, new MockStatus(Event.QUEUED, additionalTaskInfo.getComment()));
     return true;
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull final BuildPromotion buildPromotion, @NotNull final BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) {
+  public boolean buildRemovedFromQueue(@NotNull final BuildPromotion buildPromotion, @NotNull final BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo)
+    throws PublisherException {
     myLastUser = additionalTaskInfo.getCommentAuthor();
     myHttpRequests.add(HttpMethod.POST);
+    checkShouldFailToPublish();
     saveStatus(revision, buildPromotion.getBuildType(), new MockStatus(Event.REMOVED_FROM_QUEUE, additionalTaskInfo.getComment()));
     return true;
   }
@@ -182,6 +197,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   public boolean buildStarted(@NotNull final SBuild build, @NotNull final BuildRevision revision) throws PublisherException {
     pretendToHandleEvent(Event.STARTED);
     myHttpRequests.add(HttpMethod.POST);
+    checkShouldFailToPublish();
     saveStatus(revision, build.getBuildType(), new MockStatus(Event.STARTED, DefaultStatusMessages.BUILD_STARTED));
     return true;
   }
@@ -198,6 +214,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     } else if (myShouldReportError) {
       myProblems.reportProblem(this, "My build", null, null, myLogger);
     }
+    checkShouldFailToPublish();
     saveStatus(revision, build.getBuildType(), new MockStatus(Event.FINISHED, DefaultStatusMessages.BUILD_FINISHED));
     return true;
   }
@@ -211,6 +228,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     throws PublisherException {
     pretendToHandleEvent(Event.COMMENTED);
     myHttpRequests.add(HttpMethod.POST);
+    checkShouldFailToPublish();
     saveStatus(revision, build.getBuildType(), new MockStatus(Event.COMMENTED, comment));
     return true;
   }
@@ -219,6 +237,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   public boolean buildInterrupted(@NotNull final SBuild build, @NotNull final BuildRevision revision) throws PublisherException {
     pretendToHandleEvent(Event.INTERRUPTED);
     myHttpRequests.add(HttpMethod.POST);
+    checkShouldFailToPublish();
     saveStatus(revision, build.getBuildType(), new MockStatus(Event.INTERRUPTED, null));
     return true;
   }
@@ -228,6 +247,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     pretendToHandleEvent(Event.FAILURE_DETECTED);
     myHttpRequests.add(HttpMethod.POST);
     myFailuresReceived++;
+    checkShouldFailToPublish();
     saveStatus(revision, build.getBuildType(), new MockStatus(Event.FAILURE_DETECTED, null));
     return true;
   }
@@ -236,6 +256,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
     pretendToHandleEvent(Event.MARKED_AS_SUCCESSFUL);
     myHttpRequests.add(HttpMethod.POST);
+    checkShouldFailToPublish();
     saveStatus(revision, build.getBuildType(), new MockStatus(Event.MARKED_AS_SUCCESSFUL, null));
     return super.buildMarkedAsSuccessful(build, revision, buildInProgress);
   }

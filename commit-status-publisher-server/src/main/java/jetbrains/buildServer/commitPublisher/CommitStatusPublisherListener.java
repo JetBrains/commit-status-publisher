@@ -18,6 +18,7 @@ package jetbrains.buildServer.commitPublisher;
 
 import com.google.common.util.concurrent.Striped;
 import com.intellij.openapi.util.Pair;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,6 +47,7 @@ import jetbrains.buildServer.vcs.SVcsRootEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static java.lang.Long.min;
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 import static jetbrains.buildServer.commitPublisher.ValueWithTTL.OUTDATED_CACHE_VALUE;
 
@@ -59,6 +61,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   private final static int LOCKS_STRIPES_DEFAULT = 1000;
   private final static int MAX_LAST_EVENTS_TO_REMEMBER = 1000;
+
+  final static String RETRY_ENABLED_PROPERTY_NAME = "teamcity.commitStatusPublisher.retry.enabled";
+  final static String RETRY_INITAL_DELAY_PROPERTY_NAME = "teamcity.commitStatusPublisher.retry.initDelayMs";
+  final static String RETRY_MAX_DELAY_PROPERTY_NAME = "teamcity.commitStatusPublisher.retry.maxDelayMs";
+  private final static long DEFAULT_INITIAL_RETRY_DELAY_MS = 10_000;
+  private final static long DEFAULT_MAX_RETRY_DELAY_MS = 30 * 60 * 1000; // 30 minutes
 
   private final PublisherManager myPublisherManager;
   private final BuildHistory myBuildHistory;
@@ -327,9 +335,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
     BuildPromotion buildPromotion = build.getBuildPromotion();
 
-    long promotionId = buildPromotion.getId();
-    String identity = Event.QUEUED.getName() + ":" + promotionId;
-    myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(Event.QUEUED.getName(), identity, promotionId, null, DefaultStatusMessages.BUILD_QUEUED));
+    submitTaskForQueuedBuild(Event.QUEUED, buildPromotion, null);
   }
 
   public boolean isQueueDisabled() {
@@ -434,18 +440,47 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
                 || "true".equals(publishingEnabledParam));
   }
 
+  private boolean isRetryEnabled() {
+    return TeamCityProperties.getBoolean(RETRY_ENABLED_PROPERTY_NAME);
+  }
+
+  private long initialRetryDelay() {
+    return TeamCityProperties.getLong(RETRY_INITAL_DELAY_PROPERTY_NAME, DEFAULT_INITIAL_RETRY_DELAY_MS);
+  }
+
+  private long maxRetryDelay() {
+    return TeamCityProperties.getLong(RETRY_MAX_DELAY_PROPERTY_NAME, DEFAULT_MAX_RETRY_DELAY_MS);
+  }
+
   private void logStatusNotPublished(@NotNull Event event, @NotNull String buildDescription, @NotNull CommitStatusPublisher publisher, @NotNull String message) {
     LOG.info(String.format("Event: %s, build %s, publisher %s: %s", event.getName(), buildDescription, publisher, message));
   }
 
   private void submitTaskForBuild(@NotNull Event event, @NotNull SBuild build) {
+    submitTaskForBuild(event, build, null);
+  }
+
+  private String getTaskIdentity(@NotNull Event event, long id, @Nullable Long delay) {
+    String identity= event.getName() + ":" + id;
+    if (delay != null) {
+      identity += ":delay" + delay;
+    }
+    return identity;
+  }
+
+  private void submitTaskForBuild(@NotNull Event event, @NotNull SBuild build, @Nullable Long delay) {
     if  (!myServerResponsibility.isResponsibleForBuild(build)) {
       LOG.debug("Current node is not responsible for build " + LogUtil.describe(build) + ", skip processing event " + event);
       return;
     }
 
     long buildId = build.getBuildId();
-    myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(event.getName(), event.getName() + ":" + buildId, buildId));
+    myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(event.getName(), getTaskIdentity(event, buildId, delay), buildId, delay, (String)null));
+  }
+
+  private void submitTaskForQueuedBuild(@NotNull Event event, @NotNull BuildPromotion buildPromotion, @Nullable Long delay) {
+    long promotionId = buildPromotion.getId();
+    myMultiNodeTasks.submit(new MultiNodeTasks.TaskData(Event.QUEUED.getName(), getTaskIdentity(event, promotionId, delay), promotionId, delay, DefaultStatusMessages.BUILD_QUEUED));
   }
 
   private boolean isCurrentRevisionSuitable(Event event, BuildPromotion buildPromotion, BuildRevision revision, CommitStatusPublisher publisher) throws PublisherException {
@@ -706,6 +741,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       Long buildId = task.getLongArg1();
       if (buildId == null) return false;
 
+      Long delay = task.getLongArg2();
+      if (delay != null && task.getCreateTime().getTime() + delay > Instant.now().toEpochMilli()) {
+        return false;
+      }
+
       SBuild build = myBuildsManager.findBuildInstanceById(buildId);
       if (build == null) {
         return myServerResponsibility.canManageBuilds();
@@ -737,7 +777,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
           myLastEvents.put(buildPromotion.getId(), eventType);
       }
 
-      runAsync(() -> runForEveryPublisher(eventType, build), () -> { eventProcessed(eventType); });
+      Long lastDelay = task.getLongArg2();
+      runAsync(() -> runForEveryPublisher(eventType, build, lastDelay), () -> { eventProcessed(eventType); });
     }
 
     @Nullable
@@ -753,7 +794,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       task.run(publisher, revision);
     }
 
-    private void runForEveryPublisher(@NotNull Event event, @NotNull SBuild build) {
+    private void runForEveryPublisher(@NotNull Event event, @NotNull SBuild build, @Nullable Long lastDelay) {
       PublishTask task = myTaskSupplier.apply(build);
       SBuildType buildType = build.getBuildType();
       if (buildType == null) return;
@@ -767,7 +808,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
           Lock lock = myPublishingLocks.get(revision.getRevision());
           lock.lock();
           try {
-            runTask(event, buildPromotion, LogUtil.describe(build), task, publisher, revision, null);
+            runTask(event, buildPromotion, LogUtil.describe(build), task, publisher, revision, null, lastDelay);
           } finally {
             lock.unlock();
           }
@@ -794,6 +835,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     }
 
     @Override
+    public boolean beforeAccept(@NotNull PerformingTask task) {
+      Long delay = task.getLongArg2();
+      return delay == null || task.getCreateTime().getTime() + delay < Instant.now().toEpochMilli();
+    }
+
+    @Override
     public void accept(final PerformingTask task) {
       Event eventType = getEventType(task);
       BuildPromotion promotion = getBuildPromotion(task);
@@ -814,7 +861,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       String comment = getComment(task);
       AdditionalTaskInfo additionalTaskInfo = new AdditionalTaskInfo(promotion, comment, commentAuthor);
 
-      runAsync(() -> runForEveryPublisher(eventType, promotion, additionalTaskInfo), () -> { eventProcessed(eventType); });
+      Long lastDelay = task.getLongArg2();
+      runAsync(() -> runForEveryPublisher(eventType, promotion, additionalTaskInfo, lastDelay), () -> { eventProcessed(eventType); });
     }
 
     @Nullable
@@ -842,7 +890,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       task.run(publisher, revision, additionalTaskInfo);
     }
 
-    private void runForEveryPublisher(@NotNull Event event, @NotNull BuildPromotion buildPromotion, AdditionalTaskInfo additionalTaskInfo) {
+    private void runForEveryPublisher(@NotNull Event event, @NotNull BuildPromotion buildPromotion, AdditionalTaskInfo additionalTaskInfo, @Nullable Long lastDelay) {
       PublishQueuedTask publishTask = myTaskSupplier.apply(buildPromotion);
 
       PublishingProcessor publishingProcessor = new PublishingProcessor() {
@@ -871,10 +919,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
             isEventSuitableForRevision = isCurrentRevisionSuitable(event, buildPromotion, revision, publisher);
           } catch (PublisherException e) {
             LOG.warn("Can not define if event \"" + event + "\" can be published for current revision state in VCS", e);
+            retryTask(e, buildPromotion, event, lastDelay);
             return;
           }
           if (isEventSuitableForRevision) {
-            runTask(event, buildPromotion, LogUtil.describe(buildPromotion), publishTask, publisher, revision, additionalTaskInfo);
+            runTask(event, buildPromotion, LogUtil.describe(buildPromotion), publishTask, publisher, revision, additionalTaskInfo, lastDelay);
           } else {
             LOG.debug("Event \"" + event + "\" is not suitable to be published to rooot \"" + publisher.getVcsRootId() + "\" for revision " + revision.getRevision());
           }
@@ -888,6 +937,21 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       proccessPublishing(event, buildPromotion, publishingProcessor);
     }
 
+  }
+
+  private void retryTask(@NotNull Throwable t, @NotNull BuildPromotion buildPromotion, @NotNull Event event, @Nullable Long lastDelay) {
+    if (isRetryEnabled()) {
+      final SBuild build = buildPromotion.getAssociatedBuild();
+      final long newDelay = lastDelay == null ? initialRetryDelay() : lastDelay * 2;
+      if (newDelay > maxRetryDelay()) {
+        return;
+      }
+      if (build != null) {
+        submitTaskForBuild(event, build, newDelay);
+      } else if (event == Event.QUEUED) {
+        submitTaskForQueuedBuild(event, buildPromotion, newDelay);
+      }
+    }
   }
 
   private abstract class PublisherTaskConsumer<T> extends MultiNodeTasks.TaskConsumer {
@@ -906,7 +970,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
                            @NotNull T publishTask,
                            @NotNull CommitStatusPublisher publisher,
                            @NotNull BuildRevision revision,
-                           @Nullable AdditionalTaskInfo additionalTaskInfo) {
+                           @Nullable AdditionalTaskInfo additionalTaskInfo,
+                           @Nullable Long lastDelay) {
       try {
         doRunTask(publishTask, publisher, revision, additionalTaskInfo);
       } catch (Throwable t) {
@@ -917,6 +982,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
           BuildProblemData buildProblem = BuildProblemData.createBuildProblem(problemId, "commitStatusPublisherProblem", problemDescription);
           ((BuildPromotionEx)promotion).addBuildProblem(buildProblem);
         }
+
+        retryTask(t, promotion, event, lastDelay);
       }
     }
   }
