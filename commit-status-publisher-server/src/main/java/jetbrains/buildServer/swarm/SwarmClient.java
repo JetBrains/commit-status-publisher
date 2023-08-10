@@ -11,10 +11,7 @@ import java.io.IOException;
 import java.security.KeyStore;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import jetbrains.buildServer.commitPublisher.DefaultHttpResponseProcessor;
-import jetbrains.buildServer.commitPublisher.HttpPublisherException;
-import jetbrains.buildServer.commitPublisher.LoggerUtil;
-import jetbrains.buildServer.commitPublisher.PublisherException;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.Dates;
 import jetbrains.buildServer.util.StringUtil;
@@ -157,12 +154,16 @@ public class SwarmClient {
   protected ReviewLoadResponse loadReviews(@NotNull String changelistId, @NotNull String debugInfo) {
     String getReviewsUrl = mySwarmUrl + "/api/v9/reviews?fields=id,state,stateLabel&change[]=" + changelistId;
     try {
-      final ReadReviewsProcessor processor = new ReadReviewsProcessor(debugInfo);
+      final RetryResponseProcessor processor = new RetryResponseProcessor(new ReadReviewsProcessor(debugInfo));
       HttpHelper.get(getReviewsUrl, getCredentials(), null, myConnectionTimeout, myTrustStore, processor);
 
-      return new ReviewLoadResponse(processor.getReviews());
+      return new ReviewLoadResponse(((ReadReviewsProcessor)processor.getProcessor()).getReviews());
     } catch (IOException|HttpPublisherException e) {
-      return new ReviewLoadResponse(new PublisherException("Cannot get list of reviews from " + getReviewsUrl + " for " + debugInfo + ": " + e, e));
+      PublisherException ex = new PublisherException("Cannot get list of reviews from " + getReviewsUrl + " for " + debugInfo + ": " + e, e);
+      if (e instanceof IOException) {
+        ex.setShouldRetry();
+      }
+      return new ReviewLoadResponse(ex);
     }
   }
 
@@ -177,9 +178,9 @@ public class SwarmClient {
 
     try {
       HttpHelper.post(addCommentUrl, getCredentials(),
-                      data, ContentType.APPLICATION_FORM_URLENCODED, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
+                      data, ContentType.APPLICATION_FORM_URLENCODED, null, myConnectionTimeout, myTrustStore, new RetryResponseProcessor(new DefaultHttpResponseProcessor()));
     } catch (IOException e) {
-      throw new PublisherException("Cannot add a comment for review at " + addCommentUrl + " for " + debugInfo + ": " + e, e);
+      throw new PublisherException("Cannot add a comment for review at " + addCommentUrl + " for " + debugInfo + ": " + e, e).setShouldRetry();
     }
   }
 
@@ -192,15 +193,15 @@ public class SwarmClient {
       info("Creating Swarm test run at " + createTestRunUrl + " for build " + debugBuildInfo);
       HttpHelper.post(createTestRunUrl, getCredentials(),
                       createTestRunJson(reviewId, build),
-                      ContentType.APPLICATION_JSON, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor() {
+                      ContentType.APPLICATION_JSON, null, myConnectionTimeout, myTrustStore, new RetryResponseProcessor(new DefaultHttpResponseProcessor() {
           @Override
           public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
             debug("Response for creating Swarm test run for " + debugBuildInfo + ":" + response.getContent());
             super.processResponse(response);
           }
-        });
+        }));
     } catch (IOException e) {
-      throw new PublisherException("Cannot create test run at " + createTestRunUrl + " for " + debugBuildInfo + ": " + e, e);
+      throw new PublisherException("Cannot create test run at " + createTestRunUrl + " for " + debugBuildInfo + ": " + e, e).setShouldRetry();
     }
   }
 
@@ -308,9 +309,9 @@ public class SwarmClient {
     try {
       HttpHelper.http(HttpMethod.POST, updateTestRunUrl, getCredentials(),
                       buildJsonForUpdate(build),
-                      ContentType.APPLICATION_JSON, null, myConnectionTimeout, myTrustStore, new DefaultHttpResponseProcessor());
+                      ContentType.APPLICATION_JSON, null, myConnectionTimeout, myTrustStore, new RetryResponseProcessor(new DefaultHttpResponseProcessor()));
     } catch (IOException e) {
-      throw new PublisherException("Cannot update test run at " + updateTestRunUrl + " for " + debugBuildInfo + ": " + e, e);
+      throw new PublisherException("Cannot update test run at " + updateTestRunUrl + " for " + debugBuildInfo + ": " + e, e).setShouldRetry();
     }
   }
 

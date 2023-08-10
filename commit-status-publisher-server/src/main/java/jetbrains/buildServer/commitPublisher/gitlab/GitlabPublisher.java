@@ -295,7 +295,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
                        @NotNull String commit,
                        @NotNull String data,
                        @NotNull Repository repository,
-                       @NotNull String buildDescription) {
+                       @NotNull String buildDescription) throws PublisherException {
     String url = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/statuses/" + commit;
     LOG.debug("Request url: " + url + ", message: " + data);
     postJson(url, credentials, data, null, buildDescription);

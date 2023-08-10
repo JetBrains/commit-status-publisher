@@ -74,26 +74,27 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
   }
 
   @Override
-  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) {
+  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     vote(buildPromotion, revision, StashBuildStatus.INPROGRESS, additionalTaskInfo.getComment());
     return true;
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) {
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo)
+    throws PublisherException {
     if (!additionalTaskInfo.isBuildManuallyRemoved()) return false;
     vote(buildPromotion, revision, StashBuildStatus.FAILED, additionalTaskInfo.getComment());
     return true;
   }
 
   @Override
-  public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) {
+  public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     vote(build, revision, StashBuildStatus.INPROGRESS, DefaultStatusMessages.BUILD_STARTED);
     return true;
   }
 
   @Override
-  public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     StashBuildStatus status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.SUCCESSFUL : StashBuildStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
     vote(build, revision, status, description);
@@ -101,7 +102,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
   }
 
   @Override
-  public boolean buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment, boolean buildInProgress) {
+  public boolean buildCommented(@NotNull SBuild build, @NotNull BuildRevision revision, @Nullable User user, @Nullable String comment, boolean buildInProgress)
+    throws PublisherException {
     StashBuildStatus status;
     if (buildInProgress) {
       status = build.getBuildStatus().isSuccessful() ? StashBuildStatus.INPROGRESS : StashBuildStatus.FAILED;
@@ -117,19 +119,19 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
   }
 
   @Override
-  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) {
+  public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
     vote(build, revision, buildInProgress ? StashBuildStatus.INPROGRESS : StashBuildStatus.SUCCESSFUL, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL);
     return true;
   }
 
   @Override
-  public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) {
+  public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     vote(build, revision, StashBuildStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
   }
 
   @Override
-  public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) {
+  public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     vote(build, revision, StashBuildStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
   }
@@ -215,7 +217,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
   private void vote(@NotNull SBuild build,
                     @NotNull BuildRevision revision,
                     @NotNull StashBuildStatus status,
-                    @NotNull String comment) {
+                    @NotNull String comment) throws PublisherException {
     String vcsBranch = getVcsBranch(revision, LogUtil.describe(build));
     SBuildData data = new SBuildData(build, revision, status, comment, vcsBranch);
     getEndpoint().publishBuildStatus(data, LogUtil.describe(build));
@@ -225,7 +227,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
   private void vote(@NotNull BuildPromotion buildPromotion,
                     @NotNull BuildRevision revision,
                     @NotNull StashBuildStatus status,
-                    @NotNull String comment) {
+                    @NotNull String comment) throws PublisherException {
     String vcsBranch = getVcsBranch(revision, LogUtil.describe(buildPromotion));
     SBuildPromotionData data = new SBuildPromotionData(buildPromotion, revision, status, comment, vcsBranch);
     getEndpoint().publishBuildStatus(data, LogUtil.describe(buildPromotion));
@@ -493,7 +495,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
   }
 
   private interface BitbucketEndpoint {
-    void publishBuildStatus(@NotNull StatusData data, @NotNull String buildDescription);
+    void publishBuildStatus(@NotNull StatusData data, @NotNull String buildDescription) throws PublisherException;
     PullRequest getPullRequest(@NotNull BuildRevision revision, @NotNull String buildDescriptor);
     JsonStashBuildStatus getCommitBuildStatus(@NotNull StatusRequestData data, @NotNull String buildDescription);
     Collection<JsonStashBuildStatus> getCommitBuildStatuses(@NotNull StatusRequestData data, @NotNull String buildDescription);
@@ -502,7 +504,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
   private abstract class BaseBitbucketEndpoint implements BitbucketEndpoint {
 
     @Override
-    public void publishBuildStatus(@NotNull StatusData data, @NotNull String buildDescription) {
+    public void publishBuildStatus(@NotNull StatusData data, @NotNull String buildDescription) throws PublisherException {
       try {
         String url = getBuildEndpointUrl(data);
         String msg = createBuildStatusMessage(data);
@@ -514,6 +516,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
         postJson(url, getCredentials(data.getVcsRootInstance()), msg, null, buildDescription);
       } catch (PublisherException ex) {
         myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
+        throw ex;
       }
     }
 

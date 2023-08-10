@@ -36,7 +36,7 @@ public interface GitHubApi {
                                                 @NotNull String repositoryName,
                                                 @NotNull String hash,
                                                 @Nullable final Integer perPage,
-                                                @Nullable final Integer page) throws IOException;
+                                                @Nullable final Integer page) throws IOException, PublisherException;
 
   void setChangeStatus(@NotNull String repoOwner,
                        @NotNull String repositoryName,
@@ -44,7 +44,7 @@ public interface GitHubApi {
                        @NotNull GitHubChangeState status,
                        @NotNull String targetUrl,
                        @NotNull String description,
-                       @Nullable String context) throws IOException;
+                       @Nullable String context) throws IOException, PublisherException;
 
 
   /**

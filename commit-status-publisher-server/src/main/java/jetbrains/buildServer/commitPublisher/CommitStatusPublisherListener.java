@@ -940,7 +940,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   }
 
   private void retryTask(@NotNull Throwable t, @NotNull BuildPromotion buildPromotion, @NotNull Event event, @Nullable Long lastDelay) {
-    if (isRetryEnabled()) {
+    if (isRetryEnabled() && t instanceof PublisherException && ((PublisherException)t).shouldRetry()) {
       final SBuild build = buildPromotion.getAssociatedBuild();
       final long newDelay = lastDelay == null ? initialRetryDelay() : lastDelay * 2;
       if (newDelay > maxRetryDelay()) {

@@ -22,6 +22,7 @@ import java.security.KeyStore;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import jetbrains.buildServer.commitPublisher.RetryResponseProcessor;
 import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
@@ -81,7 +82,7 @@ public class SpaceToken {
       HttpHelper.post(
         urlPost, new UsernamePasswordCredentials(serviceId, serviceSecret), data, ContentType.APPLICATION_FORM_URLENCODED,
         Collections.singletonMap(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType()),
-        connectionTimeout, keyStore, contentResponseProcessor
+        connectionTimeout, keyStore, new RetryResponseProcessor(contentResponseProcessor)
       )
     );
 

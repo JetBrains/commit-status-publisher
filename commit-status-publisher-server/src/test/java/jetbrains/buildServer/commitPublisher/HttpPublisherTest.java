@@ -59,6 +59,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
   private String myExpectedEndpointPrefix = "";
   private int myRespondWithRedirectCode;
   protected boolean myDoNotRespond;
+  protected int myResponseStatusCode = 0;
   private String myLastAgent;
 
   private static final int TIMEOUT = 2000;
@@ -89,11 +90,57 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
   public void should_report_timeout_failure() throws Exception {
     setPublisherTimeout(SHORT_TIMEOUT_TO_FAIL);
     myDoNotRespond = true;
-    myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
+    try {
+      myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
+    } catch (PublisherException ignored) {}
     then(getRequestAsString()).isNull();
     Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
-    then(problems.size()).isEqualTo(1);
+    then(problems.size()).isGreaterThanOrEqualTo(1);
     then(problems.iterator().next().getProblem().getDescription()).matches(String.format("Commit Status Publisher.*%s.*timed out.*", myPublisher.getId()));
+  }
+
+  public void should_throw_exception_with_retry_flag_set_on_timeout_failure() {
+    setPublisherTimeout(SHORT_TIMEOUT_TO_FAIL);
+    myDoNotRespond = true;
+
+    try {
+      myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
+      fail("PublisherException wasn't thrown");
+    } catch (PublisherException ex) {
+      then(ex.shouldRetry()).isEqualTo(true);
+    }
+  }
+
+  public void should_throw_exception_with_retry_flag_set_on_internal_server_error() {
+    myResponseStatusCode = 500;
+
+    try {
+      myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
+      fail("PublisherException wasn't thrown");
+    } catch (PublisherException ex) {
+      then(ex.shouldRetry()).isEqualTo(true);
+    }
+  }
+
+  public void should_throw_exception_with_retry_flag_set_on_too_many_requests_error() {
+    myResponseStatusCode = 429;
+
+    try {
+      myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
+      fail("PublisherException wasn't thrown");
+    } catch (PublisherException ex) {
+      then(ex.shouldRetry()).isEqualTo(true);
+    }
+  }
+
+  public void should_not_set_retry_flag_on_unauthorized_error() {
+    myResponseStatusCode = 401;
+
+    try {
+      myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
+    } catch (PublisherException ex) {
+      then(ex.shouldRetry()).isEqualTo(false);
+    }
   }
 
   protected boolean isStatusCacheNotImplemented() {
@@ -156,6 +203,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
     myRequests = new ArrayList<>();
     myLastAgent = null;
     myDoNotRespond = false;
+    myResponseStatusCode = 0;
     myRespondWithRedirectCode = 0;
 
     final SocketConfig socketConfig = SocketConfig.custom().setSoTimeout(TIMEOUT * 2).build();
@@ -178,6 +226,11 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
     myLastAgent = httpRequest.getLastHeader("User-Agent").getValue();
     if (myRespondWithRedirectCode > 0) {
       setRedirectionResponse(httpRequest, httpResponse);
+      return;
+    }
+
+    if (myResponseStatusCode != 0) {
+      httpResponse.setStatusCode(myResponseStatusCode);
       return;
     }
 

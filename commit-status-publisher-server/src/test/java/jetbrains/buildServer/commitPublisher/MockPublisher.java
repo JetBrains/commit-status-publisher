@@ -150,7 +150,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   private void checkShouldFailToPublish() throws PublisherException {
     if (myShouldFailToPublish > 0) {
       myShouldFailToPublish -= 1;
-      throw new PublisherException("Network failure");
+      throw new PublisherException("Network failure").setShouldRetry();
     }
   }
 

@@ -18,6 +18,7 @@ package jetbrains.buildServer.commitPublisher.github;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
@@ -233,9 +234,12 @@ public class ChangeStatusUpdater {
           Collection<CommitStatus> statuses;
           try {
             statuses = statusClient.getStatuses(revision, repo, perPage, page);
-          } catch (IOException e) {
+          } catch (IOException | PublisherException e) {
             publisher.getProblems().reportProblem(String.format("Commit Status Publisher error. Can not receive status for revision: %s", revision.getRevision()), publisher,
                                                   buildContext, publisher.getServerUrl(), e, LOG);
+            if (e instanceof PublisherException) {
+              throw (PublisherException)e;
+            }
             return Collections.emptyList();
           }
           if (statuses == null) return result;
@@ -305,7 +309,7 @@ public class ChangeStatusUpdater {
     }
 
     @NotNull
-    protected String resolveCommitHash(RepositoryVersion myVersion, Repository repo, GitHubChangeState myTargetStatus, String buildIdentificator) {
+    protected String resolveCommitHash(RepositoryVersion myVersion, Repository repo, GitHubChangeState myTargetStatus, String buildIdentificator, @Nullable AtomicBoolean shouldRetry) {
       final String vcsBranch = myVersion.getVcsBranch();
       if (vcsBranch != null && myApi.isPullRequestMergeBranch(vcsBranch)) {
         try {
@@ -321,6 +325,9 @@ public class ChangeStatusUpdater {
                    buildIdentificator);
           return hash;
         } catch (Exception e) {
+          if (shouldRetry != null && e instanceof PublisherException && ((PublisherException)e).shouldRetry()) {
+            shouldRetry.set(true);
+          }
           LOG.warn("Failed to find status update hash for " + vcsBranch + " for repository " + repo.repositoryName());
         }
       }
@@ -351,9 +358,9 @@ public class ChangeStatusUpdater {
     }
 
     @Nullable
-    public CommitStatus getStatus(@NotNull BuildRevision revision,  @NotNull Repository repo) throws IOException {
+    public CommitStatus getStatus(@NotNull BuildRevision revision,  @NotNull Repository repo) throws IOException, PublisherException {
       final RepositoryVersion version = revision.getRepositoryVersion();
-      final String hash = resolveCommitHash(version, repo, null, myContext);
+      final String hash = resolveCommitHash(version, repo, null, myContext, null);
       if (isHashInvalid(hash, version, revision.getRoot(), myContext)) {
         return null;
       }
@@ -379,10 +386,14 @@ public class ChangeStatusUpdater {
 
     @Nullable
     public Collection<CommitStatus> getStatuses(@NotNull BuildRevision revision, @NotNull Repository repo,
-                                                @NotNull int perPage, @NotNull int page) throws IOException {
+                                                @NotNull int perPage, @NotNull int page) throws IOException, PublisherException {
       final RepositoryVersion version = revision.getRepositoryVersion();
-      final String hash = resolveCommitHash(version, repo, null, myContext);
+      final AtomicBoolean shouldRetry = new AtomicBoolean();
+      final String hash = resolveCommitHash(version, repo, null, myContext, shouldRetry);
       if (isHashInvalid(hash, version, revision.getRoot(), myContext)) {
+        if (shouldRetry.get()) {
+          throw new PublisherException("Failed to resolve commit hash for GitHub").setShouldRetry();
+        }
         return null;
       }
 
@@ -411,12 +422,16 @@ public class ChangeStatusUpdater {
                           @NotNull GitHubChangeState targetStatus,
                           @NotNull Repository repo,
                           @NotNull AdditionalTaskInfo additionalTaskInfo,
-                          @NotNull String viewUrl) {
+                          @NotNull String viewUrl) throws PublisherException {
       final RepositoryVersion version = revision.getRepositoryVersion();
       SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
       String buildIdentificator = queuedBuild != null ? "queuedBuildId: " + queuedBuild.getItemId() : "buildPromotionId: " + buildPromotion.getId();
-      final String hash = resolveCommitHash(version, repo, targetStatus, buildIdentificator);
+      final AtomicBoolean shouldRetry = new AtomicBoolean();
+      final String hash = resolveCommitHash(version, repo, targetStatus, buildIdentificator, shouldRetry);
       if (isHashInvalid(hash, version, revision.getRoot(), buildIdentificator)) {
+        if (shouldRetry.get()) {
+          throw new PublisherException("Failed to resolve commit hash for GitHub").setShouldRetry();
+        }
         return false;
       }
 
@@ -433,9 +448,13 @@ public class ChangeStatusUpdater {
           prMergeBranch ? myContext + " - merge" : myContext
         );
         LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + buildPromotion.getAssociatedBuildId() + ", status: " + targetStatus);
-      } catch (IOException e) {
+      } catch (PublisherException | IOException e) {
         myPublisher.getProblems().reportProblem(String.format("Commit Status Publisher error. GitHub status: '%s'", targetStatus), myPublisher, LogUtil.describe(buildPromotion), myPublisher.getServerUrl(), e, LOG);
-        return false;
+        PublisherException ex = new PublisherException("Commit Status Publisher error. GitHub", e);
+        if (e instanceof IOException) {
+          ex.setShouldRetry();
+        }
+        throw ex;
       }
       return true;
     }
@@ -448,19 +467,28 @@ public class ChangeStatusUpdater {
       super(params, publisher, root);
     }
 
-    public void update(BuildRevision revision, SBuild build, String message, GitHubChangeState targetStatus, Repository repo, String viewUrl) {
+    public void update(BuildRevision revision, SBuild build, String message, GitHubChangeState targetStatus, Repository repo, String viewUrl) throws PublisherException{
       final RepositoryVersion version = revision.getRepositoryVersion();
       String buildIdentififcator = "buildId: " + build.getBuildId();
-      final String hash = resolveCommitHash(version, repo, targetStatus, buildIdentififcator);
+      final AtomicBoolean shouldRetry = new AtomicBoolean();
+      final String hash = resolveCommitHash(version, repo, targetStatus, buildIdentififcator, shouldRetry);
       if (isHashInvalid(hash, version, revision.getRoot(), buildIdentififcator)) {
+        if (shouldRetry.get()) {
+          throw new PublisherException("Failed to resolve commit hash for GitHub").setShouldRetry();
+        }
         return;
       }
 
       final CommitStatusPublisherProblems problems = myPublisher.getProblems();
       try {
         changeStatus(build, repo, hash, version, message, targetStatus, viewUrl);
-      } catch (IOException e) {
+      } catch (IOException | PublisherException e) {
         problems.reportProblem(String.format("Commit Status Publisher error. GitHub status: '%s'", targetStatus), myPublisher, LogUtil.describe(build), myPublisher.getServerUrl(), e, LOG);
+        PublisherException ex = new PublisherException("Commit Status Publisher error. GitHub", e);
+        if (e instanceof IOException) {
+          ex.setShouldRetry();
+        }
+        throw ex;
       }
 
       if (myAddComment) {
@@ -479,7 +507,7 @@ public class ChangeStatusUpdater {
                               RepositoryVersion version,
                               String message,
                               GitHubChangeState targetStatus,
-                              String viewUrl) throws IOException {
+                              String viewUrl) throws IOException, PublisherException {
       boolean prMergeBranch = !hash.equals(version.getVersion());
       myApi.setChangeStatus(
         repo.owner(),

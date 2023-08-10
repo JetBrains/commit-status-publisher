@@ -24,10 +24,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.commitPublisher.LoggerUtil;
-import jetbrains.buildServer.commitPublisher.PublisherException;
-import jetbrains.buildServer.commitPublisher.Repository;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.*;
@@ -110,7 +107,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
                                                        @NotNull final String repoName,
                                                        @NotNull final String hash,
                                                        @Nullable final Integer perPage,
-                                                       @Nullable final Integer page) throws IOException {
+                                                       @Nullable final Integer page) throws IOException, PublisherException {
     final String statusUrl = myUrls.getCombinedStatusUrl(repoOwner, repoName, hash, perPage, page);
 
     final HttpMethod method = HttpMethod.GET;
@@ -142,17 +139,25 @@ public abstract class GitHubApiImpl implements GitHubApi {
                    },
                    response -> {
                      logFailedResponse(method, statusUrl, null, response);
-                     exceptionRef.set(new IOException(getErrorMessage(response, null)));
+                     PublisherException ex = new PublisherException(getErrorMessage(response, null));
+                     if (RetryResponseProcessor.shouldRetryOnCode(response.getStatusCode())) {
+                       ex.setShouldRetry();
+                     }
+                     exceptionRef.set(ex);
                    },
                    e -> exceptionRef.set(e));
     });
 
     final Exception ex;
     if ((ex = exceptionRef.get()) != null) {
-      if (ex instanceof IOException) {
-        throw (IOException) ex;
+      if (ex instanceof PublisherException) {
+        throw (PublisherException)ex;
       } else {
-        throw new IOException(ex);
+        PublisherException e = new PublisherException(ex.getMessage(), ex);
+        if (ex instanceof IOException) {
+          e.setShouldRetry();
+        }
+        throw e;
       }
     }
 
@@ -173,7 +178,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
                               @NotNull final GitHubChangeState status,
                               @NotNull final String targetUrl,
                               @NotNull final String description,
-                              @Nullable final String context) throws IOException {
+                              @Nullable final String context) throws PublisherException, IOException {
 
     final String url = myUrls.getStatusUrl(repoOwner, repoName, hash);
     final String entity = myGson.toJson(new CommitStatus(status.getState(), targetUrl, description, context));
@@ -191,17 +196,25 @@ public abstract class GitHubApiImpl implements GitHubApi {
         response -> {
           logFailedResponse(method, url, entity, response);
           String additionalComment = response.getStatusCode() == HttpStatus.SC_NOT_FOUND ? MSG_NOT_FOUND : MSG_PROXY_OR_PERMISSIONS;
-          exceptionRef.set(new IOException(getErrorMessage(response, additionalComment)));
+          PublisherException ex = new PublisherException(getErrorMessage(response, additionalComment));
+          if (RetryResponseProcessor.shouldRetryOnCode(response.getStatusCode())) {
+            ex.setShouldRetry();
+          }
+          exceptionRef.set(ex);
         },
         e -> exceptionRef.set(e));
     });
 
     final Exception ex;
     if ((ex = exceptionRef.get()) != null) {
-      if (ex instanceof IOException) {
-        throw (IOException) ex;
+      if (ex instanceof PublisherException) {
+        throw (PublisherException)ex;
       } else {
-        throw new IOException(ex);
+        PublisherException e = new PublisherException(ex.getMessage(), ex);
+        if (ex instanceof IOException) {
+          e.setShouldRetry();
+        }
+        throw e;
       }
     }
   }
@@ -276,7 +289,11 @@ public abstract class GitHubApiImpl implements GitHubApi {
                    error -> {
                      logFailedResponse(HttpMethod.GET, uri, null, error, logErrorsDebugOnly);
                      String additionalComment = error.getStatusCode() == HttpStatus.SC_NOT_FOUND ? MSG_NOT_FOUND : MSG_PROXY_OR_PERMISSIONS;
-                     exceptionRef.set(new IOException(getErrorMessage(error, additionalComment)));
+                     PublisherException ex = new PublisherException(getErrorMessage(error, additionalComment));
+                     if (RetryResponseProcessor.shouldRetryOnCode(error.getStatusCode())) {
+                       ex.setShouldRetry();
+                     }
+                     exceptionRef.set(ex);
                    },
                    e -> {
                      exceptionRef.set(e);
@@ -286,12 +303,14 @@ public abstract class GitHubApiImpl implements GitHubApi {
 
     final Exception ex;
     if ((ex = exceptionRef.get()) != null) {
-      if (ex instanceof IOException) {
-        throw (IOException)ex;
-      } else if (ex instanceof PublisherException) {
+      if (ex instanceof PublisherException) {
         throw (PublisherException)ex;
       } else {
-        throw new IOException(ex);
+        PublisherException e = new PublisherException(ex.getMessage(), ex);
+        if (ex instanceof IOException) {
+          e.setShouldRetry();
+        }
+        throw e;
       }
     }
 

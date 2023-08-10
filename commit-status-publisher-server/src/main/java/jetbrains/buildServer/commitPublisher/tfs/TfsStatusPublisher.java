@@ -504,7 +504,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     return getServerAndProject(root, myParams);
   }
 
-  private boolean publishCommitStatus(TfsRepositoryInfo info, String data, String commitId, String description) {
+  private boolean publishCommitStatus(TfsRepositoryInfo info, String data, String commitId, String description) throws PublisherException {
     final String commitStatusUrl = MessageFormat.format(COMMIT_STATUS_URL_FORMAT,
                                                         info.getServer(), info.getProject(), info.getRepository(), commitId);
     postJson(commitStatusUrl, getCredentials(myParams),

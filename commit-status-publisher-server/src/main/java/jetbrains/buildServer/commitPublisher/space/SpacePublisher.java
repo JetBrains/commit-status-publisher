@@ -147,8 +147,11 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     AtomicReference<PublisherException> exception = new AtomicReference<>(null);
     SpaceBuildStatusInfo status = myStatusesCache.getStatusFromCache(revision, buildFullName, () -> {
       ResponseEntityProcessor<SpaceBuildStatusInfo[]> processor = new ResponseEntityProcessor<>(SpaceBuildStatusInfo[].class);
-      final SpaceToken token = requestToken(revision.getRoot().getName(), buildFullName);
-      if (token == null) {
+      final SpaceToken token;
+      try {
+        token = requestToken(revision.getRoot().getName(), buildFullName);
+      } catch (PublisherException e) {
+        exception.set(e);
         return Collections.emptyList();
       }
       Map<String, String> headers = new LinkedHashMap<>();
@@ -316,8 +319,8 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     myStatusesCache.removeStatusFromCache(revision, build.getFullName());
   }
 
-  @Nullable
-  private SpaceToken requestToken(String vcsRootName, String description) {
+  @NotNull
+  private SpaceToken requestToken(String vcsRootName, String description) throws PublisherException {
     try {
       return SpaceToken.requestToken(
         mySpaceConnector.getServiceId(),
@@ -330,7 +333,11 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     } catch (Exception e) {
       myProblems.reportProblem("Commit Status Publisher has failed to obtain a token from JetBrains Space for VCS root " + vcsRootName,
                                this, description, null, e, LOG);
-      return null;
+      PublisherException ex = new PublisherException("Commit Status Publisher has failed to obtain a token from JetBrains Space", e);
+      if (e instanceof IOException) {
+        ex.setShouldRetry();
+      }
+      throw ex;
     }
   }
 

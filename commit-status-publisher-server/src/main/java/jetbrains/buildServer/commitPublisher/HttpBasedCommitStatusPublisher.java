@@ -57,12 +57,19 @@ public abstract class HttpBasedCommitStatusPublisher<Status> extends BaseCommitS
                           @Nullable final HttpCredentials credentials,
                           @Nullable final String data,
                           @Nullable final Map<String, String> headers,
-                          @NotNull final String buildDescription) {
+                          @NotNull final String buildDescription) throws PublisherException {
     try {
       LoggerUtil.logRequest(getId(), HttpMethod.POST, url, data);
-      IOGuard.allowNetworkCall(() -> HttpHelper.post(url, credentials, data, ContentType.APPLICATION_JSON, headers, getConnectionTimeout(), getSettings().trustStore(), this));
+      IOGuard.allowNetworkCall(
+        () -> HttpHelper.post(url, credentials, data, ContentType.APPLICATION_JSON, headers, getConnectionTimeout(), getSettings().trustStore(), new RetryResponseProcessor(this))
+      );
     } catch (Exception ex) {
       myProblems.reportProblem("Commit Status Publisher HTTP request has failed", this, buildDescription, url, ex, LOG);
+      PublisherException e = new PublisherException("Commit Status Publisher POST HTTP request has failed", ex);
+      if (ex instanceof IOException) {
+        e.setShouldRetry();
+      }
+      throw e;
     }
   }
 
@@ -73,10 +80,14 @@ public abstract class HttpBasedCommitStatusPublisher<Status> extends BaseCommitS
                      @NotNull final ResponseEntityProcessor<T> responseProcessor) throws PublisherException {
     try {
       LoggerUtil.logRequest(getId(), HttpMethod.GET, url, null);
-      IOGuard.allowNetworkCall(() -> HttpHelper.get(url, credentials, headers, getConnectionTimeout(), getSettings().trustStore(), responseProcessor));
+      IOGuard.allowNetworkCall(() -> HttpHelper.get(url, credentials, headers, getConnectionTimeout(), getSettings().trustStore(), new RetryResponseProcessor(responseProcessor)));
       return responseProcessor.getProcessingResult();
     } catch (Exception ex) {
-      throw new PublisherException("Commit Status Publisher HTTP request has failed", ex);
+      PublisherException e = new PublisherException("Commit Status Publisher HTTP request has failed", ex);
+      if (ex instanceof IOException) {
+        e.setShouldRetry();
+      }
+      throw e;
     }
   }
 
