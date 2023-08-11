@@ -657,24 +657,45 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     assertEquals(1L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.GET).count());
   }
 
+  public long getCntPostRequests() {
+    return myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count();
+  }
+
+  @TestFor(issues = "TW-34249")
   public void should_retry_on_failure() {
     prepareVcs();
-    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "true");
     setInternalProperty(RETRY_ENABLED_PROPERTY_NAME, true);
     setInternalProperty(RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
     setInternalProperty(RETRY_MAX_DELAY_PROPERTY_NAME, 10);
     setInternalProperty(PROCESS_TASKS_DELAY_MILLIS, 1);
+    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "false");
     myPublisher.shouldFailToPublish(3);
     addBuildToQueue();
     waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 1, TASK_COMPLETION_TIMEOUT_MS);
-    waitFor(() -> myPublisher.getSentRequests().size() >= 8, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitFor(() -> getCntPostRequests() >= 4, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(4L, getCntPostRequests());
     waitForTasksToFinish(Event.QUEUED);
   }
 
+  @TestFor(issues = "TW-34249")
+  public void should_retry_on_get_revision_status_failure() {
+    prepareVcs();
+    setInternalProperty(RETRY_ENABLED_PROPERTY_NAME, true);
+    setInternalProperty(RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
+    setInternalProperty(RETRY_MAX_DELAY_PROPERTY_NAME, 2);
+    setInternalProperty(PROCESS_TASKS_DELAY_MILLIS, 1);
+    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "true");
+
+    myPublisher.shouldFailToPublish(1000);
+    addBuildToQueue();
+    waitFor(() -> myPublisher.getSentRequests().size() >= 3, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(3L, myPublisher.getSentRequests().size());
+  }
+
+  @TestFor(issues = "TW-34249")
   public void should_retry_on_failure_no_more_than_1_time() {
     prepareVcs();
-    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "true");
+    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "false");
     setInternalProperty(RETRY_ENABLED_PROPERTY_NAME, true);
     setInternalProperty(RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
     setInternalProperty(RETRY_MAX_DELAY_PROPERTY_NAME, 1);
@@ -682,18 +703,19 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myPublisher.shouldFailToPublish(1000);
     addBuildToQueue();
     waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 1, TASK_COMPLETION_TIMEOUT_MS);
-    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 2, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(2L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitFor(() -> getCntPostRequests() >= 2, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(2L, getCntPostRequests());
 
     myFixture.flushQueueAndWait();
-    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 4, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitFor(() -> getCntPostRequests() >= 4, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(4L, getCntPostRequests());
     waitForTasksToFinish(Event.STARTED);
   }
 
+  @TestFor(issues = "TW-34249")
   public void should_retry_on_all_possible_event_types() {
     prepareVcs();
-    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "true");
+    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "false");
     setInternalProperty(RETRY_ENABLED_PROPERTY_NAME, true);
     setInternalProperty(RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
     setInternalProperty(RETRY_MAX_DELAY_PROPERTY_NAME, 10);
@@ -702,35 +724,36 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myPublisher.shouldFailToPublish(1);
     addBuildToQueue();
     waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 1, TASK_COMPLETION_TIMEOUT_MS);
-    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 2, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(2L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitFor(() -> getCntPostRequests() >= 2, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(2L, getCntPostRequests());
     waitForTasksToFinish(Event.QUEUED);
 
     myPublisher.shouldFailToPublish(1);
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
-    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 4, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitFor(() -> getCntPostRequests() >= 4, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(4L, getCntPostRequests());
     waitForTasksToFinish(Event.STARTED);
 
     myPublisher.shouldFailToPublish(1);
     runningBuild.setBuildComment(myUser , "My test comment");
-    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 6, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(6L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitFor(() -> getCntPostRequests() >= 6, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(6L, getCntPostRequests());
     waitForTasksToFinish(Event.COMMENTED);
 
     myPublisher.shouldFailToPublish(1);
     myListener.buildChangedStatus(runningBuild, Status.NORMAL, Status.FAILURE);
-    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 8, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(8L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitFor(() -> getCntPostRequests() >= 8, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(8L, getCntPostRequests());
     waitForTasksToFinish(Event.FAILURE_DETECTED);
 
     myPublisher.shouldFailToPublish(1);
     myFixture.finishBuild(runningBuild, false);
-    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 10, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(10L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitFor(() -> getCntPostRequests() >= 10, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(10L, getCntPostRequests());
     waitForTasksToFinish(Event.FINISHED);
   }
 
+  @TestFor(issues = "TW-34249")
   public void should_stop_retrying_if_service_is_not_available_for_long_time() {
     prepareVcs();
     setInternalProperty(RETRY_ENABLED_PROPERTY_NAME, true);
@@ -738,11 +761,13 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     setInternalProperty(RETRY_MAX_DELAY_PROPERTY_NAME, 1);
     setInternalProperty(RETRY_MAX_TIME_BEFORE_DISABLING, 5);
     setInternalProperty(PROCESS_TASKS_DELAY_MILLIS, 1);
+    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "false");
+
 
     myPublisher.shouldFailToPublish(100);
     addBuildToQueue();
-    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 2, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(2L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitFor(() -> getCntPostRequests() >= 2, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(2L, getCntPostRequests());
     waitForTasksToFinish(Event.QUEUED);
 
     try {
@@ -751,16 +776,17 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     }
 
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
-    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 3, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(3L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitFor(() -> getCntPostRequests() >= 3, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(3L, getCntPostRequests());
     waitForTasksToFinish(Event.STARTED);
 
     runningBuild.setBuildComment(myUser , "My test comment");
-    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 4, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitFor(() -> getCntPostRequests() >= 4, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(4L, getCntPostRequests());
     waitForTasksToFinish(Event.COMMENTED);
   }
 
+  @TestFor(issues = "TW-34249")
   public void should_enable_retrying_if_successfully_published_status () {
     prepareVcs();
     setInternalProperty(RETRY_ENABLED_PROPERTY_NAME, true);
@@ -768,10 +794,11 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     setInternalProperty(RETRY_MAX_DELAY_PROPERTY_NAME, 1);
     setInternalProperty(RETRY_MAX_TIME_BEFORE_DISABLING, 5);
     setInternalProperty(PROCESS_TASKS_DELAY_MILLIS, 1);
+    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "false");
 
     myPublisher.shouldFailToPublish(3);
     addBuildToQueue();
-    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 2, TASK_COMPLETION_TIMEOUT_MS);
+    waitFor(() -> getCntPostRequests() >= 2, TASK_COMPLETION_TIMEOUT_MS);
     assertEquals(2L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
     waitForTasksToFinish(Event.QUEUED);
 
@@ -781,19 +808,19 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     }
 
     SRunningBuild runningBuild = myFixture.flushQueueAndWait();
-    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 3, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(3L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitFor(() -> getCntPostRequests() >= 3, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(3L, getCntPostRequests());
     waitForTasksToFinish(Event.STARTED);
 
     runningBuild.setBuildComment(myUser , "My test comment");
-    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 4, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitFor(() -> getCntPostRequests() >= 4, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(4L, getCntPostRequests());
     waitForTasksToFinish(Event.COMMENTED);
 
     myPublisher.shouldFailToPublish(100);
     myFixture.finishBuild(runningBuild, false);
-    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 6, TASK_COMPLETION_TIMEOUT_MS);
-    assertEquals(6L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitFor(() -> getCntPostRequests() >= 6, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(6L, getCntPostRequests());
     waitForTasksToFinish(Event.FINISHED);
   }
 

@@ -262,8 +262,9 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   }
 
   @Override
-  public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) {
+  public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
     myHttpRequests.add(HttpMethod.GET);
+    checkShouldFailToPublish();
     MockState lastStatus = getLastStatus(revision);
     if (lastStatus == null) {
       return null;
