@@ -731,6 +731,72 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.FINISHED);
   }
 
+  public void should_stop_retrying_if_service_is_not_available_for_long_time() {
+    prepareVcs();
+    setInternalProperty(RETRY_ENABLED_PROPERTY_NAME, true);
+    setInternalProperty(RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
+    setInternalProperty(RETRY_MAX_DELAY_PROPERTY_NAME, 1);
+    setInternalProperty(RETRY_MAX_TIME_BEFORE_DISABLING, 5);
+    setInternalProperty(PROCESS_TASKS_DELAY_MILLIS, 1);
+
+    myPublisher.shouldFailToPublish(100);
+    addBuildToQueue();
+    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 2, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(2L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitForTasksToFinish(Event.QUEUED);
+
+    try {
+      Thread.sleep(5);
+    } catch (InterruptedException ignored) {
+    }
+
+    SRunningBuild runningBuild = myFixture.flushQueueAndWait();
+    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 3, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(3L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitForTasksToFinish(Event.STARTED);
+
+    runningBuild.setBuildComment(myUser , "My test comment");
+    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 4, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitForTasksToFinish(Event.COMMENTED);
+  }
+
+  public void should_enable_retrying_if_successfully_published_status () {
+    prepareVcs();
+    setInternalProperty(RETRY_ENABLED_PROPERTY_NAME, true);
+    setInternalProperty(RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
+    setInternalProperty(RETRY_MAX_DELAY_PROPERTY_NAME, 1);
+    setInternalProperty(RETRY_MAX_TIME_BEFORE_DISABLING, 5);
+    setInternalProperty(PROCESS_TASKS_DELAY_MILLIS, 1);
+
+    myPublisher.shouldFailToPublish(3);
+    addBuildToQueue();
+    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 2, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(2L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitForTasksToFinish(Event.QUEUED);
+
+    try {
+      Thread.sleep(5);
+    } catch (InterruptedException ignored) {
+    }
+
+    SRunningBuild runningBuild = myFixture.flushQueueAndWait();
+    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 3, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(3L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitForTasksToFinish(Event.STARTED);
+
+    runningBuild.setBuildComment(myUser , "My test comment");
+    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 4, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(4L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitForTasksToFinish(Event.COMMENTED);
+
+    myPublisher.shouldFailToPublish(100);
+    myFixture.finishBuild(runningBuild, false);
+    waitFor(() -> myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count() >= 6, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(6L, myPublisher.getSentRequests().stream().filter(method -> method == HttpMethod.POST).count());
+    waitForTasksToFinish(Event.FINISHED);
+  }
+
   private SVcsModification prepareVcs() {
     return prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.EXT_ID);
   }

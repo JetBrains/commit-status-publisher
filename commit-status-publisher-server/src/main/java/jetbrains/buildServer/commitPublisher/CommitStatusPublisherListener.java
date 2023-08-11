@@ -47,7 +47,6 @@ import jetbrains.buildServer.vcs.SVcsRootEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static java.lang.Long.min;
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 import static jetbrains.buildServer.commitPublisher.ValueWithTTL.OUTDATED_CACHE_VALUE;
 
@@ -65,8 +64,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   final static String RETRY_ENABLED_PROPERTY_NAME = "teamcity.commitStatusPublisher.retry.enabled";
   final static String RETRY_INITAL_DELAY_PROPERTY_NAME = "teamcity.commitStatusPublisher.retry.initDelayMs";
   final static String RETRY_MAX_DELAY_PROPERTY_NAME = "teamcity.commitStatusPublisher.retry.maxDelayMs";
+  final static String RETRY_MAX_TIME_BEFORE_DISABLING = "teamcity.commitStatusPublisher.retry.maxBeforeDisablingMs";
   private final static long DEFAULT_INITIAL_RETRY_DELAY_MS = 10_000;
   private final static long DEFAULT_MAX_RETRY_DELAY_MS = 30 * 60 * 1000; // 30 minutes
+  private final static long DEFAULT_MAX_TIME_BEFORE_DISABLING_RETRY = 24 * 60 * 60 * 1000; // 24 hours
 
   private final PublisherManager myPublisherManager;
   private final BuildHistory myBuildHistory;
@@ -90,6 +91,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       }
     };
   private final ConcurrentMap<String, ValueWithTTL<Boolean>> myBuildTypeCommitStatusPublisherConfiguredCache = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, Long> myBuildTypeToFirstPublishFailure = new ConcurrentHashMap<>();
 
   private Consumer<Event> myEventProcessedCallback = null;
 
@@ -450,6 +452,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   private long maxRetryDelay() {
     return TeamCityProperties.getLong(RETRY_MAX_DELAY_PROPERTY_NAME, DEFAULT_MAX_RETRY_DELAY_MS);
+  }
+
+  private long maxBeforeDisablingRetry() {
+    return TeamCityProperties.getLong(RETRY_MAX_TIME_BEFORE_DISABLING, DEFAULT_MAX_TIME_BEFORE_DISABLING_RETRY);
   }
 
   private void logStatusNotPublished(@NotNull Event event, @NotNull String buildDescription, @NotNull CommitStatusPublisher publisher, @NotNull String message) {
@@ -941,6 +947,16 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   private void retryTask(@NotNull Throwable t, @NotNull BuildPromotion buildPromotion, @NotNull Event event, @Nullable Long lastDelay) {
     if (isRetryEnabled() && t instanceof PublisherException && ((PublisherException)t).shouldRetry()) {
+      Long firstRetry = myBuildTypeToFirstPublishFailure.get(buildPromotion.getBuildTypeId());
+      long timeNow = Instant.now().toEpochMilli();
+      if (firstRetry != null) {
+        if (timeNow - firstRetry > maxBeforeDisablingRetry()) {
+          return;
+        }
+      } else {
+        myBuildTypeToFirstPublishFailure.put(buildPromotion.getBuildTypeId(), timeNow);
+      }
+
       final SBuild build = buildPromotion.getAssociatedBuild();
       final long newDelay = lastDelay == null ? initialRetryDelay() : lastDelay * 2;
       if (newDelay > maxRetryDelay()) {
@@ -974,6 +990,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
                            @Nullable Long lastDelay) {
       try {
         doRunTask(publishTask, publisher, revision, additionalTaskInfo);
+        myBuildTypeToFirstPublishFailure.remove(promotion.getBuildTypeId());
       } catch (Throwable t) {
         myProblems.reportProblem(String.format("Commit Status Publisher has failed to publish %s status", event.getName()), publisher, buildDescription, null, t, LOG);
         if (shouldFailBuild(publisher.getBuildType())) {
