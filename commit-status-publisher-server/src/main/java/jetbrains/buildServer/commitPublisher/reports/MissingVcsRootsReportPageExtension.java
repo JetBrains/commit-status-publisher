@@ -31,7 +31,7 @@ public class MissingVcsRootsReportPageExtension extends HealthStatusItemPageExte
                                             @NotNull MissingVcsRootsReport report,
                                             @NotNull PluginDescriptor pluginDescriptor) {
     super(report.getType(), pagePlaces);
-    setIncludeUrl(pluginDescriptor.getPluginResourcesPath("reports/missingVcsRootsReport.jsp"));
+    setIncludeUrl(pluginDescriptor.getPluginResourcesPath("jetbrains/buildServer/issueTracker/reports/missingVcsRootsReport.jsp"));
     register();
   }
 

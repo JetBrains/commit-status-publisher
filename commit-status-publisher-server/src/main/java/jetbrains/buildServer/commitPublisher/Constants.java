@@ -33,6 +33,7 @@ public class Constants {
   public static final String GIT_URL_PARAMETER = "url";
 
   public static final String AUTH_TYPE = "authType";
+  public static final String AUTH_TYPE_ACCESS_TOKEN = "token";
   public static final String AUTH_TYPE_STORED_TOKEN = "storedToken";
   public static final String TOKEN_ID = "tokenId";
   public static final String VCS_AUTH_METHOD = "authMethod";

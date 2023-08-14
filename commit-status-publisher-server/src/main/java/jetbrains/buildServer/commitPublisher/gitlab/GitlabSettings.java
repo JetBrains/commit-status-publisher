@@ -27,6 +27,13 @@ import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabReceiveCommitStat
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabUserInfo;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.oauth.*;
+import jetbrains.buildServer.serverSide.oauth.gitlab.GitLabCEorEEOAuthProvider;
+import jetbrains.buildServer.serverSide.oauth.gitlab.GitLabComOAuthProvider;
+import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.UserModel;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsModificationHistoryEx;
 import jetbrains.buildServer.vcs.VcsRoot;
@@ -37,7 +44,7 @@ import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class GitlabSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
+public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatusPublisherSettings {
 
   private static final Pattern URL_WITH_API_SUFFIX = Pattern.compile("(.*)/api/v.");
 
@@ -62,8 +69,12 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
                         @NotNull WebLinks links,
                         @NotNull CommitStatusPublisherProblems problems,
                         @NotNull SSLTrustStoreProvider trustStoreProvider,
-                        @NotNull VcsModificationHistoryEx vcsModificationHistory) {
-    super(descriptor, links, problems, trustStoreProvider);
+                        @NotNull VcsModificationHistoryEx vcsModificationHistory,
+                        @NotNull OAuthConnectionsManager oAuthConnectionsManager,
+                        @NotNull OAuthTokensStorage oAuthTokensStorage,
+                        @NotNull UserModel userModel,
+                        @NotNull SecurityContext securityContext) {
+    super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, oAuthConnectionsManager, securityContext);
     myVcsModificationHistory = vcsModificationHistory;
     myStatusesCache = new CommitStatusesCache<>();
   }
@@ -106,32 +117,79 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
     Repository repository = GitlabPublisher.parseRepository(root, pathPrefix);
     if (null == repository)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
-    String token = params.get(Constants.GITLAB_TOKEN);
-    if (null == token || token.length() == 0)
-      throw new PublisherException("Missing GitLab API access token");
-      try {
-        IOGuard.allowNetworkCall(() -> {
-          ProjectInfoResponseProcessor processorPrj = new ProjectInfoResponseProcessor();
-          HttpHelper.get(getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName()),
-                         null, Collections.singletonMap("PRIVATE-TOKEN", token),
-                         BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorPrj);
-          if (processorPrj.getAccessLevel() < 30) {
-            UserInfoResponseProcessor processorUser = new UserInfoResponseProcessor();
-            HttpHelper.get(getUserUrl(apiUrl), null, Collections.singletonMap("PRIVATE-TOKEN", token),
-                           BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorUser);
-            if (!processorUser.isAdmin()) {
-              throw new HttpPublisherException("GitLab does not grant enough permissions to publish a commit status");
-            }
+
+    HttpCredentials credentials = getCredentials(root, params);
+    try {
+      IOGuard.allowNetworkCall(() -> {
+        ProjectInfoResponseProcessor processorPrj = new ProjectInfoResponseProcessor();
+        HttpHelper.get(getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName()),
+                       credentials, Collections.emptyMap(),
+                       BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorPrj);
+        if (processorPrj.getAccessLevel() < 30) {
+          UserInfoResponseProcessor processorUser = new UserInfoResponseProcessor();
+          HttpHelper.get(getUserUrl(apiUrl), credentials, Collections.emptyMap(),
+                         BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorUser);
+          if (!processorUser.isAdmin()) {
+            throw new HttpPublisherException("GitLab does not grant enough permissions to publish a commit status");
           }
-        });
-      } catch (HttpPublisherException pe) {
-        Integer statusCode = pe.getStatusCode();
-        if (Objects.equals(statusCode, 404)) {
-          throw new PublisherException(String.format("Repository \"%s\" can not be found. Please check if it was renamed or moved to another namespace", repository.repositoryName()));
         }
-      } catch (Exception ex) {
-        throw new PublisherException(String.format("GitLab publisher has failed to connect to \"%s\" repository", repository.url()), ex);
+      });
+    } catch (HttpPublisherException pe) {
+      Integer statusCode = pe.getStatusCode();
+      if (Objects.equals(statusCode, 404)) {
+        throw new PublisherException(String.format("Repository \"%s\" can not be found. Please check if it was renamed or moved to another namespace", repository.repositoryName()));
+      } else {
+        throw new PublisherException("Request was failed with error", pe);
       }
+    } catch (Exception ex) {
+      throw new PublisherException(String.format("GitLab publisher has failed to connect to \"%s\" repository", repository.url()), ex);
+    }
+  }
+
+  @NotNull
+  @Override
+  protected String getDefaultAuthType() {
+    return Constants.AUTH_TYPE_ACCESS_TOKEN;
+  }
+
+  @Nullable
+  @Override
+  protected String getUsername(@NotNull Map<String, String> params) {
+    return null;
+  }
+
+  @Nullable
+  @Override
+  protected String getPassword(@NotNull Map<String, String> params) {
+    return null;
+  }
+
+  @NotNull
+  @Override
+  public HttpCredentials getCredentials(@Nullable VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
+    final String authenticationType = params.getOrDefault(Constants.AUTH_TYPE, getDefaultAuthType());
+    if (Constants.AUTH_TYPE_STORED_TOKEN.equalsIgnoreCase(authenticationType)) {
+      String tokenId = params.get(Constants.TOKEN_ID);
+      if (root == null) {
+        throw new PublisherException("Can't get GitLab OAuth token. VCS Root ins't specified");
+      }
+
+      OAuthToken oauthToken = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
+      if (oauthToken == null) {
+        throw new PublisherException("GitLab OAuth token is not found");
+      }
+
+      return new GitLabAccessTokenCredentials(tokenId, oauthToken, root.getExternalId(), myOAuthTokensStorage);
+    } else if (Constants.AUTH_TYPE_ACCESS_TOKEN.equalsIgnoreCase(authenticationType)) {
+      String token = params.get(Constants.GITLAB_TOKEN);
+      if (token == null) {
+        throw new PublisherException("GitLab Access token is not defined");
+      }
+
+      return new GitLabAccessTokenCredentials(token);
+    } else {
+      throw new PublisherException("Authentacation type " + authenticationType + " is unsupported");
+    }
   }
 
   @Nullable
@@ -164,8 +222,25 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
         if (params.get(Constants.GITLAB_API_URL) == null)
           errors.add(new InvalidProperty(Constants.GITLAB_API_URL, "GitLab API URL must be specified"));
-        if (params.get(Constants.GITLAB_TOKEN) == null)
-          errors.add(new InvalidProperty(Constants.GITLAB_TOKEN, "Access token must be specified"));
+
+        final String authenticationType = params.getOrDefault(Constants.AUTH_TYPE, Constants.AUTH_TYPE_ACCESS_TOKEN);
+
+        if (Constants.AUTH_TYPE_STORED_TOKEN.equalsIgnoreCase(authenticationType)) {
+          if (StringUtil.isEmptyOrSpaces(params.get(Constants.TOKEN_ID))) {
+            errors.add(new InvalidProperty(Constants.TOKEN_ID, "The refreshable token must be acquired"));
+          }
+        } else {
+          params.remove(Constants.TOKEN_ID);
+        }
+
+        if (Constants.AUTH_TYPE_ACCESS_TOKEN.equalsIgnoreCase(authenticationType)) {
+          if (StringUtil.isEmptyOrSpaces(params.get(Constants.GITLAB_TOKEN)))
+            errors.add(new InvalidProperty(Constants.GITLAB_TOKEN, "Access token must be specified"));
+        }
+        else {
+          params.remove(Constants.GITLAB_TOKEN);
+        }
+
         return errors;
       }
     };
@@ -189,22 +264,6 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
     return isBuildQueuedSupported(buildType, params) ? mySupportedEventsWithQueued : mySupportedEvents;
-  }
-
-  @Nullable
-  @Override
-  public HttpCredentials getCredentials(@Nullable VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    final HttpCredentials credentials = super.getCredentials(root, params);
-    if (credentials != null) {
-      return credentials;
-    }
-
-    final String token = params.get(Constants.GITLAB_TOKEN);
-    if (token == null) {
-      return null;
-    }
-
-    return new PrivateTokenCredentials(token);
   }
 
   private abstract class JsonResponseProcessor<T> extends DefaultHttpResponseProcessor {
@@ -258,6 +317,16 @@ public class GitlabSettings extends BasePublisherSettings implements CommitStatu
       if (null != repoInfo.permissions.group_access && myAccessLevel < repoInfo.permissions.group_access.access_level)
         myAccessLevel = repoInfo.permissions.group_access.access_level;
     }
+  }
+
+  @NotNull
+  @Override
+  public List<OAuthConnectionDescriptor> getOAuthConnections(@NotNull SProject project, @NotNull SUser user) {
+    List<OAuthConnectionDescriptor> validConnections = new ArrayList<OAuthConnectionDescriptor>();
+    validConnections.addAll(myOAuthConnectionsManager.getAvailableConnectionsOfType(project, GitLabComOAuthProvider.TYPE));
+    validConnections.addAll(myOAuthConnectionsManager.getAvailableConnectionsOfType(project, GitLabCEorEEOAuthProvider.TYPE));
+
+    return validConnections;
   }
 
   private class UserInfoResponseProcessor extends JsonResponseProcessor<GitLabUserInfo> {

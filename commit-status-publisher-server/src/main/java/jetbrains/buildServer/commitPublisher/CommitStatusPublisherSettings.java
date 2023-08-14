@@ -130,4 +130,9 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
   }
 
   boolean isFeatureLessPublishingSupported(@NotNull SBuildType buildType);
+
+  @Nullable
+  default String getAttachedConnectionDisplayName(@NotNull SProject project, @NotNull Map<String, String> params) {
+    return null;
+  }
 }

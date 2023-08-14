@@ -26,6 +26,8 @@ import jetbrains.buildServer.controllers.BasePropertiesBean;
 import jetbrains.buildServer.controllers.admin.projects.BuildTypeForm;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.auth.AuthUtil;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
@@ -46,16 +48,20 @@ public class CommitStatusPublisherFeatureController extends BaseController {
   private final PublisherSettingsController myPublisherSettingsController;
   private final ProjectManager myProjectManager;
 
+  @NotNull private final SecurityContext mySecurityContext;
+
   public CommitStatusPublisherFeatureController(@NotNull ProjectManager projectManager,
                                                 @NotNull WebControllerManager controllerManager,
                                                 @NotNull PluginDescriptor descriptor,
                                                 @NotNull PublisherManager publisherManager,
-                                                @NotNull PublisherSettingsController publisherSettingsController) {
+                                                @NotNull PublisherSettingsController publisherSettingsController,
+                                                @NotNull SecurityContext securityContext) {
     myProjectManager = projectManager;
     myDescriptor = descriptor;
     myPublisherManager = publisherManager;
     myPublisherSettingsController = publisherSettingsController;
     myUrl = descriptor.getPluginResourcesPath("commitStatusPublisherFeature.html");
+    mySecurityContext = securityContext;
     controllerManager.registerController(myUrl, this);
   }
 
@@ -127,6 +133,7 @@ public class CommitStatusPublisherFeatureController extends BaseController {
                                                                settings.getOAuthConnections(project, user);
     mv.addObject("oauthConnections", oauthConnections);
     mv.addObject("refreshTokenSupported", oauthConnections != null && oauthConnections.stream().anyMatch(c -> c.getOauthProvider().isTokenRefreshSupported()));
+    mv.addObject("canEditProject", AuthUtil.hasPermissionToManageProject(mySecurityContext.getAuthorityHolder(), project.getProjectId()));
 
     if (settings != null) {
       settings.getSpecificAttributes(project, params).forEach(mv::addObject);

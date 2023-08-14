@@ -30,7 +30,7 @@ public class NoFQDNServerUrlReportPageExtension extends HealthStatusItemPageExte
                                             @NotNull NoFQDNServerUrlReport report,
                                             @NotNull PluginDescriptor pluginDescriptor) {
     super(report.getType(), pagePlaces);
-    setIncludeUrl(pluginDescriptor.getPluginResourcesPath("reports/noFQDNServerUrlReport.jsp"));
+    setIncludeUrl(pluginDescriptor.getPluginResourcesPath("jetbrains/buildServer/issueTracker/reports/noFQDNServerUrlReport.jsp"));
     register();
   }
 

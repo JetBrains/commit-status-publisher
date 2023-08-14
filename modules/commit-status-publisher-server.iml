@@ -53,5 +53,6 @@
     <orderEntry type="library" scope="TEST" name="org.mockito:mockito-core" level="project" />
     <orderEntry type="module" module-name="vcs-hostings-plugin-api" />
     <orderEntry type="module" module-name="migration" />
+    <orderEntry type="module" module-name="oauth-integration-web" />
   </component>
 </module>

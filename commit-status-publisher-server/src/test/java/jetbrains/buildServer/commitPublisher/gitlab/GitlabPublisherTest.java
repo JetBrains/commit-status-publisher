@@ -205,7 +205,8 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     setExpectedEndpointPrefix("/projects/" + OWNER + "%2F" + CORRECT_REPO);
     super.setUp();
     myVcsModificationHistory = myFixture.getVcsHistory();
-    myPublisherSettings = new GitlabSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myVcsModificationHistory);
+    myPublisherSettings = new GitlabSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myVcsModificationHistory, myOAuthConnectionsManager, myOAuthTokenStorage, getUserModelEx(),
+                                             myFixture.getSecurityContext());
     Map<String, String> params = getPublisherParams();
     myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory);
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));

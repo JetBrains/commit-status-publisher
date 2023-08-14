@@ -109,8 +109,9 @@ public class PublisherSettingsController extends BaseController {
       request.setAttribute("canEditProject", AuthUtil.hasPermissionToManageProject(mySecurityContext.getAuthorityHolder(), project.getProjectId()));
     }
 
-    if (settingsUrl != null)
+    if (settingsUrl != null) {
       request.getRequestDispatcher(settingsUrl).include(request, response);
+    }
 
     return null;
   }

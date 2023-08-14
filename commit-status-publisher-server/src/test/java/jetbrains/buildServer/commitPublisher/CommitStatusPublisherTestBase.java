@@ -69,7 +69,7 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     myCurrentVersions = new HashMap<String, String>();
     mySettingsController = new PublisherSettingsController(wcm, pluginDescr, publisherManager, myProjectManager, myFixture.getSingletonService(SecurityContext.class));
 
-    myFeatureController = new CommitStatusPublisherFeatureController(myProjectManager, wcm, pluginDescr, publisherManager, mySettingsController);
+    myFeatureController = new CommitStatusPublisherFeatureController(myProjectManager, wcm, pluginDescr, publisherManager, mySettingsController, myFixture.getSecurityContext());
     myVcsManager = myFixture.getVcsManager();
 
     ServerVcsSupport vcsSupport = new MockVcsSupport("jetbrains.git") {
