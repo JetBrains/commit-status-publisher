@@ -160,9 +160,7 @@ public class SwarmClient {
       return new ReviewLoadResponse(((ReadReviewsProcessor)processor.getProcessor()).getReviews());
     } catch (IOException|HttpPublisherException e) {
       PublisherException ex = new PublisherException("Cannot get list of reviews from " + getReviewsUrl + " for " + debugInfo + ": " + e, e);
-      if (e instanceof IOException) {
-        ex.setShouldRetry();
-      }
+      RetryResponseProcessor.processNetworkException(e, ex);
       return new ReviewLoadResponse(ex);
     }
   }

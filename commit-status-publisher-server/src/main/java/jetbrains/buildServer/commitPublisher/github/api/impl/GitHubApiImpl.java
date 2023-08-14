@@ -154,9 +154,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
         throw (PublisherException)ex;
       } else {
         PublisherException e = new PublisherException(ex.getMessage(), ex);
-        if (ex instanceof IOException) {
-          e.setShouldRetry();
-        }
+        RetryResponseProcessor.processNetworkException(ex, e);
         throw e;
       }
     }
@@ -211,9 +209,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
         throw (PublisherException)ex;
       } else {
         PublisherException e = new PublisherException(ex.getMessage(), ex);
-        if (ex instanceof IOException) {
-          e.setShouldRetry();
-        }
+        RetryResponseProcessor.processNetworkException(ex, e);
         throw e;
       }
     }
@@ -307,9 +303,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
         throw (PublisherException)ex;
       } else {
         PublisherException e = new PublisherException(ex.getMessage(), ex);
-        if (ex instanceof IOException) {
-          e.setShouldRetry();
-        }
+        RetryResponseProcessor.processNetworkException(ex, e);
         throw e;
       }
     }

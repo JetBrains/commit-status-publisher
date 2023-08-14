@@ -451,9 +451,7 @@ public class ChangeStatusUpdater {
       } catch (PublisherException | IOException e) {
         myPublisher.getProblems().reportProblem(String.format("Commit Status Publisher error. GitHub status: '%s'", targetStatus), myPublisher, LogUtil.describe(buildPromotion), myPublisher.getServerUrl(), e, LOG);
         PublisherException ex = new PublisherException("Commit Status Publisher error. GitHub", e);
-        if (e instanceof IOException) {
-          ex.setShouldRetry();
-        }
+        RetryResponseProcessor.processNetworkException(e, ex);
         throw ex;
       }
       return true;
@@ -485,9 +483,7 @@ public class ChangeStatusUpdater {
       } catch (IOException | PublisherException e) {
         problems.reportProblem(String.format("Commit Status Publisher error. GitHub status: '%s'", targetStatus), myPublisher, LogUtil.describe(build), myPublisher.getServerUrl(), e, LOG);
         PublisherException ex = new PublisherException("Commit Status Publisher error. GitHub", e);
-        if (e instanceof IOException) {
-          ex.setShouldRetry();
-        }
+        RetryResponseProcessor.processNetworkException(e, ex);
         throw ex;
       }
 

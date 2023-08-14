@@ -66,9 +66,7 @@ public abstract class HttpBasedCommitStatusPublisher<Status> extends BaseCommitS
     } catch (Exception ex) {
       myProblems.reportProblem("Commit Status Publisher HTTP request has failed", this, buildDescription, url, ex, LOG);
       PublisherException e = new PublisherException("Commit Status Publisher POST HTTP request has failed", ex);
-      if (ex instanceof IOException) {
-        e.setShouldRetry();
-      }
+      RetryResponseProcessor.processNetworkException(ex, e);
       throw e;
     }
   }
@@ -84,9 +82,7 @@ public abstract class HttpBasedCommitStatusPublisher<Status> extends BaseCommitS
       return responseProcessor.getProcessingResult();
     } catch (Exception ex) {
       PublisherException e = new PublisherException("Commit Status Publisher HTTP request has failed", ex);
-      if (ex instanceof IOException) {
-        e.setShouldRetry();
-      }
+      RetryResponseProcessor.processNetworkException(ex, e);
       throw e;
     }
   }
