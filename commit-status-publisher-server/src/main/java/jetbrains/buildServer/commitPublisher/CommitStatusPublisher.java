@@ -71,23 +71,25 @@ public interface CommitStatusPublisher {
 
 
   enum Event {
-    STARTED("buildStarted", EventPriority.FIRST), FINISHED("buildFinished"),
-    QUEUED("buildQueued", EventPriority.FIRST), REMOVED_FROM_QUEUE("buildRemovedFromQueue", EventPriority.FIRST),
-    COMMENTED("buildCommented", EventPriority.ANY), INTERRUPTED("buildInterrupted"),
-    FAILURE_DETECTED("buildFailureDetected"), MARKED_AS_SUCCESSFUL("buildMarkedAsSuccessful");
+    STARTED("buildStarted", EventPriority.FIRST, true), FINISHED("buildFinished", true),
+    QUEUED("buildQueued", EventPriority.FIRST, true), REMOVED_FROM_QUEUE("buildRemovedFromQueue", EventPriority.FIRST, false),
+    COMMENTED("buildCommented", EventPriority.ANY, true), INTERRUPTED("buildInterrupted", true),
+    FAILURE_DETECTED("buildFailureDetected", true), MARKED_AS_SUCCESSFUL("buildMarkedAsSuccessful", true);
 
     private final static String PUBLISHING_TASK_PREFIX = "publishBuildStatus";
 
     private final String myName;
     private final EventPriority myEventPriority;
+    private final boolean myShouldRetry;
 
-    Event(String name) {
-      this(name, EventPriority.CONSEQUENT);
+    Event(String name, boolean shouldRetry) {
+      this(name, EventPriority.CONSEQUENT, shouldRetry);
     }
 
-    Event(String name, EventPriority eventPriority) {
+    Event(String name, EventPriority eventPriority, boolean shouldRetry) {
       myName = PUBLISHING_TASK_PREFIX + "." + name;
       myEventPriority = eventPriority;
+      myShouldRetry = shouldRetry;
     }
 
     public String getName() {
@@ -100,6 +102,10 @@ public interface CommitStatusPublisher {
 
     public boolean isConsequentTask() {
       return myEventPriority == EventPriority.CONSEQUENT;
+    }
+
+    public boolean isRetryable() {
+      return myShouldRetry;
     }
 
     private enum EventPriority {

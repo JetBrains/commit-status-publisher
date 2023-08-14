@@ -946,7 +946,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   }
 
   private void retryTask(@NotNull Throwable t, @NotNull BuildPromotion buildPromotion, @NotNull Event event, @Nullable Long lastDelay) {
-    if (isRetryEnabled() && t instanceof PublisherException && ((PublisherException)t).shouldRetry()) {
+    if (isRetryEnabled() && event.isRetryable() && t instanceof PublisherException && ((PublisherException)t).shouldRetry()) {
       Long firstRetry = myBuildTypeToFirstPublishFailure.get(buildPromotion.getBuildTypeId());
       long timeNow = Instant.now().toEpochMilli();
       if (firstRetry != null) {
