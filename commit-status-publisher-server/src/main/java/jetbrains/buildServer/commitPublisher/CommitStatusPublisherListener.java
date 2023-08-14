@@ -924,8 +924,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
           try {
             isEventSuitableForRevision = isCurrentRevisionSuitable(event, buildPromotion, revision, publisher);
           } catch (PublisherException e) {
-            LOG.warn("Can not define if event \"" + event + "\" can be published for current revision state in VCS", e);
-            retryTask(e, buildPromotion, event, lastDelay);
+            String additionalLogMessage = retryTask(e, buildPromotion, event, lastDelay);
+            LOG.warn("Cannot determine if event \"" + event + "\" can be published for current revision state in VCS. " + additionalLogMessage, e);
             return;
           }
           if (isEventSuitableForRevision) {
@@ -945,13 +945,14 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   }
 
-  private void retryTask(@NotNull Throwable t, @NotNull BuildPromotion buildPromotion, @NotNull Event event, @Nullable Long lastDelay) {
+  @NotNull
+  private String retryTask(@NotNull Throwable t, @NotNull BuildPromotion buildPromotion, @NotNull Event event, @Nullable Long lastDelay) {
     if (isRetryEnabled() && event.isRetryable() && t instanceof PublisherException && ((PublisherException)t).shouldRetry()) {
       Long firstRetry = myBuildTypeToFirstPublishFailure.get(buildPromotion.getBuildTypeId());
       long timeNow = Instant.now().toEpochMilli();
       if (firstRetry != null) {
         if (timeNow - firstRetry > maxBeforeDisablingRetry()) {
-          return;
+          return "Retry will not be attempted, because problem occurs for too long";
         }
       } else {
         myBuildTypeToFirstPublishFailure.put(buildPromotion.getBuildTypeId(), timeNow);
@@ -960,14 +961,16 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       final SBuild build = buildPromotion.getAssociatedBuild();
       final long newDelay = lastDelay == null ? initialRetryDelay() : lastDelay * 2;
       if (newDelay > maxRetryDelay()) {
-        return;
+        return "Retry will not be attempted, becuase max retry delay is reached";
       }
       if (build != null) {
         submitTaskForBuild(event, build, newDelay);
       } else if (event == Event.QUEUED) {
         submitTaskForQueuedBuild(event, buildPromotion, newDelay);
       }
+      return String.format("Will retry in %d seconds", newDelay / 1000);
     }
+    return "";
   }
 
   private abstract class PublisherTaskConsumer<T> extends MultiNodeTasks.TaskConsumer {
@@ -992,15 +995,16 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
         doRunTask(publishTask, publisher, revision, additionalTaskInfo);
         myBuildTypeToFirstPublishFailure.remove(promotion.getBuildTypeId());
       } catch (Throwable t) {
-        myProblems.reportProblem(String.format("Commit Status Publisher has failed to publish %s status", event.getName()), publisher, buildDescription, null, t, LOG);
+        String additionLogMessage = retryTask(t, promotion, event, lastDelay);
+        myProblems.reportProblem(
+          String.format("Commit Status Publisher has failed to publish %s status. %s", event.getName(), additionLogMessage),
+          publisher, buildDescription, null, t, LOG);
         if (shouldFailBuild(publisher.getBuildType())) {
           String problemId = "commitStatusPublisher." + publisher.getId() + "." + revision.getRoot().getId();
           String problemDescription = t instanceof PublisherException ? t.getMessage() : t.toString();
           BuildProblemData buildProblem = BuildProblemData.createBuildProblem(problemId, "commitStatusPublisherProblem", problemDescription);
           ((BuildPromotionEx)promotion).addBuildProblem(buildProblem);
         }
-
-        retryTask(t, promotion, event, lastDelay);
       }
     }
   }
