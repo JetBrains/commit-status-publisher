@@ -66,7 +66,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   final static String RETRY_MAX_DELAY_PROPERTY_NAME = "teamcity.commitStatusPublisher.retry.maxDelayMs";
   final static String RETRY_MAX_TIME_BEFORE_DISABLING = "teamcity.commitStatusPublisher.retry.maxBeforeDisablingMs";
   private final static long DEFAULT_INITIAL_RETRY_DELAY_MS = 10_000;
-  private final static long DEFAULT_MAX_RETRY_DELAY_MS = 30 * 60 * 1000; // 30 minutes
+  private final static long DEFAULT_MAX_RETRY_DELAY_MS = 60 * 60 * 1000; // 30 minutes
   private final static long DEFAULT_MAX_TIME_BEFORE_DISABLING_RETRY = 24 * 60 * 60 * 1000; // 24 hours
 
   private final PublisherManager myPublisherManager;
