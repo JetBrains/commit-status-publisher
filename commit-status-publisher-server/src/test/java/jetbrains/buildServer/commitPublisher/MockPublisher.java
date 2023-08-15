@@ -17,6 +17,7 @@
 package jetbrains.buildServer.commitPublisher;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildType;
@@ -50,7 +51,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   private final PublisherLogger myLogger;
 
   private final LinkedList<HttpMethod> myHttpRequests = new LinkedList<>();
-  private final Map<String, Map<String, LinkedList<MockStatus>>> myMockState = new HashMap<>(); // { revision : { buildTypeId : [ status ] }}
+  private final Map<String, Map<String, LinkedList<MockStatus>>> myMockState = new ConcurrentHashMap<>(); // { revision : { buildTypeId : [ status ] }}
   private final AtomicInteger myIdGenerator = new AtomicInteger(0);
 
   boolean isFailureReceived() { return myFailuresReceived > 0; }

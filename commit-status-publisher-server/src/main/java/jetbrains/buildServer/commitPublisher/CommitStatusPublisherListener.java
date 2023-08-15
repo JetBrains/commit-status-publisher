@@ -784,6 +784,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       }
 
       Long lastDelay = task.getLongArg2();
+      if (lastDelay != null && eventType == Event.STARTED && build.isFinished()) {
+        return;
+      }
       runAsync(() -> runForEveryPublisher(eventType, build, lastDelay), () -> { eventProcessed(eventType); });
     }
 
@@ -868,6 +871,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       AdditionalTaskInfo additionalTaskInfo = new AdditionalTaskInfo(promotion, comment, commentAuthor);
 
       Long lastDelay = task.getLongArg2();
+      if (lastDelay != null && event == Event.QUEUED && promotion.getQueuedBuild() == null) {
+        return;
+      }
       runAsync(() -> runForEveryPublisher(eventType, promotion, additionalTaskInfo, lastDelay), () -> { eventProcessed(eventType); });
     }
 
