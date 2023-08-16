@@ -143,6 +143,33 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
     }
   }
 
+  public void should_retry_only_on_codes_set_in_internal_property() {
+    setInternalProperty(RetryResponseProcessor.RETRY_STATUS_CODES_PROPERTY_NAME, "401,500,501");
+
+    myResponseStatusCode = 401;
+    try {
+      myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
+      fail("PublisherException wasn't thrown");
+    } catch (PublisherException ex) {
+      then(ex.shouldRetry()).isEqualTo(true);
+    }
+
+    myResponseStatusCode = 501;
+    try {
+      myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
+      fail("PublisherException wasn't thrown");
+    } catch (PublisherException ex) {
+      then(ex.shouldRetry()).isEqualTo(true);
+    }
+
+    myResponseStatusCode = 429;
+    try {
+      myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
+    } catch (PublisherException ex) {
+      then(ex.shouldRetry()).isEqualTo(false);
+    }
+  }
+
   protected boolean isStatusCacheNotImplemented() {
     return true;
   }

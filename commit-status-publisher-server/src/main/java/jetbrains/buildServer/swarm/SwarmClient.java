@@ -115,7 +115,7 @@ public class SwarmClient {
   public List<Long> getOpenReviewIds(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
     ReviewLoadResponse reviews = getReviews(changelistId, debugInfo, false);
     Date expireTime = new Date(System.currentTimeMillis() - Dates.seconds(10));
-    if (reviews.getCreated().before(expireTime)) {
+    if (reviews.getError() != null || reviews.getCreated().before(expireTime)) {
       // Reload data, we need fresh info for this call as it is used in publishing build statuses
       reviews = getReviews(changelistId, debugInfo, true);
     }

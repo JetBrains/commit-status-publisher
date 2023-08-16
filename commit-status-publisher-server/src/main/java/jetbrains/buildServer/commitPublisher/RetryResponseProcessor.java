@@ -3,12 +3,15 @@ package jetbrains.buildServer.commitPublisher;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
+import jetbrains.buildServer.serverSide.TeamCityProperties;
+import jetbrains.buildServer.util.stream.Collectors;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
 import org.jetbrains.annotations.NotNull;
 
 public class RetryResponseProcessor implements HttpResponseProcessor<HttpPublisherException> {
 
+  final static String RETRY_STATUS_CODES_PROPERTY_NAME = "teamcity.commitStatusPublisher.retry.statusCodes";
   @NotNull
   private static final HashSet<Integer> ourRetryableResponseCodes = new HashSet<>(Arrays.asList(
     408, // Request Timeout
@@ -23,7 +26,15 @@ public class RetryResponseProcessor implements HttpResponseProcessor<HttpPublish
   private final HttpResponseProcessor<HttpPublisherException> myDelegate;
 
   public static boolean shouldRetryOnCode(int statusCode) {
-    return ourRetryableResponseCodes.contains(statusCode);
+    String statusCodesString = TeamCityProperties.getPropertyOrNull(RETRY_STATUS_CODES_PROPERTY_NAME);
+
+    HashSet<Integer> statusCodes;
+    if (statusCodesString == null) {
+      statusCodes = ourRetryableResponseCodes;
+    } else {
+      statusCodes = new HashSet<>(Arrays.stream(statusCodesString.split(",")).map((strCode) -> Integer.parseInt(strCode)).collect(Collectors.toUnmodifiableList()));
+    }
+    return statusCodes.contains(statusCode);
   }
 
   public static void processNetworkException(@NotNull Throwable cause, @NotNull PublisherException ex) {
