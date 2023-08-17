@@ -30,7 +30,7 @@ public class DeprecatedAuthReportPageExtension extends HealthStatusItemPageExten
                                            @NotNull DeprecatedAuthReport report,
                                            @NotNull PluginDescriptor pluginDescriptor) {
     super(report.getType(), pagePlaces);
-    setIncludeUrl(pluginDescriptor.getPluginResourcesPath("jetbrains/buildServer/issueTracker/reports/deprecatedAuthReport.jsp"));
+    setIncludeUrl(pluginDescriptor.getPluginResourcesPath("reports/deprecatedAuthReport.jsp"));
     register();
   }
 

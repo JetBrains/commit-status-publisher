@@ -30,7 +30,7 @@ public class MissingSettingsReportPageExtension extends HealthStatusItemPageExte
                                             @NotNull MissingSettingsReport report,
                                             @NotNull PluginDescriptor pluginDescriptor) {
     super(report.getType(), pagePlaces);
-    setIncludeUrl(pluginDescriptor.getPluginResourcesPath("jetbrains/buildServer/issueTracker/reports/missingSettingsReport.jsp"));
+    setIncludeUrl(pluginDescriptor.getPluginResourcesPath("reports/missingSettingsReport.jsp"));
     register();
   }
 
