@@ -56,12 +56,12 @@
       </tr>
     </props:selectSectionPropertyContent>
 
-    <props:selectSectionPropertyContent value="${keys.authTypeStoredToken}" caption="Access Token">
+    <props:selectSectionPropertyContent value="${keys.authTypeStoredToken}" caption="Refreshable access token">
 
       <%@include file="/admin/_tokenSupport.jspf"%>
 
       <tr>
-        <th><label for="${keys.tokenId}">Access Token:<l:star/></label></th>
+        <th><label for="${keys.tokenId}">Refreshable access token:<l:star/></label></th>
         <td>
           <span class="access-token-note" id="message_no_token">No access token configured.</span>
           <span class="access-token-note" id="message_we_have_token"></span>

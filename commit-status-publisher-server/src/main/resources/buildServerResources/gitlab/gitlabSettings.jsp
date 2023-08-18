@@ -41,7 +41,7 @@
 <props:selectSectionProperty name="authType" title="Authentication Type:">
   <props:selectSectionPropertyContent value="token" caption="Personal access token">
     <tr>
-      <th><label for="${keys.gitlabToken}">Private Token:<l:star/></label></th>
+      <th><label for="${keys.gitlabToken}">Access Token:<l:star/></label></th>
       <td>
         <props:passwordProperty name="${keys.gitlabToken}" className="mediumField"/>
         <span class="smallNote">
@@ -52,11 +52,11 @@
     </tr>
   </props:selectSectionPropertyContent>
   <c:if test='${refreshTokenSupported}'>
-    <props:selectSectionPropertyContent value="storedToken" caption="GitLab Application token">
+    <props:selectSectionPropertyContent value="storedToken" caption="Refreshable access token">
       <%@include file="/admin/_tokenSupport.jspf"%>
       <tr>
         <th>
-          <label for="gitlabappication">GitLab Appliction Token:</label>
+          <label for="refreshabletoken">Refreshable access token:</label>
         </th>
         <td>
           <span class="access-token-note" id="message_no_token">No access token configured.</span>
@@ -64,7 +64,7 @@
 
           <c:if test="${empty oauthConnections}">
             <br/>
-            <span>There are no GitLab Application connections available to the project.</span>
+            <span>There are no GitLab OAuth 2.0 connections available to the project.</span>
           </c:if>
 
 
