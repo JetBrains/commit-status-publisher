@@ -97,7 +97,7 @@ public class HttpClientWrapperImpl implements HttpClientWrapper {
     @NotNull final Consumer<Exception> exception
   ) throws URISyntaxException {
     return new HTTPRequestBuilder(uri)
-      .withTimeout(TeamCityProperties.getInteger("teamcity.github.http.timeout", 300 * 1000))
+      .withTimeout(TeamCityProperties.getInteger("teamcity.github.http.timeout", 10 * 1000))
       .withAuthenticateHeader(simpleCredentials)
       .withRedirectStrategy(RedirectStrategy.LAX)
       .withTrustStore(mySSLTrustStoreProvider.getTrustStore())
