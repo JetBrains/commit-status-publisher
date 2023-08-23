@@ -121,4 +121,9 @@ class DummyPublisherSettings implements CommitStatusPublisherSettings {
   public boolean isFeatureLessPublishingSupported(@NotNull SBuildType buildType) {
     return false;
   }
+
+  @Override
+  public boolean isPublishingQueuedStatusEnabled(@NotNull SBuildType buildType) {
+    return true;
+  }
 }
