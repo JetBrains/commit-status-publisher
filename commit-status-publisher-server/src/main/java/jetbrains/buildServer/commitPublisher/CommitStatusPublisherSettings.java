@@ -117,4 +117,5 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
     return Collections.emptyMap();
   }
 
+  boolean isPublishingQueuedStatusEnabled(@NotNull SBuildType buildType);
 }

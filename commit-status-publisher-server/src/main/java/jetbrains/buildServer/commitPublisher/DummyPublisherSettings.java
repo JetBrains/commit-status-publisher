@@ -18,6 +18,7 @@ package jetbrains.buildServer.commitPublisher;
 
 import java.security.KeyStore;
 import java.util.Collections;
+import java.util.Map;
 import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -27,8 +28,6 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Map;
 
 class DummyPublisherSettings implements CommitStatusPublisherSettings {
   static final String ID = "--";
@@ -108,5 +107,10 @@ class DummyPublisherSettings implements CommitStatusPublisherSettings {
   @Override
   public KeyStore trustStore() {
     return null;
+  }
+
+  @Override
+  public boolean isPublishingQueuedStatusEnabled(@NotNull SBuildType buildType) {
+    return true;
   }
 }

@@ -110,7 +110,12 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
     return Collections.emptySet();
   }
 
-  protected boolean isBuildQueuedSupported(final SBuildType buildType, final Map<String, String> params) {
+  @Override
+  public boolean isPublishingQueuedStatusEnabled(@NotNull SBuildType buildType) {
+    return isBuildQueuedSupported(buildType);
+  }
+
+  protected boolean isBuildQueuedSupported(final SBuildType buildType) {
     if (buildType instanceof BuildTypeEx) {
       return ((BuildTypeEx) buildType).getBooleanInternalParameterOrTrue(PARAM_PUBLISH_BUILD_QUEUED_STATUS);
     }
