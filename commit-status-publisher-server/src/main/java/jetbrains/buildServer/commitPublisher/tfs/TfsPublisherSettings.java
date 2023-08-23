@@ -198,6 +198,6 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
 
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
-    return isBuildQueuedSupported(buildType, params) ? mySupportedEventsWithQueued : mySupportedEvents;
+    return isBuildQueuedSupported(buildType) ? mySupportedEventsWithQueued : mySupportedEvents;
   }
 }

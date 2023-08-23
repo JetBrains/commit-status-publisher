@@ -28,7 +28,10 @@ import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabUserInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
-import jetbrains.buildServer.serverSide.oauth.*;
+import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
+import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
+import jetbrains.buildServer.serverSide.oauth.OAuthToken;
+import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.serverSide.oauth.gitlab.GitLabCEorEEOAuthProvider;
 import jetbrains.buildServer.serverSide.oauth.gitlab.GitLabComOAuthProvider;
 import jetbrains.buildServer.users.SUser;
@@ -263,7 +266,7 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
 
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
-    return isBuildQueuedSupported(buildType, params) ? mySupportedEventsWithQueued : mySupportedEvents;
+    return isBuildQueuedSupported(buildType) ? mySupportedEventsWithQueued : mySupportedEvents;
   }
 
   private abstract class JsonResponseProcessor<T> extends DefaultHttpResponseProcessor {

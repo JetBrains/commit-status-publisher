@@ -40,6 +40,7 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCloudBuildStatus> {
 
   private static final int DEFAULT_PAGE_SIZE = 25;
+  private static final String BUILD_NUMBER_IN_STATUS_NAME_FEATURE_TOGGLE = "commitStatusPublisher.bitbucket.buildNumberToName.enabled";
   private String myBaseUrl = BitbucketCloudSettings.DEFAULT_API_URL;
   private final Gson myGson = new Gson();
 
@@ -264,14 +265,22 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
   }
 
   @NotNull
-  private String getBuildName(BuildPromotion buildPromotion) {
+  private String getBuildName(@NotNull BuildPromotion buildPromotion) {
     SBuildType buildType = buildPromotion.getBuildType();
-    if (buildType != null) {
-      SBuild build = buildPromotion.getAssociatedBuild();
-      String suffix = build != null ? " #" + build.getBuildNumber() : "";
-      return buildType.getFullName() + suffix;
+    if (buildType == null) return buildPromotion.getBuildTypeExternalId();
+
+    final boolean isQueuedEnabled = getSettings().isPublishingQueuedStatusEnabled(buildType);
+    if (isQueuedEnabled) {
+      return buildType.getFullName();
     }
-    return buildPromotion.getBuildTypeExternalId();
+
+    final boolean includeBuildNumberToName = buildType instanceof BuildTypeEx && ((BuildTypeEx)buildType).getBooleanInternalParameterOrTrue(BUILD_NUMBER_IN_STATUS_NAME_FEATURE_TOGGLE);
+    SBuild build = buildPromotion.getAssociatedBuild();
+    StringBuilder sb = new StringBuilder(buildType.getFullName());
+    if (includeBuildNumberToName && build != null) {
+      sb.append(" #").append(build.getBuildNumber());
+    }
+    return sb.toString();
   }
 
   private void vote(@NotNull SBuild build,
@@ -283,7 +292,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
     if (repository == null) {
       throw new PublisherException(String.format("Bitbucket publisher has failed to parse repository URL from VCS root '%s'", root.getName()));
     }
-    final String buildName = getBuildName(build);
+    final String buildName = getBuildName(build.getBuildPromotion());
     BitbucketCloudCommitBuildStatus buildStatus = new BitbucketCloudCommitBuildStatus(build.getBuildTypeId(), status.name(), buildName, comment, getViewUrl(build));
     vote(revision, buildStatus, repository, LogUtil.describe(build));
     myStatusesCache.removeStatusFromCache(revision, build.getBuildTypeId());
@@ -338,11 +347,6 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
     } catch (JsonSyntaxException e) {
       return null;
     }
-  }
-
-  @NotNull
-  private String getBuildName(@NotNull SBuild build) {
-    return build.getFullName() + " #" + build.getBuildNumber();
   }
 
   private String getBaseUrl() { return myBaseUrl;  }

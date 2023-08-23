@@ -228,11 +228,11 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
 
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
-    return isBuildQueuedSupported(buildType, params) ? mySupportedEventsWithQueued : mySupportedEvents;
+    return isBuildQueuedSupported(buildType) ? mySupportedEventsWithQueued : mySupportedEvents;
   }
 
-  protected boolean isBuildQueuedSupported(final SBuildType buildType, final Map<String, String> params) {
-    return TeamCityProperties.getBoolean(PROP_PUBLISH_QUEUED_BUILD_STATUS) || super.isBuildQueuedSupported(buildType, params);
+  protected boolean isBuildQueuedSupported(final SBuildType buildType) {
+    return TeamCityProperties.getBoolean(PROP_PUBLISH_QUEUED_BUILD_STATUS) || super.isBuildQueuedSupported(buildType);
   }
 
   @Nullable

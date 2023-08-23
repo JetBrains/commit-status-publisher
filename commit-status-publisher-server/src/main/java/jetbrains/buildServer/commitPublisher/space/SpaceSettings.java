@@ -252,7 +252,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
 
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
-    return isBuildQueuedSupported(buildType, params) ? mySupportedEventsWithQueued : mySupportedEvents;
+    return isBuildQueuedSupported(buildType) ? mySupportedEventsWithQueued : mySupportedEvents;
   }
 
   @NotNull
