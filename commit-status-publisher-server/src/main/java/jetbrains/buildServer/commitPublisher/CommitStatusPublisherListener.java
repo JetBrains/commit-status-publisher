@@ -24,7 +24,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import jetbrains.buildServer.BuildProblemData;
@@ -501,25 +500,23 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
     PublishingProcessor publishingProcessor = new PublishingProcessor() {
       @Override
-      public CompletableFuture<RetryInfo> publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
-        return runAsyncWithResult(() -> {
-          SBuildType buildType = buildPromotion.getBuildType();
-          if (buildType == null) {
-            return new RetryInfo();
-          }
-          if (!publisher.isAvailable(buildPromotion)) return new RetryInfo();
-
-          Lock lock = myPublishingLocks.get(getLockKey(buildType, revision));
-          lock.lock();
-          try {
-            publisher.buildRemovedFromQueue(buildPromotion, revision, additionalTaskInfo);
-          } catch (PublisherException e) {
-            LOG.warn("Cannot publish removed build status to VCS for " + publisher.getBuildType() + ", commit: " + revision.getRevision(), e);
-          } finally {
-            lock.unlock();
-          }
+      public RetryInfo publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
+        SBuildType buildType = buildPromotion.getBuildType();
+        if (buildType == null) {
           return new RetryInfo();
-        }, null);
+        }
+        if (!publisher.isAvailable(buildPromotion)) return new RetryInfo();
+
+        Lock lock = myPublishingLocks.get(getLockKey(buildType, revision));
+        lock.lock();
+        try {
+          publisher.buildRemovedFromQueue(buildPromotion, revision, additionalTaskInfo);
+        } catch (PublisherException e) {
+          LOG.warn("Cannot publish removed build status to VCS for " + publisher.getBuildType() + ", commit: " + revision.getRevision(), e);
+        } finally {
+          lock.unlock();
+        }
+        return new RetryInfo();
       }
 
       @Override
@@ -555,18 +552,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
         continue;
       }
       myProblems.clearProblem(publisher);
-      List<CompletableFuture<RetryInfo>> futures = revisions.stream().map(revision -> publishingProcessor.publish(event, revision, publisher)).collect(Collectors.toList());
+      List<RetryInfo> retryResults = revisions.stream().map(revision -> publishingProcessor.publish(event, revision, publisher)).collect(Collectors.toList());
       RetryInfo retryInfo = new RetryInfo();
-      for (CompletableFuture<RetryInfo> future : futures) {
-        try {
-          RetryInfo newRetryInfo = future.get();
-          if (newRetryInfo.shouldRetry) {
-            retryInfo = newRetryInfo;
-          };
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-        } catch (ExecutionException ignored) {
-
+      for (RetryInfo info : retryResults) {
+        if (info.shouldRetry) {
+          retryInfo = info;
+          break;
         }
       }
 
@@ -738,7 +729,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   }
 
   private interface PublishingProcessor {
-    CompletableFuture<RetryInfo> publish(Event event, BuildRevision revision, CommitStatusPublisher publisher);
+    RetryInfo publish(Event event, BuildRevision revision, CommitStatusPublisher publisher);
     Collection<BuildRevision> getRevisions(BuildType buildType, CommitStatusPublisher publisher);
   }
 
@@ -757,26 +748,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       if (postAction != null)
         postAction.run();
     }
-  }
-
-  private <T> CompletableFuture<T> runAsyncWithResult(@NotNull Supplier<T> action, @Nullable Runnable postAction) {
-    CompletableFuture<T> future;
-    try {
-      future = CompletableFuture.supplyAsync(action, myExecutorServices.getLowPriorityExecutorService());
-      if (postAction != null) {
-        future.handle((r, t) -> {
-          postAction.run();
-          return r;
-        });
-      }
-    } catch (RejectedExecutionException ex) {
-      LOG.warnAndDebugDetails("CommitStatusPublisherListener has failed to run an action asynchronously. Executing in the same thread instead", ex);
-      T actionRes = action.get();
-      future = CompletableFuture.completedFuture(actionRes);
-      if (postAction != null)
-        postAction.run();
-    }
-    return future;
   }
 
   private class BuildPublisherTaskConsumer extends PublisherTaskConsumer<PublishTask> {
@@ -856,20 +827,18 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       final BuildPromotion buildPromotion = build.getBuildPromotion();
       PublishingProcessor publishingProcessor = new PublishingProcessor() {
         @Override
-        public CompletableFuture<RetryInfo> publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
-          return runAsyncWithResult(() -> {
-            RetryInfo retryInfo = new RetryInfo();
-            if (!publisher.isAvailable(buildPromotion)) return retryInfo;
+        public RetryInfo publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
+          RetryInfo retryInfo = new RetryInfo();
+          if (!publisher.isAvailable(buildPromotion)) return retryInfo;
 
-            Lock lock = myPublishingLocks.get(revision.getRevision());
-            lock.lock();
-            try {
-              retryInfo = runTask(event, buildPromotion, LogUtil.describe(build), task, publisher, revision, null, lastDelay);
-            } finally {
-              lock.unlock();
-            }
-            return retryInfo;
-          }, null);
+          Lock lock = myPublishingLocks.get(revision.getRevision());
+          lock.lock();
+          try {
+            retryInfo = runTask(event, buildPromotion, LogUtil.describe(build), task, publisher, revision, null, lastDelay);
+          } finally {
+            lock.unlock();
+          }
+          return retryInfo;
         }
 
         @Override
@@ -956,24 +925,22 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
       PublishingProcessor publishingProcessor = new PublishingProcessor() {
         @Override
-        public CompletableFuture<RetryInfo> publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
-          return runAsyncWithResult(() -> {
-            RetryInfo retryInfo = new RetryInfo();
-            SBuildType buildType = buildPromotion.getBuildType();
-            if (buildType == null) {
-              return retryInfo;
-            }
-            if (!publisher.isAvailable(buildPromotion)) return retryInfo;
-
-            Lock lock = myPublishingLocks.get(revision.getRevision());
-            lock.lock();
-            try {
-              retryInfo = doPublish(revision, publisher);
-            } finally {
-              lock.unlock();
-            }
+        public RetryInfo publish(Event event, BuildRevision revision, CommitStatusPublisher publisher) {
+          RetryInfo retryInfo = new RetryInfo();
+          SBuildType buildType = buildPromotion.getBuildType();
+          if (buildType == null) {
             return retryInfo;
-          }, null);
+          }
+          if (!publisher.isAvailable(buildPromotion)) return retryInfo;
+
+          Lock lock = myPublishingLocks.get(revision.getRevision());
+          lock.lock();
+          try {
+            retryInfo = doPublish(revision, publisher);
+          } finally {
+            lock.unlock();
+          }
+          return retryInfo;
         }
 
         private RetryInfo doPublish(BuildRevision revision, CommitStatusPublisher publisher) {
