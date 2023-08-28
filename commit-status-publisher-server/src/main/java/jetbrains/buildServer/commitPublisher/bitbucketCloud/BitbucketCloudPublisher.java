@@ -80,7 +80,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
                                        @NotNull BuildRevision revision,
                                        @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    return additionalTaskInfo.isBuildManuallyRemoved() &&
+    return additionalTaskInfo.isBuildManuallyRemovedOrCanceled() &&
            vote(buildPromotion, revision, BitbucketCloudBuildStatus.STOPPED, additionalTaskInfo.getComment());
   }
 

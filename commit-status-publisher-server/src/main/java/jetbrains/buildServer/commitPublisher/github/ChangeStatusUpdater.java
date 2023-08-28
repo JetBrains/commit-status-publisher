@@ -287,7 +287,7 @@ public class ChangeStatusUpdater {
   }
 
   private GitHubChangeState getBuildStatusForRemovedBuild(AdditionalTaskInfo additionalTaskInfo) {
-    return additionalTaskInfo.isBuildManuallyRemoved() ? GitHubChangeState.Failure : null;
+    return additionalTaskInfo.isBuildManuallyRemovedOrCanceled() ? GitHubChangeState.Failure : null;
   }
 
   private abstract class GitHubCommonStatusClient {
