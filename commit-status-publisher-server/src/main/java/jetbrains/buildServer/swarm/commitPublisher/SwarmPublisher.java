@@ -77,6 +77,12 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
     }
 
     publishCommentIfNeeded(buildPromotion, revision, commentTemplate);
+
+
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build != null) {
+      updateTestRunsForReviewsOnSwarm(build, revision);
+    }
     return true;
   }
 
