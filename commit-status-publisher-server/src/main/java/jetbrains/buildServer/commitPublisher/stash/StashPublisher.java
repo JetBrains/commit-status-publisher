@@ -82,7 +82,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo)
     throws PublisherException {
-    if (!additionalTaskInfo.isBuildManuallyRemoved()) return false;
+    if (!additionalTaskInfo.isBuildManuallyRemovedOrCanceled()) return false;
     vote(buildPromotion, revision, StashBuildStatus.FAILED, additionalTaskInfo.getComment());
     return true;
   }

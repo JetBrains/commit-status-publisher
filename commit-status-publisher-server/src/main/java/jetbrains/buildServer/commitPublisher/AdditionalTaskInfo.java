@@ -51,7 +51,7 @@ public class AdditionalTaskInfo {
     return myReplacingPromotion != null;
   }
 
-  public boolean isBuildManuallyRemoved() {
-    return myIsCanceled && myCommentAuthor != null;
+  public boolean isBuildManuallyRemovedOrCanceled() {
+    return myIsCanceled;
   }
 }

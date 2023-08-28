@@ -619,7 +619,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   }
 
   protected StatusState getBuildStatusForRemovedBuild(AdditionalTaskInfo additionalTaskInfo) {
-    return additionalTaskInfo.isBuildManuallyRemoved() ? StatusState.Failed : null;
+    return additionalTaskInfo.isBuildManuallyRemovedOrCanceled() ? StatusState.Failed : null;
   }
 
   @Nullable

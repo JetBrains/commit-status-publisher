@@ -83,7 +83,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     if (additionalTaskInfo.commentContains(DefaultStatusMessages.BUILD_STARTED)) {
       return false;
     }
-    return additionalTaskInfo.isBuildManuallyRemoved() && publishQueued(buildPromotion, revision, SpaceBuildStatus.TERMINATED, additionalTaskInfo);
+    return additionalTaskInfo.isBuildManuallyRemovedOrCanceled() && publishQueued(buildPromotion, revision, SpaceBuildStatus.TERMINATED, additionalTaskInfo);
   }
 
   @Override

@@ -88,7 +88,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    if (!additionalTaskInfo.isBuildManuallyRemoved()) return false;
+    if (!additionalTaskInfo.isBuildManuallyRemovedOrCanceled()) return false;
     publish(buildPromotion, revision, GitlabBuildStatus.CANCELED , additionalTaskInfo);
     return true;
   }

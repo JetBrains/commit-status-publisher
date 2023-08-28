@@ -355,11 +355,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       return;
     }
 
-    if (user == null) { // build removal is processed only for manual remove build from the queue
+    BuildPromotion promotion = build.getBuildPromotion();
+    if (!promotion.isCanceled()) { // build removal is processed only for manually removed from queue or canceled(due to failed dependency) builds
       return;
     }
 
-    BuildPromotion promotion = build.getBuildPromotion();
     if (!canNodeProcessRemovedFromQueue(promotion)) return;
     if (((BuildPromotionEx)promotion).isChangeCollectingNeeded(false)) return;
 
