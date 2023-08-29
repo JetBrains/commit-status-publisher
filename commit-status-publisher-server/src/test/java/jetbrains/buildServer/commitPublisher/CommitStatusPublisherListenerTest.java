@@ -26,6 +26,7 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
+import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.CancelableTaskHolder;
@@ -38,6 +39,7 @@ import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.Dates;
+import jetbrains.buildServer.util.DependencyOptionSupportImpl;
 import jetbrains.buildServer.util.FileUtil;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.util.http.HttpMethod;
@@ -823,6 +825,28 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     assertEquals(6L, getCntPostRequests());
     waitForTasksToFinish(Event.FINISHED);
   }
+
+  @TestFor(issues = "TW-83345")
+  public void should_publish_failed_status_for_build_canceled_due_to_failed_dependency() {
+    prepareVcs();
+
+    BuildTypeImpl failBt = myFixture.createBuildType(myBuildType.getProject(), "failing_build", "Ant");
+    DependencyFactory df = myFixture.getSingletonService(DependencyFactory.class);
+    DependencyOptions opts = new DependencyOptionSupportImpl();
+    opts.setOption(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED, DependencyOptions.BuildContinuationMode.CANCEL);
+    myBuildType.addDependency(df.createDependency(failBt.getExternalId(), opts));
+
+    addBuildToQueue();
+    waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 2, TASK_COMPLETION_TIMEOUT_MS);
+    waitFor(() -> getCntPostRequests() == 1, TASK_COMPLETION_TIMEOUT_MS);
+    RunningBuildEx runningFailedBuild = myFixture.flushQueueAndWait();
+    myFixture.finishBuild(runningFailedBuild, true);
+    myFixture.flushQueue();
+    waitFor(() -> getCntPostRequests() == 2, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(2, myPublisher.getEventsReceived().size());
+    assertEquals(Event.REMOVED_FROM_QUEUE, myPublisher.getEventsReceived().get(1));
+  }
+
 
   private SVcsModification prepareVcs() {
     return prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.EXT_ID);
