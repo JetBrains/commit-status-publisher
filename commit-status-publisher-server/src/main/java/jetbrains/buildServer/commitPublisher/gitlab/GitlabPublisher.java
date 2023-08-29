@@ -466,9 +466,9 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
 
   private static boolean supportMergeResults(@NotNull BuildType buildType) {
     if (buildType instanceof InternalParameters) {
-      return ((InternalParameters)buildType).getBooleanInternalParameter(Constants.GITLAB_FEATURE_TOGGLE_MERGE_RESULTS);
+      return ((InternalParameters)buildType).getBooleanInternalParameterOrTrue(Constants.GITLAB_FEATURE_TOGGLE_MERGE_RESULTS);
     }
 
-    return false;
+    return true;
   }
 }
