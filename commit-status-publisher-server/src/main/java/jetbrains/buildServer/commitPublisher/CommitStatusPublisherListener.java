@@ -583,8 +583,23 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       Pair<String, User> commentWithAuthor = getCommentWithAuthor(buildPromotion);
       actualCommentAuthor = commentWithAuthor.getSecond();
     }
+    BuildPromotion replacingPromotion = getReplacingPromotion(buildPromotion);
+    String overridenComment = getDefaultComment(buildPromotion, replacingPromotion, user);
+    return new AdditionalTaskInfo(buildPromotion, overridenComment, actualCommentAuthor, replacingPromotion);
+  }
+
+  @Nullable
+  private BuildPromotion getReplacingPromotion(@NotNull BuildPromotion buildPromotion) {
     BuildPromotion replacingPromotion = myBuildPromotionManager.findPromotionOrReplacement(buildPromotion.getId());
-    return new AdditionalTaskInfo(buildPromotion, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, actualCommentAuthor, (replacingPromotion == null || replacingPromotion.getId() == buildPromotion.getId()) ? null : replacingPromotion);
+    return (replacingPromotion == null || replacingPromotion.getId() == buildPromotion.getId()) ? null : replacingPromotion;
+  }
+
+  @NotNull
+  private static String getDefaultComment(@NotNull BuildPromotion buildPromotion, @Nullable BuildPromotion replacingPromotion, @Nullable User user) {
+    if (replacingPromotion == null && buildPromotion.getAssociatedBuildId() != null && buildPromotion.isCanceled() && user == null) {
+      return DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED;
+    }
+    return DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE;
   }
 
   @Nullable
