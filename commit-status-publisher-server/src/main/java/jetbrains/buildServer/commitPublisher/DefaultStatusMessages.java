@@ -1,10 +1,11 @@
 package jetbrains.buildServer.commitPublisher;
 
 public interface DefaultStatusMessages {
-  public final String BUILD_QUEUED = "TeamCity build queued";
-  public final String BUILD_REMOVED_FROM_QUEUE = "TeamCity build removed from queue";
-  public final String BUILD_STARTED = "TeamCity build started";
-  public final String BUILD_FINISHED = "TeamCity build finished";
-  public final String BUILD_FAILED = "TeamCity build failed";
-  public final String BUILD_MARKED_SUCCESSFULL = "TeamCity build marked as successful";
+  String BUILD_QUEUED = "TeamCity build was queued";
+  String BUILD_REMOVED_FROM_QUEUE = "TeamCity build was removed from queue";
+  String BUILD_REMOVED_FROM_QUEUE_AS_CANCELED = "TeamCity build was canceled by a failing dependency";
+  String BUILD_STARTED = "TeamCity build started";
+  String BUILD_FINISHED = "TeamCity build finished";
+  String BUILD_FAILED = "TeamCity build failed";
+  String BUILD_MARKED_SUCCESSFULL = "TeamCity build was marked as successful";
 }

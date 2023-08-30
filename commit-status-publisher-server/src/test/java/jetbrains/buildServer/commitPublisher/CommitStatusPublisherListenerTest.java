@@ -219,7 +219,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForAssert(() -> myPublisher.getLastComment().equals(DefaultStatusMessages.BUILD_QUEUED), TASK_COMPLETION_TIMEOUT_MS);
     myServer.getQueue().removeAllFromQueue(queuedBuild.getBuildTypeId(), myUser, null);
     waitFor(() -> myPublisher.getLastComment() != null && myPublisher.getLastComment().equals(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE), TASK_COMPLETION_TIMEOUT_MS);
-    then(myPublisher.getLastComment()).isEqualTo("TeamCity build removed from queue");
+    then(myPublisher.getLastComment()).isEqualTo(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE);
   }
 
   public void should_publish_finished_success() {
@@ -681,6 +681,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitFor(() -> getCntPostRequests() == 2, TASK_COMPLETION_TIMEOUT_MS);
     assertEquals(2, myPublisher.getEventsReceived().size());
     assertEquals(Event.REMOVED_FROM_QUEUE, myPublisher.getEventsReceived().get(1));
+    then(myPublisher.getLastComment()).isEqualTo(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED);
   }
 
   private SVcsModification prepareVcs() {

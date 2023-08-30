@@ -28,11 +28,6 @@ public class AdditionalTaskInfo {
     return myComment == null ? "" : myComment;
   }
 
-  @NotNull
-  public String getCommentOrDefault(@NotNull String defaultValue) {
-    return myComment == null ? defaultValue : myComment;
-  }
-
   public boolean commentContains(@NotNull String substring) {
     return myComment != null && myComment.contains(substring);
   }

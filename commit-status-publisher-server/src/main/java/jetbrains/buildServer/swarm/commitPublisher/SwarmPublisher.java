@@ -1,10 +1,7 @@
 package jetbrains.buildServer.swarm.commitPublisher;
 
 import java.util.Map;
-import jetbrains.buildServer.commitPublisher.AdditionalTaskInfo;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
-import jetbrains.buildServer.commitPublisher.HttpBasedCommitStatusPublisher;
-import jetbrains.buildServer.commitPublisher.PublisherException;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.swarm.SwarmClient;
 import jetbrains.buildServer.util.StringUtil;
@@ -71,7 +68,8 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    String commentTemplate = "build %s is removed from queue: " + additionalTaskInfo.getCommentOrDefault("<no comment>");
+    String comment = getComment(additionalTaskInfo);
+    String commentTemplate = "build %s was removed from queue" + (StringUtil.isNotEmpty(comment) ? ": " + comment : "");
     if (additionalTaskInfo.getCommentAuthor() != null) {
       commentTemplate += " by " + additionalTaskInfo.getCommentAuthor().getDescriptiveName();
     }
@@ -84,6 +82,15 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
       updateTestRunsForReviewsOnSwarm(build, revision);
     }
     return true;
+  }
+
+  @NotNull
+  private static String getComment(@NotNull AdditionalTaskInfo additionalTaskInfo) {
+    String res = additionalTaskInfo.getComment();
+    if (DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE.equals(res)) {
+      return "";
+    }
+    return res;
   }
 
   @Override
