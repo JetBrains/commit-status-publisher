@@ -7,6 +7,7 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.PublisherManager;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.healthStatus.*;
+import jetbrains.buildServer.serverSide.oauth.space.SpaceFeatures;
 import org.jetbrains.annotations.NotNull;
 
 public class UnconditionalPublishingReport extends HealthStatusReport {
@@ -48,6 +49,10 @@ public class UnconditionalPublishingReport extends HealthStatusReport {
   @Override
   public void report(@NotNull HealthStatusScope scope, @NotNull HealthStatusItemConsumer resultConsumer) {
     for (SBuildType buildType : scope.getBuildTypes()) {
+      if (!SpaceFeatures.forScope(buildType).reportUnconditionalPublishing()) {
+        continue;
+      }
+
       if (myPublisherManager.isFeatureLessPublishingPossible(buildType)) {
         final Map<String, CommitStatusPublisher> configuredPublishers = myPublisherManager.createConfiguredPublishers(buildType);
         final Map<String, CommitStatusPublisher> supplementaryPublishers = myPublisherManager.createSupplementaryPublishers(buildType, configuredPublishers);
