@@ -243,13 +243,38 @@
         </description>
         <param name="gitlabApiUrl" mandatory="true">
           <description>
-            GitLab URL in the format http{s}://{hostname}:{port}/api/v3
+            GitLab URL in the format http{s}://{hostname}:{port}/api/v4
           </description>
         </param>
-        <param name="secure:gitlabAccessToken" dslName="accessToken" mandatory="true">
+        <param name="secure:gitlabAccessToken" dslName="accessToken" deprecated="true">
           <description>
             Access token to use for GitLab connection. Can be found at /profile/account in GitLab.
           </description>
+          <deprecated>
+            Use authType property instead
+          </deprecated>
+        </param>
+        <param name="authType" dslName="authType" type="compound">
+          <option name="personalToken" value="token">
+            <description>
+              Authentication using personal token
+            </description>
+            <param name="secure:gitlabAccessToken" dslName="accessToken" mandatory="true">
+              <description>
+                Access token to use for GitLab connection. Can be found at /profile/account in GitLab.
+              </description>
+            </param>
+          </option>
+          <option name="storedToken" value="storedToken">
+            <description>
+              Use GitLab OAuth credentials
+            </description>
+            <param name="tokenId" dslName="tokenId" mandatory="true">
+              <description>
+                Internal ID of a token in TeamCity token storage
+              </description>
+            </param>
+          </option>
         </param>
       </option>
       <option name="upsource" value="upsourcePublisher">
@@ -441,7 +466,26 @@
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
           publisher = gitlab {
             gitlabApiUrl = "https://&lt;GitLab URL>/api/v4" // https://gitlab.com/api/v4 for gitlab.com
-            accessToken = "credentialsJSON:*****"
+            accessToken = personalToken {
+              accessToken = "credentialsJSON:*****"
+            }
+          }
+        }
+      </code>
+    </example>
+    <example>
+      <description>
+        Enables publishing build statuses to commits in GitLab.com / GitLab CE/EE.
+        Instead of personal token authentication a refreshable access token stored in TeamCity is used.
+      </description>
+      <code>
+        commitStatusPublisher {
+          vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
+          publisher = gitlab {
+            gitlabApiUrl = "https://&lt;GitLab URL>/api/v4" // https://gitlab.com/api/v4 for gitlab.com
+            authType = storedToken {
+              tokenId = "tc_token_id:*****"
+            }
           }
         }
       </code>
