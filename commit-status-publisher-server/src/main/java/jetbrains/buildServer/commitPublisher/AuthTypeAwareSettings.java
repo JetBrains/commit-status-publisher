@@ -1,9 +1,8 @@
 package jetbrains.buildServer.commitPublisher;
 
-import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import jetbrains.buildServer.pullRequests.VcsAuthType;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.WebLinks;
@@ -15,6 +14,7 @@ import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.credentials.BearerTokenCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
@@ -100,9 +100,64 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
         }
         return new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
 
+      case Constants.AUTH_TYPE_VCS:
+        return getVcsRootCredentials(root);
+
       default:
         throw new PublisherException("unsupported authentication type " + authType);
     }
+  }
+
+  public HttpCredentials getVcsRootCredentials(@Nullable VcsRoot root) throws PublisherException {
+    if (root == null) {
+      throw new PublisherException("unable to determine VCS root to using credentials");
+    }
+
+    Map<String, String> vcsProperties = root.getProperties();
+    VcsAuthType vcsAuthType = VcsAuthType.get(vcsProperties);
+
+    if (vcsAuthType.equals(VcsAuthType.PASSWORD)) {
+      return getVcsRootPasswordCredentials(root, vcsProperties);
+    } else if (vcsAuthType.equals(VcsAuthType.ACCESS_TOKEN)) { // refreshable token
+      return getVcsRootRefreshableTokenCredentials(root, vcsProperties);
+    } else {
+      throw new PublisherException("unsupported VCS authentication type " + vcsAuthType);
+    }
+  }
+
+  public HttpCredentials getVcsRootPasswordCredentials(@NotNull VcsRoot root, @Nullable Map<String, String> vcsProperties) throws PublisherException {
+    if (vcsProperties == null) vcsProperties = root.getProperties();
+
+    final String username = vcsProperties.get("username");
+    final String password = vcsProperties.get("secure:password");
+    if (!StringUtil.isEmpty(username)) {
+      if (HttpHelper.X_OAUTH_BASIC.equals(password)) {
+        return new BearerTokenCredentials(username);
+      } else {
+        return new UsernamePasswordCredentials(username, password == null ? "" : password);
+      }
+    }
+    else if (!StringUtil.isEmpty(password)) {
+      return new BearerTokenCredentials(password);
+    } else {
+      throw new PublisherException("unable to get username/password credentials from VCS Root " + root.getVcsName());
+    }
+  }
+
+  public HttpCredentials getVcsRootRefreshableTokenCredentials(@NotNull VcsRoot root, @Nullable Map<String, String> vcsProperties) throws PublisherException {
+    if (vcsProperties == null) vcsProperties = root.getProperties();
+
+    final String tokenId = vcsProperties.get("tokenId");
+    if (StringUtil.isEmpty(tokenId)) {
+      throw new PublisherException("unable to get refreshable credentials from VCS Root " + root.getVcsName());
+    }
+
+    OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
+    if (token == null) {
+      throw new PublisherException("The configured VCS Root (" + root.getVcsName() + ") authentication with the refreshable token is missing or invalid.");
+    }
+
+    return new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
   }
 
   @Nullable

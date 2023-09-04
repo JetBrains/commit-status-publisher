@@ -192,7 +192,8 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
                                                      myOAuthConnectionsManager,
                                                      myOAuthTokenStorage,
                                                      myFixture.getUserModel(),
-                                                     myFixture.getSecurityContext());
+                                                     myFixture.getSecurityContext(),
+                                                     myFixture.getProjectManager());
     BitbucketCloudPublisher publisher = new BitbucketCloudPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
     publisher.setBaseUrl(getServerUrl() + "/");
     ((BitbucketCloudSettings)myPublisherSettings).setDefaultApiUrl(getServerUrl() + "/");

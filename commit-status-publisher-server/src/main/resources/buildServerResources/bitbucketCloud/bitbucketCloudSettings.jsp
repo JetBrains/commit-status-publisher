@@ -40,7 +40,7 @@
     </tr>
 
     <tr>
-      <th><label for="${keys.bitbucketCloudPassword}">Bitbucket Password:<l:star/></label></th>
+      <th><label for="${keys.bitbucketCloudPassword}">Bitbucket App Password:<l:star/></label></th>
       <td>
         <props:passwordProperty name="${keys.bitbucketCloudPassword}" className="mediumField"/>
         <span class="error" id="error_${keys.bitbucketCloudPassword}"></span>
@@ -84,6 +84,18 @@
         </c:if>
       </td>
     </tr>
+  </props:selectSectionPropertyContent>
+
+  <props:selectSectionPropertyContent value="${keys.authTypeVCS}" caption="Use VCS root(-s) credentials">
+    <tr><td colspan="2">
+      <em>
+        TeamCity obtains App password / token based credentials from the VCS root settings.
+        This option will not work if the VCS root uses an SSH fetch URL,
+        employs anonymous authentication or uses
+        an actual password
+        of the user rather than a token.
+      </em>
+    </td></tr>
   </props:selectSectionPropertyContent>
 
   <c:if test="${testConnectionSupported}">

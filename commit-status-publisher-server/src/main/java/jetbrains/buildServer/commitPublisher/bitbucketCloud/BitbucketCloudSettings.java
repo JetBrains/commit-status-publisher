@@ -33,9 +33,11 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
+import jetbrains.buildServer.vcshostings.http.credentials.BearerTokenCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
@@ -47,6 +49,7 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
 
   static final String DEFAULT_API_URL = "https://api.bitbucket.org/";
   static final String DEFAULT_AUTH_TYPE = Constants.PASSWORD;
+  static final String ACCESS_TOKEN_USERNAME = "x-token-auth";
   static final BitbucketCloudRepositoryParser VCS_PROPERTIES_PARSER = new BitbucketCloudRepositoryParser();
 
   private String myDefaultApiUrl = DEFAULT_API_URL;
@@ -67,6 +70,8 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
 
   private final CommitStatusesCache<BitbucketCloudCommitBuildStatus> myStatusesCache;
 
+  private final ProjectManager myProjectManager;
+
   public BitbucketCloudSettings(@NotNull PluginDescriptor descriptor,
                                 @NotNull WebLinks links,
                                 @NotNull CommitStatusPublisherProblems problems,
@@ -74,9 +79,11 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
                                 @NotNull OAuthConnectionsManager oAuthConnectionsManager,
                                 @NotNull OAuthTokensStorage oAuthTokensStorage,
                                 @NotNull UserModel userModel,
-                                @NotNull SecurityContext securityContext) {
+                                @NotNull SecurityContext securityContext,
+                                @NotNull ProjectManager projectManager) {
     super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, oAuthConnectionsManager, securityContext);
     myStatusesCache = new CommitStatusesCache<>();
+    myProjectManager = projectManager;
   }
 
   void setDefaultApiUrl(@NotNull String url) {
@@ -131,6 +138,21 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
             if (StringUtil.isEmpty(params.get(Constants.TOKEN_ID))) {
               errors.add(new InvalidProperty(Constants.TOKEN_ID, "No token configured"));
             }
+            break;
+
+          case Constants.AUTH_TYPE_VCS:
+            params.remove(Constants.BITBUCKET_CLOUD_USERNAME);
+            params.remove(Constants.BITBUCKET_CLOUD_PASSWORD);
+            params.remove(Constants.TOKEN_ID);
+
+            String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
+            SVcsRoot vcsRoot = null == vcsRootId ? null : myProjectManager.findVcsRootByExternalId(vcsRootId);
+            if (null != vcsRoot) {
+              String vcsUrl = vcsRoot.getProperty("url");
+              if (!StringUtil.isEmpty(vcsUrl) && !vcsUrl.trim().toLowerCase().startsWith("http"))
+                errors.add(new InvalidProperty(Constants.AUTH_TYPE, "Credentials can not be extracted as the selected VCS root uses non-HTTP(S) fetch URL"));
+            }
+
             break;
 
           default:
@@ -234,6 +256,10 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
         sb.append("access token");
         break;
 
+      case Constants.AUTH_TYPE_VCS:
+        sb.append("VCS Root credentials");
+        break;
+
       default:
         sb.append("unknown authentication type");
     }
@@ -259,4 +285,19 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
     return params.get(Constants.BITBUCKET_CLOUD_PASSWORD);
   }
 
+
+  @Override
+  public HttpCredentials getVcsRootPasswordCredentials(@NotNull VcsRoot root, @Nullable Map<String, String> vcsProperties) throws PublisherException {
+    if (vcsProperties == null) vcsProperties = root.getProperties();
+
+    final String username = vcsProperties.get("username");
+    final String password = vcsProperties.get("secure:password");
+
+    if (ACCESS_TOKEN_USERNAME.equals(username)) {
+      if (StringUtil.isEmpty(password))
+        throw new PublisherException("Unable to get Access Token credentials from VCS Root \" + root.getVcsName()");
+      return new BearerTokenCredentials(password);
+    }
+    return super.getVcsRootPasswordCredentials(root, vcsProperties);
+  }
 }
