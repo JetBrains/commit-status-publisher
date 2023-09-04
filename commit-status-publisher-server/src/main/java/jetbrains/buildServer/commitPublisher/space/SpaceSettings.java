@@ -17,6 +17,7 @@
 package jetbrains.buildServer.commitPublisher.space;
 
 import com.google.common.collect.ImmutableMap;
+import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.*;
@@ -28,14 +29,20 @@ import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.oauth.*;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
+import jetbrains.buildServer.serverSide.oauth.space.SpaceConstants;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceFeatures;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthProvider;
+import jetbrains.buildServer.serverSide.oauth.space.application.SpaceApplicationInformation;
+import jetbrains.buildServer.serverSide.oauth.space.application.SpaceApplicationInformationManager;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
+import jetbrains.buildServer.vcshostings.url.InvalidUriException;
+import jetbrains.buildServer.vcshostings.url.ServerURI;
+import jetbrains.buildServer.vcshostings.url.ServerURIParser;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.http.HttpHeaders;
@@ -48,20 +55,11 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 public class SpaceSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
-  static final String CHANGES_FIELD = "changes";
-  static final String EXECUTION_STATUS_FIELD = "executionStatus";
-  static final String BUILD_URL_FIELD = "url";
-  static final String EXTERNAL_SERVICE_NAME_FIELD = "externalServiceName";
-  static final String TASK_NAME_FIELD = "taskName";
-  static final String TASK_ID_FIELD = "taskId";
-  static final String TASK_BUILD_ID_FIELD = "taskBuildId";
-  static final String TIMESTAMP_FIELD = "timestamp";
-  static final String DESCRIPTION_FIELD = "description";
-
-  private final OAuthConnectionsManager myOAuthConnectionManager;
-  private final OAuthTokensStorage myOAuthTokensStorage;
-  private final CommitStatusesCache<SpaceBuildStatusInfo> myStatusesCache;
+  @NotNull private final OAuthConnectionsManager myOAuthConnectionManager;
   @NotNull private final SecurityContext mySecurityContext;
+  @NotNull private final SpaceApplicationInformationManager myApplicationInformationManager;
+
+  @NotNull private final CommitStatusesCache<SpaceBuildStatusInfo> myStatusesCache;
 
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     add(Event.STARTED);
@@ -82,12 +80,13 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
                        @NotNull CommitStatusPublisherProblems problems,
                        @NotNull SSLTrustStoreProvider trustStoreProvider,
                        @NotNull OAuthConnectionsManager oAuthConnectionsManager,
-                       @NotNull OAuthTokensStorage oauthTokensStorage,
-                       @NotNull SecurityContext securityContext) {
+                       @NotNull SecurityContext securityContext,
+                       @NotNull SpaceApplicationInformationManager applicationInformationManager) {
     super(descriptor, links, problems, trustStoreProvider);
     myOAuthConnectionManager = oAuthConnectionsManager;
-    myOAuthTokensStorage = oauthTokensStorage;
     mySecurityContext = securityContext;
+    myApplicationInformationManager = applicationInformationManager;
+
     myStatusesCache = new CommitStatusesCache<>();
   }
 
@@ -288,10 +287,15 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   private SpaceConnectDescriber findConnectionByVcsRoot(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot) {
     final String tokenId = vcsRoot.getProperty("tokenId");
     if (tokenId == null) {
-      LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used for unconditional status publishing: its not using refreshable tokens");
-      return null;
+      LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " is not using refreshable tokens, trying to guess connection from fetch URL");
+      return guessConnectionFromFetchUrl(buildType, vcsRoot);
     }
 
+    return findConnectionByTokenId(buildType, vcsRoot, tokenId);
+  }
+
+  @Nullable
+  private SpaceConnectDescriber findConnectionByTokenId(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot, @NotNull String tokenId) {
     final TokenFullIdComponents tokenFullIdComponents = OAuthTokensStorage.parseFullTokenId(tokenId);
     if (tokenFullIdComponents == null) {
       LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used for unconditional status publishing: unparseable token ID " + tokenId);
@@ -312,5 +316,149 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " on " + LogUtil.describe(buildType) +
                     " is using Space refreshable tokens, unconditional status publishing is supported");
     return new SpaceConnectDescriber(connection);
+  }
+
+  @Nullable
+  private SpaceConnectDescriber guessConnectionFromFetchUrl(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot) {
+    final String fetchUrl = vcsRoot.getProperty("url");
+    if (StringUtil.isEmptyOrSpaces(fetchUrl)) {
+      LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used for unconditional status publishing: the fetch URL is empty");
+      return null;
+    }
+
+    final TokenizedFetchUrl tokenizedFetchUrl;
+    try {
+      tokenizedFetchUrl = tokenizeFetchUrl(fetchUrl);
+    } catch (InvalidUriException e) {
+      LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used for unconditional status publishing: failed to extract project key out of fetch URL " + fetchUrl, e);
+      return null;
+    }
+
+    if (tokenizedFetchUrl.getProjectKey() == null) {
+      LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used for unconditional status publishing: unable to locate project key in fetch URL " + fetchUrl);
+      return null;
+    }
+    final String projectKey = tokenizedFetchUrl.getProjectKey().toUpperCase(Locale.ROOT);
+
+    final List<OAuthConnectionDescriptor> potentialConnections = myOAuthConnectionManager.getAvailableConnectionsOfType(buildType.getProject(), SpaceOAuthProvider.TYPE);
+    for (OAuthConnectionDescriptor potentialConnection : potentialConnections) {
+      final SpaceConnectDescriber spaceConnection = new SpaceConnectDescriber(potentialConnection);
+      final SpaceApplicationInformation applicationInfo = myApplicationInformationManager.getForConnection(spaceConnection);
+      if (hasPublishStatusRights(applicationInfo, projectKey) && matchesUrl(potentialConnection, spaceConnection, tokenizedFetchUrl)) {
+        return spaceConnection;
+      }
+    }
+
+    LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used for unconditional status publishing: there is no usable connection for project key " + projectKey);
+    return null;
+  }
+
+  private boolean hasPublishStatusRights(@NotNull SpaceApplicationInformation applicationInformation, @NotNull String projectKey) {
+    final String contextIdentifierProject = SpaceConstants.CONTEXT_IDENTIFIER_PROJECT_KEY + projectKey;
+    return applicationInformation.getContextRights(contextIdentifierProject).areGranted(SpaceConstants.RIGHTS_COMMIT_STATUS) ||
+           applicationInformation.getGlobalRights().areGranted(SpaceConstants.RIGHTS_COMMIT_STATUS);
+  }
+
+  private boolean matchesUrl(@NotNull OAuthConnectionDescriptor connection, @NotNull SpaceConnectDescriber spaceConnection, @NotNull TokenizedFetchUrl tokenizedFetchUrl) {
+    final TokenizedServiceUrl tokenizedServiceUrl;
+    try {
+      tokenizedServiceUrl = tokenizeServiceUrl(spaceConnection.getFullAddress());
+    } catch (IllegalArgumentException e) {
+      LOG.debug(() -> "Space connection " + LogUtil.describe(connection) + " can't be used for unconditional status publishing: service URL is not parseable", e);
+      return false;
+    }
+
+    if (!Objects.equals(tokenizedServiceUrl.getOrganization(), tokenizedFetchUrl.getOrganization())) {
+      LOG.debug(() -> "Space connection " + LogUtil.describe(connection) + " can't be used for unconditional status publishing: organizations don't match");
+      return false;
+    }
+
+    if (tokenizedServiceUrl.getHost().equals(tokenizedServiceUrl.getHost())) {
+      return true;
+    }
+
+    final String[] serviceHostTokens = tokenizedServiceUrl.getHost().split("\\.");
+    final String[] fetchHostTokens = tokenizedFetchUrl.getHost().split("\\.");
+    int matchCount = 0;
+    int i = serviceHostTokens.length - 1;
+    int j = fetchHostTokens.length - 1;
+    while (i >= 0 && j >= 0 && serviceHostTokens[i--].equals(fetchHostTokens[j--])) {
+      matchCount++;
+    }
+    return matchCount > 1;
+  }
+
+  @NotNull
+  private static TokenizedFetchUrl tokenizeFetchUrl(@NotNull String fetchUrl) {
+    final ServerURI serverURI = ServerURIParser.createServerURI(fetchUrl.toLowerCase(Locale.ROOT));
+    final String host = serverURI.getHost();
+
+    //                                        size - 3 |  size - 2 |  size - 1
+    // cloud:   ssh://git@git.jetbrains.space/test-org/test-project/testrepo.git
+    // on-prem: ssh://git@git.mycompany.test/test-project/testrepo.git
+    final List<String> pathFragments = serverURI.getPathFragments();
+    int size = pathFragments.size();
+    if (size < 2) {
+      return new TokenizedFetchUrl(host, null, null);
+    }
+    final String projectKey = pathFragments.get(size - 2);
+    final String organization = (host.endsWith(Constants.DOMAIN_SPACE_CLOUD) && size >= 3) ? pathFragments.get(size - 3) : null;
+
+    return new TokenizedFetchUrl(host, organization, projectKey);
+  }
+
+  @NotNull
+  private static TokenizedServiceUrl tokenizeServiceUrl(@NotNull String serviceUrl) {
+    final URI uri = URI.create(serviceUrl);
+    final String host = uri.getHost();
+    final String organization = host.endsWith(Constants.DOMAIN_SPACE_CLOUD) ? host.split("\\.")[0] : null;
+    return new TokenizedServiceUrl(host, organization);
+  }
+
+  private static class TokenizedFetchUrl {
+    @NotNull private final String myHost;
+    @Nullable private final String myOrganization;
+    @Nullable private final String myProjectKey;
+
+    public TokenizedFetchUrl(@NotNull String host, @Nullable String organization, @Nullable String projectKey) {
+      myHost = host;
+      myOrganization = organization;
+      myProjectKey = projectKey;
+    }
+
+    @NotNull
+    public String getHost() {
+      return myHost;
+    }
+
+    @Nullable
+    public String getOrganization() {
+      return myOrganization;
+    }
+
+    @Nullable
+    public String getProjectKey() {
+      return myProjectKey;
+    }
+  }
+
+  private static class TokenizedServiceUrl {
+    @NotNull private final String myHost;
+    @Nullable private final String myOrganization;
+
+    public TokenizedServiceUrl(@NotNull String host, @Nullable String organization) {
+      myHost = host;
+      myOrganization = organization;
+    }
+
+    @NotNull
+    public String getHost() {
+      return myHost;
+    }
+
+    @Nullable
+    public String getOrganization() {
+      return myOrganization;
+    }
   }
 }

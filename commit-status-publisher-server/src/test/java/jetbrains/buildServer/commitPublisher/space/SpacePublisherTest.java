@@ -29,10 +29,12 @@ import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.serverSide.oauth.OAuthConstants;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthKeys;
+import jetbrains.buildServer.serverSide.oauth.space.application.SpaceApplicationInformationManager;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
 import org.jmock.Mock;
+import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -78,8 +80,14 @@ public class SpacePublisherTest extends HttpPublisherTest {
       put(SpaceOAuthKeys.SPACE_CLIENT_SECRET, FAKE_CLIENT_SECRET);
       put(Constants.SPACE_SERVER_URL, getServerUrl());
     }}).getId();
-    myPublisherSettings = new SpaceSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myOAuthConnectionsManager, myOAuthTokenStorage,
-                                            myFixture.getSecurityContext());
+    final SpaceApplicationInformationManager applicationInformationManager = Mockito.mock(SpaceApplicationInformationManager.class);
+    myPublisherSettings = new SpaceSettings(new MockPluginDescriptor(),
+                                            myWebLinks,
+                                            myProblems,
+                                            myTrustStoreProvider,
+                                            myOAuthConnectionsManager,
+                                            myFixture.getSecurityContext(),
+                                            applicationInformationManager);
     Map<String, String> params = getPublisherParams();
     SpaceConnectDescriber connector = SpaceUtils.getConnectionData(params, myOAuthConnectionsManager, myBuildType.getProject());
     myPublisher = new SpacePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, connector, new CommitStatusesCache<>());

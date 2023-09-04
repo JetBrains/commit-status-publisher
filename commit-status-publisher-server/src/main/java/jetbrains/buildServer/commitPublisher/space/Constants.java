@@ -34,6 +34,8 @@ public class Constants {
 
   public static final String SPACE_UNCONDITIONAL_FEATURE_FORMAT = "SPACE_UNCONDITIONAL_PUBLISHER_BT_%s_VCSR_%s";
 
+  public static final String DOMAIN_SPACE_CLOUD = "jetbrains.space";
+
   @NotNull
   public String getSpacePublisherId() {
     return SPACE_PUBLISHER_ID;

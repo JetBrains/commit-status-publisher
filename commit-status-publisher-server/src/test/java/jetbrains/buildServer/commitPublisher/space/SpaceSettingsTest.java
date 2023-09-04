@@ -1,8 +1,9 @@
 package jetbrains.buildServer.commitPublisher.space;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
-import java.util.Date;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherTestBase;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
@@ -10,11 +11,13 @@ import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
 import jetbrains.buildServer.serverSide.oauth.*;
-import jetbrains.buildServer.serverSide.oauth.space.SpaceClientFactory;
-import jetbrains.buildServer.serverSide.oauth.space.SpaceConstants;
-import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthKeys;
-import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthProvider;
+import jetbrains.buildServer.serverSide.oauth.space.*;
 import jetbrains.buildServer.serverSide.oauth.space.application.ApplicationInformationCapabilityResolver;
+import jetbrains.buildServer.serverSide.oauth.space.application.SpaceApplicationInformation;
+import jetbrains.buildServer.serverSide.oauth.space.application.SpaceApplicationInformationManager;
+import jetbrains.buildServer.serverSide.oauth.space.pojo.SpaceApplicationRights;
+import jetbrains.buildServer.serverSide.oauth.space.pojo.SpaceRight;
+import jetbrains.buildServer.serverSide.oauth.space.pojo.SpaceRightStatus;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
@@ -22,6 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import static org.assertj.core.api.BDDAssertions.then;
@@ -35,6 +39,7 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
   private static final String TEST_SERVER_URL = "https://space.test.local";
   private static final String DUMMY_OAUTH_PROVIDER_TYPE = "DummyOAuthProvider";
 
+  private SpaceApplicationInformationManager myMockApplicationInformationManager;
   private ApplicationInformationCapabilityResolver myMockCapabilityResolver;
   private OAuthConnectionsManager myConnectionsManager;
   private OAuthTokensStorage myTokenStorage;
@@ -45,6 +50,8 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
   public void setUp() throws Exception {
     super.setUp();
 
+    myMockApplicationInformationManager = Mockito.mock(SpaceApplicationInformationManager.class);
+    when(myMockApplicationInformationManager.getForConnection(any(SpaceConnectDescriber.class))).thenReturn(SpaceApplicationInformation.none());
     myMockCapabilityResolver = Mockito.mock(ApplicationInformationCapabilityResolver.class);
     final SpaceClientFactory mockFactory = Mockito.mock(SpaceClientFactory.class);
     final SpaceOAuthProvider spaceOAuthProvider = new SpaceOAuthProvider(myWebLinks, mockFactory, myMockCapabilityResolver);
@@ -55,7 +62,13 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
     final SecurityContextImpl securityContext = myFixture.getSecurityContext();
     myTokenStorage = myFixture.getSingletonService(OAuthTokensStorage.class);
     myConnectionsManager = myFixture.getSingletonService(OAuthConnectionsManager.class);
-    mySettings = new SpaceSettings(new MockPluginDescriptor(), myWebLinks, myProblems, trustStoreProvider, myConnectionsManager, myTokenStorage, securityContext);
+    mySettings = new SpaceSettings(new MockPluginDescriptor(),
+                                   myWebLinks,
+                                   myProblems,
+                                   trustStoreProvider,
+                                   myConnectionsManager,
+                                   securityContext,
+                                   myMockApplicationInformationManager);
   }
 
   @Test
@@ -140,16 +153,124 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
     then(publisher).isNull();
   }
 
+  @DataProvider
+  static Object[][] fetchUrls() {
+    return new Object[][]{
+      {"ssh://git@git.jetbrains.space/test-org/test-project/testrepo.git", "https://test-org.jetbrains.space"},
+      {"https://git.jetbrains.space/test-org/test-project/testrepo.git", "https://test-org.jetbrains.space"},
+      {"ssh://git@git.mycompany.test/test-project/testrepo.git", "https://mycompany.test"},
+      {"ssh://git@git.mycompany.test/tEsT-pRoJeCt/testrepo.git", "https://mycompany.test"},
+      {"ssh://git@git.mycompany.test/test-project/testrepo.git", "https://www.mycompany.test"},
+      {"https://git.mycompany.test/test-project/testrepo.git", "https://mycompany.test"},
+      {"user@git.mycompany.test:/test-project/testrepo", "https://mycompany.test"},
+      {"ssh://git@spaceserver/test-project/testrepo.git", "http://spaceserver"},
+    };
+  }
+
+  @Test(dataProvider = "fetchUrls")
+  public void createFeatureLessPublisher_guessFromFetchUrl(@NotNull String fetchUrl, @NotNull String serviceUrl) {
+    final ProjectEx project = createProject("testproject");
+    enableUnconditionalStatusPublishing(project);
+    addSpaceConnection(project, serviceUrl);
+    mockApplicationInfoWithPublishingRights(SpaceConstants.CONTEXT_IDENTIFIER_PROJECT_KEY + "TEST-PROJECT");
+    final BuildTypeEx buildType = project.createBuildType("testbuild");
+    final SVcsRoot vcsRoot = addVcsRoot(buildType, fetchUrl);
+
+    final CommitStatusPublisher publisher = mySettings.createFeaturelessPublisher(buildType, vcsRoot);
+
+    then(publisher).isNotNull();
+    then(publisher.getId()).isEqualTo(Constants.SPACE_PUBLISHER_ID);
+    then(publisher.getBuildFeatureId()).isNotNull();
+    then(publisher.getBuildType()).isEqualTo(buildType);
+    then(publisher.getVcsRootId()).isEqualTo(String.valueOf(vcsRoot.getId()));
+  }
+
+  @Test
+  public void createFeatureLessPublisher_guessFromFetchUrl_globalRights() {
+    final ProjectEx project = createProject("testproject");
+    enableUnconditionalStatusPublishing(project);
+    addSpaceConnection(project, "https://test-org.jetbrains.space");
+    mockApplicationInfoWithPublishingRights(SpaceConstants.CONTEXT_IDENTIFIER_GLOBAL);
+    final BuildTypeEx buildType = project.createBuildType("testbuild");
+    final SVcsRoot vcsRoot = addVcsRoot(buildType, "ssh://git@git.jetbrains.space/test-org/test-project/testrepo.git");
+
+    final CommitStatusPublisher publisher = mySettings.createFeaturelessPublisher(buildType, vcsRoot);
+
+    then(publisher).isNotNull();
+    then(publisher.getId()).isEqualTo(Constants.SPACE_PUBLISHER_ID);
+    then(publisher.getBuildFeatureId()).isNotNull();
+    then(publisher.getBuildType()).isEqualTo(buildType);
+    then(publisher.getVcsRootId()).isEqualTo(String.valueOf(vcsRoot.getId()));
+  }
+
+  @DataProvider
+  static Object[][] notMatchingUrls() {
+    return new Object[][]{
+      {"ssh://git@git.jetbrains.space/other-org/test-project/testrepo.git", "https://test-org.jetbrains.space"},
+      {"ssh://git@git.mycompany.test/other-project/testrepo.git", "https://mycompany.test"},
+      {"ssh://git@git.mycompany.test/testrepo.git", "https://mycompany.test"},
+      {"https://invalid.test", "https://mycompany.test"},
+      {"    ", "https://mycompany.test"},
+    };
+  }
+
+  @Test(dataProvider = "notMatchingUrls")
+  public void createFeatureLessPublisher_guessFromFetchUrl_notMatching(@NotNull String notMatchingUrl, @NotNull String serviceUrl) {
+    final ProjectEx project = createProject("testproject");
+    enableUnconditionalStatusPublishing(project);
+    addSpaceConnection(project, serviceUrl);
+    mockApplicationInfoWithPublishingRights(SpaceConstants.CONTEXT_IDENTIFIER_PROJECT_KEY + "TEST-PROJECT");
+    final BuildTypeEx buildType = project.createBuildType("testbuild");
+    final SVcsRoot vcsRoot = addVcsRoot(buildType, notMatchingUrl);
+
+    final CommitStatusPublisher publisher = mySettings.createFeaturelessPublisher(buildType, vcsRoot);
+
+    then(publisher).isNull();
+  }
+
+  @Test
+  public void createFeatureLessPublisher_guessFromFetchUrl_wrongRights() {
+    final ProjectEx project = createProject("testproject");
+    enableUnconditionalStatusPublishing(project);
+    addSpaceConnection(project, "https://test-org.jetbrains.space");
+    mockApplicationInfoWithPublishingRights(SpaceConstants.CONTEXT_IDENTIFIER_PROJECT_KEY + "OTHER-PROJECT");
+    final BuildTypeEx buildType = project.createBuildType("testbuild");
+    final SVcsRoot vcsRoot = addVcsRoot(buildType, "ssh://git@git.jetbrains.space/test-org/test-project/testrepo.git");
+
+    final CommitStatusPublisher publisher = mySettings.createFeaturelessPublisher(buildType, vcsRoot);
+
+    then(publisher).isNull();
+  }
+
+  @Test
+  public void createFeatureLessPublisher_guessFromFetchUrl_noConnection() {
+    final ProjectEx project = createProject("testproject");
+    enableUnconditionalStatusPublishing(project);
+
+    final BuildTypeEx buildType = project.createBuildType("testbuild");
+    final SVcsRoot vcsRoot = addVcsRoot(buildType, "ssh://git@git.jetbrains.team/test-project/testrepo.git");
+
+    final CommitStatusPublisher publisher = mySettings.createFeaturelessPublisher(buildType, vcsRoot);
+
+    then(publisher).isNull();
+  }
+
   private void enableUnconditionalStatusPublishing(@NotNull ProjectEx project) {
     project.addParameter(getParameterFactory().createSimpleParameter(SpaceConstants.FEATURE_TOGGLE_UNCONDITIONAL_COMMIT_STATUS, "true"));
   }
 
   @NotNull
   private OAuthConnectionDescriptor addSpaceConnection(@NotNull ProjectEx project) {
+    return addSpaceConnection(project, null);
+  }
+
+  @NotNull
+  private OAuthConnectionDescriptor addSpaceConnection(@NotNull ProjectEx project, @Nullable String serviceUrl) {
+    final String url = serviceUrl != null ? serviceUrl : TEST_SERVER_URL;
     return myConnectionsManager.addConnection(project, SpaceOAuthProvider.TYPE, ImmutableMap.of(
       SpaceOAuthKeys.SPACE_CLIENT_ID, TEST_CLIENT_ID,
       SpaceOAuthKeys.SPACE_CLIENT_SECRET, TEST_CLIENT_SECRET,
-      SpaceOAuthKeys.SPACE_SERVER_URL, TEST_SERVER_URL
+      SpaceOAuthKeys.SPACE_SERVER_URL, url
     ));
   }
 
@@ -166,22 +287,53 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
       });
   }
 
+  private void mockApplicationInfoWithPublishingRights(@NotNull String contextIdentifier) {
+    final Map<SpaceRight, SpaceRightStatus> rights =
+      SpaceConstants.RIGHTS_COMMIT_STATUS.stream()
+                                         .collect(Collectors.toMap(Function.identity(),
+                                                                   right -> SpaceRightStatus.GRANTED,
+                                                                   (a, b) -> b,
+                                                                   () -> new EnumMap<>(SpaceRight.class)));
+    final SpaceApplicationRights commitStatusRights = new SpaceApplicationRights(contextIdentifier, rights);
+    final Map<String, SpaceApplicationRights> projectRights = ImmutableMap.of(contextIdentifier, commitStatusRights);
+
+    SpaceApplicationInformation info = new SpaceApplicationInformation(false, false, projectRights, "test-app-id", null);
+    when(myMockApplicationInformationManager.getForConnection(any(SpaceConnectDescriber.class))).thenReturn(info);
+  }
+
   @NotNull
   private OAuthToken createAccessToken(@NotNull OAuthConnectionDescriptor connection) {
     final OAuthToken token = new OAuthToken("access-token", "**", "x-oauth-user", 600, -1, new Date().getTime());
     return myTokenStorage.rememberToken(connection.getTokenStorageId(), token);
   }
 
+  @NotNull
   private SVcsRoot addVcsRoot(@NotNull BuildTypeEx buildType) {
-    return addVcsRoot(buildType, null, null);
+    return addVcsRoot(buildType, null, null, null);
   }
 
-  private SVcsRoot addVcsRoot(@NotNull BuildTypeEx buildType, @Nullable OAuthConnectionDescriptor connection, @Nullable OAuthToken token) {
+  @NotNull
+  private SVcsRoot addVcsRoot(@NotNull BuildTypeEx buildType, @NotNull String fetchUrl) {
+    return addVcsRoot(buildType, null, null, fetchUrl);
+  }
+
+  @NotNull
+  private SVcsRoot addVcsRoot(@NotNull BuildTypeEx buildType, @NotNull OAuthConnectionDescriptor connection, @NotNull OAuthToken token) {
+    return addVcsRoot(buildType, connection, token, null);
+  }
+
+  @NotNull
+  private SVcsRoot addVcsRoot(@NotNull BuildTypeEx buildType, @Nullable OAuthConnectionDescriptor connection, @Nullable OAuthToken token, @Nullable String fetchUrl) {
     final SVcsRootImpl vcsRoot = myFixture.addVcsRoot("jetbrains.git", "", buildType);
+    final Map<String, String> properties = new HashMap<>();
     if (token != null && connection != null) {
-      vcsRoot.setProperties(ImmutableMap.of(
-        "tokenId", connection.buildFullTokenId(token.getId())
-      ));
+      properties.put("tokenId", connection.buildFullTokenId(token.getId()));
+    }
+    if (fetchUrl != null) {
+      properties.put("url", fetchUrl);
+    }
+    if (!properties.isEmpty()) {
+      vcsRoot.setProperties(properties);
     }
     return vcsRoot;
   }
