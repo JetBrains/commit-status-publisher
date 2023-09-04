@@ -29,10 +29,7 @@ import jetbrains.buildServer.commitPublisher.gitlab.data.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.vcs.SVcsModification;
-import jetbrains.buildServer.vcs.VcsModificationHistoryEx;
-import jetbrains.buildServer.vcs.VcsRoot;
-import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import org.jetbrains.annotations.NotNull;
@@ -198,14 +195,12 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
 
   private String buildRevisionStatusesUrl(@NotNull BuildRevision revision, @Nullable BuildType buildType) throws PublisherException {
     VcsRootInstance root = revision.getRoot();
-    String apiUrl = getApiUrl();
-    if (null == apiUrl || apiUrl.length() == 0)
-      throw new PublisherException("Missing GitLab API URL parameter");
+    String apiUrl = getApiUrl(root.getProperty("url"));
     String pathPrefix = GitlabSettings.getPathPrefix(apiUrl);
     Repository repository = parseRepository(root, pathPrefix);
     if (repository == null)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
-    String statusesUrl = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/repository/commits/" + revision.getRevision() + "/statuses";
+    String statusesUrl = GitlabSettings.getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName()) + "/repository/commits/" + revision.getRevision() + "/statuses";
     if (buildType != null) {
       statusesUrl += ("?" + encodeParameter("name", buildType.getFullName()));
     }
@@ -271,9 +266,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
                        @NotNull BuildRevision revision,
                        @NotNull String buildDescription) throws PublisherException {
     VcsRootInstance root = revision.getRoot();
-    String apiUrl = getApiUrl();
-    if (null == apiUrl || apiUrl.length() == 0)
-      throw new PublisherException("Missing GitLab API URL parameter");
+    String apiUrl = getApiUrl(root.getProperty("url"));
     String pathPrefix = GitlabSettings.getPathPrefix(apiUrl);
     Repository repository = parseRepository(root, pathPrefix);
     if (repository == null)
@@ -296,7 +289,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
                        @NotNull String data,
                        @NotNull Repository repository,
                        @NotNull String buildDescription) throws PublisherException {
-    String url = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/statuses/" + commit;
+    String url = GitlabSettings.getProjectsUrl(getApiUrl(repository.url()), repository.owner(), repository.repositoryName()) + "/statuses/" + commit;
     LOG.debug("Request url: " + url + ", message: " + data);
     postJson(url, credentials, data, null, buildDescription);
   }
@@ -351,8 +344,24 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
   }
 
 
-  private String getApiUrl() {
-    return HttpHelper.stripTrailingSlash(myParams.get(Constants.GITLAB_API_URL));
+  @NotNull
+  private String getApiUrl(@Nullable String vcsRootUrl) throws PublisherException {
+    if (!StringUtil.isEmptyOrSpaces(myParams.get(Constants.GITLAB_API_URL)))
+      return HttpHelper.stripTrailingSlash(myParams.get(Constants.GITLAB_API_URL));
+
+    String url = vcsRootUrl;
+    if (url == null) {
+      List<SVcsRoot> roots = myBuildType.getVcsRoots();
+      if (roots.size() == 0) throw new PublisherException("Could not find VCS Root to extract URL");
+
+      url = roots.get(0).getProperty("url");
+      if (StringUtil.isEmptyOrSpaces(url)) throw new PublisherException("Could not find VCS Root URL to transform it into GitLab API URL");
+    }
+
+    String apiUrl = GitlabSettings.guessGitLabApiURL(url);
+    if (StringUtil.isEmptyOrSpaces(apiUrl)) throw new PublisherException("Could not transform VCS Root URL into GitLab API URL");
+
+    return apiUrl;
   }
 
   /**
@@ -396,7 +405,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
 
   @Nullable
   private GitLabMergeRequest getMergeRequest(@Nullable HttpCredentials credentials, @NotNull Repository repository, @NotNull String mergeRequestNumber) throws PublisherException {
-    final String url = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/merge_requests/" + mergeRequestNumber;
+    final String url = GitlabSettings.getProjectsUrl(getApiUrl(repository.url()), repository.owner(), repository.repositoryName()) + "/merge_requests/" + mergeRequestNumber;
     final ResponseEntityProcessor<GitLabMergeRequest> processor = new ResponseEntityProcessor<>(GitLabMergeRequest.class);
     final GitLabMergeRequest mergeRequest = get(url, credentials, null, processor);
     if (mergeRequest == null) {
@@ -442,7 +451,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
                                        @NotNull Repository repository,
                                        @NotNull GitLabMergeRequest mergeRequest,
                                        @NotNull String revision) throws PublisherException {
-    final String url = GitlabSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/repository/commits/" + revision + "/refs?type=branch";
+    final String url = GitlabSettings.getProjectsUrl(getApiUrl(repository.url()), repository.owner(), repository.repositoryName()) + "/repository/commits/" + revision + "/refs?type=branch";
     final ResponseEntityProcessor<GitLabCommitReference[]> processor = new ResponseEntityProcessor<>(GitLabCommitReference[].class);
     final GitLabCommitReference[] references = get(url, credentials, null, processor);
     if (references == null) {

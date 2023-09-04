@@ -33,6 +33,7 @@ import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthToken;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.serverSide.oauth.gitlab.GitLabCEorEEOAuthProvider;
+import jetbrains.buildServer.serverSide.oauth.gitlab.GitLabClientImpl;
 import jetbrains.buildServer.serverSide.oauth.gitlab.GitLabComOAuthProvider;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
@@ -42,6 +43,9 @@ import jetbrains.buildServer.vcs.VcsModificationHistoryEx;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
+import jetbrains.buildServer.vcshostings.url.InvalidUriException;
+import jetbrains.buildServer.vcshostings.url.ServerURI;
+import jetbrains.buildServer.vcshostings.url.ServerURIParser;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -113,8 +117,8 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
 
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    String apiUrl = params.get(Constants.GITLAB_API_URL);
-    if (null == apiUrl || apiUrl.length() == 0)
+    String apiUrl = params.getOrDefault(Constants.GITLAB_API_URL, guessGitLabApiURL(root.getProperty("url")));
+    if (StringUtil.isEmptyOrSpaces(apiUrl))
       throw new PublisherException("Missing GitLab API URL parameter");
     String pathPrefix = getPathPrefix(apiUrl);
     Repository repository = GitlabPublisher.parseRepository(root, pathPrefix);
@@ -223,9 +227,6 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
-        if (params.get(Constants.GITLAB_API_URL) == null)
-          errors.add(new InvalidProperty(Constants.GITLAB_API_URL, "GitLab API URL must be specified"));
-
         final String authenticationType = params.getOrDefault(Constants.AUTH_TYPE, Constants.AUTH_TYPE_ACCESS_TOKEN);
 
         if (Constants.AUTH_TYPE_STORED_TOKEN.equalsIgnoreCase(authenticationType)) {
@@ -247,6 +248,32 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
         return errors;
       }
     };
+  }
+
+  @Nullable
+  public static String guessGitLabApiURL(final @Nullable String vcsRootUrl) {
+    if (vcsRootUrl == null)
+      return null;
+
+    ServerURI uri;
+    try {
+      uri = ServerURIParser.createServerURI(vcsRootUrl);
+    } catch (InvalidUriException e) {
+      return null;
+    }
+
+    String resultScheme = "https";
+    String scheme = uri.getScheme();
+    if ("http".equalsIgnoreCase(scheme))
+      resultScheme = "http";
+
+    String port = uri.getPort();
+
+    return resultScheme
+           + "://"
+           + uri.getHost()
+           + (port == null ? "" : (":" + port))
+           + GitLabClientImpl.API_PATH;
   }
 
   @NotNull
