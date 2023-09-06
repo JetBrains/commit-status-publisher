@@ -91,7 +91,7 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
 
   @NotNull
   public String getName() {
-    return "Bitbucket Server (Atlassian Stash)";
+    return "Bitbucket Server / Data Center";
   }
 
   @Nullable
