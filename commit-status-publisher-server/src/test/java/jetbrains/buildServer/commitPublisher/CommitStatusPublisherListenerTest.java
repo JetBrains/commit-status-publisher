@@ -848,6 +848,27 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getLastComment()).isEqualTo(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED);
   }
 
+  public void should_not_publish_queued_for_build_to_optimized() {
+    prepareVcs();
+    String projectName = myProject.getName();
+    SBuildFeatureDescriptor myBuildFeature = myBuildType.getBuildFeatures().iterator().next();
+    SVcsRoot commonVcsRoot = myBuildType.getVcsRoots().iterator().next();
+    BuildTypeImpl bt2 = registerBuildType("bt2", projectName);
+    bt2.addBuildFeature(myBuildFeature);
+    bt2.addVcsRoot(commonVcsRoot);
+    myFixture.addDependency(myBuildType, bt2, true);
+    createBuild(bt2, Status.NORMAL);
+
+    assertEquals(2, myPublisher.getSentRequests().size());
+    addBuildToQueue();
+    waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 2, TASK_COMPLETION_TIMEOUT_MS);
+    RunningBuildEx runningBuild = myFixture.flushQueueAndWait();
+    myFixture.finishBuild(runningBuild, false);
+    myFixture.flushQueue();
+    waitForNRequestsToBeSent(5);
+
+    then(myPublisher.getEventsReceived()).doesNotContain(Event.QUEUED);
+  }
 
   private SVcsModification prepareVcs() {
     return prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.EXT_ID);

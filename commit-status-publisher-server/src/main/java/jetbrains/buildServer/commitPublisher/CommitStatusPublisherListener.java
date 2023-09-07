@@ -225,10 +225,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
     SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
     if (queuedBuild != null) {
-      if (buildPromotion.isPartOfBuildChain() && buildPromotion.getContainingChanges().isEmpty() && buildPromotion.getNumberOfDependedOnMe() != 0) {
-        LOG.debug(String.format("Queued status for build #%s will not be published, because it will be optimized", queuedBuild.getItemId()));
-        return;
-      }
       buildAddedToQueue(queuedBuild);
     } else {
       SBuild build = buildPromotion.getAssociatedBuild();
@@ -331,6 +327,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   private void buildAddedToQueue(@NotNull SQueuedBuild build) {
     if (isQueueDisabled()) return;
+    if (!shouldPublishQueuedEvent(build)) return;
 
     BuildPromotion buildPromotion = build.getBuildPromotion();
 
@@ -425,6 +422,16 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   private boolean shouldNotPublish(@Nullable SBuildType buildType) {
     return isBuildFeatureAbsent(buildType) && !myPublisherManager.isFeatureLessPublishingPossible(buildType);
+  }
+
+  private boolean shouldPublishQueuedEvent(@NotNull SQueuedBuild queuedBuild) {
+    final BuildPromotion buildPromotion = queuedBuild.getBuildPromotion();
+    if (buildPromotion.isPartOfBuildChain() && buildPromotion.getContainingChanges().isEmpty() && buildPromotion.getNumberOfDependedOnMe() != 0) {
+      LOG.debug(String.format("Queued status for build #%s will not be published, because it will be optimized", queuedBuild.getItemId()));
+      return false;
+    }
+
+    return true;
   }
 
   private boolean isBuildFeatureAbsent(@Nullable SBuildType buildType) {
