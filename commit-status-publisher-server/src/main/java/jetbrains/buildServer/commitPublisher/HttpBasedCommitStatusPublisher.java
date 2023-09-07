@@ -20,11 +20,14 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
@@ -98,6 +101,23 @@ public abstract class HttpBasedCommitStatusPublisher<Status> extends BaseCommitS
       LOG.warn(String.format("Failed to encode URL parameter \"%s\" value: \"%s\"", key, value), e);
       return key + "=" + value;
     }
+  }
+
+  @NotNull
+  protected String getApiUrlFromVcsRootUrl(@Nullable String vcsRootUrl) throws PublisherException {
+    String url = vcsRootUrl;
+    if (url == null) {
+      List<SVcsRoot> roots = myBuildType.getVcsRoots();
+      if (roots.size() == 0) throw new PublisherException("Could not find VCS Root to extract URL");
+
+      url = roots.get(0).getProperty("url");
+      if (StringUtil.isEmptyOrSpaces(url)) throw new PublisherException("Could not find VCS Root URL to transform it into GitLab API URL");
+    }
+
+    String apiUrl = getSettings().guessApiURL(url);
+    if (StringUtil.isEmptyOrSpaces(apiUrl)) throw new PublisherException("Could not transform VCS Root URL into GitLab API URL");
+
+    return apiUrl;
   }
 
 }

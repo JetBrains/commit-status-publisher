@@ -117,7 +117,7 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
 
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    String apiUrl = params.getOrDefault(Constants.GITLAB_API_URL, guessGitLabApiURL(root.getProperty("url")));
+    String apiUrl = params.getOrDefault(Constants.GITLAB_API_URL, guessApiURL(root.getProperty("url")));
     if (StringUtil.isEmptyOrSpaces(apiUrl))
       throw new PublisherException("Missing GitLab API URL parameter");
     String pathPrefix = getPathPrefix(apiUrl);
@@ -250,30 +250,14 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
     };
   }
 
+
+  @Override
   @Nullable
-  public static String guessGitLabApiURL(final @Nullable String vcsRootUrl) {
-    if (vcsRootUrl == null)
+  public String guessApiURL(@Nullable final String vcsRootUrl) {
+    String hostUrl = super.guessApiURL(vcsRootUrl);
+    if (hostUrl == null)
       return null;
-
-    ServerURI uri;
-    try {
-      uri = ServerURIParser.createServerURI(vcsRootUrl);
-    } catch (InvalidUriException e) {
-      return null;
-    }
-
-    String resultScheme = "https";
-    String scheme = uri.getScheme();
-    if ("http".equalsIgnoreCase(scheme))
-      resultScheme = "http";
-
-    String port = uri.getPort();
-
-    return resultScheme
-           + "://"
-           + uri.getHost()
-           + (port == null ? "" : (":" + port))
-           + GitLabClientImpl.API_PATH;
+    return hostUrl + GitLabClientImpl.API_PATH;
   }
 
   @NotNull

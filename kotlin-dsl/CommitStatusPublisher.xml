@@ -96,7 +96,7 @@
         <description>
           Publish status to Bitbucket Server / Data Center
         </description>
-        <param name="stashBaseUrl" dslName="url" mandatory="true">
+        <param name="stashBaseUrl" dslName="url">
           <description>
             Bitbucket Server URL
           </description>
@@ -470,7 +470,7 @@
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
           publisher = gitlab {
-            gitlabApiUrl = "https://&lt;GitLab URL>/api/v4" // https://gitlab.com/api/v4 for gitlab.com
+            gitlabApiUrl = "https://&lt;GitLab URL>/api/v4" // optional, the URL will be composed based on the VCS root fetch URL if omitted (https://gitlab.com/api/v4 for gitlab.com)
             accessToken = personalToken {
               accessToken = "credentialsJSON:*****"
             }
@@ -487,7 +487,7 @@
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
           publisher = gitlab {
-            gitlabApiUrl = "https://&lt;GitLab URL>/api/v4" // https://gitlab.com/api/v4 for gitlab.com
+            gitlabApiUrl = "https://&lt;GitLab URL>/api/v4" // optional, the URL will be composed based on the VCS root fetch URL if omitted (https://gitlab.com/api/v4 for gitlab.com)
             authType = storedToken {
               tokenId = "tc_token_id:*****"
             }
@@ -543,7 +543,7 @@
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
           publisher = bitbucketServer {
-              url = "&lt;Bitbucket Server base URL>"
+              url = "&lt;Bitbucket Server Base URL>" // optional, the URL will be composed based on the VCS root fetch URL if omitted
               authType = password {
               userName = "&lt;username>"
               password = "credentialsJSON:*****"
@@ -561,7 +561,7 @@
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
           publisher = bitbucketServer {
-            url = "&lt;Bitbucket Server base URL>"
+            url = "&lt;Bitbucket Server Base URL>"
             authType = storedToken {
               tokenId = "tc_token_id:*****"
             }

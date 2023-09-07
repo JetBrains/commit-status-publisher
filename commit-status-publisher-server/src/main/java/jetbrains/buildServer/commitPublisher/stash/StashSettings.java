@@ -38,6 +38,9 @@ import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
+import jetbrains.buildServer.vcshostings.url.InvalidUriException;
+import jetbrains.buildServer.vcshostings.url.ServerURI;
+import jetbrains.buildServer.vcshostings.url.ServerURIParser;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -135,8 +138,6 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<>();
 
-        mandatoryString(Constants.STASH_BASE_URL, "Server URL must be specified", params, errors);
-
         final String authType = getAuthType(params);
         switch(authType) {
           case Constants.PASSWORD:
@@ -176,7 +177,7 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
     final Repository repository = VCS_URL_PARSER.parseRepositoryUrl(vcsRootUrl);
     if (null == repository)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
-    String apiUrl = params.get(Constants.STASH_BASE_URL);
+    String apiUrl = params.getOrDefault(Constants.STASH_BASE_URL, guessApiURL(root.getProperty("url")));
     if (null == apiUrl || apiUrl.length() == 0)
       throw new PublisherException("Missing Bitbucket Server API URL parameter");
     String url = apiUrl + "/rest/api/1.0/projects/" + repository.owner() + "/repos/" + repository.repositoryName();

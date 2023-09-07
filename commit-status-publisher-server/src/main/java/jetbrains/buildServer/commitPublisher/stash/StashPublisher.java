@@ -137,7 +137,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
   }
 
   @Override
-  public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) {
+  public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
     BuildPromotion buildPromotion = removedBuild.getBuildPromotion();
     JsonStashBuildStatus buildStatus = getBuildStatus(revision, buildPromotion);
     return getRevisionStatusForRemovedBuild(removedBuild, buildStatus);
@@ -162,11 +162,23 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     return getRevisionStatus(buildPromotion, buildStatus);
   }
 
-  private JsonStashBuildStatus getBuildStatus(BuildRevision revision, BuildPromotion promotion) {
-    return myStatusesCache.getStatusFromCache(revision, promotion.getBuildTypeExternalId(), () -> {
+  private JsonStashBuildStatus getBuildStatus(BuildRevision revision, BuildPromotion promotion) throws PublisherException {
+    AtomicReference<PublisherException> exception = new AtomicReference<>(null);
+
+    JsonStashBuildStatus statusFromCache = myStatusesCache.getStatusFromCache(revision, promotion.getBuildTypeExternalId(), () -> {
       StatusRequestData requestData = new SBuildPromotionRequestData(promotion, revision);
-      return getEndpoint().getCommitBuildStatuses(requestData, LogUtil.describe(promotion));
+      try {
+        return getEndpoint(revision.getRoot().getProperty("url")).getCommitBuildStatuses(requestData, LogUtil.describe(promotion));
+      } catch (PublisherException e) {
+        exception.set(e);
+        return Collections.emptyList();
+      }
     }, buildStatus -> buildStatus.key);
+
+    if (exception.get() != null)
+      throw exception.get();
+
+    return statusFromCache;
   }
 
   @Nullable
@@ -205,22 +217,13 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     return null;
   }
 
-  // There are two ways in Bitbucket Server to report the build status: the older Build API and a new endpoint in the Core API
-  // We will be using the former if the Bitbucket Server version is below 7.4 or not retrieved by any reason
-  private boolean useBuildAPI() {
-    if (myBuildType instanceof BuildTypeEx && ((BuildTypeEx)myBuildType).getBooleanInternalParameter("commitStatusPublisher.enforceDeprecatedAPI"))
-      return true;
-    // NOTE: compare(null, "7.4") < 0
-    return VersionComparatorUtil.compare(getSettings().getServerVersion(getBaseUrl()), "7.4") < 0;
-  }
-
   private void vote(@NotNull SBuild build,
                     @NotNull BuildRevision revision,
                     @NotNull StashBuildStatus status,
                     @NotNull String comment) throws PublisherException {
     String vcsBranch = getVcsBranch(revision, LogUtil.describe(build));
     SBuildData data = new SBuildData(build, revision, status, comment, vcsBranch);
-    getEndpoint().publishBuildStatus(data, LogUtil.describe(build));
+    getEndpoint(revision.getRoot().getProperty("url")).publishBuildStatus(data, LogUtil.describe(build));
     myStatusesCache.removeStatusFromCache(revision, data.getKey());
   }
 
@@ -230,17 +233,17 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
                     @NotNull String comment) throws PublisherException {
     String vcsBranch = getVcsBranch(revision, LogUtil.describe(buildPromotion));
     SBuildPromotionData data = new SBuildPromotionData(buildPromotion, revision, status, comment, vcsBranch);
-    getEndpoint().publishBuildStatus(data, LogUtil.describe(buildPromotion));
+    getEndpoint(revision.getRoot().getProperty("url")).publishBuildStatus(data, LogUtil.describe(buildPromotion));
     myStatusesCache.removeStatusFromCache(revision, data.getKey());
   }
 
   @Nullable
-  private String getVcsBranch(@NotNull BuildRevision revision, @NotNull String buildDescription) {
+  private String getVcsBranch(@NotNull BuildRevision revision, @NotNull String buildDescription) throws PublisherException {
     String revisionVcsBranch = revision.getRepositoryVersion().getVcsBranch();
     if (revisionVcsBranch == null || !PULL_REQUEST_BRANCH_PATTERN.matcher(revisionVcsBranch).matches()) {
       return revisionVcsBranch;
     }
-    PullRequest pullRequest = getEndpoint().getPullRequest(revision, buildDescription);
+    PullRequest pullRequest = getEndpoint(revision.getRoot().getProperty("url")).getPullRequest(revision, buildDescription);
     if (pullRequest == null) {
       return revisionVcsBranch;
     }
@@ -282,8 +285,12 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     }
   }
 
-  private String getBaseUrl() {
-    return HttpHelper.stripTrailingSlash(myParams.get(Constants.STASH_BASE_URL));
+  @NotNull
+  public String getBaseUrl(@Nullable String vcsRootUrl) throws PublisherException {
+    if (!StringUtil.isEmptyOrSpaces(myParams.get(Constants.STASH_BASE_URL)))
+      return HttpHelper.stripTrailingSlash(myParams.get(Constants.STASH_BASE_URL));
+
+    return getApiUrlFromVcsRootUrl(vcsRootUrl);
   }
 
   @Nullable
@@ -291,13 +298,13 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     return getSettings().getCredentials(vcsRoot, myParams);
   }
 
-  private BitbucketEndpoint getEndpoint() {
+  private BitbucketEndpoint getEndpoint(@Nullable String vcsRootUrl) throws PublisherException {
     if (myBitbucketEndpoint != null) return myBitbucketEndpoint;
     if (myBuildType instanceof BuildTypeEx && ((BuildTypeEx)myBuildType).getBooleanInternalParameter("commitStatusPublisher.enforceDeprecatedAPI")) {
       myBitbucketEndpoint = new BuildApiEndpoint();
       return myBitbucketEndpoint;
     }
-    String serverVersion = getSettings().getServerVersion(getBaseUrl());
+    String serverVersion = getSettings().getServerVersion(getBaseUrl(vcsRootUrl));
     if (VersionComparatorUtil.compare(serverVersion, SERVER_VERSION_BUILD_SERVER_HWM) < 0) {
       myBitbucketEndpoint = new BuildApiEndpoint();
     } else if (VersionComparatorUtil.compare(serverVersion, SERVER_VERSION_EXTENDED_SERVER_LWM) >= 0) {
@@ -311,7 +318,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
   private interface StatusRequestData {
     @NotNull String getCommit();
     @NotNull String getKey();
-    @Nullable VcsRootInstance getVcsRootInstance();
+    @NotNull VcsRootInstance getVcsRootInstance();
   }
 
   private class SBuildPromotionRequestData implements StatusRequestData {
@@ -335,7 +342,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
       return myBuildPromotion.getBuildTypeExternalId();
     }
 
-    @Nullable
+    @NotNull
     @Override
     public VcsRootInstance getVcsRootInstance() {
       return myRevision.getRoot();
@@ -385,7 +392,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
       return myDescription;
     }
 
-    @Nullable
+    @NotNull
     @Override
     public VcsRootInstance getVcsRootInstance() {
       return myRevision.getRoot();
@@ -497,8 +504,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
   private interface BitbucketEndpoint {
     void publishBuildStatus(@NotNull StatusData data, @NotNull String buildDescription) throws PublisherException;
     PullRequest getPullRequest(@NotNull BuildRevision revision, @NotNull String buildDescriptor);
-    JsonStashBuildStatus getCommitBuildStatus(@NotNull StatusRequestData data, @NotNull String buildDescription);
-    Collection<JsonStashBuildStatus> getCommitBuildStatuses(@NotNull StatusRequestData data, @NotNull String buildDescription);
+    JsonStashBuildStatus getCommitBuildStatus(@NotNull StatusRequestData data, @NotNull String buildDescription) throws PublisherException;
+    Collection<JsonStashBuildStatus> getCommitBuildStatuses(@NotNull StatusRequestData data, @NotNull String buildDescription) throws PublisherException;
   }
 
   private abstract class BaseBitbucketEndpoint implements BitbucketEndpoint {
@@ -552,8 +559,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     }
 
     @Override
-    public JsonStashBuildStatus getCommitBuildStatus(@NotNull StatusRequestData data, @NotNull String buildDescription) {
-      final String baseEndpointUrl = getBaseUrl() + "/rest/build-status/1.0/commits/" + data.getCommit();
+    public JsonStashBuildStatus getCommitBuildStatus(@NotNull StatusRequestData data, @NotNull String buildDescription) throws PublisherException {
+      final String baseEndpointUrl = getBaseUrl(data.getVcsRootInstance().getProperty("url")) + "/rest/build-status/1.0/commits/" + data.getCommit();
       final ResponseEntityProcessor<DeprecatedJsonStashBuildStatuses> processor = new ResponseEntityProcessor<>(DeprecatedJsonStashBuildStatuses.class);
       int size = 25;
       int start = 0;
@@ -596,8 +603,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     }
 
     @Override
-    public Collection<JsonStashBuildStatus> getCommitBuildStatuses(@NotNull StatusRequestData data, @NotNull String buildDescription) {
-      final String baseEndpointUrl = getBaseUrl() + "/rest/build-status/1.0/commits/" + data.getCommit();
+    public Collection<JsonStashBuildStatus> getCommitBuildStatuses(@NotNull StatusRequestData data, @NotNull String buildDescription) throws PublisherException {
+      final String baseEndpointUrl = getBaseUrl(data.getVcsRootInstance().getProperty("url")) + "/rest/build-status/1.0/commits/" + data.getCommit();
       final ResponseEntityProcessor<DeprecatedJsonStashBuildStatuses> processor = new ResponseEntityProcessor<>(DeprecatedJsonStashBuildStatuses.class);
       int size = 25;
       int start = 0;
@@ -634,8 +641,9 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
   private class BuildApiEndpoint extends BaseBitbucketEndpoint implements BitbucketEndpoint {
 
     @Override
-    protected String getBuildEndpointUrl(final StatusRequestData data) {
-      return getBaseUrl() + "/rest/build-status/1.0/commits/" + data.getCommit();
+    protected String getBuildEndpointUrl(final StatusRequestData data) throws PublisherException {
+      VcsRootInstance root = data.getVcsRootInstance();
+      return getBaseUrl(root.getProperty("url")) + "/rest/build-status/1.0/commits/" + data.getCommit();
     }
 
     @Override
@@ -669,7 +677,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
       VcsRootInstance vcs = data.getVcsRootInstance();
       String commit = data.getCommit();
       Repository repo = getRepository(vcs, commit);
-      return getBaseUrl() + "/rest/api/1.0/projects/" + repo.owner() + "/repos/" + repo.repositoryName() + "/commits/" + commit + "/builds" ;
+      return getBaseUrl(repo.url()) + "/rest/api/1.0/projects/" + repo.owner() + "/repos/" + repo.repositoryName() + "/commits/" + commit + "/builds" ;
     }
 
     @Override
@@ -678,7 +686,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
       String commit = revision.getRepositoryVersion().getVersion();
       Repository repo = getRepository(vcs, commit);
       String pullRequestId = getPullRequestId(revision);
-      return getBaseUrl() + "/rest/api/1.0/projects/" + repo.owner() + "/repos/" + repo.repositoryName() + "/pull-requests/" + pullRequestId;
+      return getBaseUrl(vcs.getProperty("url")) + "/rest/api/1.0/projects/" + repo.owner() + "/repos/" + repo.repositoryName() + "/pull-requests/" + pullRequestId;
     }
 
     private String getPullRequestId(BuildRevision revision) throws PublisherException {

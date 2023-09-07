@@ -28,6 +28,9 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcshostings.url.InvalidUriException;
+import jetbrains.buildServer.vcshostings.url.ServerURI;
+import jetbrains.buildServer.vcshostings.url.ServerURIParser;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -161,6 +164,22 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
   @Nullable
   protected String retrieveServerVersion(@NotNull String url) throws PublisherException {
     return null;
+  }
+
+  @Nullable
+  @Override
+  public String guessApiURL(@Nullable String vcsRootUrl) {
+    if (vcsRootUrl == null)
+      return null;
+
+    ServerURI uri;
+    try {
+      uri = ServerURIParser.createServerURI(vcsRootUrl);
+    } catch (InvalidUriException e) {
+      return null;
+    }
+
+    return uri.getHttpBaseURL();
   }
 
   private static class TimestampedServerVersion {

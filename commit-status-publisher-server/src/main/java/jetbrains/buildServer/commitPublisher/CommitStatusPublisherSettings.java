@@ -132,4 +132,9 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
   boolean isFeatureLessPublishingSupported(@NotNull SBuildType buildType);
 
   boolean isPublishingQueuedStatusEnabled(@NotNull SBuildType buildType);
+
+  @Nullable
+  default String guessApiURL(@Nullable final String vcsRootUrl) {
+    return null;
+  }
 }

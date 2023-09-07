@@ -28,10 +28,13 @@
 <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
 
   <tr>
-    <th><label for="${keys.stashBaseUrl}">Bitbucket Server Base URL:<l:star/></label></th>
+    <th><label for="${keys.stashBaseUrl}">Bitbucket Server Base URL:</label></th>
     <td>
       <props:textProperty name="${keys.stashBaseUrl}" className="longField"/>
-      <span class="smallNote">Base URL field in Bitbucket Server settings</span>
+      <span class="smallNote">
+        Base URL field in Bitbucket Server settings.<br/>
+        If left blank, the URL will be composed based on the VCS root fetch URL.
+      </span>
       <span class="error" id="error_${keys.stashBaseUrl}"></span>
     </td>
   </tr>

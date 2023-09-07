@@ -16,9 +16,10 @@
 
 package jetbrains.buildServer.commitPublisher.stash;
 
+import java.util.Collections;
+import java.util.Map;
 import jetbrains.buildServer.MockBuildPromotion;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
-import jetbrains.buildServer.commitPublisher.DefaultStatusMessages;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SQueuedBuild;
@@ -84,5 +85,20 @@ public class StashPublisherTest extends BaseStashPublisherTest {
     StashPublisher publisher = (StashPublisher)myPublisher;
     assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_QUEUED, "buildTypeExtenalId", null, null, null, "http://localhost:8111/viewQueued.html?itemId=123", StashBuildStatus.INPROGRESS.name(), null, null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
     assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_QUEUED, "anotherBuildTypeExtenalId", null, null, null, "http://localhost:8111/viewQueued.html?itemId=321", StashBuildStatus.INPROGRESS.name(), null, null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+  }
+
+  public void url_guessing_test_git() {
+    Map<String, String> params = getPublisherParams();
+    myVcsRoot.setProperties(Collections.singletonMap("url", "git@url.com:owner/some_/path/project.git"));
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
+    assertEquals("https://url.com", myPublisherSettings.guessApiURL(myVcsRoot.getProperty("url")));
+  }
+
+  public void url_getting_VCS_URL_test() throws PublisherException {
+    Map<String, String> params = getPublisherParams();
+    params.remove(Constants.STASH_BASE_URL);
+    myVcsRoot.setProperties(Collections.singletonMap("url", "git@url.com:owner/some_/path/project.git"));
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
+    assertEquals("https://url.com", ((StashPublisher)myPublisher).getBaseUrl(myVcsRoot.getProperty("url")));
   }
 }

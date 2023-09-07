@@ -345,23 +345,11 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
 
 
   @NotNull
-  private String getApiUrl(@Nullable String vcsRootUrl) throws PublisherException {
+  public String getApiUrl(@Nullable String vcsRootUrl) throws PublisherException {
     if (!StringUtil.isEmptyOrSpaces(myParams.get(Constants.GITLAB_API_URL)))
       return HttpHelper.stripTrailingSlash(myParams.get(Constants.GITLAB_API_URL));
 
-    String url = vcsRootUrl;
-    if (url == null) {
-      List<SVcsRoot> roots = myBuildType.getVcsRoots();
-      if (roots.size() == 0) throw new PublisherException("Could not find VCS Root to extract URL");
-
-      url = roots.get(0).getProperty("url");
-      if (StringUtil.isEmptyOrSpaces(url)) throw new PublisherException("Could not find VCS Root URL to transform it into GitLab API URL");
-    }
-
-    String apiUrl = GitlabSettings.guessGitLabApiURL(url);
-    if (StringUtil.isEmptyOrSpaces(apiUrl)) throw new PublisherException("Could not transform VCS Root URL into GitLab API URL");
-
-    return apiUrl;
+    return getApiUrlFromVcsRootUrl(vcsRootUrl);
   }
 
   /**
