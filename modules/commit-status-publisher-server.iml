@@ -54,5 +54,6 @@
     <orderEntry type="module" module-name="vcs-hostings-plugin-api" />
     <orderEntry type="module" module-name="migration" />
     <orderEntry type="module" module-name="oauth-integration-web" />
+    <orderEntry type="library" name="Maven: com.jcraft:jsch:0.1.54" level="project" />
   </component>
 </module>
