@@ -280,6 +280,11 @@
               </description>
             </param>
           </option>
+          <option name="vcsRoot" value="vcsRoot">
+            <description>
+              Use VCS root credentials
+            </description>
+          </option>
         </param>
       </option>
       <option name="upsource" value="upsourcePublisher">
@@ -471,7 +476,7 @@
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
           publisher = gitlab {
             gitlabApiUrl = "https://&lt;GitLab URL>/api/v4" // optional, the URL will be composed based on the VCS root fetch URL if omitted (https://gitlab.com/api/v4 for gitlab.com)
-            accessToken = personalToken {
+            accessToken = personalToken { // authType = vcsRoot() to take credentials from the VCS root
               accessToken = "credentialsJSON:*****"
             }
           }
