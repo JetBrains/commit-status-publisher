@@ -173,30 +173,26 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
 
   @NotNull
   @Override
-  public HttpCredentials getCredentials(@Nullable VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    final String authenticationType = params.getOrDefault(Constants.AUTH_TYPE, getDefaultAuthType());
-    if (Constants.AUTH_TYPE_STORED_TOKEN.equalsIgnoreCase(authenticationType)) {
-      String tokenId = params.get(Constants.TOKEN_ID);
-      if (root == null) {
-        throw new PublisherException("Can't get GitLab OAuth token. VCS Root ins't specified");
-      }
+  protected HttpCredentials getUsernamePasswordCredentials(@NotNull String username, @NotNull String password) throws PublisherException {
+    throw new PublisherException("Username password authentication is not supported in Commit Status Publisher for GitLab");
+  }
 
-      OAuthToken oauthToken = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
-      if (oauthToken == null) {
-        throw new PublisherException("GitLab OAuth token is not found");
-      }
+  @NotNull
+  @Override
+  protected HttpCredentials getAccessTokenCredentials(@NotNull String token) throws PublisherException {
+    return new GitLabAccessTokenCredentials(token);
+  }
 
-      return new GitLabAccessTokenCredentials(tokenId, oauthToken, root.getExternalId(), myOAuthTokensStorage);
-    } else if (Constants.AUTH_TYPE_ACCESS_TOKEN.equalsIgnoreCase(authenticationType)) {
-      String token = params.get(Constants.GITLAB_TOKEN);
-      if (token == null) {
-        throw new PublisherException("GitLab Access token is not defined");
-      }
+  @NotNull
+  @Override
+  protected HttpCredentials getStoredTokenCredentials(@NotNull String tokenId, @NotNull OAuthToken token, @NotNull VcsRoot root) throws PublisherException {
+    return new GitLabAccessTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
+  }
 
-      return new GitLabAccessTokenCredentials(token);
-    } else {
-      throw new PublisherException("Authentacation type " + authenticationType + " is unsupported");
-    }
+  @NotNull
+  @Override
+  protected HttpCredentials getVcsRootCredentials(@Nullable VcsRoot root) throws PublisherException {
+    throw new PublisherException("VCS Root authentication is not supported in Commit Status Publisher for GitLab");
   }
 
   @Nullable
