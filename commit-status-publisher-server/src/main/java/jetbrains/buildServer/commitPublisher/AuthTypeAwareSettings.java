@@ -84,7 +84,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
         if (StringUtil.isEmptyOrSpaces(password)) {
           throw new PublisherException("authentication type is set to password, but password is not configured");
         }
-        return getUsernamePasswordCredentials(username, password);
+        return new UsernamePasswordCredentials(username, password);
 
       case Constants.AUTH_TYPE_STORED_TOKEN:
         if (root == null) {
@@ -98,7 +98,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
         if (token == null) {
           throw new PublisherException("The configured authentication with the " + tokenId + " ID is missing or invalid.");
         }
-        return getStoredTokenCredentials(tokenId, token, root);
+        return new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
 
       case Constants.AUTH_TYPE_VCS:
         return getVcsRootCredentials(root);
@@ -108,23 +108,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
     }
   }
 
-  @NotNull
-  protected HttpCredentials getUsernamePasswordCredentials(@NotNull final String username, @NotNull final String password) throws PublisherException {
-    return new UsernamePasswordCredentials(username, password);
-  }
-
-  @NotNull
-  protected HttpCredentials getStoredTokenCredentials(@NotNull final String tokenId, @NotNull final OAuthToken token, @NotNull final VcsRoot root) throws PublisherException {
-    return new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
-  }
-
-  @NotNull
-  protected HttpCredentials getAccessTokenCredentials(@NotNull final String token) throws PublisherException {
-    return new BearerTokenCredentials(token);
-  }
-
-  @NotNull
-  protected HttpCredentials getVcsRootCredentials(@Nullable VcsRoot root) throws PublisherException {
+  public HttpCredentials getVcsRootCredentials(@Nullable VcsRoot root) throws PublisherException {
     if (root == null) {
       throw new PublisherException("unable to determine VCS root to using credentials");
     }
@@ -148,13 +132,13 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
     final String password = vcsProperties.get("secure:password");
     if (!StringUtil.isEmpty(username)) {
       if (HttpHelper.X_OAUTH_BASIC.equals(password)) {
-        return getAccessTokenCredentials(username);
+        return new BearerTokenCredentials(username);
       } else {
-        return getUsernamePasswordCredentials(username, password == null ? "" : password);
+        return new UsernamePasswordCredentials(username, password == null ? "" : password);
       }
     }
     else if (!StringUtil.isEmpty(password)) {
-      return getAccessTokenCredentials(password);
+      return new BearerTokenCredentials(password);
     } else {
       throw new PublisherException("unable to get username/password credentials from VCS Root " + root.getVcsName());
     }
@@ -173,7 +157,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
       throw new PublisherException("The configured VCS Root (" + root.getVcsName() + ") authentication with the refreshable token is missing or invalid.");
     }
 
-    return getStoredTokenCredentials(tokenId, token, root);
+    return new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
   }
 
   @Nullable
