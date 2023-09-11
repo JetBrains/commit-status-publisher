@@ -192,7 +192,7 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
   @NotNull
   @Override
   protected HttpCredentials getVcsRootCredentials(@Nullable VcsRoot root) throws PublisherException {
-    return super.getVcsRootCredentials(root);
+    throw new PublisherException("VCS Root authentication is not supported in Commit Status Publisher for GitLab");
   }
 
   @Nullable
