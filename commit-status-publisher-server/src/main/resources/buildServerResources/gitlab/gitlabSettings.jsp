@@ -92,6 +92,16 @@
     </props:selectSectionPropertyContent>
   </c:if>
 
+  <props:selectSectionPropertyContent value="vcsRoot" caption="Use VCS root(-s) credentials">
+    <tr><td colspan="2">
+      <em>
+        TeamCity obtains token based credentials from the VCS root settings.
+        This option will not work if the VCS root uses an SSH fetch URL,
+        employs anonymous authentication.
+      </em>
+    </td></tr>
+  </props:selectSectionPropertyContent>
+
 </props:selectSectionProperty>
 
 <l:settingsGroup title="On-premises GitLab installation" />

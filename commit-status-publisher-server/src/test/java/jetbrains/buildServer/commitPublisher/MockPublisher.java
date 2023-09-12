@@ -18,6 +18,7 @@ package jetbrains.buildServer.commitPublisher;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildType;
@@ -51,7 +52,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   private final PublisherLogger myLogger;
 
   private final LinkedList<HttpMethod> myHttpRequests = new LinkedList<>();
-  private final Map<String, Map<String, LinkedList<MockStatus>>> myMockState = new ConcurrentHashMap<>(); // { revision : { buildTypeId : [ status ] }}
+  private final Map<String, Map<String, LinkedBlockingDeque<MockStatus>>> myMockState = new ConcurrentHashMap<>(); // { revision : { buildTypeId : [ status ] }}
   private final AtomicInteger myIdGenerator = new AtomicInteger(0);
 
   boolean isFailureReceived() { return myFailuresReceived > 0; }
@@ -282,7 +283,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   
   private void saveStatus(BuildRevision revision, BuildType buildType, MockStatus status) {
     myMockState.computeIfAbsent(revision.getRevision(), k -> new HashMap<>())
-               .computeIfAbsent(buildType != null ? buildType.getBuildTypeId() : "unknown", k -> new LinkedList<>())
+               .computeIfAbsent(buildType != null ? buildType.getBuildTypeId() : "unknown", k -> new LinkedBlockingDeque<>())
                .add(status);
   }
 
@@ -292,10 +293,10 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   }
 
   private MockState getLastStatus(BuildRevision revision) {
-    Map<String, LinkedList<MockStatus>> btsToStatuses = myMockState.getOrDefault(revision.getRevision(), Collections.emptyMap());
+    Map<String, LinkedBlockingDeque<MockStatus>> btsToStatuses = myMockState.getOrDefault(revision.getRevision(), Collections.emptyMap());
     MockStatus result = null;
     String buildTypeId = null;
-    for (Map.Entry<String, LinkedList<MockStatus>> btToStatuses : btsToStatuses.entrySet()) {
+    for (Map.Entry<String, LinkedBlockingDeque<MockStatus>> btToStatuses : btsToStatuses.entrySet()) {
       String curBuildTypeId = btToStatuses.getKey();
       MockStatus lastForBuildType = btToStatuses.getValue().getLast();
       if (result == null || result.myId < lastForBuildType.myId) {
@@ -310,9 +311,9 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     MockStatus result = null;
     String revision = null;
     String buildTypeId = null;
-    for (Map.Entry<String, Map<String, LinkedList<MockStatus>>> revToBuildTypes : myMockState.entrySet()) {
+    for (Map.Entry<String, Map<String, LinkedBlockingDeque<MockStatus>>> revToBuildTypes : myMockState.entrySet()) {
       String curRevision = revToBuildTypes.getKey();
-      for (Map.Entry<String, LinkedList<MockStatus>> btToStatuses : revToBuildTypes.getValue().entrySet()) {
+      for (Map.Entry<String, LinkedBlockingDeque<MockStatus>> btToStatuses : revToBuildTypes.getValue().entrySet()) {
         String curBuildTypeId = btToStatuses.getKey();
         MockStatus lastForBuildType = btToStatuses.getValue().getLast();
         if (result == null || result.myId < lastForBuildType.myId) {
