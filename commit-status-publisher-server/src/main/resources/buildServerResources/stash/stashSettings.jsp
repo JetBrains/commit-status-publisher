@@ -22,15 +22,35 @@
   --%>
 
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
-<jsp:useBean id="oauthConnections" scope="request" type="java.util.List"/>
+<jsp:useBean id="oauthConnections" scope="request" type="java.util.List<jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor>"/>
 <jsp:useBean id="project" scope="request" type="jetbrains.buildServer.serverSide.SProject"/>
 
 <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
 
   <tr>
+    <!-- must be inside a html tag, as otherwhise jQuery "nextSiblings" from selectProperty tag chokes on the script tag -->
+    <script type="text/javascript">
+      BS.BBDataCenterCspSettings = {
+
+        connectionToServerUrl: new Map(),
+        baseUrlChanged: false,
+
+        onTokenObtained(it) {
+          const baseUrlField = $('${keys.stashBaseUrl}');
+          if (!BS.BBDataCenterCspSettings.baseUrlChanged || !baseUrlField.value) {
+            baseUrlField.value = BS.BBDataCenterCspSettings.connectionToServerUrl.get(it.connectionId);
+          }
+          BS.AuthTypeTokenSupport.tokenCallback(it);
+        },
+
+        onBaseUrlChange() {
+          this.baseUrlChanged = true;
+        }
+      }
+    </script>
     <th><label for="${keys.stashBaseUrl}">Bitbucket Server Base URL:</label></th>
     <td>
-      <props:textProperty name="${keys.stashBaseUrl}" className="longField"/>
+      <props:textProperty name="${keys.stashBaseUrl}" className="longField" onchange="BS.BBDataCenterCspSettings.onBaseUrlChange();"/>
       <span class="smallNote">
         Base URL field in Bitbucket Server settings.<br/>
         If left blank, the URL will be composed based on the VCS root fetch URL.
@@ -79,10 +99,11 @@
             <c:forEach items="${oauthConnections}" var="connection">
               <script type="application/javascript">
                 BS.AuthTypeTokenSupport.connections['${connection.id}'] = '<bs:forJs>${connection.connectionDisplayName}</bs:forJs>';
+                BS.BBDataCenterCspSettings.connectionToServerUrl.set('${connection.id}', '<bs:forJs>${connection.parameters['bitbucketUrl']}</bs:forJs>');
               </script>
               <div class="token-connection">
                 <span class="token-connection-diplay-name"><c:out value="${connection.connectionDisplayName}" /></span>
-                <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.AuthTypeTokenSupport.tokenCallback">
+                <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.BBDataCenterCspSettings.onTokenObtained">
                   Acquire
                 </oauth:obtainToken>
               </div>
