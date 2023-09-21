@@ -18,7 +18,6 @@
     <orderEntry type="library" name="ServletApi" level="project" />
     <orderEntry type="library" name="Guava" level="project" />
     <orderEntry type="library" name="commons-beanutils-core" level="project" />
-    <orderEntry type="library" name="gson" level="project" />
     <orderEntry type="library" scope="TEST" name="JUnit" level="project" />
     <orderEntry type="library" scope="TEST" name="testng" level="project" />
     <orderEntry type="library" scope="TEST" name="AssertJ" level="project" />
@@ -55,5 +54,6 @@
     <orderEntry type="module" module-name="migration" />
     <orderEntry type="module" module-name="oauth-integration-web" />
     <orderEntry type="library" name="Maven: com.jcraft:jsch:0.1.54" level="project" />
+    <orderEntry type="library" name="Maven: com.google.code.gson:gson:2.9.0" level="project" />
   </component>
 </module>
