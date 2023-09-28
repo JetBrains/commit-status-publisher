@@ -312,13 +312,46 @@
           </description>
         </param>
       </option>
-      <option name="tfs" value="tfs">
+      <option name="azureDevOps" value="tfs">
         <description>
           Publish build status to Azure DevOps / TFS
         </description>
         <param name="tfsServerUrl" dslName="serverUrl">
           <description>
-            Server URL for SSH-based VCS roots
+            Azure DevOps / TFS Server URL
+          </description>
+        </param>
+        <param name="tfsAuthType" dslName="authType" type="compound">
+          <description>
+            Authentication type
+          </description>
+          <option name="personalToken" value="token">
+            <description>
+              Authentication using personal token
+            </description>
+            <param name="secure:accessToken" dslName="accessToken" mandatory="true">
+              <description>
+                A Personal Access Token value
+              </description>
+            </param>
+          </option>
+        </param>
+        <param name="publish.pull.requests" dslName="publishPullRequests" type="boolean" trueValue="true" falseValue="">
+          <description>
+            Enables publishing build status for pull requests
+          </description>
+        </param>
+      </option>
+      <option name="tfs" value="tfs">
+        <deprecated>
+          Use 'azureDevOps' option instead
+        </deprecated>
+        <description>
+          Publish build status to Azure DevOps / TFS
+        </description>
+        <param name="tfsServerUrl" dslName="serverUrl">
+          <description>
+            Azure DevOps / TFS Server URL
           </description>
         </param>
         <param name="tfsAuthType" dslName="authType" mandatory="true">
@@ -584,10 +617,11 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
-          publisher = tfs {
+          publisher = azureDevOps {
             serverUrl = "&lt;Azure DevOps URL>" // optional
-            authType = "token"
-            accessToken = "credentialsJSON:*****"
+            authType = personalToken {
+              accessToken = "tc_token_id:*****"
+            }
             publishPullRequests = true // optional
           }
         }
