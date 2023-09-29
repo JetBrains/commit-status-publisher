@@ -50,7 +50,8 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
                                             myOAuthConnectionsManager,
                                             myOAuthTokenStorage,
                                             myFixture.getUserModel(),
-                                            myFixture.getSecurityContext());
+                                            myFixture.getSecurityContext(),
+                                            myFixture.getProjectManager());
     myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }

@@ -143,6 +143,11 @@
               </description>
             </param>
           </option>
+          <option name="vcsRoot" value="vcsRoot">
+            <description>
+              Use VCS root credentials
+            </description>
+          </option>
         </param>
       </option>
       <option name="gerrit" value="gerritStatusPublisher">
@@ -582,10 +587,10 @@
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
           publisher = bitbucketServer {
               url = "&lt;Bitbucket Server Base URL>" // optional, the URL will be composed based on the VCS root fetch URL if omitted
-              authType = password {
-              userName = "&lt;username>"
-              password = "credentialsJSON:*****"
-            }
+              authType = password { // authType = vcsRoot() to take credentials from the VCS root
+                userName = "&lt;username>"
+                password = "credentialsJSON:*****"
+              }
           }
         }
       </code>

@@ -33,14 +33,13 @@ import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
+import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
-import jetbrains.buildServer.vcshostings.url.InvalidUriException;
-import jetbrains.buildServer.vcshostings.url.ServerURI;
-import jetbrains.buildServer.vcshostings.url.ServerURIParser;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -75,6 +74,8 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
   @NotNull
   private final CommitStatusesCache<JsonStashBuildStatus> myStatusesCache;
 
+  private final ProjectManager myProjectManager;
+
   public StashSettings(@NotNull PluginDescriptor descriptor,
                        @NotNull WebLinks links,
                        @NotNull CommitStatusPublisherProblems problems,
@@ -82,8 +83,10 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
                        @NotNull OAuthConnectionsManager oAuthConnectionsManager,
                        @NotNull OAuthTokensStorage oAuthTokensStorage,
                        @NotNull UserModel userModel,
-                       @NotNull SecurityContext securityContext) {
+                       @NotNull SecurityContext securityContext,
+                       @NotNull ProjectManager projectManager) {
     super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, oAuthConnectionsManager, securityContext);
+    myProjectManager = projectManager;
     myStatusesCache = new CommitStatusesCache<>();
   }
 
@@ -150,6 +153,20 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
             params.remove(Constants.STASH_USERNAME);
             params.remove(Constants.STASH_PASSWORD);
             mandatoryString(Constants.TOKEN_ID, "No token configured", params, errors);
+            break;
+
+          case Constants.AUTH_TYPE_VCS:
+            params.remove(Constants.STASH_USERNAME);
+            params.remove(Constants.STASH_PASSWORD);
+            params.remove(Constants.TOKEN_ID);
+
+            String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
+            SVcsRoot vcsRoot = null == vcsRootId ? null : myProjectManager.findVcsRootByExternalId(vcsRootId);
+            if (null != vcsRoot) {
+              String vcsUrl = vcsRoot.getProperty("url");
+              if (!StringUtil.isEmpty(vcsUrl) && !vcsUrl.trim().toLowerCase().startsWith("http"))
+                errors.add(new InvalidProperty(Constants.AUTH_TYPE, "Credentials can not be extracted as the selected VCS root uses non-HTTP(S) fetch URL"));
+            }
             break;
 
           default:
