@@ -447,7 +447,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   }
 
   private boolean isRetryEnabled() {
-    return TeamCityProperties.getBoolean(RETRY_ENABLED_PROPERTY_NAME);
+    return TeamCityProperties.getBooleanOrTrue(RETRY_ENABLED_PROPERTY_NAME);
   }
 
   private long initialRetryDelay() {
