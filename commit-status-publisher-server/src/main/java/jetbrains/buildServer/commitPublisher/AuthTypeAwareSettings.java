@@ -118,7 +118,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
   }
 
   @NotNull
-  protected HttpCredentials getStoredTokenCredentials(@NotNull final String tokenId, @NotNull final OAuthToken token, @NotNull final VcsRoot root) throws PublisherException {
+  protected HttpCredentials getStoredTokenCredentials(@NotNull final String tokenId, @NotNull final RefreshableToken token, @NotNull final VcsRoot root) throws PublisherException {
     return new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
   }
 
@@ -177,7 +177,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
       throw new PublisherException("unable to get refreshable credentials from VCS Root " + root.getVcsName());
     }
 
-    OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
+    RefreshableToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
     if (token == null) {
       throw new PublisherException("The configured VCS Root (" + root.getVcsName() + ") authentication with the refreshable token is missing or invalid.");
     }

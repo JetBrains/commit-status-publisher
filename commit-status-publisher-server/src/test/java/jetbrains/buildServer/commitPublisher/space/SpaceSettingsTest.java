@@ -8,6 +8,8 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherTestBase;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.serverSide.BuildTypeEx;
+import jetbrains.buildServer.serverSide.connections.RefreshableToken;
+import jetbrains.buildServer.serverSide.connections.RefreshableTokenImpl;
 import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.impl.auth.SecurityContextImpl;
 import jetbrains.buildServer.serverSide.oauth.*;
@@ -87,7 +89,7 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
     final BuildTypeEx buildType = project.createBuildType("testbuild");
     final OAuthConnectionDescriptor connection = addSpaceConnection(project);
     mockPublishBuildStatusCapability(connection);
-    final OAuthToken token = createAccessToken(connection);
+    final RefreshableToken token = createAccessToken(connection);
     final SVcsRoot vcsRoot = addVcsRoot(buildType, connection, token);
 
     final CommitStatusPublisher publisher = mySettings.createFeaturelessPublisher(buildType, vcsRoot);
@@ -119,7 +121,7 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
     enableUnconditionalStatusPublishing(project);
     final BuildTypeEx buildType = project.createBuildType("testbuild");
     final OAuthConnectionDescriptor connection = addSpaceConnection(project);
-    final OAuthToken token = createAccessToken(connection);
+    final RefreshableToken token = createAccessToken(connection);
     final SVcsRoot vcsRoot = addVcsRoot(buildType, connection, token);
 
     final CommitStatusPublisher publisher = mySettings.createFeaturelessPublisher(buildType, vcsRoot);
@@ -133,7 +135,7 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
     enableUnconditionalStatusPublishing(project);
     final BuildTypeEx buildType = project.createBuildType("testbuild");
     final OAuthConnectionDescriptor connection = addNonSpaceConnection(project);
-    final OAuthToken token = createAccessToken(connection);
+    final RefreshableToken token = createAccessToken(connection);
     final SVcsRoot vcsRoot = addVcsRoot(buildType, connection, token);
 
     final CommitStatusPublisher publisher = mySettings.createFeaturelessPublisher(buildType, vcsRoot);
@@ -302,8 +304,8 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
   }
 
   @NotNull
-  private OAuthToken createAccessToken(@NotNull OAuthConnectionDescriptor connection) {
-    final OAuthToken token = new OAuthToken("access-token", "**", "x-oauth-user", 600, -1, new Date().getTime());
+  private RefreshableToken createAccessToken(@NotNull OAuthConnectionDescriptor connection) {
+    final RefreshableToken token = new RefreshableTokenImpl("access-token", "**", "x-oauth-user", 600, -1, new Date().getTime());
     return myTokenStorage.rememberToken(connection.getTokenStorageId(), token);
   }
 
@@ -318,12 +320,12 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
   }
 
   @NotNull
-  private SVcsRoot addVcsRoot(@NotNull BuildTypeEx buildType, @NotNull OAuthConnectionDescriptor connection, @NotNull OAuthToken token) {
+  private SVcsRoot addVcsRoot(@NotNull BuildTypeEx buildType, @NotNull OAuthConnectionDescriptor connection, @NotNull RefreshableToken token) {
     return addVcsRoot(buildType, connection, token, null);
   }
 
   @NotNull
-  private SVcsRoot addVcsRoot(@NotNull BuildTypeEx buildType, @Nullable OAuthConnectionDescriptor connection, @Nullable OAuthToken token, @Nullable String fetchUrl) {
+  private SVcsRoot addVcsRoot(@NotNull BuildTypeEx buildType, @Nullable OAuthConnectionDescriptor connection, @Nullable RefreshableToken token, @Nullable String fetchUrl) {
     final SVcsRootImpl vcsRoot = myFixture.addVcsRoot("jetbrains.git", "", buildType);
     final Map<String, String> properties = new HashMap<>();
     if (token != null && connection != null) {

@@ -1,5 +1,6 @@
 package jetbrains.buildServer.commitPublisher.gitlab;
 
+import jetbrains.buildServer.serverSide.connections.RefreshableToken;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.AccessTokenCredentials;
 import jetbrains.buildServer.serverSide.oauth.OAuthToken;
@@ -18,7 +19,7 @@ public class GitLabAccessTokenCredentials extends AccessTokenCredentials impleme
     super(token);
   }
 
-  public GitLabAccessTokenCredentials(@NotNull final String tokenId, @NotNull final OAuthToken refreshableToken, @NotNull final String vcsRootExtId, @NotNull final OAuthTokensStorage tokensStorage) {
+  public GitLabAccessTokenCredentials(@NotNull final String tokenId, @NotNull final RefreshableToken refreshableToken, @NotNull final String vcsRootExtId, @NotNull final OAuthTokensStorage tokensStorage) {
     super(tokenId, refreshableToken, vcsRootExtId, tokensStorage);
   }
 

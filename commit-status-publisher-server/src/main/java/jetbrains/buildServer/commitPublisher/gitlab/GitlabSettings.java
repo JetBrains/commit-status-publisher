@@ -28,6 +28,7 @@ import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabUserInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.connections.RefreshableToken;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthToken;
@@ -195,7 +196,7 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
 
   @NotNull
   @Override
-  protected HttpCredentials getStoredTokenCredentials(@NotNull String tokenId, @NotNull OAuthToken token, @NotNull VcsRoot root) throws PublisherException {
+  protected HttpCredentials getStoredTokenCredentials(@NotNull String tokenId, @NotNull RefreshableToken token, @NotNull VcsRoot root) throws PublisherException {
     return new GitLabAccessTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
   }
 

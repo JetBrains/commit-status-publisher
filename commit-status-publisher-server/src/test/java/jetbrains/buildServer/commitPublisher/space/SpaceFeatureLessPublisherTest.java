@@ -5,6 +5,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
+import jetbrains.buildServer.serverSide.connections.RefreshableToken;
+import jetbrains.buildServer.serverSide.connections.RefreshableTokenImpl;
 import jetbrains.buildServer.serverSide.oauth.ConnectionCapability;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthProvider;
@@ -30,7 +32,7 @@ public class SpaceFeatureLessPublisherTest extends SpacePublisherTest {
     enableUnconditionalStatusPublishing();
     setupSpaceOAuthProvider();
     final OAuthConnectionDescriptor connection = addSpaceConnection();
-    final OAuthToken token = createAccessToken(connection);
+    final RefreshableToken token = createAccessToken(connection);
     addTokenToVcsRoot(connection, token);
 
     final CommitStatusPublisher featurelessPublisher = myPublisherSettings.createFeaturelessPublisher(myBuildType, myVcsRoot);
@@ -67,12 +69,12 @@ public class SpaceFeatureLessPublisherTest extends SpacePublisherTest {
   }
 
   @NotNull
-  private OAuthToken createAccessToken(@NotNull OAuthConnectionDescriptor connection) {
-    final OAuthToken token = new OAuthToken("access-token", "**", "x-oauth-user", 600, -1, new Date().getTime());
+  private RefreshableToken createAccessToken(@NotNull OAuthConnectionDescriptor connection) {
+    final RefreshableToken token = new RefreshableTokenImpl("access-token", "**", "x-oauth-user", 600, -1, new Date().getTime());
     return myOAuthTokenStorage.rememberToken(connection.getTokenStorageId(), token);
   }
 
-  private void addTokenToVcsRoot(@NotNull OAuthConnectionDescriptor connection, @NotNull OAuthToken token) {
+  private void addTokenToVcsRoot(@NotNull OAuthConnectionDescriptor connection, @NotNull RefreshableToken token) {
     final Map<String, String> newProperties = new HashMap<>(myVcsRoot.getProperties());
     newProperties.put("tokenId", connection.buildFullTokenId(token.getId()));
     myVcsRoot.setProperties(newProperties);
