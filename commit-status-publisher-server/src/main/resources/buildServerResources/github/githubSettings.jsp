@@ -76,7 +76,7 @@
       </tr>
     </props:selectSectionPropertyContent>
 
-   <c:if test='${refreshTokenSupported and !isAcquiringTokensDisabled}'>
+   <c:if test='${!isAcquiringTokensDisabled}'>
      <props:selectSectionPropertyContent value="${keys.authentificationTypeGitHubAppTokenValue}" caption="GitHub App access token">
        <%@include file="/admin/_tokenSupport.jspf"%>
        <tr>
@@ -87,7 +87,7 @@
            <span class="access-token-note" id="message_no_token">No access token configured.</span>
            <span class="access-token-note" id="message_we_have_token"></span>
 
-           <c:if test="${empty oauthConnections}">
+           <c:if test="${!refreshTokenSupported}">
              <br/>
              <span>There are no GitHub App connections available to the project.</span>
            </c:if>

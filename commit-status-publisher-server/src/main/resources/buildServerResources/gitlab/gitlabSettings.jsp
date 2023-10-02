@@ -41,56 +41,54 @@
       </td>
     </tr>
   </props:selectSectionPropertyContent>
-  <c:if test='${refreshTokenSupported}'>
-    <props:selectSectionPropertyContent value="storedToken" caption="Refreshable access token">
-      <%@include file="/admin/_tokenSupport.jspf"%>
-      <tr>
-        <th>
-          <label for="refreshabletoken">Refreshable access token:</label>
-        </th>
-        <td>
-          <span class="access-token-note" id="message_no_token">No access token configured.</span>
-          <span class="access-token-note" id="message_we_have_token"></span>
+  <props:selectSectionPropertyContent value="storedToken" caption="Refreshable access token">
+    <%@include file="/admin/_tokenSupport.jspf"%>
+    <tr>
+      <th>
+        <label for="refreshabletoken">Refreshable access token:</label>
+      </th>
+      <td>
+        <span class="access-token-note" id="message_no_token">No access token configured.</span>
+        <span class="access-token-note" id="message_we_have_token"></span>
 
-          <c:if test="${empty oauthConnections}">
-            <br/>
-            <span>There are no GitLab OAuth 2.0 connections available to the project.</span>
-          </c:if>
+        <c:if test="${empty oauthConnections}">
+          <br/>
+          <span>There are no GitLab OAuth 2.0 connections available to the project.</span>
+        </c:if>
 
 
-          <props:hiddenProperty name="tokenId" />
-          <span class="error" id="error_tokenId"></span>
+        <props:hiddenProperty name="tokenId" />
+        <span class="error" id="error_tokenId"></span>
 
-          <c:if test="${canEditProject and not project.readOnly}">
-            <c:forEach items="${oauthConnections}" var="connection">
-              <script type="application/javascript">
-                BS.AuthTypeTokenSupport.connections['${connection.id}'] = '<bs:forJs>${connection.connectionDisplayName}</bs:forJs>';
-              </script>
-              <div class="token-connection">
-                <span class="token-connection-diplay-name" title="<c:out value='${connection.id}' />">
-                  <c:out value="${connection.connectionDisplayName}" />
-                </span>
-                <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.AuthTypeTokenSupport.tokenCallback" useAlertService="false">
-                  Acquire
-                </oauth:obtainToken>
-              </div>
-            </c:forEach>
+        <c:if test="${canEditProject and not project.readOnly}">
+          <c:forEach items="${oauthConnections}" var="connection">
+            <script type="application/javascript">
+              BS.AuthTypeTokenSupport.connections['${connection.id}'] = '<bs:forJs>${connection.connectionDisplayName}</bs:forJs>';
+            </script>
+            <div class="token-connection">
+              <span class="token-connection-diplay-name" title="<c:out value='${connection.id}' />">
+                <c:out value="${connection.connectionDisplayName}" />
+              </span>
+              <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.AuthTypeTokenSupport.tokenCallback" useAlertService="false">
+                Acquire
+              </oauth:obtainToken>
+            </div>
+          </c:forEach>
 
-            <span class="smallNote connection-note">
-              <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=GitLabCom'/>" target="_blank" rel="noreferrer">
-                Add GitLab.com
-              </a>
-              or either
-              <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=GitLabCEorEE'/>" target="_blank" rel="noreferrer">
-                add GitLab CE/EE
-              </a>
-              credentials via the Project Connections page
-            </span>
-          </c:if>
-        </td>
-      </tr>
-    </props:selectSectionPropertyContent>
-  </c:if>
+          <span class="smallNote connection-note">
+            <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=GitLabCom'/>" target="_blank" rel="noreferrer">
+              Add GitLab.com
+            </a>
+            or either
+            <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=GitLabCEorEE'/>" target="_blank" rel="noreferrer">
+              add GitLab CE/EE
+            </a>
+            credentials via the Project Connections page
+          </span>
+        </c:if>
+      </td>
+    </tr>
+  </props:selectSectionPropertyContent>
 
   <props:selectSectionPropertyContent value="vcsRoot" caption="Use VCS root(-s) credentials">
     <tr><td colspan="2">
