@@ -3,7 +3,6 @@ package jetbrains.buildServer.commitPublisher.gitlab;
 import jetbrains.buildServer.serverSide.connections.RefreshableToken;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.AccessTokenCredentials;
-import jetbrains.buildServer.serverSide.oauth.OAuthToken;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
 import org.jetbrains.annotations.NotNull;

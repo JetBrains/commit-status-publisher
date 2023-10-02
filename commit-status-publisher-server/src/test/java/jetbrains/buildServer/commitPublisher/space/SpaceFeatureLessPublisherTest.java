@@ -10,7 +10,6 @@ import jetbrains.buildServer.serverSide.connections.RefreshableTokenImpl;
 import jetbrains.buildServer.serverSide.oauth.ConnectionCapability;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthProvider;
-import jetbrains.buildServer.serverSide.oauth.OAuthToken;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceClientFactory;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConstants;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthKeys;
