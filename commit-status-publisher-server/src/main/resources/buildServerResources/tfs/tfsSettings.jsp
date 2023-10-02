@@ -28,32 +28,36 @@
 <c:set var="getTokenPage" value="${getTokenPage}?cameFromUrl=${util:urlEscape(cameFromUrl)}"/>
 
 <c:set var="oauth_connection_fragment">
-  <c:forEach items="${oauthConnections}" var="connection">
-    <c:set var="title">Acquire an access token from <c:out value="${connection.parameters['serverUrl']}"/></c:set>
+  <c:forEach items="${azurePatConnections}" var="PATconnection">
+    <c:set var="title">Acquire an access token from <c:out value="${PATconnection.parameters['serverUrl']}"/></c:set>
     <span class="tfsRepoControl">
       <i class="icon-magic" style="cursor:pointer;" title="${title}"
-         onclick="BS.TfsAccessTokenPopup.showPopup(this, '${connection.id}')"></i>
+         onclick="BS.TfsAccessTokenPopup.showPopup(this, '${PATconnection.id}')"></i>
     </span>
   </c:forEach>
 </c:set>
 
-<tr>
-  <th><label for="${keys.accessTokenKey}">Access Token:<l:star/></label></th>
-  <td>
-    <props:passwordProperty name="${keys.accessTokenKey}" className="mediumField"/>
-    ${oauth_connection_fragment}
-    <props:hiddenProperty name="${keys.authenticationTypeKey}"/>
-    <props:hiddenProperty name="${keys.authUser}"/>
-    <props:hiddenProperty name="${keys.authProviderId}"/>
-    <span class="error" id="error_${keys.accessTokenKey}"></span>
-    <span class="smallNote">
+<props:selectSectionProperty name="${keys.authenticationTypeKey}" title="Authentication Type">
+  <props:selectSectionPropertyContent value="${keys.authTypeToken}" caption="Personal Token">
+    <tr>
+      <th><label for="${keys.accessTokenKey}">Access Token:<l:star/></label></th>
+      <td>
+        <props:passwordProperty name="${keys.accessTokenKey}" className="mediumField"/>
+          ${oauth_connection_fragment}
+        <props:hiddenProperty name="${keys.authUser}"/>
+        <props:hiddenProperty name="${keys.authProviderId}"/>
+        <span class="error" id="error_${keys.accessTokenKey}"></span>
+        <span class="smallNote">
       This publisher supports build status update only for Git repositories.<br/>
       You need to grant <strong><em>Code (status)</em></strong> and <strong><em>Code (read)</em></strong>
       <a href="https://docs.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/oauth?view=vsts#scopes" target="_blank" rel="noreferrer">scopes</a>
       for token.
     </span>
-  </td>
-</tr>
+      </td>
+    </tr>
+  </props:selectSectionPropertyContent>
+
+</props:selectSectionProperty>
 
 <tr class="advancedSetting">
   <th><label for="${keys.serverUrl}">Server URL:</label></th>

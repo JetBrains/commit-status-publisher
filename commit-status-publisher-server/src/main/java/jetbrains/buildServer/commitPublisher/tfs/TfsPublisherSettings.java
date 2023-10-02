@@ -26,28 +26,28 @@ import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthToken;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
+import jetbrains.buildServer.serverSide.oauth.azuredevops.AzureDevOpsOAuthProvider;
 import jetbrains.buildServer.serverSide.oauth.tfs.TfsAuthProvider;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.User;
+import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 /**
  * Settings for TFS Git commit status publisher.
  */
-public class TfsPublisherSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
-
-  private final OAuthConnectionsManager myOauthConnectionsManager;
-  private final OAuthTokensStorage myOAuthTokensStorage;
-  private final SecurityContext mySecurityContext;
+public class TfsPublisherSettings extends AuthTypeAwareSettings implements CommitStatusPublisherSettings {
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     add(Event.STARTED);
     add(Event.FINISHED);
@@ -69,11 +69,9 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
                               @NotNull OAuthConnectionsManager oauthConnectionsManager,
                               @NotNull OAuthTokensStorage oauthTokensStorage,
                               @NotNull SecurityContext securityContext,
+                              @NotNull UserModel userModel,
                               @NotNull SSLTrustStoreProvider trustStoreProvider) {
-    super(descriptor, links, problems, trustStoreProvider);
-    myOauthConnectionsManager = oauthConnectionsManager;
-    myOAuthTokensStorage = oauthTokensStorage;
-    mySecurityContext = securityContext;
+    super(descriptor, links, problems, trustStoreProvider, oauthTokensStorage, userModel, oauthConnectionsManager, securityContext);
     myStatusesCache = new CommitStatusesCache<>();
   }
 
@@ -95,7 +93,7 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
   @NotNull
   @Override
   public List<OAuthConnectionDescriptor> getOAuthConnections(final @NotNull SProject project, final @NotNull SUser user) {
-    return myOauthConnectionsManager.getAvailableConnectionsOfType(project, TfsAuthProvider.TYPE).stream()
+    return myOAuthConnectionsManager.getAvailableConnectionsOfType(project, AzureDevOpsOAuthProvider.TYPE).stream()
       .sorted(CONNECTION_DESCRIPTOR_NAME_COMPARATOR)
       .collect(Collectors.toList());
   }
@@ -118,13 +116,13 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
     }
 
     if (commitId == null) {
-      commitId = TfsStatusPublisher.getLatestCommitId(root, params, trustStore());
+      commitId = TfsStatusPublisher.getLatestCommitId(root, params, trustStore(), getCredentials(null, params));
       if (commitId == null) {
         throw new PublisherException("No commits found in the repository");
       }
     }
 
-    TfsStatusPublisher.testConnection(root, params, commitId, trustStore());
+    TfsStatusPublisher.testConnection(root, params, commitId, trustStore(), getCredentials(null, params));
   }
 
   @Nullable
@@ -135,14 +133,6 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
     return String.format("Post commit status to %s", getName());
-  }
-
-  @Nullable
-  @Override
-  public Map<String, String> getDefaultParameters() {
-    final Map<String, String> result = new HashMap<String, String>();
-    result.put(TfsConstants.AUTHENTICATION_TYPE, "token");
-    return result;
   }
 
   @Nullable
@@ -169,22 +159,29 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
         final Collection<InvalidProperty> result = new ArrayList<InvalidProperty>();
         if (p == null) return result;
 
-        final String authUsername = p.get(TfsConstants.AUTH_USER);
-        final String authProviderId = p.get(TfsConstants.AUTH_PROVIDER_ID);
-        if (authUsername != null && authProviderId != null) {
-          final User currentUser = mySecurityContext.getAuthorityHolder().getAssociatedUser();
-          if (currentUser != null && currentUser instanceof SUser) {
-            for (OAuthToken token : myOAuthTokensStorage.getUserTokens(authProviderId, (SUser) currentUser, buildTypeOrTemplate.getProject(), false)) {
-              if (token.getOauthLogin().equals(authUsername)) {
-                p.put(TfsConstants.ACCESS_TOKEN, token.getAccessToken());
-                p.remove(TfsConstants.AUTH_USER);
-                p.remove(TfsConstants.AUTH_PROVIDER_ID);
+        String authType = p.getOrDefault(TfsConstants.AUTHENTICATION_TYPE, TfsConstants.AUTH_TYPE_TOKEN);
+
+        if (TfsConstants.AUTH_TYPE_TOKEN.equals(authType)) {
+          //PAT token was set via magic button
+          final String authUsername = p.get(TfsConstants.AUTH_USER);
+          final String authProviderId = p.get(TfsConstants.AUTH_PROVIDER_ID);
+          if (authUsername != null && authProviderId != null) {
+            final User currentUser = mySecurityContext.getAuthorityHolder().getAssociatedUser();
+            if (currentUser != null && currentUser instanceof SUser) {
+              for (OAuthToken token : myOAuthTokensStorage.getUserTokens(authProviderId, (SUser)currentUser, buildTypeOrTemplate.getProject(), false)) {
+                if (token.getOauthLogin().equals(authUsername)) {
+                  p.put(TfsConstants.ACCESS_TOKEN, token.getAccessToken());
+                  p.remove(TfsConstants.AUTH_USER);
+                  p.remove(TfsConstants.AUTH_PROVIDER_ID);
+                }
               }
             }
           }
-        }
 
-        checkNotEmpty(p, TfsConstants.ACCESS_TOKEN, "Personal Access Token must be specified", result);
+          checkNotEmpty(p, TfsConstants.ACCESS_TOKEN, "Personal Access Token must be specified", result);
+        } else {
+          result.add(new InvalidProperty(TfsConstants.AUTHENTICATION_TYPE, "Unsupported authentication type"));
+        }
 
         return result;
       }
@@ -199,5 +196,59 @@ public class TfsPublisherSettings extends BasePublisherSettings implements Commi
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
     return isBuildQueuedSupported(buildType) ? mySupportedEventsWithQueued : mySupportedEvents;
+  }
+
+  @NotNull
+  @Override
+  protected String getDefaultAuthType() {
+    return TfsConstants.AUTH_TYPE_TOKEN;
+  }
+
+  @Nullable
+  @Override
+  protected String getUsername(@NotNull Map<String, String> params) {
+    return null;
+  }
+
+  @Nullable
+  @Override
+  protected String getPassword(@NotNull Map<String, String> params) {
+    return null;
+  }
+
+  @NotNull
+  @Override
+  protected HttpCredentials getUsernamePasswordCredentials(@NotNull String username, @NotNull String password) throws PublisherException {
+    throw new PublisherException("Unsupported authentication type username/password");
+  }
+
+  @NotNull
+  @Override
+  protected HttpCredentials getVcsRootCredentials(@Nullable VcsRoot root) throws PublisherException {
+    throw new PublisherException("Unsupported authentication type VCS Root");
+  }
+
+  @NotNull
+  @Override
+  protected HttpCredentials getAccessTokenCredentials(@NotNull String token) throws PublisherException {
+    return new UsernamePasswordCredentials(StringUtil.EMPTY, token);
+  }
+
+  @NotNull
+  @Override
+  protected HttpCredentials getAccessTokenCredentials(@NotNull final Map<String, String> params) throws PublisherException {
+    final String token = params.get(TfsConstants.ACCESS_TOKEN);
+    if (token == null) {
+      throw new PublisherException("Azure DevOps access token is not defined");
+    }
+    return getAccessTokenCredentials(token);
+  }
+
+  @NotNull
+  @Override
+  public Map<String, Object> getSpecificAttributes(@NotNull SProject project, @NotNull Map<String, String> params) {
+    Map<String, Object> specificAttributes = super.getSpecificAttributes(project, params);
+    specificAttributes.put("azurePatConnections", myOAuthConnectionsManager.getAvailableConnectionsOfType(project, TfsAuthProvider.TYPE));
+    return specificAttributes;
   }
 }

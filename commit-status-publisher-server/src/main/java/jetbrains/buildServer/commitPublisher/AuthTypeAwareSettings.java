@@ -34,7 +34,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
   protected final OAuthConnectionsManager myOAuthConnectionsManager;
 
   @NotNull
-  private final SecurityContext mySecurityContext;
+  protected final SecurityContext mySecurityContext;
 
   public AuthTypeAwareSettings(@NotNull PluginDescriptor descriptor,
                                @NotNull WebLinks links,

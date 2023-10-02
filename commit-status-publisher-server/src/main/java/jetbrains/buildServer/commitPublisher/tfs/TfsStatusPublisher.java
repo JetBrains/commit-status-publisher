@@ -37,7 +37,6 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
-import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -240,7 +239,8 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   public static void testConnection(@NotNull final VcsRoot root,
                                     @NotNull final Map<String, String> params,
                                     @NotNull final String commitId,
-                                    @Nullable final KeyStore trustStore) throws PublisherException {
+                                    @Nullable final KeyStore trustStore,
+                                    @NotNull HttpCredentials credentials) throws PublisherException {
     if (!TfsConstants.GIT_VCS_ROOT.equals(root.getVcsName())) {
       throw new PublisherException("Status publisher supports only Git VCS roots");
     }
@@ -250,7 +250,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
       final String url = MessageFormat.format(COMMIT_STATUS_URL_FORMAT,
         info.getServer(), info.getProject(), info.getRepository(), commitId);
       IOGuard.allowNetworkCall(() -> {
-        HttpHelper.post(url, getCredentials(params), StringUtil.EMPTY, ContentType.DEFAULT_TEXT,
+        HttpHelper.post(url, credentials, StringUtil.EMPTY, ContentType.DEFAULT_TEXT,
                         Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
                         trustStore, new DefaultHttpResponseProcessor() {
             @Override
@@ -281,10 +281,11 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   @Nullable
   public static String getLatestCommitId(@NotNull final VcsRoot root,
                                          @NotNull final Map<String, String> params,
-                                         @Nullable final KeyStore trustStore) throws PublisherException {
+                                         @Nullable final KeyStore trustStore,
+                                         @NotNull HttpCredentials credentials) throws PublisherException {
     final TfsRepositoryInfo info = getServerAndProject(root, params);
     try {
-      List<Commit> latestCommits = getNLatestCommits(info, params, trustStore, 1);
+      List<Commit> latestCommits = getNLatestCommits(info, params, trustStore, 1, credentials);
       if (!latestCommits.isEmpty()) {
         return latestCommits.get(0).commitId;
       }
@@ -297,7 +298,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   }
 
   @NotNull
-  private static Set<String> getParentCommits(@NotNull final TfsRepositoryInfo info,
+  private Set<String> getParentCommits(@NotNull final TfsRepositoryInfo info,
                                               @NotNull final String parentCommitId,
                                               @NotNull final Map<String, String> params,
                                               @Nullable final KeyStore trustStore) throws PublisherException {
@@ -336,7 +337,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   }
 
   @Nullable
-  private static Iteration getPullRequestIteration(@NotNull final TfsRepositoryInfo info,
+  private Iteration getPullRequestIteration(@NotNull final TfsRepositoryInfo info,
                                                 @NotNull final String pullRequestId,
                                                 @NotNull final Set<String> parentCommits,
                                                 @NotNull final Map<String, String> params,
@@ -402,11 +403,11 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   }
 
   @NotNull
-  private static List<Commit> getNLatestCommits(TfsRepositoryInfo info, Map<String, String> params, KeyStore trustStore, int nCommitsToLoad)
+  private static List<Commit> getNLatestCommits(TfsRepositoryInfo info, Map<String, String> params, KeyStore trustStore, int nCommitsToLoad, @NotNull HttpCredentials credentials)
     throws HttpPublisherException, IOException {
     String moreCommitsUrl = MessageFormat.format(COMMITS_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository(), nCommitsToLoad);
     List<Commit> resultingCommits = new ArrayList<>();
-    HttpHelper.get(moreCommitsUrl, getCredentials(params),
+    HttpHelper.get(moreCommitsUrl, credentials,
                    Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
                    trustStore, new DefaultHttpResponseProcessor() {
         @Override
@@ -643,9 +644,8 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   }
 
   @Nullable
-  private static HttpCredentials getCredentials(Map<String, String> params) {
-    final String accessToken = params.get(TfsConstants.ACCESS_TOKEN);
-    return accessToken != null ? new UsernamePasswordCredentials(StringUtil.EMPTY, accessToken) : null;
+  private HttpCredentials getCredentials(Map<String, String> params) throws PublisherException {
+    return getSettings().getCredentials(null, params);
   }
 
   private static class Error {
