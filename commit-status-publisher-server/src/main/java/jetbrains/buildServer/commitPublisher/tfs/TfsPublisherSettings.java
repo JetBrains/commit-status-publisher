@@ -116,13 +116,13 @@ public class TfsPublisherSettings extends AuthTypeAwareSettings implements Commi
     }
 
     if (commitId == null) {
-      commitId = TfsStatusPublisher.getLatestCommitId(root, params, trustStore(), getCredentials(null, params));
+      commitId = TfsStatusPublisher.getLatestCommitId(root, params, trustStore(), getCredentials(root, params));
       if (commitId == null) {
         throw new PublisherException("No commits found in the repository");
       }
     }
 
-    TfsStatusPublisher.testConnection(root, params, commitId, trustStore(), getCredentials(null, params));
+    TfsStatusPublisher.testConnection(root, params, commitId, trustStore(), getCredentials(root, params));
   }
 
   @Nullable
@@ -179,6 +179,13 @@ public class TfsPublisherSettings extends AuthTypeAwareSettings implements Commi
           }
 
           checkNotEmpty(p, TfsConstants.ACCESS_TOKEN, "Personal Access Token must be specified", result);
+          p.remove(TfsConstants.TOKEN_ID);
+        } else if (TfsConstants.AUTH_TYPE_STORED_TOKEN.equals(authType)) {
+          checkNotEmpty(p, TfsConstants.TOKEN_ID, "No token configured", result);
+
+          p.remove(TfsConstants.ACCESS_TOKEN);
+          p.remove(TfsConstants.AUTH_USER);
+          p.remove(TfsConstants.AUTH_PROVIDER_ID);
         } else {
           result.add(new InvalidProperty(TfsConstants.AUTHENTICATION_TYPE, "Unsupported authentication type"));
         }
@@ -214,6 +221,12 @@ public class TfsPublisherSettings extends AuthTypeAwareSettings implements Commi
   @Override
   protected String getPassword(@NotNull Map<String, String> params) {
     return null;
+  }
+
+  @NotNull
+  @Override
+  protected String getAuthType(@NotNull Map<String, String> params) {
+    return params.getOrDefault(TfsConstants.AUTHENTICATION_TYPE, getDefaultAuthType());
   }
 
   @NotNull

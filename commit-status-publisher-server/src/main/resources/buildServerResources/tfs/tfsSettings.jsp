@@ -1,8 +1,10 @@
+<%@ page import="jetbrains.buildServer.serverSide.oauth.azuredevops.AzureDevOpsOAuthProvider" %>
 <%@ include file="/include-internal.jsp" %>
 <%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
 <%@ taglib prefix="l" tagdir="/WEB-INF/tags/layout" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
+<%@ taglib prefix="oauth" tagdir="/WEB-INF/tags/oauth" %>
 
 <%--
   ~ Copyright 2000-2022 JetBrains s.r.o.
@@ -22,6 +24,9 @@
 
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.tfs.TfsConstants"/>
 <jsp:useBean id="oauthConnections" scope="request" type="java.util.List"/>
+<jsp:useBean id="azurePatConnections" scope="request" type="java.util.List"/>
+
+<%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
 
 <c:url value="/oauth/tfs/token.html" var="getTokenPage"/>
 <c:set var="cameFromUrl" value="${empty param['cameFromUrl'] ? pageUrl : param['cameFromUrl']}"/>
@@ -53,6 +58,41 @@
       <a href="https://docs.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/oauth?view=vsts#scopes" target="_blank" rel="noreferrer">scopes</a>
       for token.
     </span>
+      </td>
+    </tr>
+  </props:selectSectionPropertyContent>
+  <props:selectSectionPropertyContent value="${keys.authTypeStoredToken}" caption="Refreshable access token">
+    <%@include file="/admin/_tokenSupport.jspf"%>
+    <tr>
+      <th><label for="${keys.tokenId}">Refreshable access token:<l:star/></label></th>
+      <td>
+        <span class="access-token-note" id="message_no_token">No access token configured.</span>
+        <span class="access-token-note" id="message_we_have_token"></span>
+        <c:if test="${empty oauthConnections}">
+          <br/>
+          <span>There are no Azure DevOps OAuth 2.0 connections available to the project.</span>
+        </c:if>
+
+        <props:hiddenProperty name="${keys.tokenId}" />
+        <span class="error" id="error_${keys.tokenId}"></span>
+
+        <c:if test="${canEditProject}">
+          <c:forEach items="${oauthConnections}" var="connection">
+            <script type="application/javascript">
+              BS.AuthTypeTokenSupport.connections['${connection.id}'] = '<bs:forJs>${connection.connectionDisplayName}</bs:forJs>';
+            </script>
+            <div class="token-connection">
+              <span class="token-connection-diplay-name"><c:out value="${connection.connectionDisplayName}" /></span>
+              <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.AuthTypeTokenSupport.tokenCallback">
+                Acquire
+              </oauth:obtainToken>
+            </div>
+          </c:forEach>
+
+          <c:set var="connectorType" value="<%=AzureDevOpsOAuthProvider.TYPE%>"/>
+          <span class="smallNote connection-note">Add credentials via the
+                  <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
+        </c:if>
       </td>
     </tr>
   </props:selectSectionPropertyContent>

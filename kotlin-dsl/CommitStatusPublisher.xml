@@ -340,6 +340,16 @@
               </description>
             </param>
           </option>
+          <option name="storedToken" value="storedToken">
+            <description>
+              Use token credentials stored in TeamCity
+            </description>
+            <param name="tokenId" mandatory="true">
+              <description>
+                The internal ID of the token to use for the connection
+              </description>
+            </param>
+          </option>
         </param>
         <param name="publish.pull.requests" dslName="publishPullRequests" type="boolean" trueValue="true" falseValue="">
           <description>
@@ -626,6 +636,24 @@
             serverUrl = "&lt;Azure DevOps URL>" // optional
             authType = personalToken {
               accessToken = "tc_token_id:*****"
+            }
+            publishPullRequests = true // optional
+          }
+        }
+      </code>
+    </example>
+    <example>
+      <description>
+        Enables publishing build statuses to commits in Azure DevOps
+        Instead of password authentication an access token stored in TeamCity is used.
+      </description>
+      <code>
+        commitStatusPublisher {
+          vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
+          publisher = azureDevOps {
+            serverUrl = "&lt;Azure DevOps URL>" // optional
+            authType = storedToken {
+              tokenId = "tc_token_id:*****"
             }
             publishPullRequests = true // optional
           }

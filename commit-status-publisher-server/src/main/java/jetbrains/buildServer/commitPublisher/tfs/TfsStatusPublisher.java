@@ -191,7 +191,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     final int statusesThreshold = TeamCityProperties.getInteger(Constants.STATUSES_TO_LOAD_THRESHOLD_PROPERTY, Constants.STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL);
     do {
       String url = String.format("%s&top=%d&skip=%d", baseUrl, top, skip);
-      CommitStatuses commitStatuses = get(url, getCredentials(myParams), null, processor);
+      CommitStatuses commitStatuses = get(url, getCredentials(revision.getRoot(), myParams), null, processor);
       if (commitStatuses == null || commitStatuses.value == null || commitStatuses.value.isEmpty()) return result;
       result.addAll(commitStatuses.value);
 
@@ -298,16 +298,17 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   }
 
   @NotNull
-  private Set<String> getParentCommits(@NotNull final TfsRepositoryInfo info,
-                                              @NotNull final String parentCommitId,
-                                              @NotNull final Map<String, String> params,
-                                              @Nullable final KeyStore trustStore) throws PublisherException {
+  private Set<String> getParentCommits( @NotNull final TfsRepositoryInfo info,
+                                        @NotNull final String parentCommitId,
+                                        @NotNull final Map<String, String> params,
+                                        @Nullable final KeyStore trustStore,
+                                        @NotNull VcsRoot root) throws PublisherException {
     final String url = MessageFormat.format(COMMIT_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository(), parentCommitId);
     final Set<String> commits = new HashSet<String>();
 
     try {
       IOGuard.allowNetworkCall(() -> {
-        HttpHelper.get(url, getCredentials(params),
+        HttpHelper.get(url, getCredentials(root, params),
                        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
                        trustStore, new DefaultHttpResponseProcessor() {
             @Override
@@ -338,10 +339,11 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
 
   @Nullable
   private Iteration getPullRequestIteration(@NotNull final TfsRepositoryInfo info,
-                                                @NotNull final String pullRequestId,
-                                                @NotNull final Set<String> parentCommits,
-                                                @NotNull final Map<String, String> params,
-                                                @Nullable final KeyStore trustStore) throws PublisherException {
+                                            @NotNull final String pullRequestId,
+                                            @NotNull final Set<String> parentCommits,
+                                            @NotNull final Map<String, String> params,
+                                            @Nullable final KeyStore trustStore,
+                                            @NotNull final VcsRoot root) throws PublisherException {
     final String url = MessageFormat.format(PULL_REQUEST_ITERATIONS_URL_FORMAT,
       info.getServer(), info.getProject(), info.getRepository(), pullRequestId);
 
@@ -349,7 +351,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
 
     try {
       IOGuard.allowNetworkCall(() -> {
-        HttpHelper.get(url, getCredentials(params),
+        HttpHelper.get(url, getCredentials(root, params),
                        Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
                        trustStore, new DefaultHttpResponseProcessor() {
             @Override
@@ -488,7 +490,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     final String description = LogUtil.describe(buildPromotion);
     final String data = myGson.toJson(status);
     final String commitId = publishPullRequestStatus(info, revision, data, description);
-    boolean published = publishCommitStatus(info, data, commitId, description);
+    boolean published = publishCommitStatus(info, data, commitId, description, revision.getRoot());
     if (published) {
       myStatusesCache.removeStatusFromCache(revision, status.context.name);
     }
@@ -505,10 +507,10 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     return getServerAndProject(root, myParams);
   }
 
-  private boolean publishCommitStatus(TfsRepositoryInfo info, String data, String commitId, String description) throws PublisherException {
+  private boolean publishCommitStatus(TfsRepositoryInfo info, String data, String commitId, String description, VcsRoot root) throws PublisherException {
     final String commitStatusUrl = MessageFormat.format(COMMIT_STATUS_URL_FORMAT,
                                                         info.getServer(), info.getProject(), info.getRepository(), commitId);
-    postJson(commitStatusUrl, getCredentials(myParams),
+    postJson(commitStatusUrl, getCredentials(root, myParams),
              data,
              Collections.singletonMap("Accept", "application/json"),
              description
@@ -546,10 +548,10 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     final KeyStore trustStore = getSettings().trustStore();
 
     // Since it's a merge request we need to get parent commit for it
-    final Set<String> commits = getParentCommits(info, commitId, myParams, trustStore);
+    final Set<String> commits = getParentCommits(info, commitId, myParams, trustStore, revision.getRoot());
 
     // Then we need to get pull request iteration where this commit present
-    final Iteration iteration = getPullRequestIteration(info, pullRequestId, commits, myParams, trustStore);
+    final Iteration iteration = getPullRequestIteration(info, pullRequestId, commits, myParams, trustStore, revision.getRoot());
     final String pullRequestStatusUrl;
 
     if (iteration == null || StringUtil.isEmptyOrSpaces(iteration.id)) {
@@ -564,7 +566,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
                                                   info.getServer(), info.getProject(), info.getRepository(), pullRequestId, iteration.id);
     }
 
-    postJson(pullRequestStatusUrl, getCredentials(myParams),
+    postJson(pullRequestStatusUrl, getCredentials(revision.getRoot(), myParams),
              data,
              Collections.singletonMap("Accept", "application/json"),
              description
@@ -581,7 +583,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     final String description = LogUtil.describe(build);
     final String data = myGson.toJson(status);
     final String commitId = publishPullRequestStatus(info, revision, data, description);
-    boolean published = publishCommitStatus(info, data, commitId, description);
+    boolean published = publishCommitStatus(info, data, commitId, description, revision.getRoot());
     if (published) {
       myStatusesCache.removeStatusFromCache(revision, status.context.name);
     }
@@ -644,8 +646,8 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   }
 
   @Nullable
-  private HttpCredentials getCredentials(Map<String, String> params) throws PublisherException {
-    return getSettings().getCredentials(null, params);
+  private HttpCredentials getCredentials(@NotNull VcsRoot root, Map<String, String> params) throws PublisherException {
+    return getSettings().getCredentials(root, params);
   }
 
   private static class Error {

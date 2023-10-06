@@ -24,6 +24,9 @@ public class TfsConstants {
 
   public static final String AUTH_TYPE_TOKEN = "token";
 
+  public static final String AUTH_TYPE_STORED_TOKEN = "storedToken";
+
+  public static final String TOKEN_ID = "tokenId";
   public static final String ACCESS_TOKEN = Constants.SECURE_PROPERTY_PREFIX + "accessToken";
   public static final String AUTH_USER = "tfsAuthUser";
   public static final String AUTH_PROVIDER_ID = "tfsAuthProviderId";
@@ -38,6 +41,14 @@ public class TfsConstants {
 
   public String getAuthTypeToken() {
     return AUTH_TYPE_TOKEN;
+  }
+
+  public String getAuthTypeStoredToken() {
+    return AUTH_TYPE_STORED_TOKEN;
+  }
+
+  public String getTokenId() {
+    return TOKEN_ID;
   }
 
   public String getAccessTokenKey() {
