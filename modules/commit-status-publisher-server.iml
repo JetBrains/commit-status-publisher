@@ -55,5 +55,6 @@
     <orderEntry type="module" module-name="oauth-integration-web" />
     <orderEntry type="library" name="Maven: com.jcraft:jsch:0.1.54" level="project" />
     <orderEntry type="library" name="Maven: com.google.code.gson:gson:2.9.0" level="project" />
+    <orderEntry type="library" name="Maven: commons-io:commons-io:2.12.0" level="project" />
   </component>
 </module>
