@@ -46,7 +46,7 @@ subprojects {
         }
 
         maven {
-            url = 'https://repo.maven.apache.org/maven2'
+            url = 'https://cache-redirector.jetbrains.com/repo.maven.apache.org/maven2'
         }
         mavenLocal()
     }
