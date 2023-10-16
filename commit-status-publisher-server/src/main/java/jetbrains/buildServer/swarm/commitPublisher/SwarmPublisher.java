@@ -3,11 +3,14 @@ package jetbrains.buildServer.swarm.commitPublisher;
 import java.util.Map;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.impl.LogUtil;
+import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.swarm.SwarmClient;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 import static jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings.ID;
 
 /**
@@ -156,6 +159,12 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
 
   @Override
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
+    final CanceledInfo canceledInfo = build.getCanceledInfo();
+    if (canceledInfo != null) {
+      LOG.debug(() -> "not publishing build failure, as build " + LogUtil.describe(build) + " is cancelled: " + canceledInfo);
+      return false;
+    }
+
     publishCommentIfNeeded(build.getBuildPromotion(), revision, "failure was detected in build %s: " + build.getStatusDescriptor().getText());
     updateTestRunsForReviewsOnSwarm(build, revision);
     return true;
