@@ -732,12 +732,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     return testIfBuildTypeUsingCommitStatusPublisher(buildType);
   }
 
+  @NotNull
   @Override
-  public boolean shouldCollectChangesNow(@NotNull BuildPromotion buildPromotion) {
+  public Result shouldCollectChangesNow(@NotNull BuildPromotion buildPromotion) {
     SBuildType buildType = buildPromotion.getBuildType();
-    if (buildType == null) return false;
+    if (buildType == null) return Result.UNKNOWN;
 
-    return shouldCollectChangesNow(buildType);
+    return shouldCollectChangesNow(buildType) ? Result.YES : Result.UNKNOWN;
   }
 
   @NotNull
