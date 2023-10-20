@@ -95,7 +95,7 @@
 
           <props:hiddenProperty name="${keys.tokenId}" />
           <span class="error" id="error_${keys.tokenId}"></span>
-          <c:if test="${canEditProject}">
+          <c:if test="${canEditProject and not project.readOnly}">
             <c:forEach items="${oauthConnections}" var="connection">
               <script type="application/javascript">
                 BS.AuthTypeTokenSupport.connections['${connection.id}'] = '<bs:forJs>${connection.connectionDisplayName}</bs:forJs>';
