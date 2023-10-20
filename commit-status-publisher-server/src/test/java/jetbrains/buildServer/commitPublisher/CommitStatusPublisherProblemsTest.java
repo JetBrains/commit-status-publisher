@@ -18,8 +18,11 @@ package jetbrains.buildServer.commitPublisher;
 
 import java.util.Collection;
 import java.util.Collections;
+import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
+import jetbrains.buildServer.serverSide.impl.BuildFeatureDescriptorImpl;
+import jetbrains.buildServer.serverSide.systemProblems.BuildFeatureProblemsTicketManager;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
 import org.testng.annotations.BeforeMethod;
@@ -49,7 +52,7 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
     super.setUp();
     myLogger = new PublisherLogger();
     myProblemEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
-    myProblems = new CommitStatusPublisherProblems(myProblemEngine);
+    myProblems = new CommitStatusPublisherProblems(myFixture.getSingletonService(BuildFeatureProblemsTicketManager.class));
     myPublisherSettings = new MockPublisherSettings(myProblems);
     myLinks = myFixture.getSingletonService(WebLinks.class);
     myPublisher = new MockPublisher(myPublisherSettings, "PUBLISHER1", myBuildType, FEATURE_1, Collections.emptyMap(), myProblems, myLogger, myLinks);
@@ -74,12 +77,17 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
     CommitStatusPublisher publisher2 = new MockPublisher(myPublisherSettings, "PUBLISHER2", myBuildType, FEATURE_2,
                                                          Collections.emptyMap(), myProblems, myLogger, myLinks);
 
+    myBuildType.addBuildFeature(new BuildFeatureDescriptorImpl(FEATURE_2, CommitStatusPublisherFeature.TYPE, Collections.emptyMap(), myServer));
+    myBuildType.addBuildFeature(new BuildFeatureDescriptorImpl(FEATURE_1, CommitStatusPublisherFeature.TYPE, Collections.emptyMap(), myServer));
+    myBuildType.persist();
+
     myProblems.reportProblem(PUB2_P1, publisher2, "Build description", null, null, myLogger);
     myProblems.reportProblem(PUB1_P1, myPublisher, "Build description", null, null, myLogger);
     myProblems.reportProblem(PUB2_P2, publisher2, "Build description", null, null, myLogger);
     Collection<SystemProblemEntry> problems = myProblemEngine.getProblems(myBuildType);
     then(problems.size()).isEqualTo(3);
-    myProblems.clearObsoleteProblems(myBuildType, Collections.singletonList(FEATURE_1));
+    myBuildType.removeBuildFeature(FEATURE_2);
+    myProblems.clearObsoleteProblems(myBuildType);
     Collection<SystemProblemEntry> remainingProblems = myProblemEngine.getProblems(myBuildType);
     then(remainingProblems.size()).isEqualTo(1);
     then(remainingProblems.iterator().next().getProblem().getDescription()).contains(PUB1_P1);

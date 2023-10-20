@@ -34,6 +34,7 @@ import jetbrains.buildServer.serverSide.impl.RunningBuildState;
 import jetbrains.buildServer.serverSide.impl.beans.VcsRootInstanceContext;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsWatcher;
 import jetbrains.buildServer.serverSide.impl.xml.XmlConstants;
+import jetbrains.buildServer.serverSide.systemProblems.BuildFeatureProblemsTicketManagerImpl;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.users.SUser;
@@ -60,6 +61,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   private CommitStatusPublisherListener myListener;
   private MockPublisher myPublisher;
+  private BuildFeatureProblemsTicketManagerImpl myTicketManager;
   private PublisherLogger myLogger;
   private SUser myUser;
   private Event myLastEventProcessed;
@@ -80,6 +82,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myUser = myFixture.createUserAccount("newuser");
     myPublisherSettings.setPublisher(myPublisher);
     myPublisherSettings.setLinks(myWebLinks);
+    myTicketManager = myFixture.findSingletonService(BuildFeatureProblemsTicketManagerImpl.class);
   }
   
   private QueuedBuild addBuildToQueue(BuildPromotionEx buildPromotion) {
@@ -383,7 +386,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myProblems.reportProblem(myPublisher, "Build with feature", null, null, myLogger);
     then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
     myBuildType.removeBuildFeature(myBuildType.getBuildFeatures().iterator().next().getId());
-    myListener.buildTypePersisted(myBuildType);
+    myTicketManager.buildTypePersisted(myBuildType);
     Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
     then(problems).isEmpty();
   }
@@ -395,7 +398,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myProblems.reportProblem(myPublisher, "Build with feature", null, null, myLogger);
     then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
     myBuildType.setEnabled(myFeatureDescriptor.getId(), false);
-    myListener.buildTypePersisted(myBuildType);
+    myTicketManager.buildTypePersisted(myBuildType);
     Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
     then(problems).isEmpty();
   }
@@ -430,10 +433,10 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myProject.setDefaultTemplate(template);
     myProblems.reportProblem(myPublisher, "Build with feature", null, null, myLogger);
     then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
-    myListener.projectPersisted(myProject.getProjectId());
+    myTicketManager.projectPersisted(myProject.getProjectId());
     then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
     myProject.setDefaultTemplate(null);
-    myListener.projectPersisted(myProject.getProjectId());
+    myTicketManager.projectPersisted(myProject.getProjectId());
     waitForAssert(() -> myProblemNotificationEngine.getProblems(myBuildType).isEmpty(), TASK_COMPLETION_TIMEOUT_MS);
   }
 
@@ -463,12 +466,12 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myProject.setDefaultTemplate(template);
     myProblems.reportProblem(myPublisher, "Build with feature", null, null, myLogger);
     then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
-    myListener.projectPersisted(myProject.getProjectId());
+    myTicketManager.projectPersisted(myProject.getProjectId());
     then(myProblemNotificationEngine.getProblems(myBuildType).size()).isEqualTo(1);
     myProject.setDefaultTemplate(null);
     // mock situation when two parallel events happened
-    myListener.projectPersisted(myProject.getProjectId());
-    myListener.buildTypeTemplatePersisted(template);
+    myTicketManager.projectPersisted(myProject.getProjectId());
+    myTicketManager.buildTypeTemplatePersisted(template);
     waitForAssert(() -> myProblemNotificationEngine.getProblems(myBuildType).isEmpty(), TASK_COMPLETION_TIMEOUT_MS);
   }
 

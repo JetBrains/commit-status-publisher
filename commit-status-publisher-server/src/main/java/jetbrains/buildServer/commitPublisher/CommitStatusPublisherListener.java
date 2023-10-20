@@ -25,7 +25,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.Used;
@@ -379,37 +378,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     return CurrentNodeInfo.isMainNode(); // node that created promotion is offline, should be processes on main node
   }
 
-  @Override
-  public void buildTypePersisted(@NotNull SBuildType buildType) {
-    if (!myProblems.hasProblems(buildType)) {
-      return;
-    }
-    clearObsoleteProblems(buildType);
-  }
-
-  @Override
-  public void projectPersisted(@NotNull String projectId) {
-    clearObsoleteProblemsForProject(projectId);
-  }
-
-  @Override
-  public void projectRestored(@NotNull String projectId) {
-    clearObsoleteProblemsForProject(projectId);
-  }
-
-  @Override
-  public void buildTypeMoved(@NotNull SBuildType buildType, @NotNull SProject original) {
-    if (!myProblems.hasProblems(buildType)) {
-      return;
-    }
-    clearObsoleteProblems(buildType);
-  }
-
-  @Override
-  public void buildTypeTemplatePersisted(@NotNull BuildTypeTemplate buildTemplate) {
-    clearObsoleteProblems(buildTemplate);
-  }
-
   @Used("tests")
   void setEventProcessedCallback(@Nullable Consumer<Event> callback) {
     myEventProcessedCallback = callback;
@@ -579,7 +547,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
         }
       }
     }
-    myProblems.clearObsoleteProblems(buildType, publishers.keySet());
   }
 
   private AdditionalTaskInfo buildAdditionalRemovedFromQueueInfo(BuildPromotion buildPromotion, String comment, User user) {
@@ -641,51 +608,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   private boolean shouldFailBuild(@NotNull SBuildType buildType) {
     return Boolean.parseBoolean(buildType.getParameters().get("teamcity.commitStatusPublisher.failBuildOnPublishError"));
-  }
-
-  private void clearObsoleteProblemsForProject(@NotNull String projectId) {
-    SProject project = myProjectManager.findProjectById(projectId);
-    if (project == null) {
-      return;
-    }
-    clearObsoleteProblems(getBuildTypesWithProblems(project.getOwnBuildTypes().stream()));
-  }
-
-  private void clearObsoleteProblems(@NotNull BuildTypeTemplate buildTemplate) {
-    Collection<SBuildType> buildTypes = getBuildTypesWithProblems(buildTemplate.getUsages().stream());
-    buildTypes.addAll(getBuildTypesWithProblems(buildTemplate.getUsagesAsDefaultTemplate()));
-    if (buildTemplate instanceof BuildTypeTemplateEx) {
-      buildTypes.addAll(getBuildTypesWithProblems(((BuildTypeTemplateEx) buildTemplate).getUsagesAsEnforcedSettings()));
-    }
-    clearObsoleteProblems(buildTypes);
-  }
-
-  private Collection<SBuildType> getBuildTypesWithProblems(@NotNull Stream<SBuildType> buildTypes) {
-    return buildTypes.filter(myProblems::hasProblems)
-                     .collect(Collectors.toSet());
-  }
-
-  private Collection<SBuildType> getBuildTypesWithProblems(@NotNull Collection<SProject> projects) {
-    return getBuildTypesWithProblems(projects.stream()
-                                             .map(SProject::getBuildTypes)
-                                             .flatMap(Collection::stream));
-  }
-
-  private void clearObsoleteProblems(@NotNull Collection<SBuildType> buildTypes) {
-    if (buildTypes.isEmpty()) {
-      return;
-    }
-    runAsync(() -> {
-      buildTypes.forEach(this::clearObsoleteProblems);
-    }, null);
-  }
-
-  private void clearObsoleteProblems(@NotNull SBuildType buildType) {
-    Set<String> activeBuildFeaturesIds = buildType.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE).stream()
-                                                  .map(SBuildFeatureDescriptor::getId)
-                                                  .filter(buildType::isEnabled)
-                                                  .collect(Collectors.toSet());
-    myProblems.clearObsoleteProblems(buildType, activeBuildFeaturesIds);
   }
 
   @NotNull
