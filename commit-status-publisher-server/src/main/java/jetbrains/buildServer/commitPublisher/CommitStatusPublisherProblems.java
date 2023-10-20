@@ -16,26 +16,19 @@
 
 package jetbrains.buildServer.commitPublisher;
 
-import com.google.common.util.concurrent.Striped;
 import com.intellij.openapi.diagnostic.Logger;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.Lock;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.systemProblems.BuildFeatureProblemsTicketManager;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
-import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotification;
-import jetbrains.buildServer.serverSide.systemProblems.SystemProblemTicket;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class CommitStatusPublisherProblems {
 
-  private final SystemProblemNotification myProblems;
-  private final ConcurrentHashMap<String, Map<String, Set<SystemProblemTicket>>> myTickets = new ConcurrentHashMap<String, Map<String, Set<SystemProblemTicket>>> ();
-  private final Striped<Lock> myLocks = Striped.lazyWeakLock(256);
+  private final BuildFeatureProblemsTicketManager myTicketManager;
 
-  public CommitStatusPublisherProblems(@NotNull SystemProblemNotification systemProblems) {
-    myProblems = systemProblems;
+  public CommitStatusPublisherProblems(@NotNull BuildFeatureProblemsTicketManager ticketManager) {
+    myTicketManager = ticketManager;
   }
 
   public void reportProblem(@NotNull CommitStatusPublisher publisher,
@@ -68,84 +61,18 @@ public class CommitStatusPublisherProblems {
       logger.warn(logEntry);
     }
     SBuildType buildType = publisher.getBuildType();
-    Lock lock = myLocks.get(buildType);
-    lock.lock();
-    try {
-      SystemProblem problem = new SystemProblem(errorDescription, null, Constants.COMMIT_STATUS_PUBLISHER_PROBLEM_TYPE, null);
-      putTicket(buildType.getInternalId(), publisher.getBuildFeatureId(), myProblems.raiseProblem(buildType, problem));
-    } finally {
-      lock.unlock();
-    }
+    SystemProblem problem = new SystemProblem(errorDescription, null, Constants.COMMIT_STATUS_PUBLISHER_PROBLEM_TYPE, null);
+
+    myTicketManager.reportProblem(buildType, publisher.getBuildFeatureId(), problem);
+  }
+
+  public void clearObsoleteProblems(@NotNull SBuildType buildType) {
+    myTicketManager.clearObsoleteProblems(buildType);
   }
 
   void clearProblem(@NotNull CommitStatusPublisher publisher) {
     SBuildType buildType = publisher.getBuildType();
     String featureId = publisher.getBuildFeatureId();
-    Lock lock = myLocks.get(buildType);
-    lock.lock();
-    try {
-      String btId = buildType.getInternalId();
-      if (myTickets.containsKey(btId)) {
-        removeFeatureProblem(btId, featureId);
-      }
-    } finally {
-      lock.unlock();
-    }
-  }
-
-  private void removeFeatureProblem(String internalBuildTypeId, String featureId) {
-    Map<String, Set<SystemProblemTicket>> ticketsForPublishers = myTickets.getOrDefault(internalBuildTypeId, Collections.emptyMap());
-    if (ticketsForPublishers.containsKey(featureId)) {
-      Set<SystemProblemTicket> tickets = ticketsForPublishers.get(featureId);
-      for (SystemProblemTicket ticket: tickets) {
-        ticket.cancel();
-      }
-      ticketsForPublishers.remove(featureId);
-      if (ticketsForPublishers.isEmpty()) {
-        myTickets.remove(internalBuildTypeId);
-      }
-    }
-  }
-
-  void clearObsoleteProblems(@NotNull SBuildType buildType, @NotNull Collection<String> currentFeatureIds) {
-    Lock lock = myLocks.get(buildType);
-    lock.lock();
-    try {
-      String btId = buildType.getInternalId();
-      if (myTickets.containsKey(btId)) {
-        Map<String, Set<SystemProblemTicket>> ticketsForPublishers = myTickets.get(btId);
-        Set<String> featureIdsToRemove = new HashSet<String>(ticketsForPublishers.keySet());
-        featureIdsToRemove.removeAll(currentFeatureIds);
-        for (String featureId: featureIdsToRemove) {
-          removeFeatureProblem(btId, featureId);
-        }
-      }
-    } finally {
-      lock.unlock();
-    }
-  }
-
-  boolean hasProblems(@NotNull SBuildType buildType) {
-    return myTickets.containsKey(buildType.getInternalId());
-  }
-
-  private void putTicket(String buildTypeInternalId, String publisherBuildFeatureId, SystemProblemTicket ticket) {
-    Map<String, Set<SystemProblemTicket>> ticketsForPublishers;
-    if (myTickets.containsKey(buildTypeInternalId)) {
-      ticketsForPublishers = myTickets.get(buildTypeInternalId);
-    } else {
-      ticketsForPublishers = new HashMap<String, Set<SystemProblemTicket>>();
-      myTickets.put(buildTypeInternalId, ticketsForPublishers);
-    }
-
-    Set<SystemProblemTicket> tickets;
-
-    if (ticketsForPublishers.containsKey(publisherBuildFeatureId)) {
-      tickets = ticketsForPublishers.get(publisherBuildFeatureId);
-    } else {
-      tickets = new HashSet<SystemProblemTicket>();
-      ticketsForPublishers.put(publisherBuildFeatureId, tickets);
-    }
-    tickets.add(ticket);
+    myTicketManager.clearProblems(buildType, featureId);
   }
 }
