@@ -95,7 +95,9 @@
       <em>
         TeamCity obtains token based credentials from the VCS root settings.
         This option will not work if the VCS root uses an SSH fetch URL,
-        employs anonymous authentication.
+        employs anonymous authentication or uses
+        an actual password
+        of the user rather than a token.
       </em>
     </td></tr>
   </props:selectSectionPropertyContent>

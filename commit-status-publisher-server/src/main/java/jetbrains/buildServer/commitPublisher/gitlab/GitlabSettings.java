@@ -174,7 +174,7 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
   @NotNull
   @Override
   protected HttpCredentials getUsernamePasswordCredentials(@NotNull String username, @NotNull String password) throws PublisherException {
-    throw new PublisherException("Username password authentication is not supported in Commit Status Publisher for GitLab");
+    return new GitLabAccessTokenCredentials(password);
   }
 
   @NotNull
