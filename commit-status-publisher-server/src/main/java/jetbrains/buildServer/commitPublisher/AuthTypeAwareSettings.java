@@ -144,8 +144,14 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
       return getVcsRootPasswordCredentials(root, vcsProperties);
     } else if (vcsAuthType.equals(VcsAuthType.ACCESS_TOKEN)) { // refreshable token
       return getVcsRootRefreshableTokenCredentials(root, vcsProperties);
+    } else if (vcsAuthType.equals(VcsAuthType.ANONYMOUS)) {
+      throw new PublisherException("Using anonymous VCS authentication method in " + root.getExternalId() + " is impossible. Please provide an access token");
+    } else if (vcsAuthType.equals(VcsAuthType.PRIVATE_KEY_DEFAULT) ||
+               vcsAuthType.equals(VcsAuthType.PRIVATE_KEY_FILE) ||
+               vcsAuthType.equals(VcsAuthType.TEAMCITY_SSH_KEY)) {
+      throw new PublisherException("Using SSH key authentication method in " + root.getExternalId() + " is impossible. Please provide an access token");
     } else {
-      throw new PublisherException("unsupported VCS authentication type " + vcsAuthType);
+      throw new PublisherException("Using " + vcsAuthType + " authentication method in " + root.getExternalId() + " is impossible. Please provide an access token");
     }
   }
 
