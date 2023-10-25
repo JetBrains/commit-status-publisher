@@ -55,7 +55,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   private static final String PULL_REQUEST_ITERATION_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/pullRequests/{3}/iterations/{4}/statuses?api-version=3.0-preview";
   private static final String PULL_REQUEST_STATUS_URL_FORMAT = "{0}/{1}/_apis/git/repositories/{2}/pullRequests/{3}/statuses?api-version=3.0-preview";
   private static final String ERROR_AUTHORIZATION = "Check access token value and verify that it has Code (status) and Code (read) scopes";
-  private static final String FAILED_TO_TEST_CONNECTION_TO_REPOSITORY = "TFS publisher has failed to test connection to repository ";
+  private static final String FAILED_TO_TEST_CONNECTION_TO_REPOSITORY = "Azure DevOps publisher has failed to test connection to repository ";
   private static final Gson myGson = new GsonBuilder()
                                           .setDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
                                           .create();
@@ -329,7 +329,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
           });
       });
     } catch (Exception e) {
-      final String message = "TFS publisher has failed to get parent commits in repository " + info;
+      final String message = "Azure DevOps publisher has failed to get parent commits in repository " + info;
       LOG.debug(message, e);
       throw new PublisherException(message, e);
     }
@@ -438,7 +438,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
 
     final String content = response.getContent();
     if (null == content) {
-      throw new HttpPublisherException("TFS publisher has received no response");
+      throw new HttpPublisherException("Azure DevOps publisher has received no response");
     }
     try {
       return myGson.fromJson(content, type);
