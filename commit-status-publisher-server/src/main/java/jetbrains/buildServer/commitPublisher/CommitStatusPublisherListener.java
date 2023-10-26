@@ -980,9 +980,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
         myBuildTypeToFirstPublishFailure.remove(promotion.getBuildTypeId());
       } catch (Throwable t) {
         retryInfo = getRetryInfo(t, promotion, event, lastDelay);
-        myProblems.reportProblem(
-          String.format("Commit Status Publisher has failed to publish %s status. %s", event.getName(), retryInfo.message),
-          publisher, buildDescription, null, t, LOG);
+        String problemMessage = String.format("Commit Status Publisher has failed to publish %s status", event.getName());
+        if (!retryInfo.message.isEmpty()) {
+          problemMessage = problemMessage + ". " + retryInfo.message;
+        }
+        myProblems.reportProblem(problemMessage, publisher, buildDescription, null, t, LOG);
         if (shouldFailBuild(publisher.getBuildType())) {
           String problemId = "commitStatusPublisher." + publisher.getId() + "." + revision.getRoot().getId();
           String problemDescription = t instanceof PublisherException ? t.getMessage() : t.toString();
