@@ -86,7 +86,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
 
   @Override
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    vote(build, revision, BitbucketCloudBuildStatus.INPROGRESS, DefaultStatusMessages.BUILD_STARTED);
+    vote(build.getBuildPromotion(), revision, BitbucketCloudBuildStatus.INPROGRESS, DefaultStatusMessages.BUILD_STARTED);
     return true;
   }
 
@@ -94,7 +94,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     BitbucketCloudBuildStatus status = build.getBuildStatus().isSuccessful() ? BitbucketCloudBuildStatus.SUCCESSFUL : BitbucketCloudBuildStatus.FAILED;
     String description = build.getStatusDescriptor().getText();
-    vote(build, revision, status, description);
+    vote(build.getBuildPromotion(), revision, status, description);
     return true;
   }
 
@@ -111,25 +111,25 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
     if (user != null && comment != null) {
       description += " with a comment by " + user.getExtendedName() + ": \"" + comment + "\"";
     }
-    vote(build, revision, status, description);
+    vote(build.getBuildPromotion(), revision, status, description);
     return true;
   }
 
   @Override
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
-    vote(build, revision, buildInProgress ? BitbucketCloudBuildStatus.INPROGRESS : BitbucketCloudBuildStatus.SUCCESSFUL, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL);
+    vote(build.getBuildPromotion(), revision, buildInProgress ? BitbucketCloudBuildStatus.INPROGRESS : BitbucketCloudBuildStatus.SUCCESSFUL, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL);
     return true;
   }
 
   @Override
   public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    vote(build, revision, BitbucketCloudBuildStatus.STOPPED, build.getStatusDescriptor().getText());
+    vote(build.getBuildPromotion(), revision, BitbucketCloudBuildStatus.STOPPED, build.getStatusDescriptor().getText());
     return true;
   }
 
   @Override
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    vote(build, revision, BitbucketCloudBuildStatus.FAILED, build.getStatusDescriptor().getText());
+    vote(build.getBuildPromotion(), revision, BitbucketCloudBuildStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
   }
 
@@ -167,7 +167,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
 
   private BitbucketCloudCommitBuildStatus loadCommitStatusesAndGetMatching(Repository repository, BuildRevision revision, BuildPromotion promotion) throws PublisherException {
     AtomicReference<PublisherException> exception = new AtomicReference<>(null);
-    BitbucketCloudCommitBuildStatus status = myStatusesCache.getStatusFromCache(revision, promotion.getBuildTypeId(), () -> {
+    BitbucketCloudCommitBuildStatus status = myStatusesCache.getStatusFromCache(revision, promotion.getBuildTypeExternalId(), () -> {
       try {
         return loadCommitStatuses(repository, revision, promotion);
       } catch (PublisherException e) {
@@ -244,24 +244,13 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
     return null;
   }
 
-  private boolean vote(BuildPromotion buildPromotion, BuildRevision revision, BitbucketCloudBuildStatus status, String comment) throws PublisherException {
-    final String url = getViewUrl(buildPromotion);
-    if (url == null) {
-      LOG.debug(String.format("Can not build view URL for the build #%d. Probadly build configuration was removed. Status \"%s\" won't be published",
-                              buildPromotion.getId(), status.name()));
-      return false;
-    }
-
-    String buildName = getBuildName(buildPromotion);
-    BitbucketCloudCommitBuildStatus buildStatus = new BitbucketCloudCommitBuildStatus(buildPromotion.getBuildTypeId(), status.name(), buildName, comment, url);
-    final VcsRootInstance root = revision.getRoot();
-    Repository repository = BitbucketCloudSettings.VCS_PROPERTIES_PARSER.parseRepository(root);
-    if (repository == null) {
-      throw new PublisherException(String.format("Bitbucket publisher has failed to parse repository URL from VCS root '%s'", root.getName()));
-    }
-    vote(revision, buildStatus, repository, LogUtil.describe(buildPromotion));
-    myStatusesCache.removeStatusFromCache(revision, buildPromotion.getBuildTypeId());
-    return true;
+  @NotNull
+  private BitbucketCloudCommitBuildStatus getBuildStatus(@NotNull BuildPromotion promotion,
+                                                         @NotNull BitbucketCloudBuildStatus status,
+                                                         @NotNull String comment,
+                                                         @NotNull String url) {
+    String buildName = getBuildName(promotion);
+    return new BitbucketCloudCommitBuildStatus(promotion.getBuildTypeExternalId(), status.name(), buildName, comment, url);
   }
 
   @NotNull
@@ -283,19 +272,28 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
     return sb.toString();
   }
 
-  private void vote(@NotNull SBuild build,
-                    @NotNull BuildRevision revision,
-                    @NotNull BitbucketCloudBuildStatus status,
-                    @NotNull String comment) throws PublisherException {
+  private boolean vote(
+    @NotNull BuildPromotion buildPromotion,
+    @NotNull BuildRevision revision,
+    @NotNull BitbucketCloudBuildStatus status,
+    @NotNull String comment
+  ) throws PublisherException {
+    final String url = getViewUrl(buildPromotion);
+    if (url == null) {
+      LOG.debug(String.format("Can not build view URL for the build #%d. The build configuration was probably removed. Status \"%s\" won't be published",
+                              buildPromotion.getId(), status.name()));
+      return false;
+    }
     final VcsRootInstance root = revision.getRoot();
     Repository repository = BitbucketCloudSettings.VCS_PROPERTIES_PARSER.parseRepository(root);
     if (repository == null) {
       throw new PublisherException(String.format("Bitbucket publisher has failed to parse repository URL from VCS root '%s'", root.getName()));
     }
-    final String buildName = getBuildName(build.getBuildPromotion());
-    BitbucketCloudCommitBuildStatus buildStatus = new BitbucketCloudCommitBuildStatus(build.getBuildTypeId(), status.name(), buildName, comment, getViewUrl(build));
-    vote(revision, buildStatus, repository, LogUtil.describe(build));
-    myStatusesCache.removeStatusFromCache(revision, build.getBuildTypeId());
+
+    BitbucketCloudCommitBuildStatus buildStatus = getBuildStatus(buildPromotion, status, comment, url);
+    vote(revision, buildStatus, repository, LogUtil.describe(buildPromotion));
+    myStatusesCache.removeStatusFromCache(revision, buildPromotion.getBuildTypeExternalId());
+    return true;
   }
 
   private void vote(@NotNull BuildRevision revision, @NotNull BitbucketCloudCommitBuildStatus status, @NotNull Repository repository, @NotNull String buildDescription)
