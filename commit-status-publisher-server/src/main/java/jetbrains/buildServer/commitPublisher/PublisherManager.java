@@ -95,12 +95,19 @@ public class PublisherManager {
     return myPublisherSettings.getExtensions().stream().filter(s -> publisherId.equals(s.getId())).findFirst().orElse(null);
   }
 
-  public boolean isFeatureLessPublishingPossible(@Nullable SBuildType buildType) {
+  public boolean isFeatureLessPublishingPossible(@Nullable SBuildType buildType, @NotNull BuildReason buildReason) {
     if (buildType == null) {
       return false;
     }
+    if (buildReason == BuildReason.UNKNOWN) {
+      return false;
+    }
     for (CommitStatusPublisherSettings settings : myPublisherSettings.getExtensions()) {
-      if (settings.isFeatureLessPublishingSupported(buildType)) {
+      if (!settings.isFeatureLessPublishingSupported(buildType)) {
+        continue;
+      }
+
+      if (buildReason == BuildReason.TRIGGERED_DIRECTLY || buildReason == BuildReason.TRIGGERED_AS_DEPENDENCY && settings.allowsFeatureLessPublishingForDependencies(buildType)) {
         return true;
       }
     }

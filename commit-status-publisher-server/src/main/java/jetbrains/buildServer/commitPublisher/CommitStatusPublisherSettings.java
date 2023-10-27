@@ -131,6 +131,8 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
 
   boolean isFeatureLessPublishingSupported(@NotNull SBuildType buildType);
 
+  boolean allowsFeatureLessPublishingForDependencies(@NotNull SBuildType buildType);
+
   boolean isPublishingQueuedStatusEnabled(@NotNull SBuildType buildType);
 
   @Nullable

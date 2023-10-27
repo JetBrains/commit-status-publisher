@@ -123,6 +123,11 @@ class DummyPublisherSettings implements CommitStatusPublisherSettings {
   }
 
   @Override
+  public boolean allowsFeatureLessPublishingForDependencies(@NotNull SBuildType buildType) {
+    return false;
+  }
+
+  @Override
   public boolean isPublishingQueuedStatusEnabled(@NotNull SBuildType buildType) {
     return true;
   }

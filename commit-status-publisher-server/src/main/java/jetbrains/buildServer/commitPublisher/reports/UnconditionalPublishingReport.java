@@ -3,6 +3,7 @@ package jetbrains.buildServer.commitPublisher.reports;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import jetbrains.buildServer.commitPublisher.BuildReason;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.PublisherManager;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -53,7 +54,7 @@ public class UnconditionalPublishingReport extends HealthStatusReport {
         continue;
       }
 
-      if (myPublisherManager.isFeatureLessPublishingPossible(buildType)) {
+      if (myPublisherManager.isFeatureLessPublishingPossible(buildType, BuildReason.TRIGGERED_DIRECTLY)) {
         final Map<String, CommitStatusPublisher> configuredPublishers = myPublisherManager.createConfiguredPublishers(buildType);
         final Map<String, CommitStatusPublisher> supplementaryPublishers = myPublisherManager.createSupplementaryPublishers(buildType, configuredPublishers);
         if (!supplementaryPublishers.isEmpty()) {

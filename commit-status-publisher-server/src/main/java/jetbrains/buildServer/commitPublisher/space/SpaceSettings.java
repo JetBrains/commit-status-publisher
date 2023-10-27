@@ -121,6 +121,19 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   }
 
   @Override
+  public boolean allowsFeatureLessPublishingForDependencies(@NotNull SBuildType buildType) {
+    final SpaceFeatures.UnconditionalPublishingMode mode = SpaceFeatures.forScope(buildType).unconditionalPublishingMode();
+    switch (mode) {
+      case ALL_BUILDS:
+        return true;
+      case NO_DEPENDENCIES:
+        return false;
+      default:
+        throw new RuntimeException("unsupported Space unconditional publishing mode " + mode);
+    }
+  }
+
+  @Override
   public CommitStatusPublisher createFeaturelessPublisher(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot) {
     if (!SpaceFeatures.forScope(buildType).publishCommitStatusUnconditionally()) {
       LOG.debug(() -> "unconditional commit status publishing is not supported for " + LogUtil.describe(buildType) + ": the feature toggle is disabled");
