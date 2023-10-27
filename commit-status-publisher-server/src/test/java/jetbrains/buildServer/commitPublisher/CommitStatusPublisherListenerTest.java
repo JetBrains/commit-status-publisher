@@ -47,6 +47,7 @@ import jetbrains.buildServer.util.http.HttpMethod;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.VcsRootInstanceImpl;
 import org.jdom.Element;
+import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -91,9 +92,13 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myListener.changesLoaded(queuedBuild.getBuildPromotion());
     return queuedBuild;
   }
-  
+
   private QueuedBuild addBuildToQueue() {
-    QueuedBuildEx queuedBuild = (QueuedBuildEx)myBuildType.addToQueue("");
+    return addBuildToQueue("");
+  }
+
+  private QueuedBuild addBuildToQueue(@NotNull String triggeredBy) {
+    QueuedBuildEx queuedBuild = (QueuedBuildEx)myBuildType.addToQueue(triggeredBy);
     assertNotNull(queuedBuild);
     queuedBuild.getBuildPromotion().getTopDependencyGraph().collectChangesForGraph(new CancelableTaskHolder());
     myListener.changesLoaded(queuedBuild.getBuildPromotion());
@@ -871,6 +876,40 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForNRequestsToBeSent(5);
 
     then(myPublisher.getEventsReceived()).doesNotContain(Event.QUEUED);
+  }
+
+  @Test
+  public void should_publish_featureless_for_non_dependency_builds() {
+    // Given
+    prepareVcs();
+    final SBuildFeatureDescriptor buildFeature = myBuildType.getBuildFeatures().iterator().next();
+    myBuildType.removeBuildFeature(buildFeature.getId());
+    myPublisherSettings.enableFeatureLessPublishing();
+
+    // When
+    addBuildToQueue();
+    waitForTasksToFinish(Event.QUEUED);
+    myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
+
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
+  }
+
+  @Test
+  public void should_not_publish_featureless_for_dependency_builds() {
+    // Given
+    prepareVcs();
+    final SBuildFeatureDescriptor buildFeature = myBuildType.getBuildFeatures().iterator().next();
+    myBuildType.removeBuildFeature(buildFeature.getId());
+    myPublisherSettings.enableFeatureLessPublishing();
+
+    // When
+    final TriggeredByBuilder triggeredByBuilder = new TriggeredByBuilder();
+    triggeredByBuilder.addParameter(TriggeredByBuilder.TYPE_PARAM_NAME, "snapshotDependency");
+    addBuildToQueue(triggeredByBuilder.toString());
+    myFixture.flushQueueAndWait();
+
+    then(myPublisher.getEventsReceived()).isEmpty();
   }
 
   private SVcsModification prepareVcs() {

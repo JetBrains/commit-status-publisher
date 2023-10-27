@@ -21,8 +21,10 @@ import java.util.Map;
 import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.WebLinks;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author anton.zamolotskikh, 13/02/17.
@@ -34,6 +36,7 @@ public class MockPublisherSettings extends DummyPublisherSettings {
   private WebLinks myLinks;
   private CommitStatusPublisher myPublisher = null;
   private List<String> myRootNamesToFailTestConnection = null;
+  private boolean myIsFeatureLessPublishingEnabled = false;
 
   public MockPublisherSettings(CommitStatusPublisherProblems problems) {
     myProblems = problems;
@@ -77,5 +80,20 @@ public class MockPublisherSettings extends DummyPublisherSettings {
 
   public void setVcsRootsToFailTestConnection(List<String> rootNames)  {
     myRootNamesToFailTestConnection = rootNames;
+  }
+
+  public void enableFeatureLessPublishing() {
+    myIsFeatureLessPublishingEnabled = true;
+  }
+
+  @Override
+  public boolean isFeatureLessPublishingSupported(@NotNull SBuildType buildType) {
+    return myIsFeatureLessPublishingEnabled;
+  }
+
+  @Nullable
+  @Override
+  public CommitStatusPublisher createFeaturelessPublisher(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot) {
+    return myPublisher != null ? myPublisher : null;
   }
 }

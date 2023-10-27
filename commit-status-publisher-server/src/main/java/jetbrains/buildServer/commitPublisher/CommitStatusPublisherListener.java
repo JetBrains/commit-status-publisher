@@ -212,7 +212,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     BuildPromotionEx promotion = (BuildPromotionEx)queuedBuild.getBuildPromotion();
     BuildTypeEx buildType = promotion.getBuildType();
 
-    if (shouldNotPublish(buildType) || promotion.isChangeCollectingNeeded(true)) return;
+    if (shouldNotPublish(buildType, buildReason(queuedBuild.getTriggeredBy())) || promotion.isChangeCollectingNeeded(true)) return;
 
     buildAddedToQueue(queuedBuild);
   }
@@ -220,7 +220,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   @Override
   public void changesLoaded(@NotNull BuildPromotion buildPromotion) {
     SBuildType buildType = buildPromotion.getBuildType();
-    if (shouldNotPublish(buildType)) return;
+    if (shouldNotPublish(buildType, buildReason(buildPromotion))) return;
 
     SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
     if (queuedBuild != null) {
@@ -243,7 +243,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   @Override
   public void changesLoaded(@NotNull SRunningBuild build) {
     SBuildType buildType = getBuildType(Event.STARTED, build);
-    if (shouldNotPublish(buildType))
+    if (shouldNotPublish(buildType, buildReason(build.getTriggeredBy())))
       return;
 
     submitTaskForBuild(Event.STARTED, build);
@@ -252,7 +252,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   @Override
   public void buildFinished(@NotNull SRunningBuild build) {
      SBuildType buildType = getBuildType(Event.FINISHED, build);
-    if (shouldNotPublish(buildType))
+    if (shouldNotPublish(buildType, buildReason(build.getTriggeredBy())))
       return;
 
     final SFinishedBuild finishedBuild = myBuildHistory.findEntry(build.getBuildId());
@@ -267,7 +267,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   @Override
   public void buildCommented(@NotNull final SBuild build, @Nullable final User user, @Nullable final String comment) {
     SBuildType buildType = getBuildType(Event.COMMENTED, build);
-    if (shouldNotPublish(buildType))
+    if (shouldNotPublish(buildType, buildReason(build.getTriggeredBy())))
       return;
     submitTaskForBuild(Event.COMMENTED, build);
   }
@@ -275,7 +275,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   @Override
   public void buildInterrupted(@NotNull SRunningBuild build) {
     SBuildType buildType = getBuildType(Event.INTERRUPTED, build);
-    if (shouldNotPublish(buildType))
+    if (shouldNotPublish(buildType, buildReason(build.getTriggeredBy())))
       return;
 
     final SFinishedBuild finishedBuild = myBuildHistory.findEntry(build.getBuildId());
@@ -294,7 +294,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     } else {
       myBuildTypeCommitStatusPublisherConfiguredCache.remove(buildType.getInternalId());
     }
-    boolean isConfigured = !shouldNotPublish(buildType);
+    boolean isConfigured = !shouldNotPublish(buildType, BuildReason.TRIGGERED_DIRECTLY);
     myBuildTypeCommitStatusPublisherConfiguredCache.putIfAbsent(buildType.getInternalId(),
                                                                 new ValueWithTTL<>(isConfigured, System.currentTimeMillis() + TeamCityProperties.getIntervalMilliseconds(CSP_FOR_BUILD_TYPE_CONFIGURATION_FLAG_TTL_PROPERTY_NAME, 5 * 60 * 1000)));
     return isConfigured;
@@ -306,7 +306,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       return;
 
     SBuildType buildType = getBuildType(Event.FAILURE_DETECTED, build);
-    if (shouldNotPublish(buildType))
+    if (shouldNotPublish(buildType, buildReason(build.getTriggeredBy())))
       return;
 
     submitTaskForBuild(Event.FAILURE_DETECTED, build);
@@ -316,7 +316,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   @Override
   public void buildProblemsChanged(@NotNull final SBuild build, @NotNull final List<BuildProblemData> before, @NotNull final List<BuildProblemData> after) {
     SBuildType buildType = getBuildType(Event.MARKED_AS_SUCCESSFUL, build);
-    if (shouldNotPublish(buildType))
+    if (shouldNotPublish(buildType, buildReason(build.getTriggeredBy())))
       return;
 
     if (!before.isEmpty() && after.isEmpty()) {
@@ -344,7 +344,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
     SBuildType buildType = getBuildType(Event.REMOVED_FROM_QUEUE, build);
     if (build instanceof QueuedBuildEx && ((QueuedBuildEx) build).isStarted()) return;
-    if (shouldNotPublish(buildType)) return;
+    if (shouldNotPublish(buildType, buildReason(build.getTriggeredBy()))) return;
 
     if (isPublishingDisabled(build.getBuildType())) {
       LOG.info(String.format("Event: %s, build: %s: commit status publishing is disabled", Event.REMOVED_FROM_QUEUE, LogUtil.describe(build)));
@@ -388,8 +388,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       myEventProcessedCallback.accept(event);
   }
 
-  private boolean shouldNotPublish(@Nullable SBuildType buildType) {
-    return isBuildFeatureAbsent(buildType) && !myPublisherManager.isFeatureLessPublishingPossible(buildType);
+  private boolean shouldNotPublish(@Nullable SBuildType buildType, @NotNull BuildReason buildReason) {
+    return isBuildFeatureAbsent(buildType) && !myPublisherManager.isFeatureLessPublishingPossible(buildType, buildReason);
   }
 
   private boolean shouldPublishQueuedEvent(@NotNull SQueuedBuild queuedBuild) {
@@ -406,6 +406,31 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     return buildType == null || buildType.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE).stream()
                                          .noneMatch(f -> buildType.isEnabled(f.getId()));
   }
+
+  @NotNull
+  private BuildReason buildReason(@NotNull TriggeredBy triggeredBy) {
+    if (triggeredBy.isTriggeredBySnapshotDependency()) {
+      return BuildReason.TRIGGERED_AS_DEPENDENCY;
+    }
+    return BuildReason.TRIGGERED_DIRECTLY;
+  }
+
+  @NotNull
+  private BuildReason buildReason(@NotNull BuildPromotion buildPromotion) {
+    final SBuild build = buildPromotion.getAssociatedBuild();
+    if (build != null) {
+      return buildReason(build.getTriggeredBy());
+    }
+
+    final SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
+    if (queuedBuild != null) {
+      return buildReason(queuedBuild.getTriggeredBy());
+    }
+
+    LOG.debug(() -> "unable to determine triggeredBy of build promotion " + LogUtil.describe(buildPromotion));
+    return BuildReason.UNKNOWN;
+  }
+
 
   private boolean isPublishingDisabled(SBuildType buildType) {
     String publishingEnabledParam = buildType.getParameterValue(PUBLISHING_ENABLED_PROPERTY_NAME);

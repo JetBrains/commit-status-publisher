@@ -114,6 +114,11 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
     return false;
   }
 
+  @Override
+  public boolean allowsFeatureLessPublishingForDependencies(@NotNull SBuildType buildType) {
+    return false;
+  }
+
   @Nullable
   @Override
   public CommitStatusPublisher createFeaturelessPublisher(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot) {
