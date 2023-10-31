@@ -1,7 +1,6 @@
 package jetbrains.buildServer.swarm.commitPublisher;
 
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
@@ -66,7 +65,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
 
   @Override
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    publishCommentIfNeeded(buildPromotion, revision, "build is queued", Event.QUEUED);
+    publishCommentIfNeeded(buildPromotion, revision, "build is queued");
     return true;
   }
 
@@ -78,7 +77,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
       commentTemplate += " by " + additionalTaskInfo.getCommentAuthor().getDescriptiveName();
     }
 
-    publishCommentIfNeeded(buildPromotion, revision, commentTemplate, Event.REMOVED_FROM_QUEUE);
+    publishCommentIfNeeded(buildPromotion, revision, commentTemplate);
 
 
     SBuild build = buildPromotion.getAssociatedBuild();
@@ -99,7 +98,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
 
   @Override
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **has started**", Event.STARTED);
+    publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **has started**");
 
     if (myShouldCreateTestRuns && null == mySwarmClient.getSwarmUpdateUrlFromTriggeringAttr(build)) {
       createTestRunsForReviewsOnSwarm(build, revision);
@@ -123,7 +122,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
   @Override
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     String result = build.getBuildStatus().isSuccessful() ? "finished successfully" : "failed";
-    publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **has " + result + "** : " + build.getStatusDescriptor().getText(), Event.FINISHED);
+    publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **has " + result + "** : " + build.getStatusDescriptor().getText());
 
     updateTestRunsForReviewsOnSwarm(build, revision);
 
@@ -132,7 +131,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
 
   @Override
   public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **was interrupted**: " + build.getStatusDescriptor().getText(), Event.INTERRUPTED);
+    publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **was interrupted**: " + build.getStatusDescriptor().getText());
 
     updateTestRunsForReviewsOnSwarm(build, revision);
 
@@ -166,26 +165,23 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
       return false;
     }
 
-    publishCommentIfNeeded(build.getBuildPromotion(), revision, "failure was detected in build %s: " + build.getStatusDescriptor().getText(), Event.FAILURE_DETECTED);
+    publishCommentIfNeeded(build.getBuildPromotion(), revision, "failure was detected in build %s: " + build.getStatusDescriptor().getText());
     updateTestRunsForReviewsOnSwarm(build, revision);
     return true;
   }
 
   @Override
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
-    publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s was **marked as successful**: " + build.getStatusDescriptor().getText(), Event.MARKED_AS_SUCCESSFUL);
+    publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s was **marked as successful**: " + build.getStatusDescriptor().getText());
     updateTestRunsForReviewsOnSwarm(build, revision);
     return true;
   }
 
-  private void publishCommentIfNeeded(BuildPromotion build,
-                                      @NotNull BuildRevision revision,
-                                      @NotNull final String commentTemplate,
-                                      @NotNull Event event) throws PublisherException {
+  private void publishCommentIfNeeded(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final String commentTemplate) throws PublisherException {
 
     boolean commentsNotificationsEnabled = ((BuildPromotionEx)build).getBooleanInternalParameterOrTrue(SWARM_COMMENTS_NOTIFICATIONS_ENABLED);
 
-    PostResult result = postForEachReview(build, revision, new ReviewMessagePublisher() {
+    postForEachReview(build, revision, new ReviewMessagePublisher() {
       @Override
       public void publishMessage(@NotNull Long reviewId, @NotNull BuildPromotion build, @NotNull String debugBuildInfo) throws PublisherException {
         final String fullComment = "TeamCity: " + buildMessage(build) +
@@ -206,37 +202,25 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
         }
       }
     });
-
-    if (!result.isSuccess()) {
-      LOG.debug(() -> "status " + event.getName() + " was not published for build " + LogUtil.describe(build) + ": " + result.getMessage());
-    }
   }
 
-  @NotNull
-  private PostResult postForEachReview(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final ReviewMessagePublisher messagePublisher) throws PublisherException {
+  private void postForEachReview(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final ReviewMessagePublisher messagePublisher) throws PublisherException {
 
     final String changelistId = getChangelistId(build, revision);
-    if (StringUtil.isEmpty(changelistId)) return new PostResult(false, "unable to determine changelist ID");
+    if (StringUtil.isEmpty(changelistId)) return;
 
     final SBuildType buildType = build.getBuildType();
-    if (buildType == null) return new PostResult(false, "unable to determine build configuration");
+    if (buildType == null) return;
 
     mySwarmClient.setConnectionTimeout(getConnectionTimeout());
 
-    final AtomicBoolean didPost = new AtomicBoolean(false);
     IOGuard.allowNetworkCall(() -> {
       final String debugBuildInfo = "build [id=" + build.getId() + "] in " + buildType.getExtendedFullName();
 
       for (Long reviewId : mySwarmClient.getOpenReviewIds(changelistId, debugBuildInfo)) {
         messagePublisher.publishMessage(reviewId, build, debugBuildInfo);
-        didPost.set(true);
       }
     });
-
-    if (!didPost.get()) {
-      return new PostResult(false, "no code reviews found");
-    }
-    return new PostResult(true, "");
   }
 
   @NotNull
@@ -260,24 +244,5 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
     return associatedBuild != null ? myLinks.getViewResultsUrl(associatedBuild) :
                  queuedBuild != null ? myLinks.getQueuedBuildUrl(queuedBuild) :
                  myLinks.getRootUrlByProjectExternalId(build.getProjectExternalId()) + "/build/" + build.getId();
-  }
-
-  private static class PostResult {
-    private final boolean mySuccess;
-    @NotNull private final String myMessage;
-
-    private PostResult(boolean success, @NotNull String message) {
-      mySuccess = success;
-      myMessage = message;
-    }
-
-    public boolean isSuccess() {
-      return mySuccess;
-    }
-
-    @NotNull
-    public String getMessage() {
-      return myMessage;
-    }
   }
 }
