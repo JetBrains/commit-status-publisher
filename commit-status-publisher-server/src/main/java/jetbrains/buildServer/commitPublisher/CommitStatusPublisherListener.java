@@ -395,7 +395,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   private boolean shouldPublishQueuedEvent(@NotNull SQueuedBuild queuedBuild) {
     final BuildPromotion buildPromotion = queuedBuild.getBuildPromotion();
     if (buildPromotion.isPartOfBuildChain() && buildPromotion.getContainingChanges().isEmpty() && buildPromotion.getNumberOfDependedOnMe() != 0) {
-      LOG.debug(String.format("Queued status for build #%s will not be published, because it will be optimized", queuedBuild.getItemId()));
+      LOG.debug(String.format("The build #%s is part of a build chain and has no new changes in it. Queued build status will not be published as Commit Status Publisher suspects that the build can be optimized away.", queuedBuild.getItemId()));
       return false;
     }
 
