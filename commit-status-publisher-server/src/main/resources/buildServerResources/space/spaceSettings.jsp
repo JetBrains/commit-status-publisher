@@ -30,10 +30,12 @@
 <jsp:useBean id="oauthConnections" scope="request" type="java.util.List"/>
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.space.Constants"/>
 <jsp:useBean id="spaceFeatures" scope="request" type="jetbrains.buildServer.serverSide.oauth.space.SpaceFeatures"/>
+<jsp:useBean id="rightsInfo" scope="request" type="java.lang.String"/>
 
 <c:set var="capabilitiesEnabled" value='${spaceFeatures.capabilitiesEnabled()}'/>
 <c:set var="idSelectedConnection" value="selectedConnection"/>
 <c:set var="idConnectionsWaiter" value="connectionsWaiter"/>
+<c:set var="idNonMatchingConnectionsHint" value="nonMatchingConnectionsHint"/>
 
 <tr class="${keys.spaceCredentialsConnection}_row">
   <th><label for="prop:loginCheckbox">Connection:<l:star/></label></th>
@@ -57,7 +59,9 @@
         <props:hiddenProperty id="${idSelectedConnection}" name="${loginProp}"/>
         <forms:progressRing id="${idConnectionsWaiter}" progressTitle="Loading Space connections..."/>
       </c:if>
-
+      <span id="${idNonMatchingConnectionsHint}" style="display: none;">
+        <bs:helpIcon iconTitle="The commit status publisher feature requires the following Space application permissions: ${rightsInfo}. Connections that utilize applications without these permissions are not available."/>
+      </span>
       <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
       <c:if test="${canEditProject}">
         <c:set var="connectorType" value="<%=SpaceOAuthProvider.TYPE%>"/>
@@ -65,7 +69,6 @@
                 <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
         <props:hiddenProperty name="invalidConnection" value=""/>
       </c:if>
-
       <span class="error" id="error_${loginProp}"></span>
     </div>
   </td>
@@ -120,6 +123,9 @@
             description += ' (insecure)';
           }
           return description;
+        },
+        onNonMatchingConnections: function (connections) {
+          $('${idNonMatchingConnectionsHint}').show();
         }
       });
     }

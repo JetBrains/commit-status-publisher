@@ -292,7 +292,8 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   public Map<String, Object> getSpecificAttributes(@NotNull SProject project, @NotNull Map<String, String> params) {
     return ImmutableMap.of(
       "canEditProject", AuthUtil.hasPermissionToManageProject(mySecurityContext.getAuthorityHolder(), project.getProjectId()),
-      "spaceFeatures", SpaceFeatures.forScope(project)
+      "spaceFeatures", SpaceFeatures.forScope(project),
+      "rightsInfo", SpaceConstants.RIGHTS_INFO_COMMIT_STATUS
     );
   }
 
