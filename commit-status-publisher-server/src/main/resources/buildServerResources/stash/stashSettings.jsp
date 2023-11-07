@@ -119,11 +119,9 @@
     <props:selectSectionPropertyContent value="${keys.authTypeVCS}" caption="Use VCS root(-s) credentials">
       <tr><td colspan="2">
         <em>
-          TeamCity obtains Password / token based credentials from the VCS root settings.
-          This option will not work if the VCS root uses an SSH fetch URL,
-          employs anonymous authentication or uses
-          an actual password
-          of the user rather than a token.
+          TeamCity obtains password / token based credentials from the VCS root settings.
+          This option will not work if the VCS root uses an SSH fetch URL or
+          employs anonymous authentication.
         </em>
       </td></tr>
     </props:selectSectionPropertyContent>
