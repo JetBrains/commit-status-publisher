@@ -156,6 +156,26 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.REMOVED));
   }
 
+  public void should_publish_failure_on_failed_to_start_build() throws PublisherException {
+    if (isSkipEvent(EventToTest.REMOVED)) return;
+
+    SQueuedBuild build = addToQueue(myBuildType);
+    myFixture.getBuildQueue().terminateQueuedBuild(build, null, false, null);
+
+    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(build.getBuildPromotion(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null));
+    checkRequestMatch(".*error.*", EventToTest.REMOVED);
+  }
+
+  public void should_publish_failure_on_canceled_build() throws PublisherException {
+    if (isSkipEvent(EventToTest.REMOVED)) return;
+
+    SQueuedBuild build = addToQueue(myBuildType);
+    myFixture.getBuildQueue().terminateQueuedBuild(build, null, true, null);
+
+    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(build.getBuildPromotion(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null));
+    checkRequestMatch(".*error.*", EventToTest.REMOVED);
+  }
+
   public void test_buildStarted() throws Exception {
     if (isSkipEvent(EventToTest.STARTED)) return;
     myPublisher.buildStarted(startBuildInCurrentBranch(myBuildType), myRevision);
@@ -238,7 +258,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     checkRequestMatch(".*error.*", EventToTest.PAYLOAD_ESCAPED);
   }
 
-  private void checkRequestMatch(String errRegex, EventToTest eventToTest) {
+  protected void checkRequestMatch(String errRegex, EventToTest eventToTest) {
     then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(eventToTest)).doesNotMatch(errRegex);
   }
 

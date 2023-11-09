@@ -10,8 +10,6 @@ public class AdditionalTaskInfo {
   protected final User myCommentAuthor;
   protected final BuildPromotion myReplacingPromotion;
 
-  private final boolean myIsCanceled;
-
   public AdditionalTaskInfo(@NotNull BuildPromotion targetPromotion, @Nullable String comment, @Nullable User commentAuthor) {
     this(targetPromotion, comment, commentAuthor, null);
   }
@@ -20,7 +18,6 @@ public class AdditionalTaskInfo {
     myComment = comment;
     myCommentAuthor = commentAuthor;
     myReplacingPromotion = replacingPromotion;
-    myIsCanceled = targetPromotion.isCanceled();
   }
 
   @NotNull
@@ -44,9 +41,5 @@ public class AdditionalTaskInfo {
 
   public boolean isPromotionReplaced() {
     return myReplacingPromotion != null;
-  }
-
-  public boolean isBuildManuallyRemovedOrCanceled() {
-    return myIsCanceled;
   }
 }

@@ -856,6 +856,28 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getLastComment()).isEqualTo(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED);
   }
 
+  @TestFor(issues = "TW-84721")
+  public void should_publish_failed_status_for_build_marked_as_failed_to_start_due_to_failed_dependency() {
+    prepareVcs();
+
+    BuildTypeImpl failBt = myFixture.createBuildType(myBuildType.getProject(), "failing_build", "Ant");
+    DependencyFactory df = myFixture.getSingletonService(DependencyFactory.class);
+    DependencyOptions opts = new DependencyOptionSupportImpl();
+    opts.setOption(DependencyOptions.RUN_BUILD_IF_DEPENDENCY_FAILED, DependencyOptions.BuildContinuationMode.MAKE_FAILED_TO_START);
+    myBuildType.addDependency(df.createDependency(failBt.getExternalId(), opts));
+
+    addBuildToQueue();
+    waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 2, TASK_COMPLETION_TIMEOUT_MS);
+    waitFor(() -> getCntPostRequests() == 1, TASK_COMPLETION_TIMEOUT_MS);
+    RunningBuildEx runningFailedBuild = myFixture.flushQueueAndWait();
+    myFixture.finishBuild(runningFailedBuild, true);
+    myFixture.flushQueue();
+    waitFor(() -> getCntPostRequests() == 2, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(2, myPublisher.getEventsReceived().size());
+    assertEquals(Event.REMOVED_FROM_QUEUE, myPublisher.getEventsReceived().get(1));
+    then(myPublisher.getLastComment()).isEqualTo(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED);
+  }
+
   public void should_not_publish_queued_for_build_to_optimized() {
     prepareVcs();
     String projectName = myProject.getName();

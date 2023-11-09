@@ -160,13 +160,13 @@ public class ChangeStatusUpdater {
       @Override
       public boolean changeQueued(@NotNull BuildRevision revision, @NotNull BuildPromotion buildPromotion,
                                   @NotNull AdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException {
-        return doQueuedChangeUpdate(revision, buildPromotion, additionalTaskInfo, viewUrl);
+        return doQueuedChangeUpdate(revision, buildPromotion, additionalTaskInfo, viewUrl, false);
       }
 
       @Override
       public boolean changeRemovedFromQueue(@NotNull BuildRevision revision, @NotNull BuildPromotion buildPromotion,
                                             @NotNull AdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException {
-        return doQueuedChangeUpdate(revision, buildPromotion, additionalTaskInfo, viewUrl);
+        return doQueuedChangeUpdate(revision, buildPromotion, additionalTaskInfo, viewUrl, true);
       }
 
       @NotNull
@@ -272,10 +272,10 @@ public class ChangeStatusUpdater {
       private boolean doQueuedChangeUpdate(@NotNull BuildRevision revision,
                                            @NotNull BuildPromotion buildPromotion,
                                            @NotNull AdditionalTaskInfo additionalTaskInfo,
-                                           @NotNull String viewUrl) throws PublisherException {
+                                           @NotNull String viewUrl,
+                                           boolean deletedFromQueue) throws PublisherException {
         final RepositoryVersion version = revision.getRepositoryVersion();
-        final GitHubChangeState targetStatus = buildPromotion.isCanceled() ? getBuildStatusForRemovedBuild(additionalTaskInfo) : GitHubChangeState.Pending;
-        if (targetStatus == null) return false;
+        final GitHubChangeState targetStatus = deletedFromQueue ? GitHubChangeState.Failure : GitHubChangeState.Pending;
         LOG.info("Scheduling GitHub status update for " +
                  "hash: " + version.getVersion() + ", " +
                  "branch: " + version.getVcsBranch() + ", " +
@@ -288,10 +288,6 @@ public class ChangeStatusUpdater {
         return statusClient.update(revision, buildPromotion, targetStatus, repo, additionalTaskInfo, viewUrl);
       }
     };
-  }
-
-  private GitHubChangeState getBuildStatusForRemovedBuild(AdditionalTaskInfo additionalTaskInfo) {
-    return additionalTaskInfo.isBuildManuallyRemovedOrCanceled() ? GitHubChangeState.Failure : null;
   }
 
   private abstract class GitHubCommonStatusClient {
