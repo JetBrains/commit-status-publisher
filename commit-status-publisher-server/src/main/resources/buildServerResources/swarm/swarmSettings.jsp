@@ -30,7 +30,7 @@
 <tr>
   <th><label for="${urlField}">Perforce Swarm URL:<l:star/></label></th>
   <td>
-    <props:textProperty name="${urlField}" className="mediumField"/>
+    <props:textProperty name="${urlField}" className="longField"/>
     <span class="error" id="error_${urlField}"></span>
   </td>
 </tr>
@@ -38,7 +38,7 @@
 <tr>
   <th><label for="${userField}">Username:<l:star/></label></th>
   <td>
-    <props:textProperty name="${userField}" className="mediumField"/>
+    <props:textProperty name="${userField}" className="longField"/>
     <span class="error" id="error_${userField}"></span>
   </td>
 </tr>
@@ -46,7 +46,7 @@
 <tr>
   <th><label for="${pwdField}">Ticket:<l:star/></label></th>
   <td>
-    <props:passwordProperty name="${pwdField}" className="mediumField"/>
+    <props:passwordProperty name="${pwdField}" className="longField"/>
     <span class="smallNote">Get the ticket with the command <code>p4 login -a -p</code></span>
     <span class="error" id="error_${pwdField}"></span>
   </td>

@@ -42,12 +42,12 @@
   </c:forEach>
 </c:set>
 
-<props:selectSectionProperty name="${keys.authenticationTypeKey}" title="Authentication Type">
+<props:selectSectionProperty name="${keys.authenticationTypeKey}" title="Authentication Type" style="width: 28em;">
   <props:selectSectionPropertyContent value="${keys.authTypeToken}" caption="Personal Token">
     <tr>
       <th><label for="${keys.accessTokenKey}">Access Token:<l:star/></label></th>
       <td>
-        <props:passwordProperty name="${keys.accessTokenKey}" className="mediumField"/>
+        <props:passwordProperty name="${keys.accessTokenKey}" className="longField"/>
           ${oauth_connection_fragment}
         <props:hiddenProperty name="${keys.authUser}"/>
         <props:hiddenProperty name="${keys.authProviderId}"/>

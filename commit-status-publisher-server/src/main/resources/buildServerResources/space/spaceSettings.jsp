@@ -44,7 +44,7 @@
     <c:set var="loginProp" value="<%= Constants.SPACE_CONNECTION_ID %>"/>
     <c:set var="initialLoginVal" value="${propertiesBean.properties[keys.spaceConnectionId]}"/>
     <div style="float:left">
-      <props:selectProperty name="${loginProp}">
+      <props:selectProperty name="${loginProp}" style="width: 28em;">
         <c:if test="${not capabilitiesEnabled}">
           <c:forEach var="conn" items="${oauthConnections}">
             <props:option value="">No connection provided</props:option>
@@ -78,7 +78,7 @@
 <tr class="advancedSetting">
   <th><label for="${keys.spaceProjectKey}">Space Project key:</label></th>
   <td>
-    <props:textProperty name="${keys.spaceProjectKey}" className="mediumField"/>
+    <props:textProperty name="${keys.spaceProjectKey}" className="longField"/>
     <span class="smallNote">If not provided the project key will be extracted from the fetch URL of the respective VCS root</span>
     <span class="smallNote">Project key from JetBrains Space</span>
     <span class="error" id="error_${keys.spaceProjectKey}"></span>
@@ -90,7 +90,7 @@
   <th><label for="${keys.spaceCommitStatusPublisherDisplayName}">Display
     name:</label></th>
   <td>
-    <props:textProperty name="${keys.spaceCommitStatusPublisherDisplayName}" className="mediumField"/>
+    <props:textProperty name="${keys.spaceCommitStatusPublisherDisplayName}" className="longField"/>
     <span class="smallNote">If provided this name will be displayed for this service in Space UI. The default display name is "TeamCity".</span>
     <span class="error" id="error_${keys.spaceCommitStatusPublisherDisplayName}"></span>
     <c:if test="${testConnectionSupported}">

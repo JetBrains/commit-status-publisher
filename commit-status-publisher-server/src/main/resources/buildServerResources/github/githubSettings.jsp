@@ -53,13 +53,13 @@
     </td>
   </tr>
 
- <props:selectSectionProperty name="${keys.authenticationTypeKey}" title="Authentication Type">
+ <props:selectSectionProperty name="${keys.authenticationTypeKey}" title="Authentication Type" style="width: 28em;">
 
     <props:selectSectionPropertyContent value="${keys.authenticationTypeTokenValue}" caption="Access Token">
       <tr>
         <th><label for="${keys.accessTokenKey}">Access Token:<l:star/></label></th>
         <td>
-          <props:passwordProperty name="${keys.accessTokenKey}" className="mediumField" onchange="PublisherFeature.resetAccessTokenNote();"/>
+          <props:passwordProperty name="${keys.accessTokenKey}" className="longField" onchange="PublisherFeature.resetAccessTokenNote();"/>
             ${oauth_connection_fragment}
           <props:hiddenProperty name="${keys.OAuthUserKey}" />
           <props:hiddenProperty name="${keys.OAuthProviderIdKey}" />
@@ -133,14 +133,14 @@
       <tr>
         <th><label for="${keys.userNameKey}">GitHub Username:<l:star/></label></th>
         <td>
-          <props:textProperty name="${keys.userNameKey}" className="mediumField"/>
+          <props:textProperty name="${keys.userNameKey}" className="longField"/>
           <span class="error" id="error_${keys.userNameKey}"></span>
         </td>
       </tr>
       <tr>
         <th><label for="${keys.passwordKey}">GitHub Password:<l:star/></label></th>
         <td>
-          <props:passwordProperty name="${keys.passwordKey}" className="mediumField"/>
+          <props:passwordProperty name="${keys.passwordKey}" className="longField"/>
           <span class="error" id="error_${keys.passwordKey}"></span>
 
           <c:if test="${testConnectionSupported}">

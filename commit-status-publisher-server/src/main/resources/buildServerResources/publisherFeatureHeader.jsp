@@ -121,10 +121,10 @@
   <tr>
     <th><label for="${constants.vcsRootIdParam}">VCS Root:<l:star/></label></th>
     <td>
-      <props:selectProperty name="${constants.vcsRootIdParam}" className="longField" enableFilter="true" style="width: 95%;">
+      <props:selectProperty name="${constants.vcsRootIdParam}" className="longField" enableFilter="true" style="width: 28em;">
         <props:option value="">&lt;All attached VCS Roots&gt;</props:option>
         <c:forEach var="vcsRoot" items="${vcsRoots}">
-          <props:option value="${vcsRoot.externalId}"><c:out value="${vcsRoot.name}"/></props:option>
+          <props:option value="${vcsRoot.externalId}" tooltip="${fn:escapeXml(vcsRoot.name)}"><c:out value="${vcsRoot.name}"/></props:option>
           <script type="text/javascript">
             PublisherFeature.vcsRoots.set('${vcsRoot.externalId}', {
               name: '<bs:forJs>${vcsRoot.name}</bs:forJs>',
@@ -154,7 +154,7 @@
       <label for="${constants.publisherIdParam}">Publisher:<l:star/></label>
     </th>
     <td>
-      <props:selectProperty name="${constants.publisherIdParam}" onchange="PublisherFeature.showPublisherSettings()" enableFilter="true" className="mediumField">
+      <props:selectProperty name="${constants.publisherIdParam}" onchange="PublisherFeature.showPublisherSettings()" enableFilter="true" className="longField" style="width: 28em;">
         <c:forEach var="publisher" items="${publishers}">
           <props:option value="${publisher.id}"><c:out value="${publisher.name}"/></props:option>
         </c:forEach>

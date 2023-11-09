@@ -28,12 +28,12 @@
 <jsp:useBean id="refreshTokenSupported" scope="request" type="java.lang.Boolean"/>
 
 
-<props:selectSectionProperty name="authType" title="Authentication Type:">
+<props:selectSectionProperty name="authType" title="Authentication Type:" style="width: 28em;">
   <props:selectSectionPropertyContent value="token" caption="Personal access token">
     <tr>
       <th><label for="${keys.gitlabToken}">Access Token:<l:star/></label></th>
       <td>
-        <props:passwordProperty name="${keys.gitlabToken}" className="mediumField"/>
+        <props:passwordProperty name="${keys.gitlabToken}" className="longField"/>
         <span class="smallNote">
               Can be found at <strong>/profile/account</strong> in GitLab
           </span>

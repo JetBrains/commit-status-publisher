@@ -35,7 +35,7 @@
   <tr>
     <th><label for="${keys.gerritUsername}">Gerrit Username:<l:star/></label></th>
     <td>
-      <props:textProperty name="${keys.gerritUsername}" className="mediumField"/>
+      <props:textProperty name="${keys.gerritUsername}" className="longField"/>
       <span class="error" id="error_${keys.gerritUsername}"></span>
     </td>
   </tr>
@@ -51,7 +51,7 @@
   <tr>
     <th><label for="${keys.gerritProject}">Gerrit Project Name:<l:star/></label></th>
     <td>
-      <props:textProperty name="${keys.gerritProject}" className="mediumField"/>
+      <props:textProperty name="${keys.gerritProject}" className="longField"/>
       <span class="error" id="error_${keys.gerritProject}"></span>
     </td>
   </tr>
@@ -59,7 +59,7 @@
   <tr>
     <th><label for="${keys.gerritLabel}">Gerrit Label:<l:star/></label></th>
     <td>
-      <props:textProperty name="${keys.gerritLabel}" className="mediumField" />
+      <props:textProperty name="${keys.gerritLabel}" className="longField" />
       <span class="error" id="error_${keys.gerritLabel}"></span>
     </td>
   </tr>
@@ -67,7 +67,7 @@
   <tr>
     <th><label for="${keys.gerritSuccessVote}">Successful Build Vote:<l:star/></label></th>
     <td>
-      <props:textProperty name="${keys.gerritSuccessVote}" className="mediumField"/>
+      <props:textProperty name="${keys.gerritSuccessVote}" className="longField"/>
       <span class="error" id="error_${keys.gerritSuccessVote}"></span>
     </td>
   </tr>
@@ -75,7 +75,7 @@
   <tr>
     <th><label for="${keys.gerritFailureVote}">Failed Build Vote:<l:star/></label></th>
     <td>
-      <props:textProperty name="${keys.gerritFailureVote}" className="mediumField"/>
+      <props:textProperty name="${keys.gerritFailureVote}" className="longField"/>
       <span class="error" id="error_${keys.gerritFailureVote}"></span>
       <c:if test="${testConnectionSupported}">
         <script>

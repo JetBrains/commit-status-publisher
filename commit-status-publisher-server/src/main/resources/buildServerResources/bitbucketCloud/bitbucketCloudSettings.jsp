@@ -28,13 +28,13 @@
 
 <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
 
-<props:selectSectionProperty name="${keys.authType}" title="Authentication Type">
+<props:selectSectionProperty name="${keys.authType}" title="Authentication Type" style="width: 28em;">
 
   <props:selectSectionPropertyContent value="${keys.authTypePassword}" caption="Username / Password">
     <tr>
       <th><label for="${keys.bitbucketCloudUsername}">Bitbucket Username:<l:star/></label></th>
       <td>
-        <props:textProperty name="${keys.bitbucketCloudUsername}" className="mediumField"/>
+        <props:textProperty name="${keys.bitbucketCloudUsername}" className="longField"/>
         <span class="error" id="error_${keys.bitbucketCloudUsername}"></span>
       </td>
     </tr>
@@ -42,7 +42,7 @@
     <tr>
       <th><label for="${keys.bitbucketCloudPassword}">Bitbucket App Password:<l:star/></label></th>
       <td>
-        <props:passwordProperty name="${keys.bitbucketCloudPassword}" className="mediumField"/>
+        <props:passwordProperty name="${keys.bitbucketCloudPassword}" className="longField"/>
         <span class="error" id="error_${keys.bitbucketCloudPassword}"></span>
       </td>
     </tr>

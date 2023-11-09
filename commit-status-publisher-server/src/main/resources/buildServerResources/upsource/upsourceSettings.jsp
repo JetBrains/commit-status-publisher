@@ -33,21 +33,21 @@
     <tr>
         <th><label for="${keys.upsourceUsername}">Username:<l:star/></label></th>
         <td>
-            <props:textProperty name="${keys.upsourceUsername}" className="mediumField"/>
+            <props:textProperty name="${keys.upsourceUsername}" className="longField"/>
         </td>
     </tr>
 
     <tr>
         <th><label for="${keys.upsourcePassword}">Password:<l:star/></label></th>
         <td>
-            <props:passwordProperty name="${keys.upsourcePassword}" className="mediumField"/>
+            <props:passwordProperty name="${keys.upsourcePassword}" className="longField"/>
         </td>
     </tr>
 
     <tr>
         <th><label for="${keys.upsourceProjectId}">Upsource Project ID:<l:star/></label></th>
         <td>
-            <props:textProperty name="${keys.upsourceProjectId}" className="mediumField"/> <span id="hubProjectsControl"></span>
+            <props:textProperty name="${keys.upsourceProjectId}" className="longField"/> <span id="hubProjectsControl"></span>
             <span class="error" id="error_${keys.upsourceProjectId}"></span>
             <c:if test="${testConnectionSupported}">
                 <script>

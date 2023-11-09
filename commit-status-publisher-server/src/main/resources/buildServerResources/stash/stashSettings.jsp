@@ -59,13 +59,13 @@
     </td>
   </tr>
 
-  <props:selectSectionProperty name="${keys.authType}" title="Authentication Type">
+  <props:selectSectionProperty name="${keys.authType}" title="Authentication Type" style="width: 28em;">
 
     <props:selectSectionPropertyContent value="${keys.authTypePassword}" caption="Username / Password">
       <tr>
         <th><label for="${keys.stashUsername}">Username:<l:star/></label></th>
         <td>
-          <props:textProperty name="${keys.stashUsername}" className="mediumField"/>
+          <props:textProperty name="${keys.stashUsername}" className="longField"/>
           <span class="error" id="error_${keys.stashUsername}"></span>
         </td>
       </tr>
@@ -73,7 +73,7 @@
       <tr>
         <th><label for="${keys.stashPassword}">Password:<l:star/></label></th>
         <td>
-          <props:passwordProperty name="${keys.stashPassword}" className="mediumField"/>
+          <props:passwordProperty name="${keys.stashPassword}" className="longField"/>
           <span class="error" id="error_${keys.stashPassword}"></span>
         </td>
       </tr>
