@@ -8,6 +8,7 @@ import java.util.Map;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
+import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.log.LogInitializer;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -247,6 +248,18 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
   @Override
   public void test_buildRemovedFromQueue() throws Exception {
     super.test_buildRemovedFromQueue();
+  }
+
+  @Test(enabled = false)
+  @Override
+  public void should_publish_failure_on_failed_to_start_build() throws PublisherException {
+    super.should_publish_failure_on_failed_to_start_build();
+  }
+
+  @Test(enabled = false)
+  @Override
+  public void should_publish_failure_on_canceled_build() throws PublisherException {
+    super.should_publish_failure_on_canceled_build();
   }
 
   @Test(enabled = false)

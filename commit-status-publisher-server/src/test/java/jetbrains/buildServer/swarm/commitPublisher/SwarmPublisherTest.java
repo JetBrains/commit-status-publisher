@@ -3,10 +3,7 @@ package jetbrains.buildServer.swarm.commitPublisher;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
-import jetbrains.buildServer.commitPublisher.AdditionalTaskInfo;
-import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
-import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
-import jetbrains.buildServer.commitPublisher.PublisherException;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.swarm.SwarmClientManager;
@@ -125,6 +122,24 @@ public class SwarmPublisherTest extends HttpPublisherTest {
     build.removeFromQueue(myUser, null);
     myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(build.getBuildPromotion(), COMMENT, myUser, null));
     then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.REMOVED));
+  }
+
+  @Override
+  public void should_publish_failure_on_failed_to_start_build() throws PublisherException {
+    SQueuedBuild build = addToQueue(myBuildType);
+    myFixture.getBuildQueue().terminateQueuedBuild(build, null, false, null);
+
+    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(build.getBuildPromotion(), COMMENT, null));
+    checkRequestMatch(".*error.*", EventToTest.REMOVED);
+  }
+
+  @Override
+  public void should_publish_failure_on_canceled_build() throws PublisherException {
+    SQueuedBuild build = addToQueue(myBuildType);
+    myFixture.getBuildQueue().terminateQueuedBuild(build, null, true, null);
+
+    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(build.getBuildPromotion(), COMMENT, null));
+    checkRequestMatch(".*error.*", EventToTest.REMOVED);
   }
 
   @Override

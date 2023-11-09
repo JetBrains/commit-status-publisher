@@ -352,7 +352,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     }
 
     BuildPromotion promotion = build.getBuildPromotion();
-    if (!promotion.isCanceled()) { // build removal is processed only for manually removed from queue or canceled(due to failed dependency) builds
+    if (promotion.getAssociatedBuild() == null) { // build removal is processed only for manually removed from queue or canceled/failed to start(due to failed dependency) builds
       return;
     }
 
@@ -595,7 +595,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   @NotNull
   private static String getDefaultComment(@NotNull BuildPromotion buildPromotion, @Nullable BuildPromotion replacingPromotion, @Nullable User user) {
-    if (replacingPromotion == null && buildPromotion.getAssociatedBuildId() != null && buildPromotion.isCanceled() && user == null) {
+    if (replacingPromotion == null && buildPromotion.getAssociatedBuildId() != null && user == null) {
       return DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED;
     }
     return DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE;

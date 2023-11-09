@@ -97,14 +97,14 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion,
                              @NotNull BuildRevision revision,
                              @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    return updateBuildStatus(buildPromotion, revision, additionalTaskInfo);
+    return updateQueuedBuildStatus(buildPromotion, revision, additionalTaskInfo, false);
   }
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
                                        @NotNull BuildRevision revision,
                                        @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    return updateBuildStatus(buildPromotion, revision, additionalTaskInfo);
+    return updateQueuedBuildStatus(buildPromotion, revision, additionalTaskInfo, true);
   }
 
   @Override
@@ -471,14 +471,15 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     throw new HttpPublisherException(status, response.getStatusText(), message);
   }
 
-  private boolean updateBuildStatus(@NotNull BuildPromotion buildPromotion,
-                                    @NotNull BuildRevision revision,
-                                    @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+  private boolean updateQueuedBuildStatus(@NotNull BuildPromotion buildPromotion,
+                                          @NotNull BuildRevision revision,
+                                          @NotNull AdditionalTaskInfo additionalTaskInfo,
+                                          boolean removedFromQueue) throws PublisherException {
     final TfsRepositoryInfo info = getReposioryInfo(revision);
     if (info == null) {
       return false;
     }
-    final CommitStatus status = getCommitStatus(buildPromotion, additionalTaskInfo);
+    final CommitStatus status = getQueuedCommitStatus(buildPromotion, additionalTaskInfo, removedFromQueue);
     if (status.targetUrl == null) {
       LOG.debug(String.format("Can not build view URL for the build #%d. Probadly build configuration was removed. Status \"%s\" won't be published",
                               buildPromotion.getId(), status.state));
@@ -614,15 +615,11 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   }
 
   @NotNull
-  private CommitStatus getCommitStatus(@NotNull BuildPromotion buildPromotion, @NotNull AdditionalTaskInfo additionalTaskInfo) {
+  private CommitStatus getQueuedCommitStatus(@NotNull BuildPromotion buildPromotion, @NotNull AdditionalTaskInfo additionalTaskInfo, boolean removedFromQueue) {
     final StatusContext context = new StatusContext(getBuildName(buildPromotion), "TeamCity");
 
-    String targetStatus = buildPromotion.isCanceled() ? getBuildStatusForRemovedBuild(additionalTaskInfo).getName() : StatusState.Pending.getName();
+    String targetStatus = removedFromQueue ? StatusState.Failed.getName() : StatusState.Pending.getName();
     return new CommitStatus(targetStatus, additionalTaskInfo.getComment(), getViewUrl(buildPromotion), context);
-  }
-
-  protected StatusState getBuildStatusForRemovedBuild(AdditionalTaskInfo additionalTaskInfo) {
-    return additionalTaskInfo.isBuildManuallyRemovedOrCanceled() ? StatusState.Failed : null;
   }
 
   @Nullable
