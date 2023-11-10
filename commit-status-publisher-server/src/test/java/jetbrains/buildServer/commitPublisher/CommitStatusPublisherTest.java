@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
+import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
@@ -51,6 +52,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   protected static final String FEATURE_ID = "MY_FEATURE_ID";
   protected static final String BT_NAME_2BE_ESCAPED = "Name with \\ and \"";
   protected static final String BT_NAME_ESCAPED_REGEXP = BT_NAME_2BE_ESCAPED.replace("\\", "\\\\\\\\").replace("\"", "\\\\\\\"");
+  private static final BuildProblemData INTERNAL_ERROR = BuildProblemData.createBuildProblem("identity", ErrorData.PREPARATION_FAILURE_TYPE, "description");
 
   protected CommitStatusPublisher myPublisher;
   protected CommitStatusPublisherSettings myPublisherSettings;
@@ -160,7 +162,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     if (isSkipEvent(EventToTest.REMOVED)) return;
 
     SQueuedBuild build = addToQueue(myBuildType);
-    myFixture.getBuildQueue().terminateQueuedBuild(build, null, false, null);
+    myFixture.getBuildQueue().terminateQueuedBuild(build, null, false, null, INTERNAL_ERROR);
 
     myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(build.getBuildPromotion(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null));
     checkRequestMatch(".*error.*", EventToTest.REMOVED);
@@ -170,7 +172,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     if (isSkipEvent(EventToTest.REMOVED)) return;
 
     SQueuedBuild build = addToQueue(myBuildType);
-    myFixture.getBuildQueue().terminateQueuedBuild(build, null, true, null);
+    myFixture.getBuildQueue().terminateQueuedBuild(build, null, true, null, INTERNAL_ERROR);
 
     myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(build.getBuildPromotion(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null));
     checkRequestMatch(".*error.*", EventToTest.REMOVED);

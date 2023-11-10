@@ -2,8 +2,10 @@ package jetbrains.buildServer.swarm.commitPublisher;
 
 import java.util.HashMap;
 import java.util.Map;
+import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.swarm.SwarmClientManager;
@@ -25,6 +27,7 @@ import static org.assertj.core.api.BDDAssertions.then;
 public class SwarmPublisherTest extends HttpPublisherTest {
 
   private static final String CHANGELIST = "1234321";
+  private static final BuildProblemData INTERNAL_ERROR = BuildProblemData.createBuildProblem("identity", ErrorData.PREPARATION_FAILURE_TYPE, "description");
   private boolean myCreatePersonal;
   private boolean myNonAdmin;
   private boolean myCreateSwarmTestRun;
@@ -127,7 +130,7 @@ public class SwarmPublisherTest extends HttpPublisherTest {
   @Override
   public void should_publish_failure_on_failed_to_start_build() throws PublisherException {
     SQueuedBuild build = addToQueue(myBuildType);
-    myFixture.getBuildQueue().terminateQueuedBuild(build, null, false, null);
+    myFixture.getBuildQueue().terminateQueuedBuild(build, null, false, null, INTERNAL_ERROR);
 
     myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(build.getBuildPromotion(), COMMENT, null));
     checkRequestMatch(".*error.*", EventToTest.REMOVED);
@@ -136,7 +139,7 @@ public class SwarmPublisherTest extends HttpPublisherTest {
   @Override
   public void should_publish_failure_on_canceled_build() throws PublisherException {
     SQueuedBuild build = addToQueue(myBuildType);
-    myFixture.getBuildQueue().terminateQueuedBuild(build, null, true, null);
+    myFixture.getBuildQueue().terminateQueuedBuild(build, null, true, null, INTERNAL_ERROR);
 
     myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(build.getBuildPromotion(), COMMENT, null));
     checkRequestMatch(".*error.*", EventToTest.REMOVED);
