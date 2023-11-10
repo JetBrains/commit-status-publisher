@@ -97,7 +97,7 @@
               successInfo = testConnectionSuccessInfo;
             }
           }
-          BS.TestConnectionDialog.show(success, success ? successInfo : info, null, preserveHtml);
+          BS.TestConnectionDialog.show(success, success ? successInfo : info, null, success ? preserveHtml : false);
           form.setSaving(false);
           form.enable();
         }
