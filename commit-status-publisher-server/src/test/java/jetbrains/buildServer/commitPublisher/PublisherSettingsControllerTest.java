@@ -21,7 +21,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import jetbrains.buildServer.controllers.MockRequest;
 import jetbrains.buildServer.controllers.MockResponse;
+import jetbrains.buildServer.serverSide.auth.Role;
+import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.web.util.SessionUser;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -35,6 +39,13 @@ public class PublisherSettingsControllerTest extends CommitStatusPublisherTestBa
     super.setUp();
   }
 
+  private SUser setUesrWithRole(final Role projectViewerRole) {
+    SUser user = myFixture.createUserAccount("me");
+    user.addRole(RoleScope.projectScope(myProject.getProjectId()), projectViewerRole);
+    myFixture.getSecurityContext().setAuthorityHolder(user);
+    return user;
+  }
+
   public void must_test_for_all_relevant_roots() throws Exception {
     HttpServletRequest request = new MockRequest(
       Constants.PUBLISHER_ID_PARAM, MockPublisherSettings.PUBLISHER_ID,
@@ -43,6 +54,9 @@ public class PublisherSettingsControllerTest extends CommitStatusPublisherTestBa
       "id", "buildType:" + myBuildType.getExternalId()
     );
     HttpServletResponse response = new MockResponse();
+
+    SUser user = setUesrWithRole(getProjectAdminRole());
+    SessionUser.setUser(request, user);
 
     SVcsRoot vcs1 = myFixture.addVcsRoot("jetbrains.git", "one");
     vcs1.setName("VCS Root 1");
@@ -77,6 +91,9 @@ public class PublisherSettingsControllerTest extends CommitStatusPublisherTestBa
     );
     HttpServletResponse response = new MockResponse();
 
+    SUser user = setUesrWithRole(getProjectAdminRole());
+    SessionUser.setUser(request, user);
+
     SVcsRoot vcs1 = myFixture.addVcsRoot("jetbrains.git", "one");
     vcs1.setName("VCS Root 1");
     SVcsRoot vcs2 = myFixture.addVcsRoot("jetbrains.git", "two");
@@ -102,6 +119,9 @@ public class PublisherSettingsControllerTest extends CommitStatusPublisherTestBa
       "id", "buildType:" + myBuildType.getExternalId()
     );
     HttpServletResponse response = new MockResponse();
+
+    SUser user = setUesrWithRole(getProjectAdminRole());
+    SessionUser.setUser(request, user);
 
     SVcsRoot vcs1 = myFixture.addVcsRoot("svn", "one");
     vcs1.setName("VCS Root 1");
