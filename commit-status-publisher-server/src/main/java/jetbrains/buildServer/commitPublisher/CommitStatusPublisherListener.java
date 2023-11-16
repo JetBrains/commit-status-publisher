@@ -352,8 +352,14 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     }
 
     BuildPromotion promotion = build.getBuildPromotion();
-    if (promotion.getAssociatedBuild() == null) { // build removal is processed only for manually removed from queue or canceled/failed to start(due to failed dependency) builds
-      return;
+
+    // build removal is processed only for manually removed from queue or canceled/failed to start(due to failed dependency) builds
+    if (!promotion.isCanceled()) {
+      SBuild associatedBuild = promotion.getAssociatedBuild();
+      //check if build failed to start, if it's not then we shouldn't post status
+      if (associatedBuild == null || !associatedBuild.getBuildStatus().isFailed()) {
+        return;
+      }
     }
 
     if (!canNodeProcessRemovedFromQueue(promotion)) return;
