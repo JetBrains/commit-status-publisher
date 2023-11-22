@@ -16,7 +16,6 @@
 
 package jetbrains.buildServer.commitPublisher;
 
-import java.util.Collection;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
 import org.jetbrains.annotations.NotNull;
@@ -70,17 +69,6 @@ public interface CommitStatusPublisher {
 
   void setConnectionTimeout(int timeout);
 
-  /**
-   * Returns the <em>(VCS specific)</em> fallback revisions to be used if no {@link BuildRevision}s could be determined.
-   * <p>
-   * <em>Note:</em> Publishing statuses to an unknown / fallback revisions only makes sense in very limited use cases.
-   * Currently only {@link jetbrains.buildServer.commitPublisher.space.SpacePublisher} supports this.
-   * </p>
-   *
-   * @return empty collection if this publisher doesn't support fallback revisions
-   */
-  @NotNull
-  Collection<BuildRevision> getFallbackRevisions();
 
   enum Event {
     STARTED("buildStarted", EventPriority.FIRST, true), FINISHED("buildFinished", true),
