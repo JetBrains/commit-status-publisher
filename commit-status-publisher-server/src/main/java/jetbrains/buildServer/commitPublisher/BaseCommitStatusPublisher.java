@@ -16,6 +16,8 @@
 
 package jetbrains.buildServer.commitPublisher;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
@@ -101,6 +103,12 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
 
   public void setConnectionTimeout(int timeout) {
     myConnectionTimeout = timeout;
+  }
+
+  @NotNull
+  @Override
+  public Collection<BuildRevision> getFallbackRevisions() {
+    return Collections.emptyList();
   }
 
   @Nullable
