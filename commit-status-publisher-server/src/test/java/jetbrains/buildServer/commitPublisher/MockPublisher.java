@@ -48,6 +48,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
   private int mySuccessReceived = 0;
   private final Set<Event> myEventsToWait = new HashSet<Event>();
   private int myShouldFailToPublish = 0;
+  private Collection<BuildRevision> myFallbackRevisions = Collections.emptyList();
 
   private final PublisherLogger myLogger;
 
@@ -357,6 +358,16 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
       if (getClass() != o.getClass()) return 1;
       return Integer.compare(myId, ((MockStatus)o).myId);
     }
+  }
+
+  @NotNull
+  @Override
+  public Collection<BuildRevision> getFallbackRevisions() {
+    return myFallbackRevisions;
+  }
+
+  public void setFallbackRevisions(@NotNull Collection<BuildRevision> fallbackRevisions) {
+    myFallbackRevisions = fallbackRevisions;
   }
 
   class MockState {

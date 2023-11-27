@@ -29,6 +29,7 @@ import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsModification;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
@@ -39,6 +40,7 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildStatus> {
   private static final String UNKNOWN_BUILD_CONFIGURATION = "Unknown build configuration";
+  private static final String UNKNWON_GIT_SHA = "0000000000000000000000000000000000000000";
 
   private final SpaceConnectDescriber mySpaceConnector;
   private final Gson myGson = new Gson();
@@ -365,5 +367,24 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     if (statusCode >= 400) {
       throw new HttpPublisherException(statusCode, response.getStatusText(), "HTTP response error: " + (responseContent != null ? responseContent : "<empty>"));
     }
+  }
+
+  /**
+   * Returns the <em>"unknown git SHA"</em> revision.
+   * This revision can serve as a fallback.
+   * Space is able to match safe-merge statuses by build ID.
+   * See: TW-84882
+   *
+   * @return singleton collection of an artificial build revision pointing to {@link #UNKNWON_GIT_SHA}
+   */
+  @NotNull
+  @Override
+  public Collection<BuildRevision> getFallbackRevisions() {
+    final List<VcsRootInstance> vcsRootInstances = myBuildType.getVcsRootInstances();
+    if (vcsRootInstances.isEmpty()) {
+      LOG.warn("unable to construct fallback build revision for Space build " + LogUtil.describe(myBuildType) + ": no VCS root instances found");
+      return super.getFallbackRevisions();
+    }
+    return Collections.singletonList(new BuildRevision(vcsRootInstances.get(0), UNKNWON_GIT_SHA, "", UNKNWON_GIT_SHA));
   }
 }

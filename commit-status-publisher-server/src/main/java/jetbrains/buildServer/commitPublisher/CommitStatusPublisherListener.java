@@ -645,7 +645,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   private Collection<BuildRevision> getQueuedBuildRevisionForVote(@NotNull BuildType buildType,
                                                             @NotNull CommitStatusPublisher publisher,
                                                             @NotNull BuildPromotion buildPromotion) {
-    if (buildPromotion.isFailedToCollectChanges()) return Collections.emptyList();
+    if (buildPromotion.isFailedToCollectChanges()) return publisher.getFallbackRevisions();
 
     if (!((BuildPromotionEx)buildPromotion).isChangeCollectingNeeded(false)) {
       return getBuildRevisionForVote(publisher, buildPromotion.getRevisions());
@@ -819,7 +819,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
         @Override
         public Collection<BuildRevision> getRevisions(BuildType buildType, CommitStatusPublisher publisher) {
-          if (buildPromotion.isFailedToCollectChanges()) return Collections.emptyList();
+          if (buildPromotion.isFailedToCollectChanges()) return publisher.getFallbackRevisions();
           return getBuildRevisionForVote(publisher, build.getRevisions());
         }
       };

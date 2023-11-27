@@ -30,6 +30,7 @@ import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.BuildTypeImpl;
 import jetbrains.buildServer.serverSide.impl.CancelableTaskHolder;
+import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.serverSide.impl.RunningBuildState;
 import jetbrains.buildServer.serverSide.impl.beans.VcsRootInstanceContext;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsWatcher;
@@ -39,10 +40,7 @@ import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
-import jetbrains.buildServer.util.Dates;
-import jetbrains.buildServer.util.DependencyOptionSupportImpl;
-import jetbrains.buildServer.util.FileUtil;
-import jetbrains.buildServer.util.TestFor;
+import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.http.HttpMethod;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.VcsRootInstanceImpl;
@@ -934,6 +932,41 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getEventsReceived()).isEmpty();
   }
 
+  @TestFor(issues = "TW-84882")
+  public void should_not_publish_when_collecting_changes_fails() {
+    addBadVcsRootTo(myBuildType);
+    final SQueuedBuild queuedBuild = myBuildType.addToQueue("");
+    assertNotNull(queuedBuild);
+    myServer.flushQueue();
+
+    waitFor(() -> {
+      SBuild build = queuedBuild.getBuildPromotion().getAssociatedBuild();
+      return build != null && build.isFinished();
+    });
+
+    waitForTasksToFinish(Event.FINISHED);
+    then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
+  }
+
+  @TestFor(issues = "TW-84882")
+  public void should_publish_to_fallback_when_collecting_changes_fails() {
+    addBadVcsRootTo(myBuildType);
+    final VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
+    final BuildRevision fallback = new BuildRevision(vcsRootInstance, "000", "", "000");
+    myPublisher.setFallbackRevisions(Collections.singletonList(fallback));
+    final SQueuedBuild queuedBuild = myBuildType.addToQueue("");
+    assertNotNull(queuedBuild);
+    myServer.flushQueue();
+
+    waitFor(() -> {
+      SBuild build = queuedBuild.getBuildPromotion().getAssociatedBuild();
+      return build != null && build.isFinished();
+    });
+
+    waitForTasksToFinish(Event.FINISHED);
+    then(myPublisher.getEventsReceived()).containsExactly(Event.STARTED, Event.FAILURE_DETECTED, Event.FINISHED);
+  }
+
   private SVcsModification prepareVcs() {
     return prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.EXT_ID);
   }
@@ -963,6 +996,19 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   private void assertIfNoTasks(Event eventType) {
     then(myMultiNodeTasks.findTasks(Collections.singleton(eventType.getName())).isEmpty()).isTrue();
+  }
+
+  private void addBadVcsRootTo(final BuildTypeEx addTo) {
+    final MockVcsSupport failSupport = new MockVcsSupport("fail"){
+      @NotNull
+      @Override
+      public String getCurrentVersion(@NotNull final VcsRoot root) {
+        throw new RuntimeException("BAD VCS ROOT");
+      }
+    };
+
+    myServer.getVcsManager().registerVcsSupport(failSupport);
+    myFixture.addVcsRoot("fail", "", addTo);
   }
 
   private enum SetVcsRootIdMode { DONT, EXT_ID, INT_ID }
