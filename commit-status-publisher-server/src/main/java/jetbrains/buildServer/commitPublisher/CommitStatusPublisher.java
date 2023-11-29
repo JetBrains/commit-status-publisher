@@ -108,6 +108,13 @@ public interface CommitStatusPublisher {
       return myShouldRetry;
     }
 
+    /**
+     * @return true if this event can override status from newer build with status of older build
+     */
+    public boolean canOverrideStatus() {
+      return this == COMMENTED || this == MARKED_AS_SUCCESSFUL;
+    }
+
     private enum EventPriority {
       FIRST, // the event of this priority will not be accepted if any of the previous events are of the type CONSEQUENT
       ANY, // accepted at any time, will not prevent any events to be accepted after it

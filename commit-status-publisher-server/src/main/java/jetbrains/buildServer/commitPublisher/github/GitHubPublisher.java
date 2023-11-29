@@ -114,7 +114,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     }
     Event triggeredEvent = getTriggeredEvent(commitStatus);
     boolean isSameBuildType = isSameBuildType(buildPromotion, commitStatus);
-    return new RevisionStatus(triggeredEvent, commitStatus.description, isSameBuildType);
+    return new RevisionStatus(triggeredEvent, commitStatus.description, isSameBuildType, getBuildIdFromViewUrl(commitStatus.target_url));
   }
 
   private boolean isSameBuildType(BuildPromotion buildPromotion, CommitStatus commitStatus) {
@@ -145,7 +145,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     }
     Event triggeredEvent = getTriggeredEvent(commitStatus);
     boolean isSameBuildType = isSameBuildType(removedBuild.getBuildPromotion(), commitStatus);
-    return new RevisionStatus(triggeredEvent, commitStatus.description, isSameBuildType);
+    return new RevisionStatus(triggeredEvent, commitStatus.description, isSameBuildType, getBuildIdFromViewUrl(commitStatus.target_url));
   }
 
   @Nullable

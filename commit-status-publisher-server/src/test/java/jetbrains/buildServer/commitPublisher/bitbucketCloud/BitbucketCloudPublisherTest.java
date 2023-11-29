@@ -126,8 +126,8 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     removedBuildMock.stubs().method("getItemId").withNoArguments().will(returnValue("123"));
     SQueuedBuild removedBuild = (SQueuedBuild)removedBuildMock.proxy();
     BitbucketCloudPublisher publisher = (BitbucketCloudPublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new BitbucketCloudCommitBuildStatus("buildType", BitbucketCloudBuildStatus.INPROGRESS.name(), null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=123")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new BitbucketCloudCommitBuildStatus("anotherBuildType", BitbucketCloudBuildStatus.INPROGRESS.name(), null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new BitbucketCloudCommitBuildStatus("buildType", BitbucketCloudBuildStatus.INPROGRESS.name(), null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=123")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new BitbucketCloudCommitBuildStatus("anotherBuildType", BitbucketCloudBuildStatus.INPROGRESS.name(), null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
   }
 
   @Override

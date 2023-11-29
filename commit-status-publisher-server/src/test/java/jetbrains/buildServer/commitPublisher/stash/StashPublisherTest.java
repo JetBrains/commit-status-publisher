@@ -83,8 +83,8 @@ public class StashPublisherTest extends BaseStashPublisherTest {
     SQueuedBuild removedBuild = (SQueuedBuild)removedBuildMock.proxy();
 
     StashPublisher publisher = (StashPublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_QUEUED, "buildTypeExtenalId", null, null, null, "http://localhost:8111/viewQueued.html?itemId=123", StashBuildStatus.INPROGRESS.name(), null, null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_QUEUED, "anotherBuildTypeExtenalId", null, null, null, "http://localhost:8111/viewQueued.html?itemId=321", StashBuildStatus.INPROGRESS.name(), null, null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_QUEUED, "buildTypeExtenalId", null, null, null, "http://localhost:8111/viewQueued.html?itemId=123", StashBuildStatus.INPROGRESS.name(), null, null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_QUEUED, "anotherBuildTypeExtenalId", null, null, null, "http://localhost:8111/viewQueued.html?itemId=321", StashBuildStatus.INPROGRESS.name(), null, null)).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
   }
 
   public void url_guessing_test_git() {

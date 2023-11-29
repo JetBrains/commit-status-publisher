@@ -154,8 +154,8 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     SQueuedBuild removedBuild = (SQueuedBuild)removedBuildMock.proxy();
 
     GitHubPublisher publisher = (GitHubPublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost:8111/viewQueued.html?itemId=123", DefaultStatusMessages.BUILD_QUEUED, "buildName (projectName)")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost:8111/viewQueued.html?itemId=321", DefaultStatusMessages.BUILD_QUEUED, "custom context")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost:8111/viewQueued.html?itemId=123", DefaultStatusMessages.BUILD_QUEUED, "buildName (projectName)")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost:8111/viewQueued.html?itemId=321", DefaultStatusMessages.BUILD_QUEUED, "custom context")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
   }
 
   public void should_use_build_name_as_context() throws Exception {

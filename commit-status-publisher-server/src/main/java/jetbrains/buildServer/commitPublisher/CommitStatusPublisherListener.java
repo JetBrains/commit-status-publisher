@@ -257,7 +257,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
     final SFinishedBuild finishedBuild = myBuildHistory.findEntry(build.getBuildId());
     if (finishedBuild == null) {
-      LOG.debug("Event: " + Event.FINISHED + ", cannot find finished build for build " + LogUtil.describe(build));
+      LOG.debug(() -> "Event: " + Event.FINISHED + ", cannot find finished build for build " + LogUtil.describe(build));
       return;
     }
 
@@ -280,7 +280,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
     final SFinishedBuild finishedBuild = myBuildHistory.findEntry(build.getBuildId());
     if (finishedBuild == null) {
-      LOG.debug("Event: " + Event.INTERRUPTED.getName() + ", cannot find finished build for build " + LogUtil.describe(build));
+      LOG.debug(() -> "Event: " + Event.INTERRUPTED.getName() + ", cannot find finished build for build " + LogUtil.describe(build));
       return;
     }
 
@@ -479,7 +479,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   private void submitTaskForBuild(@NotNull Event event, @NotNull SBuild build, @Nullable Long delay) {
     if  (!myServerResponsibility.isResponsibleForBuild(build)) {
-      LOG.debug("Current node is not responsible for build " + LogUtil.describe(build) + ", skip processing event " + event);
+      LOG.debug(() -> "Current node is not responsible for build " + LogUtil.describe(build) + ", skip processing event " + event);
       return;
     }
 
@@ -495,7 +495,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   private boolean isCurrentRevisionSuitable(Event event, BuildPromotion buildPromotion, BuildRevision revision, CommitStatusPublisher publisher) throws PublisherException {
     if (TeamCityProperties.getBooleanOrTrue(CHECK_STATUS_BEFORE_PUBLISHING)) {
       RevisionStatus revisionStatus = publisher.getRevisionStatus(buildPromotion, revision);
-      return revisionStatus == null || revisionStatus.isEventAllowed(event);
+      return revisionStatus == null || revisionStatus.isEventAllowed(event, buildPromotion.getId());
     }
     return true;
   }
@@ -544,7 +544,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       return;
     }
     Map<String, CommitStatusPublisher> publishers = getPublishers(buildType);
-    LOG.debug("Event: " + event.getName() + ", build promotion " + LogUtil.describe(buildPromotion) + ", publishers: " + publishers.values());
+    LOG.debug(() -> "Event: " + event.getName() + ", build promotion " + LogUtil.describe(buildPromotion) + ", publishers: " + publishers.values());
     for (CommitStatusPublisher publisher : publishers.values()) {
       if (!publisher.isEventSupported(event))
         continue;
@@ -611,7 +611,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   private SBuildType getBuildType(@NotNull Event event, @NotNull SBuild build) {
     SBuildType buildType = build.getBuildType();
     if (buildType == null)
-      LOG.debug("Event: " + event.getName() + ", cannot find buildType for build " + LogUtil.describe(build));
+      LOG.debug(() -> "Event: " + event.getName() + ", cannot find buildType for build " + LogUtil.describe(build));
     return buildType;
   }
 
@@ -620,7 +620,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     try {
       return build.getBuildType();
     } catch (BuildTypeNotFoundException e) {
-      LOG.debug("Event: " + event.getName() + ", cannot find buildType for build " + LogUtil.describe(build));
+      LOG.debug(() -> "Event: " + event.getName() + ", cannot find buildType for build " + LogUtil.describe(build));
       return null;
     }
   }
@@ -650,7 +650,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     if (!((BuildPromotionEx)buildPromotion).isChangeCollectingNeeded(false)) {
       return getBuildRevisionForVote(publisher, buildPromotion.getRevisions());
     }
-    LOG.debug("No revision is found for build " + buildPromotion.getBuildTypeExternalId() + ". Queue-related status won't be published");
+    LOG.debug(() -> "No revision is found for build " + buildPromotion.getBuildTypeExternalId() + ". Queue-related status won't be published");
     return Collections.emptyList();
   }
 
@@ -809,8 +809,23 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
           Lock lock = myPublishingLocks.get(revision.getRevision());
           lock.lock();
+
           try {
-            retryInfo = runTask(event, buildPromotion, LogUtil.describe(build), task, publisher, revision, null, lastDelay);
+            boolean isEventSuitableForRevision = true;
+            if (event.canOverrideStatus()) {
+              try {
+                isEventSuitableForRevision = isCurrentRevisionSuitable(event, buildPromotion, revision, publisher);
+              } catch (PublisherException e) {
+                retryInfo = getRetryInfo(e, buildPromotion, event, lastDelay);
+                LOG.warn("Cannot determine if event \"" + event + "\" can be published for current revision state in VCS. " + retryInfo.message, e);
+                return retryInfo;
+              }
+            }
+            if (isEventSuitableForRevision) {
+              retryInfo = runTask(event, buildPromotion, LogUtil.describe(build), task, publisher, revision, null, lastDelay);
+            } else {
+              LOG.debug(() -> "Event \"" + event + "\" is not suitable to be published to root \"" + publisher.getVcsRootId() + "\" for revision " + revision.getRevision());
+            }
           } finally {
             lock.unlock();
           }
@@ -932,7 +947,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
           if (isEventSuitableForRevision) {
             retryInfo = runTask(event, buildPromotion, LogUtil.describe(buildPromotion), publishTask, publisher, revision, additionalTaskInfo, lastDelay);
           } else {
-            LOG.debug("Event \"" + event + "\" is not suitable to be published to rooot \"" + publisher.getVcsRootId() + "\" for revision " + revision.getRevision());
+            LOG.debug(() -> "Event \"" + event + "\" is not suitable to be published to root \"" + publisher.getVcsRootId() + "\" for revision " + revision.getRevision());
           }
           return retryInfo;
         }

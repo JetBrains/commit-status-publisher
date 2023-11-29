@@ -115,8 +115,8 @@ public class TfsPublisherTest extends HttpPublisherTest {
     SQueuedBuild removedBuild = (SQueuedBuild)removedBuildMock.proxy();
 
     TfsStatusPublisher publisher = (TfsStatusPublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=123", new TfsStatusPublisher.StatusContext("buildTypeExtenalId", "TeamCity"))).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321", new TfsStatusPublisher.StatusContext("anoterTypeExtenalId", "TeamCity"))).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=123", new TfsStatusPublisher.StatusContext("buildTypeExtenalId", "TeamCity"))).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321", new TfsStatusPublisher.StatusContext("anoterTypeExtenalId", "TeamCity"))).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
   }
 
   @Override

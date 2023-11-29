@@ -197,8 +197,8 @@ public class SpacePublisherTest extends HttpPublisherTest {
     SQueuedBuild removedBuild = (SQueuedBuild)removedBuildMock.proxy();
 
     SpacePublisher publisher = (SpacePublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=123", "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321", "anotherBuildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=123", "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321", "anotherBuildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
   }
 
   @Override
