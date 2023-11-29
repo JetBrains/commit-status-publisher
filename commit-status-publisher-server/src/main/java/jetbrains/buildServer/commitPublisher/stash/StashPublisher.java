@@ -35,6 +35,7 @@ import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
+import org.apache.commons.lang.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -148,7 +149,14 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     }
     Event event = getTriggeredEvent(buildStatus);
     boolean isSameBuildType = StringUtil.areEqual(getBuildKey(removedBuild.getBuildPromotion()), buildStatus.key);
-    return new RevisionStatus(event, buildStatus.description, isSameBuildType);
+    return new RevisionStatus(event, buildStatus.description, isSameBuildType, getBuildId(buildStatus));
+  }
+
+
+  @Nullable
+  private Long getBuildId(@NotNull JsonStashBuildStatus buildStatus) {
+    Long buildId = NumberUtils.toLong(buildStatus.buildNumber, -1);
+    return buildId > -1 ? buildId : getBuildIdFromViewUrl(buildStatus.url);
   }
 
   private String getBuildKey(BuildPromotion buildPromotion) {
@@ -187,7 +195,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     }
     Event event = getTriggeredEvent(buildStatus);
     boolean isSameBuildType = StringUtil.areEqual(getBuildKey(buildPromotion), buildStatus.key);
-    return new RevisionStatus(event, buildStatus.description, isSameBuildType);
+    return new RevisionStatus(event, buildStatus.description, isSameBuildType, getBuildId(buildStatus));
   }
 
   private Event getTriggeredEvent(JsonStashBuildStatus buildStatus) {

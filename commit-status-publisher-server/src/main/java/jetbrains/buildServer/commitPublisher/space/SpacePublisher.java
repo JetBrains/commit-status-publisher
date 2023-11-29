@@ -31,6 +31,7 @@ import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.VcsModification;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.entity.ContentType;
 import org.jetbrains.annotations.NotNull;
@@ -131,7 +132,13 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     }
     Event event = getTriggeredEvent(buildStatus);
     boolean isSameBuildType = StringUtil.areEqual(getTaskId(removedBuild.getBuildPromotion()), buildStatus.taskId);
-    return new RevisionStatus(event, buildStatus.description, isSameBuildType);
+    return new RevisionStatus(event, buildStatus.description, isSameBuildType, getBuildId(buildStatus));
+  }
+
+  @Nullable
+  private Long getBuildId(@NotNull SpaceBuildStatusInfo buildStatus) {
+    Long buildId = NumberUtils.toLong(buildStatus.taskBuildId, -1);
+    return buildId > -1 ? buildId : getBuildIdFromViewUrl(buildStatus.url);
   }
 
   private String getTaskId(BuildPromotion buildPromotion) {
@@ -192,7 +199,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     }
     Event event = getTriggeredEvent(commitStatus);
     boolean isSameBuild = StringUtil.areEqual(getTaskId(buildPromotion), commitStatus.taskId);
-    return new RevisionStatus(event, commitStatus.description, isSameBuild);
+    return new RevisionStatus(event, commitStatus.description, isSameBuild, getBuildId(commitStatus));
   }
 
   private Event getTriggeredEvent(SpaceBuildStatusInfo commitStatus) {

@@ -12,11 +12,13 @@ public class RevisionStatus {
   private final CommitStatusPublisher.Event myTriggeredEvent;
   private final String myDescription;
   private final boolean myIsSameBuildType;
-
-  public RevisionStatus(@Nullable CommitStatusPublisher.Event triggeredEvent, @Nullable String description, boolean isSameBuildType) {
+  private final Long myBuildId;
+  
+  public RevisionStatus(@Nullable CommitStatusPublisher.Event triggeredEvent, @Nullable String description, boolean isSameBuildType, @Nullable Long buildId) {
     myTriggeredEvent = triggeredEvent;
     myDescription = description;
     myIsSameBuildType = isSameBuildType;
+    myBuildId = buildId;
   }
 
   @Nullable
@@ -29,24 +31,30 @@ public class RevisionStatus {
     return myDescription;
   }
 
-  public boolean isEventAllowed(@NotNull CommitStatusPublisher.Event pendingEvent) {
+  public boolean isEventAllowed(@NotNull CommitStatusPublisher.Event pendingEvent, long buildId) {
     if (myTriggeredEvent == null) {
-      return true;
+      if (pendingEvent.canOverrideStatus()) {
+        return myBuildId == null || buildId >= myBuildId; // we don't want to publish status for older build
+      } else {
+        return true;
+      }
     }
+
     switch (pendingEvent) {
       case QUEUED:
         return myIsSameBuildType && CommitStatusPublisher.Event.QUEUED == myTriggeredEvent;
       case REMOVED_FROM_QUEUE:
         return myIsSameBuildType && CommitStatusPublisher.Event.QUEUED == myTriggeredEvent;
+      case COMMENTED:
+      case MARKED_AS_SUCCESSFUL:
+        return myBuildId == null || buildId >= myBuildId;
       case STARTED:
       case FINISHED:
       case INTERRUPTED:
       case FAILURE_DETECTED:
-      case COMMENTED:
-      case MARKED_AS_SUCCESSFUL:
         return true;
       default:
-        LOG.info("Unknown Comit Status Publisher event received: \"" + pendingEvent + "\". It will be allowed to be processed");
+        LOG.info("Unknown Commit Status Publisher event received: \"" + pendingEvent + "\". It will be allowed to be processed");
     }
     return true;
   }

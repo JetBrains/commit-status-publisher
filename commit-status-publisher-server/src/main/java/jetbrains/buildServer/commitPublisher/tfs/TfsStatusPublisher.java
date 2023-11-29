@@ -148,7 +148,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     if (commitStatus == null) return null;
     Event event = getTriggeredEvent(commitStatus);
     boolean isSameBuildType = StringUtil.areEqual(getBuildName(removedBuild.getBuildPromotion()), commitStatus.context.name);
-    return new RevisionStatus(event, commitStatus.description, isSameBuildType);
+    return new RevisionStatus(event, commitStatus.description, isSameBuildType, getBuildIdFromViewUrl(commitStatus.targetUrl));
   }
 
   private String getBuildName(BuildPromotion buildPromotion) {
@@ -207,7 +207,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     if (commitStatus == null) return null;
     Event event = getTriggeredEvent(commitStatus);
     boolean isSameBuildType = StringUtil.areEqual(getBuildName(buildPromotion), commitStatus.context.name);
-    return new RevisionStatus(event, commitStatus.description, isSameBuildType);
+    return new RevisionStatus(event, commitStatus.description, isSameBuildType, getBuildIdFromViewUrl(commitStatus.targetUrl));
   }
 
   private Event getTriggeredEvent(CommitStatus commitStatus) {

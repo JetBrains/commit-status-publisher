@@ -24,6 +24,7 @@ import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsRoot;
+import org.apache.commons.lang.math.NumberUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -39,6 +40,7 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   protected SBuildType myBuildType;
   private final String myBuildFeatureId;
   private final CommitStatusPublisherSettings mySettings;
+  private static final String BUILD_ID_URL_PARAM = "buildId=";
 
   protected BaseCommitStatusPublisher(@NotNull CommitStatusPublisherSettings settings,
                                       @NotNull SBuildType buildType,@NotNull String buildFeatureId,
@@ -179,5 +181,24 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
   @NotNull
   protected String getViewUrl(@NotNull SBuild build) {
     return getLinks().getViewResultsUrl(build);
+  }
+
+  protected Long getBuildIdFromViewUrl(@Nullable String url) {
+    if (url == null) {
+      return null;
+    }
+    int i = url.indexOf(BUILD_ID_URL_PARAM);
+    if (i == -1) {
+      return null;
+    }
+    i += BUILD_ID_URL_PARAM.length();
+
+    StringBuilder idBuilder = new StringBuilder();
+    while (i < url.length() && Character.isDigit(url.charAt(i))) {
+      idBuilder.append(url.charAt(i++));
+    }
+
+    Long buildId = NumberUtils.toLong(idBuilder.toString(), -1);
+    return buildId == -1 ? null : buildId;
   }
 }

@@ -65,6 +65,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   private SUser myUser;
   private Event myLastEventProcessed;
   private final Consumer<Event> myEventProcessedCallback = event -> myLastEventProcessed = event;
+  private Map<String, SVcsRoot> myRoots;
 
   @BeforeMethod
   public void setUp() throws Exception {
@@ -82,6 +83,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myPublisherSettings.setPublisher(myPublisher);
     myPublisherSettings.setLinks(myWebLinks);
     myTicketManager = myFixture.findSingletonService(BuildFeatureProblemsTicketManagerImpl.class);
+    myRoots = new HashMap<>();
   }
   
   private QueuedBuild addBuildToQueue(BuildPromotionEx buildPromotion) {
@@ -967,12 +969,95 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getEventsReceived()).containsExactly(Event.STARTED, Event.FAILURE_DETECTED, Event.FINISHED);
   }
 
+  @Test
+  public void should_not_publish_commented_status_for_old_builds() {
+    prepareVcs();
+    addBuildToQueue();
+    waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 1, TASK_COMPLETION_TIMEOUT_MS);
+    RunningBuildEx runningBuild = myFixture.flushQueueAndWait();
+    SFinishedBuild oldFinishedBuild = myFixture.finishBuild(runningBuild, false);
+    waitFor(() -> myPublisher.getLastEvent() == Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(3, myPublisher.getEventsReceived().size());
+
+    addBuildToQueue();
+    runningBuild = myFixture.flushQueueAndWait();
+    myFixture.finishBuild(runningBuild, false);
+    waitFor(() -> myPublisher.getLastEvent() == Event.FINISHED && myPublisher.getEventsReceived().size() > 3, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(5, myPublisher.getEventsReceived().size());
+
+    oldFinishedBuild.setBuildComment(myUser, "test");
+
+    // just to verify that previous status wasn't posted
+    prepareVcs("vcs1", "113", "rev1_4", SetVcsRootIdMode.EXT_ID);
+    addBuildToQueue();
+    waitFor(() -> myPublisher.getLastEvent() != Event.FINISHED);
+    runningBuild = myFixture.flushQueueAndWait();
+    myFixture.finishBuild(runningBuild, false);
+    waitFor(() -> myPublisher.getLastEvent() == Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(8, myPublisher.getEventsReceived().size());
+  }
+
+  @Test
+  public void should_not_publish_status_on_marked_as_successful_event_for_old_builds() {
+    prepareVcs();
+    addBuildToQueue();
+    waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 1, TASK_COMPLETION_TIMEOUT_MS);
+    RunningBuildEx runningBuild = myFixture.flushQueueAndWait();
+    SFinishedBuild oldFinishedBuild = myFixture.finishBuild(runningBuild, true);
+    waitFor(() -> myPublisher.getLastEvent() == Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(4, myPublisher.getEventsReceived().size());
+
+    addBuildToQueue();
+    runningBuild = myFixture.flushQueueAndWait();
+    myFixture.finishBuild(runningBuild, true);
+    waitFor(() -> myPublisher.getLastEvent() == Event.FINISHED && myPublisher.getEventsReceived().size() > 4, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(7, myPublisher.getEventsReceived().size());
+
+    oldFinishedBuild.muteBuildProblems(myUser, true,"test");
+
+    // just to verify that previous status wasn't posted
+    prepareVcs("vcs1", "112", "rev1_3", SetVcsRootIdMode.EXT_ID);
+    addBuildToQueue();
+    waitFor(() -> myPublisher.getLastEvent() != Event.FINISHED);
+    runningBuild = myFixture.flushQueueAndWait();
+    myFixture.finishBuild(runningBuild, false);
+    waitFor(() -> myPublisher.getLastEvent() == Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(10, myPublisher.getEventsReceived().size());
+  }
+
+  @Test
+  public void should_publish_status_on_marked_as_successful_event_on_latest_build() {
+    prepareVcs();
+    addBuildToQueue();
+    waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 1, TASK_COMPLETION_TIMEOUT_MS);
+    RunningBuildEx runningBuild = myFixture.flushQueueAndWait();
+    myFixture.finishBuild(runningBuild, true);
+    waitFor(() -> myPublisher.getLastEvent() == Event.FINISHED, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(4, myPublisher.getEventsReceived().size());
+
+    addBuildToQueue();
+    runningBuild = myFixture.flushQueueAndWait();
+    SBuild lastBuild = myFixture.finishBuild(runningBuild, true);
+    waitFor(() -> myPublisher.getLastEvent() == Event.FINISHED && myPublisher.getEventsReceived().size() > 4, TASK_COMPLETION_TIMEOUT_MS);
+    assertEquals(7, myPublisher.getEventsReceived().size());
+
+    lastBuild.muteBuildProblems(myUser, true, "test");
+    waitFor(() -> myPublisher.getLastEvent() == Event.MARKED_AS_SUCCESSFUL, TASK_COMPLETION_TIMEOUT_MS);
+  }
+
   private SVcsModification prepareVcs() {
     return prepareVcs("vcs1", "111", "rev1_2", SetVcsRootIdMode.EXT_ID);
   }
 
   private SVcsModification prepareVcs(String vcsRootName, String currentVersion, String revNo, SetVcsRootIdMode setVcsRootIdMode) {
-    final SVcsRoot vcsRoot = myFixture.addVcsRoot("jetbrains.git", vcsRootName);
+    final SVcsRoot vcsRoot;
+    if (!myRoots.containsKey(vcsRootName)) {
+      vcsRoot = myFixture.addVcsRoot("jetbrains.git", vcsRootName);
+      myBuildType.addVcsRoot(vcsRoot);
+      myRoots.put(vcsRootName, vcsRoot);
+    } else {
+      vcsRoot = myRoots.get(vcsRootName);
+    }
     switch (setVcsRootIdMode) {
       case EXT_ID:
         myPublisher.setVcsRootId(vcsRoot.getExternalId());
@@ -980,8 +1065,9 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
       case INT_ID:
         myPublisher.setVcsRootId(String.valueOf(vcsRoot.getId()));
     }
-    myBuildType.addVcsRoot(vcsRoot);
-    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().stream()
+                                                 .filter(vcsInstance -> vcsInstance.getParent().getId() == vcsRoot.getId())
+                                                 .findFirst().get();
     myCurrentVersions.put(vcsRoot.getName(), currentVersion);
     return myFixture.addModification(new ModificationData(new Date(),
             Collections.singletonList(new VcsChange(VcsChangeInfo.Type.CHANGED, "changed", "file", "file","1", "2")),

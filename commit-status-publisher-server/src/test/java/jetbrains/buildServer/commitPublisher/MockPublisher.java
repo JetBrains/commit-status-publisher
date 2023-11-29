@@ -98,6 +98,11 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
       .collect(Collectors.toList());
   }
 
+  Event getLastEvent() {
+    List<Event> events = getEventsReceived();
+    return events.get(events.size() - 1);
+  }
+
   MockPublisher(@NotNull CommitStatusPublisherSettings settings,
                 @NotNull String publisherType,
                 @NotNull SBuildType buildType, @NotNull String buildFeatureId,
@@ -182,7 +187,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     pretendToHandleEvent(Event.QUEUED);
     myHttpRequests.add(HttpMethod.POST);
     checkShouldFailToPublish();
-    saveStatus(revision, buildType, new MockStatus(Event.QUEUED, additionalTaskInfo.getComment()));
+    saveStatus(revision, buildType, new MockStatus(Event.QUEUED, additionalTaskInfo.getComment(), null));
     return true;
   }
 
@@ -192,7 +197,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     myLastUser = additionalTaskInfo.getCommentAuthor();
     myHttpRequests.add(HttpMethod.POST);
     checkShouldFailToPublish();
-    saveStatus(revision, buildPromotion.getBuildType(), new MockStatus(Event.REMOVED_FROM_QUEUE, additionalTaskInfo.getComment()));
+    saveStatus(revision, buildPromotion.getBuildType(), new MockStatus(Event.REMOVED_FROM_QUEUE, additionalTaskInfo.getComment(), null));
     return true;
   }
 
@@ -201,7 +206,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     pretendToHandleEvent(Event.STARTED);
     myHttpRequests.add(HttpMethod.POST);
     checkShouldFailToPublish();
-    saveStatus(revision, build.getBuildType(), new MockStatus(Event.STARTED, DefaultStatusMessages.BUILD_STARTED));
+    saveStatus(revision, build.getBuildType(), new MockStatus(Event.STARTED, DefaultStatusMessages.BUILD_STARTED, build.getBuildId()));
     return true;
   }
 
@@ -218,7 +223,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
       myProblems.reportProblem(this, "My build", null, null, myLogger);
     }
     checkShouldFailToPublish();
-    saveStatus(revision, build.getBuildType(), new MockStatus(Event.FINISHED, DefaultStatusMessages.BUILD_FINISHED));
+    saveStatus(revision, build.getBuildType(), new MockStatus(Event.FINISHED, DefaultStatusMessages.BUILD_FINISHED, build.getBuildId()));
     return true;
   }
 
@@ -232,7 +237,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     pretendToHandleEvent(Event.COMMENTED);
     myHttpRequests.add(HttpMethod.POST);
     checkShouldFailToPublish();
-    saveStatus(revision, build.getBuildType(), new MockStatus(Event.COMMENTED, comment));
+    saveStatus(revision, build.getBuildType(), new MockStatus(Event.COMMENTED, comment, build.getBuildId()));
     return true;
   }
 
@@ -241,7 +246,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     pretendToHandleEvent(Event.INTERRUPTED);
     myHttpRequests.add(HttpMethod.POST);
     checkShouldFailToPublish();
-    saveStatus(revision, build.getBuildType(), new MockStatus(Event.INTERRUPTED, null));
+    saveStatus(revision, build.getBuildType(), new MockStatus(Event.INTERRUPTED, null, build.getBuildId()));
     return true;
   }
 
@@ -251,7 +256,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     myHttpRequests.add(HttpMethod.POST);
     myFailuresReceived++;
     checkShouldFailToPublish();
-    saveStatus(revision, build.getBuildType(), new MockStatus(Event.FAILURE_DETECTED, null));
+    saveStatus(revision, build.getBuildType(), new MockStatus(Event.FAILURE_DETECTED, null, build.getBuildId()));
     return true;
   }
 
@@ -260,7 +265,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     pretendToHandleEvent(Event.MARKED_AS_SUCCESSFUL);
     myHttpRequests.add(HttpMethod.POST);
     checkShouldFailToPublish();
-    saveStatus(revision, build.getBuildType(), new MockStatus(Event.MARKED_AS_SUCCESSFUL, null));
+    saveStatus(revision, build.getBuildType(), new MockStatus(Event.MARKED_AS_SUCCESSFUL, null, build.getBuildId()));
     return super.buildMarkedAsSuccessful(build, revision, buildInProgress);
   }
 
@@ -273,7 +278,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
       return null;
     }
     boolean isSameBuildType = lastStatus.myBuildTypeId.equals(buildPromotion.getBuildType().getBuildTypeId());
-    return new RevisionStatus(lastStatus.myStatus.myEvent, lastStatus.myStatus.myComment, isSameBuildType);
+    return new RevisionStatus(lastStatus.myStatus.myEvent, lastStatus.myStatus.myComment, isSameBuildType, lastStatus.myStatus.myBuildId);
   }
 
   @Override
@@ -331,11 +336,13 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     final Event myEvent;
     final String myComment;
     final int myId;
+    final Long myBuildId;
 
-    public MockStatus(@NotNull Event event, @Nullable String comment) {
+    public MockStatus(@NotNull Event event, @Nullable String comment, @Nullable Long buildId) {
       myEvent = event;
       myComment = comment;
       myId = myIdGenerator.getAndIncrement();
+      myBuildId = buildId;
     }
 
     @Override
