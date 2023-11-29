@@ -369,7 +369,7 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
 
   @NotNull
   @Override
-  public Collection<BuildRevision> getFallbackRevisions() {
+  public Collection<BuildRevision> getFallbackRevisions(@Nullable SBuild build) {
     return myFallbackRevisions;
   }
 

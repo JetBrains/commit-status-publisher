@@ -28,8 +28,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
 import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.vcs.VcsModification;
-import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.http.HttpHeaders;
@@ -382,16 +381,33 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
    * Space is able to match safe-merge statuses by build ID.
    * See: TW-84882
    *
+   * @param build the current build
    * @return singleton collection of an artificial build revision pointing to {@link #UNKNWON_GIT_SHA}
    */
   @NotNull
   @Override
-  public Collection<BuildRevision> getFallbackRevisions() {
-    final List<VcsRootInstance> vcsRootInstances = myBuildType.getVcsRootInstances();
-    if (vcsRootInstances.isEmpty()) {
-      LOG.warn("unable to construct fallback build revision for Space build " + LogUtil.describe(myBuildType) + ": no VCS root instances found");
-      return super.getFallbackRevisions();
+  public Collection<BuildRevision> getFallbackRevisions(@Nullable SBuild build) {
+    if (build == null) {
+      return super.getFallbackRevisions(null);
     }
-    return Collections.singletonList(new BuildRevision(vcsRootInstances.get(0), UNKNWON_GIT_SHA, "", UNKNWON_GIT_SHA));
+
+    final String vcsRootId = getVcsRootId();
+    final Optional<VcsRootInstance> maybeVcsRootInstance = build.getVcsRootEntries()
+                                                                .stream()
+                                                                .map(VcsRootInstanceEntry::getVcsRoot)
+                                                                .filter(
+                                                                  vcsRootInstance -> (vcsRootId != null && vcsRootIdMatches(vcsRootId, (SVcsRootEx)vcsRootInstance.getParent())) ||
+                                                                                     getSettings().isPublishingForVcsRoot(vcsRootInstance))
+                                                                .findAny();
+
+    if (!maybeVcsRootInstance.isPresent()) {
+      LOG.warn("Unable to construct fallback build revision for Space build " + LogUtil.describe(build) + ": no suitable VCS root instance found");
+      return super.getFallbackRevisions(build);
+    }
+    return Collections.singletonList(new BuildRevision(maybeVcsRootInstance.get(), UNKNWON_GIT_SHA, "", UNKNWON_GIT_SHA));
+  }
+
+  private static boolean vcsRootIdMatches(@NotNull String vcsRootId, @NotNull SVcsRootEx root) {
+    return (vcsRootId.equals(root.getExternalId()) || root.isAliasExternalId(vcsRootId) || vcsRootId.equals(String.valueOf(root.getId())));
   }
 }

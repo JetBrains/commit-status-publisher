@@ -77,10 +77,11 @@ public interface CommitStatusPublisher {
    * Currently only {@link jetbrains.buildServer.commitPublisher.space.SpacePublisher} supports this.
    * </p>
    *
+   * @param build the current build, if any
    * @return empty collection if this publisher doesn't support fallback revisions
    */
   @NotNull
-  Collection<BuildRevision> getFallbackRevisions();
+  Collection<BuildRevision> getFallbackRevisions(@Nullable SBuild build);
 
   enum Event {
     STARTED("buildStarted", EventPriority.FIRST, true), FINISHED("buildFinished", true),

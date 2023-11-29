@@ -109,7 +109,7 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
 
   @NotNull
   @Override
-  public Collection<BuildRevision> getFallbackRevisions() {
+  public Collection<BuildRevision> getFallbackRevisions(@Nullable SBuild build) {
     return Collections.emptyList();
   }
 
