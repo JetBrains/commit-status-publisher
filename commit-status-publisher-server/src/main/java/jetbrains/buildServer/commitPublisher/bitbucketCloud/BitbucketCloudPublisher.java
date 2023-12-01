@@ -166,7 +166,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
 
   private BitbucketCloudCommitBuildStatus loadCommitStatusesAndGetMatching(Repository repository, BuildRevision revision, BuildPromotion promotion) throws PublisherException {
     AtomicReference<PublisherException> exception = new AtomicReference<>(null);
-    BitbucketCloudCommitBuildStatus status = myStatusesCache.getStatusFromCache(revision, promotion.getBuildTypeExternalId(), () -> {
+    BitbucketCloudCommitBuildStatus status = myStatusesCache.getStatusFromCache(revision, buildKey(promotion), () -> {
       try {
         return loadCommitStatuses(repository, revision, promotion);
       } catch (PublisherException e) {
@@ -249,7 +249,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
                                                          @NotNull String comment,
                                                          @NotNull String url) {
     String buildName = getBuildName(promotion);
-    return new BitbucketCloudCommitBuildStatus(promotion.getBuildTypeExternalId(), status.name(), buildName, comment, url);
+    return new BitbucketCloudCommitBuildStatus(buildKey(promotion), status.name(), buildName, comment, url);
   }
 
   @NotNull
@@ -291,7 +291,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
 
     BitbucketCloudCommitBuildStatus buildStatus = getBuildStatus(buildPromotion, status, comment, url);
     vote(revision, buildStatus, repository, LogUtil.describe(buildPromotion));
-    myStatusesCache.removeStatusFromCache(revision, buildPromotion.getBuildTypeExternalId());
+    myStatusesCache.removeStatusFromCache(revision, buildKey(buildPromotion));
     return true;
   }
 
@@ -357,6 +357,16 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
   @Nullable
   private HttpCredentials getCredentials(@NotNull VcsRootInstance root) throws PublisherException {
     return getSettings().getCredentials(root, myParams);
+  }
+
+  @NotNull
+  private static String buildKey(@NotNull BuildPromotion promotion) {
+    if (promotion.isPersonal()) {
+      SBuildType buildType = promotion.getBuildType();
+      if (buildType != null)
+        return buildType.getBuildTypeId();
+    }
+    return promotion.getBuildTypeId();
   }
 
   private static class BitbucketCloudResponseEntityProcessor<T> extends ResponseEntityProcessor<T> {
