@@ -47,28 +47,6 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public class BitbucketCloudPublisherTest extends HttpPublisherTest {
 
-  public BitbucketCloudPublisherTest() {
-    myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*INPROGRESS.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
-    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*STOPPED.*%s\".*", REVISION, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE));
-    myExpectedRegExps.put(EventToTest.STARTED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*INPROGRESS.*%s.*", REVISION, DefaultStatusMessages.BUILD_STARTED));
-    myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*SUCCESSFUL.*Success.*", REVISION));
-    myExpectedRegExps.put(EventToTest.FAILED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*FAILED.*Failure.*", REVISION));
-    myExpectedRegExps.put(EventToTest.COMMENTED_SUCCESS,
-                          String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*SUCCESSFUL.*Success with a comment by %s:.*%s.*", REVISION, USER.toLowerCase(), COMMENT));
-    myExpectedRegExps.put(EventToTest.COMMENTED_FAILED,
-                          String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*FAILED.*Failure with a comment by %s:.*%s.*", REVISION, USER.toLowerCase(), COMMENT));
-    myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS,
-                          String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*INPROGRESS.*Running with a comment by %s:.*%s.*", REVISION, USER.toLowerCase(), COMMENT));
-    myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED,
-                          String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*FAILED.*%s.*with a comment by %s:.*%s.*", REVISION, PROBLEM_DESCR, USER.toLowerCase(), COMMENT));
-    myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*STOPPED.*%s.*", REVISION, PROBLEM_DESCR));
-    myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*FAILED.*%s.*", REVISION, PROBLEM_DESCR));
-    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*SUCCESSFUL.*%s.*", REVISION, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL));
-    myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*INPROGRESS.*%s.*", REVISION, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL));
-    myExpectedRegExps.put(EventToTest.TEST_CONNECTION, ".*2.0/repositories/owner/project.*");
-    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*FAILED.*%s.*Failure.*", REVISION, BT_NAME_ESCAPED_REGEXP));
-  }
-
   @Override
   public void test_testConnection_fails_on_readonly() throws InterruptedException {
     // NOTE: Bitbucket Cloud Publisher cannot determine if it has just read only access during connection testing
@@ -178,12 +156,35 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     httpResponse.setEntity(new StringEntity(jsonResponse, StandardCharsets.UTF_8));
   }
 
+  private void addExpectation(EventToTest event, String expectedStatus, String expectedStatusMessage) {
+    myExpectedRegExps.put(event, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*\"key\":\"%s\".*%s.*%s.*",
+                                                            REVISION, myBuildType.getBuildTypeId(), expectedStatus, expectedStatusMessage));
+
+  }
+
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
     setExpectedApiPath("/2.0");
     setExpectedEndpointPrefix("/repositories/" + OWNER + "/" + CORRECT_REPO);
     super.setUp();
+    myExpectedRegExps.clear();
+    addExpectation(EventToTest.QUEUED, "INPROGRESS", DefaultStatusMessages.BUILD_QUEUED);
+    addExpectation(EventToTest.REMOVED, "STOPPED", DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE);
+    addExpectation(EventToTest.STARTED, "INPROGRESS", DefaultStatusMessages.BUILD_STARTED);
+    addExpectation(EventToTest.FINISHED, "SUCCESSFUL", "Success");
+    addExpectation(EventToTest.FAILED, "FAILED", "Failure");
+    addExpectation(EventToTest.COMMENTED_SUCCESS, "SUCCESSFUL", String.format("Success with a comment by %s:.*%s.*", USER.toLowerCase(), COMMENT));
+    addExpectation(EventToTest.COMMENTED_FAILED, "FAILED", String.format("Failure with a comment by %s:.*%s.*", USER.toLowerCase(), COMMENT));
+    addExpectation(EventToTest.COMMENTED_INPROGRESS, "INPROGRESS", String.format("Running with a comment by %s:.*%s.*", USER.toLowerCase(), COMMENT));
+    addExpectation(EventToTest.COMMENTED_INPROGRESS_FAILED, "FAILED", String.format("%s.*with a comment by %s:.*%s.*", PROBLEM_DESCR, USER.toLowerCase(), COMMENT));
+    addExpectation(EventToTest.INTERRUPTED, "STOPPED", PROBLEM_DESCR);
+    addExpectation(EventToTest.FAILURE_DETECTED, "FAILED", PROBLEM_DESCR);
+    addExpectation(EventToTest.MARKED_SUCCESSFUL, "SUCCESSFUL", DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL);
+    addExpectation(EventToTest.MARKED_RUNNING_SUCCESSFUL, "INPROGRESS", DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL);
+    addExpectation(EventToTest.PAYLOAD_ESCAPED, "FAILED", BT_NAME_ESCAPED_REGEXP + ".*Failure");
+    myExpectedRegExps.put(EventToTest.TEST_CONNECTION, ".*2.0/repositories/owner/project.*");
+
     Map<String, String> params = getPublisherParams();
     myPublisherSettings = new BitbucketCloudSettings(new MockPluginDescriptor(),
                                                      myWebLinks,
