@@ -134,7 +134,7 @@ public class PublisherSettingsController extends BaseController {
     }
 
     if (settingsUrl != null) {
-      request.getRequestDispatcher(settingsUrl).include(request, response);
+      return new ModelAndView(settingsUrl);
     }
 
     return null;

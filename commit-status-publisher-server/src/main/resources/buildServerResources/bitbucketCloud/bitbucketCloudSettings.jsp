@@ -62,26 +62,23 @@
           <span>There are no Bitbucket connections available to the project.</span>
         </c:if>
 
+        <c:set var="canObtainTokens" value="${canEditProject and not project.readOnly}"/>
+        <c:set var="connectorType" value="<%=BitBucketOAuthProvider.TYPE%>"/>
+        <oauth:tokenControlsForBuildFeature
+          project="${project}"
+          providerTypes="'${connectorType}'"
+          tokenIntent="PUBLISH_STATUS"
+          canObtainTokens="${canObtainTokens}"
+          callback="BS.AuthTypeTokenSupport.tokenCallback"
+          oauthConnections="${oauthConnections}">
+          <jsp:attribute name="addCredentialFragment">
+            <span class="smallNote connection-note">Add credentials via the
+                  <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
+          </jsp:attribute>
+        </oauth:tokenControlsForBuildFeature>
+
         <props:hiddenProperty name="${keys.tokenId}" />
         <span class="error" id="error_${keys.tokenId}"></span>
-
-        <c:if test="${canEditProject and not project.readOnly}">
-          <c:forEach items="${oauthConnections}" var="connection">
-            <script type="application/javascript">
-              BS.AuthTypeTokenSupport.connections['${connection.id}'] = '<bs:forJs>${connection.connectionDisplayName}</bs:forJs>';
-            </script>
-            <div class="token-connection">
-              <span class="token-connection-diplay-name"><c:out value="${connection.connectionDisplayName}" /></span>
-              <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.AuthTypeTokenSupport.tokenCallback">
-                Acquire
-              </oauth:obtainToken>
-            </div>
-          </c:forEach>
-
-          <c:set var="connectorType" value="<%=BitBucketOAuthProvider.TYPE%>"/>
-          <span class="smallNote connection-note">Add credentials via the
-                  <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
-        </c:if>
       </td>
     </tr>
   </props:selectSectionPropertyContent>

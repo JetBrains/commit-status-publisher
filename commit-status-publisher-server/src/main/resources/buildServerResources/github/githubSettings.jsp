@@ -92,30 +92,24 @@
              <span>There are no GitHub App connections available to the project.</span>
            </c:if>
 
+           <c:set var="connectorType" value="GitHubApp"/>
+           <c:set var="canObtainTokens" value="${canEditProject and not project.readOnly}"/>
+
+           <oauth:tokenControlsForBuildFeature
+             project="${project}"
+             providerTypes="'${connectorType}'"
+             tokenIntent="PUBLISH_STATUS"
+             canObtainTokens="${canObtainTokens}"
+             callback="BS.AuthTypeTokenSupport.tokenCallback"
+             oauthConnections="${oauthConnections}">
+            <jsp:attribute name="addCredentialFragment">
+               <span class="smallNote connection-note">Add credentials via the
+                    <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
+            </jsp:attribute>
+           </oauth:tokenControlsForBuildFeature>
+
            <props:hiddenProperty name="${keys.tokenIdKey}" />
            <span class="error" id="error_${keys.tokenIdKey}"></span>
-
-           <c:if test="${canEditProject and not project.readOnly}">
-             <c:forEach items="${oauthConnections}" var="connection">
-               <c:if test="${connection.oauthProvider.isTokenRefreshSupported()}">
-                 <script type="application/javascript">
-                   BS.AuthTypeTokenSupport.connections['${connection.id}'] = '<bs:forJs>${connection.connectionDisplayName}</bs:forJs>';
-                 </script>
-                 <div class="token-connection">
-                   <span class="token-connection-diplay-name" title="<c:out value='${connection.id}' />">
-                     <c:out value="${connection.connectionDisplayName}" />
-                   </span>
-                   <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.AuthTypeTokenSupport.tokenCallback" useAlertService="false">
-                     Acquire
-                   </oauth:obtainToken>
-                 </div>
-               </c:if>
-             </c:forEach>
-
-             <c:set var="connectorType" value="GitHubApp"/>
-             <span class="smallNote connection-note">Add credentials via the
-                    <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
-           </c:if>
          </td>
        </tr>
      </props:selectSectionPropertyContent>

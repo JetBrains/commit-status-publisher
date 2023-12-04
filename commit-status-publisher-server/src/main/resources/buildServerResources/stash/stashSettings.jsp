@@ -93,26 +93,26 @@
             <span>There are no Bitbucket Server connections available to the project.</span>
           </c:if>
 
+          <c:set var="canObtainTokens" value="${canEditProject and not project.readOnly}"/>
+          <c:set var="connectorType" value="${keys.stashOauthProviderType}"/>
+          <oauth:tokenControlsForBuildFeature
+            project="${project}"
+            providerTypes="'${connectorType}'"
+            tokenIntent="PUBLISH_STATUS"
+            canObtainTokens="${canObtainTokens}"
+            callback="BS.BBDataCenterCspSettings.onTokenObtained"
+            oauthConnections="${oauthConnections}">
+            <jsp:attribute name="addCredentialFragment">
+              <span class="smallNote connection-note">Add credentials via the
+                  <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
+            </jsp:attribute>
+            <jsp:body>
+              BS.BBDataCenterCspSettings.connectionToServerUrl.set('${connection.id}', '<bs:forJs>${connection.parameters['bitbucketUrl']}</bs:forJs>');
+            </jsp:body>
+          </oauth:tokenControlsForBuildFeature>
+
           <props:hiddenProperty name="${keys.tokenId}" />
           <span class="error" id="error_${keys.tokenId}"></span>
-          <c:if test="${canEditProject and not project.readOnly}">
-            <c:forEach items="${oauthConnections}" var="connection">
-              <script type="application/javascript">
-                BS.AuthTypeTokenSupport.connections['${connection.id}'] = '<bs:forJs>${connection.connectionDisplayName}</bs:forJs>';
-                BS.BBDataCenterCspSettings.connectionToServerUrl.set('${connection.id}', '<bs:forJs>${connection.parameters['bitbucketUrl']}</bs:forJs>');
-              </script>
-              <div class="token-connection">
-                <span class="token-connection-diplay-name"><c:out value="${connection.connectionDisplayName}" /></span>
-                <oauth:obtainToken connection="${connection}" className="btn btn_small token-connection-button" callback="BS.BBDataCenterCspSettings.onTokenObtained">
-                  Acquire
-                </oauth:obtainToken>
-              </div>
-            </c:forEach>
-
-            <c:set var="connectorType" value="${keys.stashOauthProviderType}"/>
-            <span class="smallNote connection-note">Add credentials via the
-                  <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
-          </c:if>
         </td>
       </tr>
     </props:selectSectionPropertyContent>
