@@ -95,7 +95,7 @@
 
           <c:set var="canObtainTokens" value="${canEditProject and not project.readOnly}"/>
           <c:set var="connectorType" value="${keys.stashOauthProviderType}"/>
-          <oauth:tokenControlsForBuildFeature
+          <oauth:tokenControlsForFeatures
             project="${project}"
             providerTypes="'${connectorType}'"
             tokenIntent="PUBLISH_STATUS"
@@ -109,7 +109,7 @@
             <jsp:body>
               BS.BBDataCenterCspSettings.connectionToServerUrl.set('${connection.id}', '<bs:forJs>${connection.parameters['bitbucketUrl']}</bs:forJs>');
             </jsp:body>
-          </oauth:tokenControlsForBuildFeature>
+          </oauth:tokenControlsForFeatures>
 
           <props:hiddenProperty name="${keys.tokenId}" />
           <span class="error" id="error_${keys.tokenId}"></span>

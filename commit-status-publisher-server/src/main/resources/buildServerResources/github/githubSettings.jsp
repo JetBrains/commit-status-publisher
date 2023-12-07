@@ -95,7 +95,7 @@
            <c:set var="connectorType" value="GitHubApp"/>
            <c:set var="canObtainTokens" value="${canEditProject and not project.readOnly}"/>
 
-           <oauth:tokenControlsForBuildFeature
+           <oauth:tokenControlsForFeatures
              project="${project}"
              providerTypes="'${connectorType}'"
              tokenIntent="PUBLISH_STATUS"
@@ -106,7 +106,7 @@
                <span class="smallNote connection-note">Add credentials via the
                     <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
             </jsp:attribute>
-           </oauth:tokenControlsForBuildFeature>
+           </oauth:tokenControlsForFeatures>
 
            <props:hiddenProperty name="${keys.tokenIdKey}" />
            <span class="error" id="error_${keys.tokenIdKey}"></span>

@@ -64,7 +64,7 @@
 
         <c:set var="canObtainTokens" value="${canEditProject and not project.readOnly}"/>
         <c:set var="connectorType" value="<%=BitBucketOAuthProvider.TYPE%>"/>
-        <oauth:tokenControlsForBuildFeature
+        <oauth:tokenControlsForFeatures
           project="${project}"
           providerTypes="'${connectorType}'"
           tokenIntent="PUBLISH_STATUS"
@@ -75,7 +75,7 @@
             <span class="smallNote connection-note">Add credentials via the
                   <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
           </jsp:attribute>
-        </oauth:tokenControlsForBuildFeature>
+        </oauth:tokenControlsForFeatures>
 
         <props:hiddenProperty name="${keys.tokenId}" />
         <span class="error" id="error_${keys.tokenId}"></span>

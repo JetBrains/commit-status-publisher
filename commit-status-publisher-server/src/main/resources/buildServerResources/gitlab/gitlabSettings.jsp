@@ -57,7 +57,7 @@
         </c:if>
 
         <c:set var="canObtainTokens" value="${canEditProject and not project.readOnly}"/>
-        <oauth:tokenControlsForBuildFeature
+        <oauth:tokenControlsForFeatures
           project="${project}"
           providerTypes="'GitLabCom', 'GitLabCEorEE'"
           tokenIntent="PUBLISH_STATUS"
@@ -76,7 +76,7 @@
               credentials via the Project Connections page
             </span>
           </jsp:attribute>
-        </oauth:tokenControlsForBuildFeature>
+        </oauth:tokenControlsForFeatures>
 
         <props:hiddenProperty name="tokenId" />
         <span class="error" id="error_tokenId"></span>
