@@ -54,6 +54,8 @@ public class PublisherSettingsController extends BaseController {
   @NotNull
   private final SecurityContext mySecurityContext;
 
+  private static final String ILLEGAL_ACCESS_WARNING = "User %s is not allowed to edit the build configuration %s";
+
 
   public PublisherSettingsController(@NotNull WebControllerManager controllerManager,
                                      @NotNull PluginDescriptor descriptor,
@@ -84,11 +86,13 @@ public class PublisherSettingsController extends BaseController {
       try {
         buildTypeOrTemplate = getBuildTypeOrTemplate(buildTypeId);
       } catch (PublisherException e) {
+        LOG.warn(String.format(ILLEGAL_ACCESS_WARNING, user.getUsername(), buildTypeId));
         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
         return null;
       }
 
       if (!user.isPermissionGrantedForProject(buildTypeOrTemplate.getProject().getProjectId(), Permission.EDIT_PROJECT)) {
+        LOG.warn(String.format(ILLEGAL_ACCESS_WARNING, user.getUsername(), buildTypeId));
         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
         return null;
       }
