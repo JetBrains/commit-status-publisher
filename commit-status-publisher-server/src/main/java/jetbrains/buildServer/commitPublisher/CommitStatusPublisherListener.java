@@ -817,7 +817,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
                 isEventSuitableForRevision = isCurrentRevisionSuitable(event, buildPromotion, revision, publisher);
               } catch (PublisherException e) {
                 retryInfo = getRetryInfo(e, buildPromotion, event, lastDelay);
-                LOG.warn("Cannot determine if event \"" + event + "\" can be published for current revision state in VCS. " + retryInfo.message, e);
+                LOG.warnAndDebugDetails("Cannot determine if event \"" + event + "\" can be published for current revision state in VCS. " + retryInfo.message, e);
                 return retryInfo;
               }
             }
@@ -941,7 +941,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
             isEventSuitableForRevision = isCurrentRevisionSuitable(event, buildPromotion, revision, publisher);
           } catch (PublisherException e) {
             retryInfo = getRetryInfo(e, buildPromotion, event, lastDelay);
-            LOG.warn("Cannot determine if event \"" + event + "\" can be published for current revision state in VCS. " + retryInfo.message, e);
+            LOG.warnAndDebugDetails("Cannot determine if event \"" + event + "\" can be published for current revision state in VCS. " + retryInfo.message, e);
             return retryInfo;
           }
           if (isEventSuitableForRevision) {
