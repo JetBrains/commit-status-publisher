@@ -306,7 +306,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
       return result;
     }
 
-    final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(project, tokenId);
+    final OAuthToken token = myOAuthTokensStorage.getToken(project, tokenId, true, false);
     if (token == null) {
       return result;
     }
@@ -336,7 +336,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
         return healthItemData("has authentication type set to GitHub App access token, but no token id is configured");
       }
 
-      final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(buildType.getProject(), tokenId);
+      final OAuthToken token = myOAuthTokensStorage.getToken(buildType.getProject(), tokenId, true, false);
       if (token == null) {
         return healthItemData("refers to a missing or invalid authentication token (token id: " +
                               tokenId +

@@ -199,7 +199,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
         return healthItemData("has authentication type set to access token, but no token id is configured");
       }
 
-      final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(buildType.getProject(), tokenId);
+      final OAuthToken token = myOAuthTokensStorage.getToken(buildType.getProject(), tokenId, true, false);
       if (token == null) {
         return healthItemData("refers to a missing or invalid authentication token (token id: " +
                               tokenId +
@@ -230,7 +230,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
       return result;
     }
 
-    final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(project, tokenId);
+    final OAuthToken token = myOAuthTokensStorage.getToken(project, tokenId, true, false);
     if (token == null) {
       return result;
     }
