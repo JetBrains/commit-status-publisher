@@ -49,4 +49,9 @@ public class BitbucketServer74PublisherTest extends BaseStashPublisherTest {
     setExpectedEndpointPrefix("/api/1.0/projects");
     super.setUp();
   }
+
+  @Override
+  String getPostStatusPrefix() {
+    return "/rest/api/1.0/projects/owner/repos/project/commits/";
+  }
 }

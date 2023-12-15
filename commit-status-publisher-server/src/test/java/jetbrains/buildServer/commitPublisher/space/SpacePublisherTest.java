@@ -17,9 +17,7 @@
 package jetbrains.buildServer.commitPublisher.space;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import jetbrains.buildServer.MockBuildPromotion;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.space.data.SpaceBuildStatusInfo;
@@ -33,6 +31,7 @@ import jetbrains.buildServer.serverSide.oauth.space.application.SpaceApplication
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
+import org.jetbrains.annotations.NotNull;
 import org.jmock.Mock;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
@@ -40,12 +39,15 @@ import org.testng.annotations.Test;
 
 import static jetbrains.buildServer.commitPublisher.space.SpaceToken.ACCESS_TOKEN_FIELD_NAME;
 import static jetbrains.buildServer.commitPublisher.space.SpaceToken.TOKEN_TYPE_FIELD_NAME;
+import static org.assertj.core.api.BDDAssertions.then;
 
 /**
  * @author anton.zamolotskikh, 05/10/16.
  */
 @Test
 public class SpacePublisherTest extends HttpPublisherTest {
+
+  private Map<String, List<SpaceBuildStatusInfo>> myRevisionToStatus = new HashMap<>();
 
   protected static final String FAKE_CLIENT_ID = "clientid";
   protected static final String FAKE_CLIENT_SECRET = "clientsecret";
@@ -122,13 +124,15 @@ public class SpacePublisherTest extends HttpPublisherTest {
       put(Constants.SPACE_CREDENTIALS_TYPE, Constants.SPACE_CREDENTIALS_CONNECTION);
       put(Constants.SPACE_CONNECTION_ID, myProjectFeatureId);
       put(Constants.SPACE_PROJECT_KEY, OWNER);
+      put(Constants.SPACE_SERVER_URL, getServerUrl());
     }};
   }
 
   @Override
   protected boolean respondToGet(String url, HttpResponse httpResponse) {
     if (url.endsWith("commit-statuses")) {
-      responseWithCommitStatuses(httpResponse);
+      String revision = getRevision(url, "/api/http/projects/key:owner/repositories/project/revisions/");
+      responseWithCommitStatuses(httpResponse, revision);
     } else {
       respondWithError(httpResponse, 404, String.format("Unexpected GET request to URL: %s", url));
       return false;
@@ -136,10 +140,9 @@ public class SpacePublisherTest extends HttpPublisherTest {
     return true;
   }
 
-  private void responseWithCommitStatuses(HttpResponse httpResponse) {
-    SpaceBuildStatusInfo status =
-      new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), DefaultStatusMessages.BUILD_QUEUED, System.currentTimeMillis(), "My Default Test Project / My Default Test Build Type", "", "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId");
-    String json = gson.toJson(Collections.singleton(status));
+  private void responseWithCommitStatuses(HttpResponse httpResponse, String revision) {
+    List<SpaceBuildStatusInfo> statuses = myRevisionToStatus.getOrDefault(revision, Collections.emptyList());
+    String json = gson.toJson(statuses);
     httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
   }
 
@@ -162,6 +165,10 @@ public class SpacePublisherTest extends HttpPublisherTest {
         respondWithError(httpResponse, 404, String.format("Unexpected check-service URL: %s", url));
       }
       return true;
+    } else if (url.endsWith("commit-statuses")) {
+      String revision = getRevision(url, "/api/http/projects/key:owner/repositories/project/revisions/");
+      SpaceBuildStatusInfo status = gson.fromJson(requestData, SpaceBuildStatusInfo.class);
+      myRevisionToStatus.computeIfAbsent(revision, k -> new ArrayList<>()).add(status);
     }
 
     return isUrlExpected(url, httpResponse);
@@ -183,8 +190,8 @@ public class SpacePublisherTest extends HttpPublisherTest {
     assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.RUNNING.getName(), DefaultStatusMessages.BUILD_STARTED, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), DefaultStatusMessages.BUILD_QUEUED, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), "", null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.TERMINATED.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new SpaceBuildStatusInfo(SpaceBuildStatus.TERMINATED.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null, null, "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).getTriggeredEvent());
   }
 
   public void should_allow_queued_depending_on_build_type() {
@@ -208,5 +215,10 @@ public class SpacePublisherTest extends HttpPublisherTest {
 
   protected boolean requiresAuthPreRequest() {
     return true;
+  }
+
+  @Override
+  protected boolean checkEventFinished(@NotNull String requestString, boolean isSuccessful) {
+    return requestString.contains(isSuccessful ? "SUCCEEDED" : "FAILING");
   }
 }

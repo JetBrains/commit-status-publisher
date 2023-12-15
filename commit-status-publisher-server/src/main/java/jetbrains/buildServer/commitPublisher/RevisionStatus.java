@@ -32,14 +32,6 @@ public class RevisionStatus {
   }
 
   public boolean isEventAllowed(@NotNull CommitStatusPublisher.Event pendingEvent, long buildId) {
-    if (myTriggeredEvent == null) {
-      if (pendingEvent.canOverrideStatus()) {
-        return myBuildId == null || buildId >= myBuildId; // we don't want to publish status for older build
-      } else {
-        return true;
-      }
-    }
-
     switch (pendingEvent) {
       case QUEUED:
         return myIsSameBuildType && CommitStatusPublisher.Event.QUEUED == myTriggeredEvent;

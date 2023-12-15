@@ -97,7 +97,7 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     extensionHolder.registerExtension(BuildFeature.class, CommitStatusPublisherFeature.TYPE, myFeature);
   }
 
-  private class MockWebControllerManager implements WebControllerManager {
+  public static class MockWebControllerManager implements WebControllerManager {
 
     @Override
     public void registerController(@NotNull String s, @NotNull Controller controller) { }

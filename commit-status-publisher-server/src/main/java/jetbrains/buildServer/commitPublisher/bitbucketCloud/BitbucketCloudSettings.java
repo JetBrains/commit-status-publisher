@@ -52,7 +52,6 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
   static final String ACCESS_TOKEN_USERNAME = "x-token-auth";
   static final BitbucketCloudRepositoryParser VCS_PROPERTIES_PARSER = new BitbucketCloudRepositoryParser();
 
-  private String myDefaultApiUrl = DEFAULT_API_URL;
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     add(Event.STARTED);
     add(Event.FINISHED);
@@ -86,8 +85,8 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
     myProjectManager = projectManager;
   }
 
-  void setDefaultApiUrl(@NotNull String url) {
-    myDefaultApiUrl = url;
+  protected String getDefaultApiUrl() {
+    return DEFAULT_API_URL;
   }
 
   @NotNull
@@ -181,7 +180,7 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
     if (null == repository)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
     final String repoName = repository.repositoryName();
-    String url = myDefaultApiUrl + "/2.0/repositories/" + repository.owner() + "/" + repoName;
+    String url = getDefaultApiUrl() + "/2.0/repositories/" + repository.owner() + "/" + repoName;
     HttpResponseProcessor<HttpPublisherException> processor = new DefaultHttpResponseProcessor() {
       @Override
       public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {

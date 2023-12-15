@@ -24,15 +24,20 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.serverSide.systemProblems.BuildFeatureProblemsTicketManager;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
 import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
-import jetbrains.buildServer.vcs.SVcsRoot;
-import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcs.*;
+import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
+import jetbrains.buildServer.web.openapi.PluginDescriptor;
+import jetbrains.buildServer.web.openapi.WebControllerManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.Test;
@@ -60,7 +65,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   protected Map<EventToTest, String> myExpectedRegExps = new HashMap<EventToTest, String>();
   protected String myVcsURL = "http://localhost/defaultvcs";
   protected String myReadOnlyVcsURL = "http://localhost/owner/readonly";
-  protected SVcsRoot myVcsRoot;
+  protected SVcsRootImpl myVcsRoot;
   protected SystemProblemNotificationEngine myProblemNotificationEngine;
   protected String myBranch;
   protected BuildRevision myRevision;
@@ -260,8 +265,101 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     checkRequestMatch(".*error.*", EventToTest.PAYLOAD_ESCAPED);
   }
 
+  public void test_should_not_publish_queued_over_final_status() throws Exception {
+    if (isSkipEvent(EventToTest.QUEUED)) return;
+
+    setInternalProperty("teamcity.commitStatusPublisher.statusCache.wildcardTtl", 0); // disable status caching when there were no statuses returned
+
+    new CommitStatusPublisherListener(myFixture.getEventDispatcher(), new PublisherManager(myServer), myFixture.getHistory(), myFixture.getBuildsManager(), myFixture.getBuildPromotionManager(), myProblems,
+                                                                               myFixture.getServerResponsibility(), myFixture.getSingletonService(ExecutorServices.class),
+                                                                               myFixture.getSingletonService(ProjectManager.class), myFixture.getSingletonService(TeamCityNodes.class),
+                                                                               myFixture.getSingletonService(UserModel.class), myFixture.getMultiNodeTasks());
+
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().stream().filter(root -> root.getParent().getId() == myVcsRoot.getId()).findFirst().get();
+    setUpFeature();
+
+    addToQueueWithRevision(vcsRootInstance, "2");
+    waitFor(() -> checkLastEventQueued());
+
+    SRunningBuild build = myFixture.flushQueueAndWait();
+    waitFor(() -> checkLastEventStarted());
+
+    myFixture.finishBuild(build, false);
+    waitFor(() -> checkLastEventFinished(true));
+
+    addToQueueWithRevision(vcsRootInstance, "2");
+    checkLastEventFinished(true);
+
+    SRunningBuild build2 = myFixture.flushQueueAndWait();
+    waitFor(() -> checkLastEventStarted());
+
+    myFixture.finishBuild(build2, false);
+    waitFor(() -> checkLastEventFinished(true));
+
+    then(getAllRequestsAsString().stream().filter(request -> checkEventQueued(request)).count()).isEqualTo(1);
+  }
+
+  protected QueuedBuildEx addToQueueWithRevision(@NotNull VcsRootInstance rootInstance, @NotNull String revision) {
+    QueuedBuildEx build = (QueuedBuildEx)addBuildToQueue();
+    build.getBuildPromotion().setBuildRevisions(Collections.singletonList(new BuildRevisionEx(rootInstance, revision, "", revision)), 1, 1);
+    myServer.getMulticaster().changesLoaded(build.getBuildPromotion());
+    return build;
+  }
+
+  protected void setUpFeature() {
+
+    Map<String, String> featureParams = getPublisherParams();
+    featureParams.put(Constants.PUBLISHER_ID_PARAM, myPublisher.getId());
+    myBuildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, featureParams);
+    myServer.registerExtension(CommitStatusPublisherSettings.class, "test", myPublisherSettings);
+
+    PublisherManager publisherManager = new PublisherManager(myServer);
+    WebControllerManager wcm = new CommitStatusPublisherTestBase.MockWebControllerManager();
+    PluginDescriptor pluginDescr = new MockPluginDescriptor();
+    PublisherSettingsController settingsController = new PublisherSettingsController(wcm, pluginDescr, publisherManager, myProjectManager, myFixture.getSingletonService(SecurityContext.class));
+    CommitStatusPublisherFeatureController featureController = new CommitStatusPublisherFeatureController(myProjectManager, wcm, pluginDescr, publisherManager, settingsController, myFixture.getSecurityContext());
+    CommitStatusPublisherFeature feature = new CommitStatusPublisherFeature(featureController, publisherManager);
+    myServer.registerExtension(BuildFeature.class, CommitStatusPublisherFeature.TYPE, feature);
+  }
+
   protected void checkRequestMatch(String errRegex, EventToTest eventToTest) {
     then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(eventToTest)).doesNotMatch(errRegex);
+  }
+
+  private boolean checkLastEventQueued() {
+    String request = getRequestAsString();
+    if (request == null) {
+      return false;
+    }
+    return checkEventQueued(request);
+  }
+
+  protected boolean checkEventQueued(@NotNull String requestString) {
+    return requestString.contains(DefaultStatusMessages.BUILD_QUEUED);
+  }
+
+  private boolean checkLastEventStarted() {
+    String request = getRequestAsString();
+    if (request == null) {
+      return false;
+    }
+    return checkEventStarted(request);
+  }
+
+  protected boolean checkEventStarted(@NotNull String requestString) {
+    return requestString.contains(DefaultStatusMessages.BUILD_STARTED);
+  }
+
+  private boolean checkLastEventFinished(boolean isSuccessful) {
+    String request = getRequestAsString();
+    if (request == null) {
+      return false;
+    }
+    return checkEventFinished(request, isSuccessful);
+  }
+
+  protected boolean checkEventFinished(@NotNull String requestString, boolean isSuccessful) {
+    return requestString.contains(isSuccessful ? "SUCCESSFUL" : "FAILED");
   }
 
   private boolean isSkipEvent(@NotNull EventToTest eventType) {
@@ -281,6 +379,21 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   }
 
   protected abstract String getRequestAsString();
+
+  protected abstract List<String> getAllRequestsAsString();
+
+  @Nullable
+  protected String getRevision(String url, String prefix) {
+    if (!url.startsWith(prefix)) {
+      return null;
+    }
+    int i = prefix.length();
+    String res = "";
+    while (i < url.length() && Character.isDigit(url.charAt(i))) {
+      res += url.charAt(i++);
+    }
+    return res;
+  }
 
   protected Set<Integer> getMatchingRequestsOrderNumbers(Pattern pattern) {
     return Collections.emptySet();

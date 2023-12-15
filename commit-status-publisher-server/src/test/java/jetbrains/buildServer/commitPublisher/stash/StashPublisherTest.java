@@ -57,6 +57,11 @@ public class StashPublisherTest extends BaseStashPublisherTest {
     super.setUp();
   }
 
+  @Override
+  String getPostStatusPrefix() {
+    return "/rest/build-status/1.0/commits/";
+  }
+
   public void shoudld_calculate_correct_revision_status() {
     BuildPromotion promotion = new MockBuildPromotion();
     StashPublisher publisher = (StashPublisher)myPublisher;
@@ -69,7 +74,8 @@ public class StashPublisherTest extends BaseStashPublisherTest {
     assertNull(publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, null, null, null, null, null, null, StashBuildStatus.INPROGRESS.name(), null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, "nonsense", null, null, null, null, null, StashBuildStatus.INPROGRESS.name(), null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_QUEUED, null, null, null, null, null, StashBuildStatus.INPROGRESS.name(), null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null, null, null, null, StashBuildStatus.INPROGRESS.name(), null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null, null, null, null, StashBuildStatus.FAILED.name(), null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED, null, null, null, null, null, StashBuildStatus.FAILED.name(), null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new JsonStashBuildStatus(null, DefaultStatusMessages.BUILD_STARTED, null, null, null, null, null, StashBuildStatus.INPROGRESS.name(), null, null)).getTriggeredEvent());
   }
 

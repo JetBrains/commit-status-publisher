@@ -219,11 +219,13 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
 
     switch (status) {
       case CANCELED:
-        return (commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) ? Event.REMOVED_FROM_QUEUE : null;
+        return (commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) ? Event.REMOVED_FROM_QUEUE :
+               (commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED)) ? Event.REMOVED_FROM_QUEUE :
+               null;
       case PENDING:
         return Event.QUEUED;
       case RUNNING:
-        return (commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_STARTED))? Event.STARTED : null;
+        return (commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_STARTED)) ? Event.STARTED : null;
       case SUCCESS:
       case FAILED:
         return null;

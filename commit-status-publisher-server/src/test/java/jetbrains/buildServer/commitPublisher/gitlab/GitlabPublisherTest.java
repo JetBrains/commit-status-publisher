@@ -21,16 +21,11 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.MockBuildPromotion;
 import jetbrains.buildServer.commitPublisher.*;
-import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabAccessLevel;
-import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabPermissions;
-import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabReceiveCommitStatus;
-import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
+import jetbrains.buildServer.commitPublisher.gitlab.data.*;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.vcs.CheckoutRules;
@@ -41,6 +36,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
+import org.jetbrains.annotations.NotNull;
 import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -56,6 +52,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
 
   private static final String GROUP_REPO = "group_repo";
   private static final String MERGE_RESULT_COMMIT = "31337";
+  private final Map<String, List<GitLabPublishCommitStatus>> myRevisionToStatuses = new HashMap<>();
 
   private VcsModificationHistoryEx myVcsModificationHistory;
 
@@ -155,6 +152,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     assertNull(publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.RUNNING.getName(), null, null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.RUNNING.getName(), DefaultStatusMessages.BUILD_STARTED, null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.CANCELED.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.CANCELED.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED, null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.PENDING.getName(), "", null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, null, null)).getTriggeredEvent());
   }
@@ -271,7 +269,8 @@ public class GitlabPublisherTest extends HttpPublisherTest {
         final String[] tokens = url.split("/");
         respondWithCommitRefs(httpResponse, tokens[tokens.length - 2]);
       } else {
-        respondWithCommits(httpResponse, url.substring(url.lastIndexOf('=') + 1).replace('+', ' '));
+        String revision = getRevision(url, "/api/v4/projects/owner%2Fproject/repository/commits/");
+        respondWithCommits(httpResponse, revision);
       }
     } else if (url.contains("/projects/" + OWNER + "%2F" + CORRECT_REPO + "/merge_requests")) {
       respondWithMergeRequest(httpResponse);
@@ -288,16 +287,9 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     return true;
   }
 
-  private void respondWithCommits(HttpResponse httpResponse, String buildName) {
-    String decodedName;
-    try {
-      decodedName = URLDecoder.decode(buildName, StandardCharsets.UTF_8.name());
-    } catch (UnsupportedEncodingException e) {
-      decodedName = buildName;
-    }
-    ArrayList<GitLabReceiveCommitStatus> statuses = new ArrayList<>();
-    statuses.add(new GitLabReceiveCommitStatus(1L, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, decodedName, ""));
-    String json = gson.toJson(statuses);
+  private void respondWithCommits(HttpResponse httpResponse, String revision) {
+    List<GitLabPublishCommitStatus> statuses = myRevisionToStatuses.getOrDefault(revision, new ArrayList<>());
+    String json = gson.toJson(statuses.stream().map(s -> new GitLabReceiveCommitStatus(0L, s.state, s.description, s.name, s.target_url)).collect(Collectors.toList()));
     httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
   }
 
@@ -323,6 +315,11 @@ public class GitlabPublisherTest extends HttpPublisherTest {
 
   @Override
   protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    String revision = getRevision(url, "/api/v4/projects/owner%2Fproject/statuses/");
+    if (revision != null) {
+      GitLabPublishCommitStatus status = gson.fromJson(requestData, GitLabPublishCommitStatus.class);
+      myRevisionToStatuses.computeIfAbsent(revision, k -> new ArrayList<>()).add(status);
+    }
     return isUrlExpected(url, httpResponse);
   }
 
@@ -342,4 +339,9 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     httpResponse.setEntity(new StringEntity(jsonResponse, "UTF-8"));
   }
 
+
+  @Override
+  protected boolean checkEventFinished(@NotNull String requestString, boolean isSuccessful) {
+    return requestString.contains(isSuccessful ? "success" : "failure");
+  }
 }

@@ -28,6 +28,7 @@ import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
+import org.jetbrains.annotations.NotNull;
 import org.jmock.Mock;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
@@ -43,6 +44,7 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public class TfsPublisherTest extends HttpPublisherTest {
   private Map<String, String> myParams = getPublisherParams();
+  private Map<String, List<TfsStatusPublisher.CommitStatus>> myRevisionToStatuses = new HashMap<>();
 
   TfsPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
@@ -102,7 +104,8 @@ public class TfsPublisherTest extends HttpPublisherTest {
     assertNull(publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), "nonsense", null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_QUEUED, null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_STARTED, null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Failed.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Failed.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED, null, new TfsStatusPublisher.StatusContext(null, null))).getTriggeredEvent());
   }
 
   public void should_allow_queued_depending_on_build_type() {
@@ -142,7 +145,8 @@ public class TfsPublisherTest extends HttpPublisherTest {
       httpResponse.setEntity(new StringEntity("{'message': 'error'}", StandardCharsets.UTF_8));
       return false;
     } else if (url.contains("statuses?api-version=2.1")) {
-      respondWithStatuses(httpResponse);
+      String revision = getRevision(url, "/project/_apis/git/repositories/project/commits/");
+      respondWithStatuses(httpResponse, revision);
     } else if (url.contains("/commits/" + REVISION)) {
       respondWithCommits(httpResponse);
     } else if (url.contains("42/iterations")) {
@@ -187,24 +191,36 @@ public class TfsPublisherTest extends HttpPublisherTest {
     return i;
   }
 
-  private void respondWithStatuses(HttpResponse httpResponse) {
+  private void respondWithStatuses(HttpResponse httpResponse, String revision) {
     TfsStatusPublisher.CommitStatuses commitStatuses = new TfsStatusPublisher.CommitStatuses();
-    TfsStatusPublisher.StatusContext context = new TfsStatusPublisher.StatusContext("MyDefaultTestBuildType", "TeamCity");
-    TfsStatusPublisher.CommitStatus status = new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(),
-                                                                                 DefaultStatusMessages.BUILD_QUEUED, "", context);
-    commitStatuses.value = Collections.singleton(status);
+    commitStatuses.value = myRevisionToStatuses.getOrDefault(revision, Collections.emptyList());
     String json = gson.toJson(commitStatuses);
     httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
   }
 
   @Override
   protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    String revision = getRevision(url, "/project/_apis/git/repositories/project/commits/");
+    if (revision != null) {
+      TfsStatusPublisher.CommitStatus status = gson.fromJson(requestData, TfsStatusPublisher.CommitStatus.class);
+      myRevisionToStatuses.computeIfAbsent(revision, k -> new ArrayList<>()).add(status);
+    }
     return isUrlExpected(url, httpResponse);
   }
 
   @Override
   protected boolean isStatusCacheNotImplemented() {
     return false;
+  }
+
+  @Override
+  protected boolean checkEventStarted(@NotNull String requestString) {
+    return requestString.contains("is pending");
+  }
+
+  @Override
+  protected boolean checkEventFinished(@NotNull String requestString, boolean isSuccessful) {
+    return requestString.contains(isSuccessful ? "\"succeeded\"" : "\"failed\"");
   }
 
   public void should_publish_status_to_correct_commit_for_pr() throws Exception {
