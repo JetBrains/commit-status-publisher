@@ -18,7 +18,9 @@ package jetbrains.buildServer.commitPublisher.gerrit;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.messages.Status;
@@ -134,13 +136,18 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
     return myLastRequest;
   }
 
+  @Override
+  protected List<String> getAllRequestsAsString() {
+    throw new IllegalStateException("not implemented");
+  }
+
   private class MockGerritClient extends GerritClientBase implements GerritClient {
     @Override
     public String runCommand(@NotNull GerritConnectionDetails connection,
                            @NotNull final String command) throws IOException {
       myLastRequest = String.format("project: %s, server: %s, user: %s, command: %s",
                                     connection.getProject().getName(), connection.getServer(), connection.getUserName(), command);
-      return "{\"PRJ1\":{\"id\":\"123\"}}"; 
+      return "{\"PRJ1\":{\"id\":\"123\"}}";
     }
   }
 }

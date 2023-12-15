@@ -137,7 +137,8 @@ public class CommitStatusesCacheTest extends BaseTestCase {
   }
 
   private void forceCacheCleanupToHappen() {
-    setInternalProperty(CommitStatusesCache.CACHE_VALUE_TTL_PARAMETER, 50);  //to let entity expire and cleanup to be triggered
+    setInternalProperty(CommitStatusesCache.CACHE_VALUE_TTL_PARAMETER, 50);
+    setInternalProperty(CommitStatusesCache.CACHE_VALUE_WILDCARD_TTL_PARAMETER, 50);  //to let entity expire and cleanup to be triggered
   }
 
   private static final class TestStatus {

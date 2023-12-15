@@ -213,16 +213,18 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     }
     switch (status) {
       case SCHEDULED:
-        if (commitStatus.description == null) return Event.QUEUED;
-        return commitStatus.description.contains(DefaultStatusMessages.BUILD_QUEUED) ? Event.QUEUED : Event.REMOVED_FROM_QUEUE;
+        return Event.QUEUED;
       case RUNNING:
         if (commitStatus.description == null) return null;
         return commitStatus.description.contains(DefaultStatusMessages.BUILD_STARTED) ? Event.STARTED : null;
       case SUCCEEDED:
       case FAILED:
       case FAILING:
+        return null;
       case TERMINATED:
-        return null;  // these statuses do not affect on further behaviour
+        return commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE) ? Event.REMOVED_FROM_QUEUE :
+               commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED) ? Event.REMOVED_FROM_QUEUE :
+               null;
       default:
         LOG.warn("No event is assosiated with Space build status \"" + commitStatus.executionStatus + "\". Related event can not be defined");
     }

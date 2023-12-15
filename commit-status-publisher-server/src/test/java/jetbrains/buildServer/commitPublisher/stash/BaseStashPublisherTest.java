@@ -17,9 +17,7 @@
 package jetbrains.buildServer.commitPublisher.stash;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import jetbrains.BuildServerCreator;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.stash.data.DeprecatedJsonStashBuildStatuses;
@@ -37,6 +35,7 @@ import org.testng.annotations.BeforeMethod;
 public abstract class BaseStashPublisherTest extends HttpPublisherTest {
 
   protected String myServerVersion;
+  private Map<String, List<DeprecatedJsonStashBuildStatuses.Status>> myRevisionToStatus = new HashMap<>();
 
   @BeforeMethod
   @Override
@@ -102,7 +101,8 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
     } else if (url.contains("/rest/api/1.0/projects/" + OWNER + "/repos/" + CORRECT_REPO + "/commits/")) {
       responseWithSingleCommitStatus(httpResponse);
     } else if (url.contains("/rest/build-status/1.0/commits/")) {
-      responseWithCommitStatuses(httpResponse);
+      String revision = getRevision(url, "/rest/build-status/1.0/commits/");
+      responseWithCommitStatuses(httpResponse, revision);
     } else if (url.endsWith(OWNER + "/repos/" + CORRECT_REPO)) {
       respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
     } else if (url.endsWith(OWNER + "/repos/" + READ_ONLY_REPO)) {
@@ -120,23 +120,25 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
     httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
   }
 
-  private void responseWithCommitStatuses(HttpResponse httpResponse) {
+  private void responseWithCommitStatuses(HttpResponse httpResponse, String revision) {
     DeprecatedJsonStashBuildStatuses statuses = new DeprecatedJsonStashBuildStatuses();
+    statuses.values = myRevisionToStatus.getOrDefault(revision, new ArrayList<>());
+    statuses.size = statuses.values.size();
     statuses.isLastPage = true;
-    statuses.size = 1;
 
-    DeprecatedJsonStashBuildStatuses.Status status = new DeprecatedJsonStashBuildStatuses.Status();
-    status.name = "My Default Test Project / My Default Test Build Type";
-    status.key = "MyDefaultTestBuildType";
-    status.state = StashBuildStatus.INPROGRESS.name();
-    status.description = DefaultStatusMessages.BUILD_QUEUED;
-    statuses.values = Collections.singleton(status);
     String json = gson.toJson(statuses);
     httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
   }
 
+  abstract String getPostStatusPrefix();
+
   @Override
   protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    String revision = getRevision(url, getPostStatusPrefix());
+    if (revision != null) {
+      DeprecatedJsonStashBuildStatuses.Status status = gson.fromJson(requestData, DeprecatedJsonStashBuildStatuses.Status.class);
+      myRevisionToStatus.computeIfAbsent(revision, k -> new ArrayList<>()).add(status);
+    }
     return isUrlExpected(url, httpResponse);
   }
 

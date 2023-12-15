@@ -17,9 +17,7 @@
 package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import jetbrains.buildServer.MockBuildPromotion;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudBuildStatuses;
@@ -35,17 +33,24 @@ import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
+import org.jetbrains.annotations.Nullable;
 import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import static org.assertj.core.api.BDDAssertions.then;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 
 /**
  * @author anton.zamolotskikh, 05/10/16.
  */
 @Test
 public class BitbucketCloudPublisherTest extends HttpPublisherTest {
+
+  private Map<String, List<BitbucketCloudCommitBuildStatus>> myRevisionToStatus = new HashMap<>();
 
   @Override
   public void test_testConnection_fails_on_readonly() throws InterruptedException {
@@ -82,6 +87,8 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     assertNull(publisher.getRevisionStatus(promotion, new BitbucketCloudCommitBuildStatus(null, "nonsense", null, null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new BitbucketCloudCommitBuildStatus(null, BitbucketCloudBuildStatus.FAILED.name(), null, null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new BitbucketCloudCommitBuildStatus(null, BitbucketCloudBuildStatus.STOPPED.name(), null, null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new BitbucketCloudCommitBuildStatus(null, BitbucketCloudBuildStatus.STOPPED.name(), null, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new BitbucketCloudCommitBuildStatus(null, BitbucketCloudBuildStatus.STOPPED.name(), null, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new BitbucketCloudCommitBuildStatus(null, BitbucketCloudBuildStatus.SUCCESSFUL.name(), null, null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new BitbucketCloudCommitBuildStatus(null, BitbucketCloudBuildStatus.INPROGRESS.name(),
                                                                                                                                  null, null, null)).getTriggeredEvent());
@@ -89,11 +96,6 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
                                                                                                                                  null, "", null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new BitbucketCloudCommitBuildStatus(null, BitbucketCloudBuildStatus.INPROGRESS.name(),
                                                                                                                                 null, DefaultStatusMessages.BUILD_QUEUED, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new BitbucketCloudCommitBuildStatus(null,
-                                                                                                                                            BitbucketCloudBuildStatus.INPROGRESS.name(),
-                                                                                                                                            null,
-                                                                                                                                            DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE,
-                                                                                                                                            null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new BitbucketCloudCommitBuildStatus(null, BitbucketCloudBuildStatus.INPROGRESS.name(),
                                                                                                                                  null, DefaultStatusMessages.BUILD_STARTED, null)).getTriggeredEvent());
   }
@@ -113,7 +115,7 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     if (url.contains("/statuses/build/")) {
       responsWithStatus(httpResponse);
     } else if (url.contains("/statuses")) {
-      responsWithStatuses(httpResponse);
+      respondWithStatuses(url, httpResponse);
     }  else if (url.endsWith("/repositories/" + OWNER + "/" + CORRECT_REPO)) {
       respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
     } else if (url.endsWith("/repositories/" + OWNER + "/" + READ_ONLY_REPO)) {
@@ -125,10 +127,10 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     return true;
   }
 
-  private void responsWithStatuses(HttpResponse httpResponse) {
-    BitbucketCloudCommitBuildStatus status = new BitbucketCloudCommitBuildStatus("", BitbucketCloudBuildStatus.INPROGRESS.name(),
-                                                                                 "My Default Test Project / My Default Test Build Type", DefaultStatusMessages.BUILD_QUEUED, "");
-    BitbucketCloudBuildStatuses statuses = new BitbucketCloudBuildStatuses(Collections.singleton(status), 1 ,1, 1);
+  private void respondWithStatuses(String url, HttpResponse httpResponse) {
+    String revision = getRevision(url, "/2.0/repositories/owner/project/commit/");
+    List<BitbucketCloudCommitBuildStatus> statusesList = myRevisionToStatus.getOrDefault(revision, Collections.emptyList());
+    BitbucketCloudBuildStatuses statuses = new BitbucketCloudBuildStatuses(statusesList, statusesList.size(), 1, statusesList.size());
     String json = gson.toJson(statuses);
     httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
   }
@@ -142,6 +144,11 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
 
   @Override
   protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    BitbucketCloudCommitBuildStatus status = gson.fromJson(requestData, BitbucketCloudCommitBuildStatus.class);
+    String revision = getRevision(url, "/2.0/repositories/owner/project/commit/");
+    if (revision != null) {
+      myRevisionToStatus.computeIfAbsent(revision, k -> new ArrayList<>()).add(status);
+    }
     return isUrlExpected(url, httpResponse);
   }
 
@@ -185,8 +192,9 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     addExpectation(EventToTest.PAYLOAD_ESCAPED, "FAILED", BT_NAME_ESCAPED_REGEXP + ".*Failure");
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, ".*2.0/repositories/owner/project.*");
 
+    String apiUrl = getServerUrl() + "/";
     Map<String, String> params = getPublisherParams();
-    myPublisherSettings = new BitbucketCloudSettings(new MockPluginDescriptor(),
+    BitbucketCloudSettings publisherSettings = new BitbucketCloudSettings(new MockPluginDescriptor(),
                                                      myWebLinks,
                                                      myProblems,
                                                      myTrustStoreProvider,
@@ -195,11 +203,19 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
                                                      myFixture.getUserModel(),
                                                      myFixture.getSecurityContext(),
                                                      myFixture.getProjectManager());
+    BitbucketCloudSettings publisherSettingsSpy = spy(publisherSettings);
+    doReturn(apiUrl).when(publisherSettingsSpy).getDefaultApiUrl();
+    myPublisherSettings = publisherSettingsSpy;
+
     BitbucketCloudPublisher publisher = new BitbucketCloudPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
-    publisher.setBaseUrl(getServerUrl() + "/");
-    ((BitbucketCloudSettings)myPublisherSettings).setDefaultApiUrl(getServerUrl() + "/");
-    myPublisher = publisher;
+    BitbucketCloudPublisher publisherSpy = spy(publisher);
+    doReturn(apiUrl).when(publisherSpy).getBaseUrl();
+    myPublisher = publisherSpy;
+
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
+    myRevisionToStatus.clear();
+
+    doReturn(myPublisher).when(myPublisherSettings).createPublisher(any(), any(), anyMap());
   }
 
   @Override

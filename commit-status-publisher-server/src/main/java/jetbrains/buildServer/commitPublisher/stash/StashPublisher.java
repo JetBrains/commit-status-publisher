@@ -212,12 +212,15 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
       case INPROGRESS:
         if (buildStatus.description == null) return null;
         return buildStatus.description.contains(DefaultStatusMessages.BUILD_QUEUED) ? Event.QUEUED :
-               buildStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE) ? Event.REMOVED_FROM_QUEUE :
-               buildStatus.description.contains(DefaultStatusMessages.BUILD_STARTED) ? Event.STARTED : null;
-
+               buildStatus.description.contains(DefaultStatusMessages.BUILD_STARTED) ? Event.STARTED :
+               null;
       case FAILED:
+        if (buildStatus.description == null) return null;
+        return buildStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE) ? Event.REMOVED_FROM_QUEUE :
+               buildStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED) ? Event.REMOVED_FROM_QUEUE :
+               null;
       case SUCCESSFUL:
-        return null;  // these statuses do not affect on further behaviour
+        return null;
       default:
         LOG.warn("No event is assosiated with Bitbucket build status \"" + buildStatus.state + "\". Related event can not be defined");
     }

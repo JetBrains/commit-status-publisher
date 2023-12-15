@@ -18,9 +18,7 @@ package jetbrains.buildServer.commitPublisher.github;
 
 import com.google.common.collect.Lists;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import jetbrains.buildServer.MockBuildPromotion;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
@@ -54,6 +52,7 @@ import static org.assertj.core.api.BDDAssertions.then;
 public class GitHubPublisherTest extends HttpPublisherTest {
 
   private ChangeStatusUpdater myChangeStatusUpdater;
+  private Map<String, List<CommitStatus>> myRevisionToCommitStatus = new HashMap<>();
 
   public GitHubPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*description\":\"%s\".*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
@@ -134,7 +133,8 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     assertNull(publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, "nonsense", null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, DefaultStatusMessages.BUILD_STARTED, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, DefaultStatusMessages.BUILD_QUEUED, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Failure.getState(), null, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Failure.getState(), null, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED, null)).getTriggeredEvent());
   }
 
   public void should_allow_queued_depending_on_build_type() {
@@ -228,7 +228,8 @@ public class GitHubPublisherTest extends HttpPublisherTest {
   @Override
   protected boolean respondToGet(String url, HttpResponse httpResponse) {
     if (url.contains("/repos" +  "/" + OWNER + "/" + CORRECT_REPO + "/commits")) {
-      respondWithCommitsInfo(httpResponse, "My Default Test Build Type (My Default Test Project)");
+      String revision = getRevision(url, "/repos/owner/project/commits/");
+      respondWithCommitsInfo(httpResponse, revision);
     } else if (url.contains("/repos" +  "/" + OWNER + "/" + CORRECT_REPO)) {
       respondWithRepoInfo(httpResponse, CORRECT_REPO, true);
     } else if (url.contains("/repos"  + "/" + OWNER + "/" +  READ_ONLY_REPO)) {
@@ -240,18 +241,21 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     return true;
   }
 
-  private void respondWithCommitsInfo(@NotNull HttpResponse httpResponse, String context) {
+  private void respondWithCommitsInfo(@NotNull HttpResponse httpResponse, String revision) {
     CombinedCommitStatus status = new CombinedCommitStatus();
-    status.total_count = 1;
-    status.statuses = Lists.newArrayList(
-      new CommitStatus(GitHubChangeState.Pending.getState(), "url", DefaultStatusMessages.BUILD_QUEUED, context)
-    );
+    status.statuses = myRevisionToCommitStatus.getOrDefault(revision, Collections.emptyList());
+    status.total_count = status.statuses.size();
     String jsonResponse = gson.toJson(status);
     httpResponse.setEntity(new StringEntity(jsonResponse, StandardCharsets.UTF_8));
   }
 
   @Override
   protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    String revision = getRevision(url, "/repos/owner/project/statuses/");
+    if (revision != null) {
+      CommitStatus status = gson.fromJson(requestData, CommitStatus.class);
+      myRevisionToCommitStatus.computeIfAbsent(revision, k -> new ArrayList<>()).add(status);
+    }
     return isUrlExpected(url, httpResponse);
   }
 
@@ -272,5 +276,10 @@ public class GitHubPublisherTest extends HttpPublisherTest {
       put(Constants.GITHUB_PASSWORD, "pwd");
       put(Constants.GITHUB_SERVER, getServerUrl());
     }};
+  }
+
+  @Override
+  protected boolean checkEventFinished(@NotNull String requestString, boolean isSuccessful) {
+    return requestString.contains(isSuccessful ? "success" : "failure");
   }
 }

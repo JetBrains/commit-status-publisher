@@ -227,6 +227,28 @@ public class SwarmPublisherTest extends HttpPublisherTest {
     then(getRequestAsString()).isNull();
   }
 
+  @Override
+  @Test(enabled = false)
+  public void test_should_not_publish_queued_over_final_status() throws Exception {
+    // not implemented for swarm
+    super.test_should_not_publish_queued_over_final_status();
+  }
+
+  @Override
+  protected boolean checkEventQueued(@NotNull String requestString) {
+    return requestString.contains("build%20is%20queued");
+  }
+
+  @Override
+  protected boolean checkEventStarted(@NotNull String requestString) {
+    return requestString.contains("started");
+  }
+
+  @Override
+  protected boolean checkEventFinished(@NotNull String requestString, boolean isSuccessful) {
+    return requestString.contains(isSuccessful ? "finished%20successfully" : "has%20failed");
+  }
+
   private void addShelvedChangelistParameter(@NotNull String value) {
     myBuildType.addParameter(new SimpleParameter("vcsRoot." + myVcsRoot.getExternalId() + ".shelvedChangelist", value));
   }

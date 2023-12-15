@@ -231,9 +231,12 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
       case INPROGRESS:
         if (buildStatus.description == null) return null;
         return buildStatus.description.contains(DefaultStatusMessages.BUILD_QUEUED) ? Event.QUEUED :
-               buildStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE) ? Event.REMOVED_FROM_QUEUE :
-               buildStatus.description.contains(DefaultStatusMessages.BUILD_STARTED) ? Event.STARTED : null;
+               buildStatus.description.contains(DefaultStatusMessages.BUILD_STARTED) ? Event.STARTED :
+               null;
       case STOPPED:
+        return (buildStatus.description != null && buildStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) ? Event.REMOVED_FROM_QUEUE :
+               (buildStatus.description != null && buildStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED)) ? Event.REMOVED_FROM_QUEUE :
+               null;
       case FAILED:
       case SUCCESSFUL:
         return null;  // these statuses do not affect on further behaviour
@@ -346,13 +349,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
     }
   }
 
-  private String getBaseUrl() { return myBaseUrl;  }
-
-  /**
-   * Used for testing only at the moments
-   * @param url - new base URL to replace the default one
-   */
-  void setBaseUrl(String url) { myBaseUrl = url; }
+  protected String getBaseUrl() { return myBaseUrl;  }
 
   @Nullable
   private HttpCredentials getCredentials(@NotNull VcsRootInstance root) throws PublisherException {

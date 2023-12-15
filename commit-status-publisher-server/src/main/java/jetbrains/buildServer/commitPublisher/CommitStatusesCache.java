@@ -17,7 +17,9 @@ public class CommitStatusesCache<T> {
   static final int CACHE_MAX_SIZE_DEFAULT_VALUE = 256;
   static final String CACHE_MAX_SIZE_PARAMETER = "teamcity.commitStatusPublisher.statusCache.maxSize";
   static final String CACHE_VALUE_TTL_PARAMETER = "teamcity.commitStatusPublisher.statusCache.ttl";
+  static final String CACHE_VALUE_WILDCARD_TTL_PARAMETER = "teamcity.commitStatusPublisher.statusCache.wildcardTtl";
   static final long CACHE_VALUE_TTL_DEFAULT_VALUE_MS = 300_000L;
+  static final long CACHE_VALUE_WILDCARD_TTL_DEFAULT_VALUE_MS = 2_000L;
   static final String CACHE_FEATURE_TOGGLE_PARAMETER = "teamcity.commitStatusPublisher.statusCache.enabled";
   private static final String PREFIX_WILDCARD = "*";
 
@@ -97,7 +99,7 @@ public class CommitStatusesCache<T> {
     ReentrantReadWriteLock.WriteLock lock = myWholeCacheLock.writeLock();
     lock.lock();
     try {
-      myCache.put(buildKey(revision, prefix), new ValueWithTTL<>(status, getExpirationTime()));
+      myCache.put(buildKey(revision, prefix), new ValueWithTTL<>(status, getExpirationTime(PREFIX_WILDCARD.equals(prefix))));
     } finally {
       lock.unlock();
     }
@@ -113,7 +115,7 @@ public class CommitStatusesCache<T> {
       for (T status : statuses) {
         String prefix = prefixProvider.apply(status);
         String key = buildKey(revision, prefix);
-        myCache.put(key, new ValueWithTTL<>(status, getExpirationTime()));
+        myCache.put(key, new ValueWithTTL<>(status, getExpirationTime(false)));
       }
     } finally {
       lock.unlock();
@@ -171,7 +173,8 @@ public class CommitStatusesCache<T> {
     return key.toString();
   }
 
-  private long getExpirationTime() {
-    return System.currentTimeMillis() + TeamCityProperties.getIntervalMilliseconds(CACHE_VALUE_TTL_PARAMETER, CACHE_VALUE_TTL_DEFAULT_VALUE_MS);
+  private long getExpirationTime(boolean isWildcard) {
+    return System.currentTimeMillis() + (isWildcard ? TeamCityProperties.getIntervalMilliseconds(CACHE_VALUE_WILDCARD_TTL_PARAMETER, CACHE_VALUE_WILDCARD_TTL_DEFAULT_VALUE_MS)
+                                                   : TeamCityProperties.getIntervalMilliseconds(CACHE_VALUE_TTL_PARAMETER, CACHE_VALUE_TTL_DEFAULT_VALUE_MS));
   }
 }

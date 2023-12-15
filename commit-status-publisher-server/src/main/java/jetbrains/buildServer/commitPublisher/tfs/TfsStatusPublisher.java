@@ -220,6 +220,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
       LOG.warn(String.format("Undefined Azure build status: \"%s\". Related event can not be defined", commitStatus.state));
       return null;
     }
+
     switch (status) {
       case Pending:
         if (commitStatus.description == null) return null;
@@ -227,9 +228,15 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
                commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE) ? Event.REMOVED_FROM_QUEUE :
                commitStatus.description.contains(DefaultStatusMessages.BUILD_STARTED) ? Event.STARTED : null;
       case Error:
+        return (commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) ? Event.REMOVED_FROM_QUEUE :
+               (commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED)) ? Event.REMOVED_FROM_QUEUE :
+               null;
       case Succeeded:
+        return null;
       case Failed:
-        return null;  // these statuses do not affect on further behaviour
+        return (commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) ? Event.REMOVED_FROM_QUEUE :
+               (commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED)) ? Event.REMOVED_FROM_QUEUE :
+               null;
       default:
         LOG.warn("No event is assosiated with Azure build status \"" + commitStatus.state + "\". Related event can not be defined");
     }

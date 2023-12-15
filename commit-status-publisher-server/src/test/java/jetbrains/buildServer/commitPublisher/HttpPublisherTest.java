@@ -195,6 +195,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
 
     setInternalProperty("teamcity.commitStatusPubliser.checkStatus.enabled", "true");
     setInternalProperty("teamcity.commitStatusPublisher.statusCache.enabled", "true");
+    setInternalProperty(CommitStatusesCache.CACHE_VALUE_WILDCARD_TTL_PARAMETER, 0); // disable wildcard cache because it's not cleaned
     SFinishedBuild build = myFixture.createBuild(myBuildType, Status.NORMAL);
     BuildPromotion buildPromotion = build.getBuildPromotion();
     myPublisher.getRevisionStatus(buildPromotion, myRevision);
@@ -295,6 +296,11 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
   @Override
   protected String getRequestAsString() {
     return myRequests.isEmpty() ? null : myRequests.get(myRequests.size() - 1);
+  }
+
+  @Override
+  protected List<String> getAllRequestsAsString() {
+    return new ArrayList<>(myRequests);
   }
 
   @Override

@@ -292,4 +292,9 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
     super.test_testConnection_fails_on_missing_target();
   }
 
+  @Override
+  @Test(enabled = false)
+  public void test_should_not_publish_queued_over_final_status() throws Exception {
+    super.test_should_not_publish_queued_over_final_status();
+  }
 }

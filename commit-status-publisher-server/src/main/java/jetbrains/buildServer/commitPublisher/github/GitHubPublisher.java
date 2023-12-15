@@ -159,9 +159,9 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       LOG.warn("Unknown GitHub build status \"" + commitStatus.state + "\". Related event can not be calculated");
       return null;
     }
+    String description = commitStatus.description;
     switch (gitHubChangeState) {
       case Pending:
-        String description = commitStatus.description;
         if (description == null) {
           LOG.info("Can not define exact event for \"Pending\" GitHub build status, because there is no description for status");
           return null;
@@ -170,15 +170,18 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
           return Event.STARTED;
         } else if (description.contains(DefaultStatusMessages.BUILD_QUEUED)) {
           return Event.QUEUED;
-        } else if (description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) {
-          return Event.REMOVED_FROM_QUEUE;
         }
         LOG.warn("Can not define event for \"Pending\" Github build status and description: \"" + description + "\"");
         break;
       case Success:
       case Error:
+        return null;
       case Failure:
-        return null;  // these statuses do not affect on further behaviour
+        if (description != null && (description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE) || description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED))) {
+          return Event.REMOVED_FROM_QUEUE;
+        } else {
+          return null;
+        }
       default:
         LOG.warn("No event is assosiated with GitHub build status \"" + gitHubChangeState + "\". Related event can not be defined");
     }
