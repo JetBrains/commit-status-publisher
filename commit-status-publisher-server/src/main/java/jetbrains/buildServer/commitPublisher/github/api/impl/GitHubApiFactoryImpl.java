@@ -76,7 +76,7 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
     return new GitHubApiImpl(myWrapper, new GitHubApiPaths(url)){
       @Override
       protected SimpleCredentials authenticationCredentials() throws IOException {
-        final OAuthToken gitHubOAuthToken = myOAuthTokensStorage.getRefreshableToken(vcsRootId, tokenId, false);
+        final OAuthToken gitHubOAuthToken = myOAuthTokensStorage.getToken(vcsRootId, tokenId, false, true);
         if (gitHubOAuthToken != null) {
           //must be refactored to use Bearer token
           return new SimpleCredentials("oauth2", gitHubOAuthToken.getAccessToken());
@@ -97,7 +97,7 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
           throw new PublisherException("Unable to find VCS root by external id " + vcsRootId);
         }
 
-        final OAuthToken gitHubOAuthToken = myOAuthTokensStorage.getRefreshableToken(vcsRootId, tokenId, false);
+        final OAuthToken gitHubOAuthToken = myOAuthTokensStorage.getToken(vcsRootId, tokenId, false, true);
         if (gitHubOAuthToken == null) {
           throw new PublisherException("Failed to retrieve configured token from storage (tokenId: " + tokenId + ")");
         }

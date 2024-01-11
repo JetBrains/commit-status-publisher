@@ -94,7 +94,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
         if (StringUtil.isEmptyOrSpaces(tokenId)) {
           throw new PublisherException("authentication type is set to access token, but no token id is configured");
         }
-        final OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
+        final OAuthToken token = myOAuthTokensStorage.getToken(root.getExternalId(), tokenId, true, true);
         if (token == null) {
           throw new PublisherException("The configured authentication with the " + tokenId + " ID is missing or invalid.");
         }
@@ -182,7 +182,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
       throw new PublisherException("unable to get refreshable credentials from VCS Root " + root.getVcsName());
     }
 
-    OAuthToken token = myOAuthTokensStorage.getRefreshableToken(root.getExternalId(), tokenId);
+    OAuthToken token = myOAuthTokensStorage.getToken(root.getExternalId(), tokenId, true, true);
     if (token == null) {
       throw new PublisherException("The configured VCS Root (" + root.getVcsName() + ") authentication with the refreshable token is missing or invalid.");
     }
