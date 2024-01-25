@@ -77,7 +77,6 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    if (!additionalTaskInfo.isBuildManuallyRemoved()) return false;
     publish(buildPromotion, revision, GiteaBuildStatus.WARNING , additionalTaskInfo);
     return true;
   }
@@ -129,7 +128,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
     }
     Event event = getTriggeredEvent(commitStatus);
     boolean isSameBuildType = StringUtil.areEqual(getBuildName(removedBuild.getBuildPromotion()), commitStatus.context);
-    return new RevisionStatus(event, commitStatus.description, isSameBuildType);
+    return new RevisionStatus(event, commitStatus.description, isSameBuildType, getBuildIdFromViewUrl(commitStatus.target_url));
   }
 
   private String getBuildName(BuildPromotion promotion) {
@@ -182,13 +181,13 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
     }
     Event event = getTriggeredEvent(commitStatus);
     boolean isSameBuildType = StringUtil.areEqual(getBuildName(buildPromotion), commitStatus.context);
-    return new RevisionStatus(event, commitStatus.description, isSameBuildType);
+    return new RevisionStatus(event, commitStatus.description, isSameBuildType, getBuildIdFromViewUrl(commitStatus.target_url));
   }
 
   private String buildRevisionStatusesUrl(@NotNull BuildRevision revision, @Nullable BuildType buildType) throws PublisherException {
     VcsRootInstance root = revision.getRoot();
     String apiUrl = getApiUrl();
-    if (null == apiUrl || apiUrl.length() == 0)
+    if (null == apiUrl || apiUrl.isEmpty())
       throw new PublisherException("Missing Gitea API URL parameter");
     String pathPrefix = GiteaSettings.getPathPrefix(apiUrl);
     Repository repository = parseRepository(root, pathPrefix);
@@ -210,13 +209,19 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
 
     switch (status) {
       case WARNING:
-        return Event.INTERRUPTED;
+        return commitStatus.description != null
+          && (commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)
+              || commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED))
+          ? Event.REMOVED_FROM_QUEUE : null;
       case PENDING:
-        if (commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)) {
-          return Event.REMOVED_FROM_QUEUE;
-        }
-        if (commitStatus.description != null && commitStatus.description.contains(DefaultStatusMessages.BUILD_QUEUED)) {
+        if (commitStatus.description == null || commitStatus.description.contains(DefaultStatusMessages.BUILD_QUEUED)) {
           return Event.QUEUED;
+        }
+        if (commitStatus.description.contains(DefaultStatusMessages.BUILD_STARTED)) {
+          return Event.STARTED;
+        }
+        if (commitStatus.description.contains(DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL)) {
+          return null;
         }
       case SUCCESS:
       case FAILURE:
@@ -261,7 +266,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
                        @NotNull String buildDescription) throws PublisherException {
     VcsRootInstance root = revision.getRoot();
     String apiUrl = getApiUrl();
-    if (null == apiUrl || apiUrl.length() == 0)
+    if (null == apiUrl || apiUrl.isEmpty())
       throw new PublisherException("Missing Gitea API URL parameter");
     String pathPrefix = GiteaSettings.getPathPrefix(apiUrl);
     Repository repository = parseRepository(root, pathPrefix);
@@ -276,7 +281,10 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
     }
   }
 
-  private void publish(@NotNull String commit, @NotNull String data, @NotNull Repository repository, @NotNull String buildDescription) {
+  private void publish(@NotNull String commit,
+                       @NotNull String data,
+                       @NotNull Repository repository,
+                       @NotNull String buildDescription) throws PublisherException {
     String url = GiteaSettings.getProjectsUrl(getApiUrl(), repository.owner(), repository.repositoryName()) + "/statuses/" + commit;
     LOG.debug("Request url: " + url + ", message: " + data);
     url += "?access_token=" + getPrivateToken();

@@ -19,9 +19,6 @@ package jetbrains.buildServer.commitPublisher.gitea;
 import com.google.gson.Gson;
 import jetbrains.buildServer.MockBuildPromotion;
 import jetbrains.buildServer.commitPublisher.*;
-import jetbrains.buildServer.commitPublisher.gitea.GiteaBuildStatus;
-import jetbrains.buildServer.commitPublisher.gitea.GiteaPublisher;
-import jetbrains.buildServer.commitPublisher.gitea.GiteaSettings;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaCommitStatus;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaPermissions;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaRepoInfo;
@@ -31,13 +28,14 @@ import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
+import org.jetbrains.annotations.NotNull;
 import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.BDDAssertions.then;
 
@@ -48,6 +46,7 @@ import static org.assertj.core.api.BDDAssertions.then;
 public class GiteaPublisherTest extends HttpPublisherTest {
 
   private static final String GROUP_REPO = "group_repo";
+  private final Map<String, List<GiteaCommitStatus>> myRevisionToStatuses = new HashMap<>();
 
   public GiteaPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
@@ -131,15 +130,16 @@ public class GiteaPublisherTest extends HttpPublisherTest {
     assertNull(publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.FAILURE.getName(), null, null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.ERROR.getName(), null, null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), null, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_STARTED, null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), null, null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_STARTED, null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.WARNING.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.WARNING.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED, null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), "", null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.INTERRUPTED, publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.WARNING.getName(), null, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.WARNING.getName(), null, null, null)).getTriggeredEvent());
   }
 
-  public void should_define_correctly_if_event_allowed() {
+  public void should_allow_queued_depending_on_build_type() {
     Mock removedBuildMock = new Mock(SQueuedBuild.class);
     removedBuildMock.stubs().method("getBuildTypeId").withNoArguments().will(returnValue("buildType"));
     removedBuildMock.stubs().method("getItemId").withNoArguments().will(returnValue("123"));
@@ -151,8 +151,8 @@ public class GiteaPublisherTest extends HttpPublisherTest {
     SQueuedBuild removedBuild = (SQueuedBuild)removedBuildMock.proxy();
 
     GiteaPublisher publisher = (GiteaPublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, "typeFullName", "http://localhost:8111/viewQueued.html?itemId=123")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, "anotherTypeFullName", "http://localhost:8111/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE));
+    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, "typeFullName", "http://localhost:8111/viewQueued.html?itemId=123")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, "anotherTypeFullName", "http://localhost:8111/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
   }
 
   @BeforeMethod
@@ -177,7 +177,10 @@ public class GiteaPublisherTest extends HttpPublisherTest {
 
   @Override
   protected boolean respondToGet(String url, HttpResponse httpResponse) {
-    if (url.contains("/repos" +  "/" + OWNER + "/" + CORRECT_REPO)) {
+    if (url.contains("/repos/" + OWNER + "/" + CORRECT_REPO + "/statuses")) {
+      String revision = getRevision(url, "/api/v1/repos/" + OWNER + "/" + CORRECT_REPO + "/statuses/");
+      respondWithStatuses(httpResponse, revision);
+    } else if (url.contains("/repos" +  "/" + OWNER + "/" + CORRECT_REPO)) {
       respondWithRepoInfo(httpResponse, CORRECT_REPO, false, true);
     } else if (url.contains("/repos"  + "/" + OWNER + "/" +  GROUP_REPO)) {
       respondWithRepoInfo(httpResponse, GROUP_REPO, true, true);
@@ -190,8 +193,19 @@ public class GiteaPublisherTest extends HttpPublisherTest {
     return true;
   }
 
+  private void respondWithStatuses(HttpResponse httpResponse, String revision) {
+    List<GiteaCommitStatus> statuses = myRevisionToStatuses.getOrDefault(revision, new ArrayList<>());
+    String json = gson.toJson(statuses.stream().map(s -> new GiteaCommitStatus(0L, s.status, s.description, s.context, s.target_url)).collect(Collectors.toList()));
+    httpResponse.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
+  }
+
   @Override
   protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    String revision = getRevision(url, "/api/v1/repos/" + OWNER + "/" + CORRECT_REPO + "/statuses/");
+    if (revision != null) {
+      GiteaCommitStatus status = gson.fromJson(requestData, GiteaCommitStatus.class);
+      myRevisionToStatuses.computeIfAbsent(revision, k -> new ArrayList<>()).add(status);
+    }
     return isUrlExpected(url, httpResponse);
   }
 
@@ -206,4 +220,8 @@ public class GiteaPublisherTest extends HttpPublisherTest {
     httpResponse.setEntity(new StringEntity(jsonResponse, "UTF-8"));
   }
 
+  @Override
+  protected boolean checkEventFinished(@NotNull String requestString, boolean isSuccessful) {
+    return requestString.contains(isSuccessful ? "success" : "failure");
+  }
 }
