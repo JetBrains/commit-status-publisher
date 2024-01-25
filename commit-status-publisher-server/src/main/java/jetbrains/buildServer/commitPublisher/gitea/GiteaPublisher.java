@@ -77,7 +77,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    publish(buildPromotion, revision, GiteaBuildStatus.WARNING , additionalTaskInfo);
+    publish(buildPromotion, revision, GiteaBuildStatus.FAILURE, additionalTaskInfo);
     return true;
   }
 
@@ -111,7 +111,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
 
   @Override
   public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    publish(build, revision, GiteaBuildStatus.WARNING, build.getStatusDescriptor().getText());
+    publish(build, revision, GiteaBuildStatus.FAILURE, build.getStatusDescriptor().getText());
     return true;
   }
 
@@ -208,11 +208,6 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
     }
 
     switch (status) {
-      case WARNING:
-        return commitStatus.description != null
-          && (commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)
-              || commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED))
-          ? Event.REMOVED_FROM_QUEUE : null;
       case PENDING:
         if (commitStatus.description == null || commitStatus.description.contains(DefaultStatusMessages.BUILD_QUEUED)) {
           return Event.QUEUED;
@@ -224,9 +219,13 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
           return null;
         }
       case SUCCESS:
-      case FAILURE:
       case ERROR:
         return null;
+      case FAILURE:
+        return commitStatus.description != null
+          && (commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE)
+          || commitStatus.description.contains(DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED))
+          ? Event.REMOVED_FROM_QUEUE : null;
       default:
         LOG.warn("No event is assosiated with Gitea build status \"" + status + "\". Related event can not be defined");
     }

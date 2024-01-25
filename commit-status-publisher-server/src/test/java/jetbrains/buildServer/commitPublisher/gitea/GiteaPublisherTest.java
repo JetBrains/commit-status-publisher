@@ -50,7 +50,7 @@ public class GiteaPublisherTest extends HttpPublisherTest {
 
   public GiteaPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
-    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*warning.*%s\".*", REVISION, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE));
+    myExpectedRegExps.put(EventToTest.REMOVED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*%s\".*", REVISION, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE));
     myExpectedRegExps.put(EventToTest.STARTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_STARTED));
     myExpectedRegExps.put(EventToTest.FINISHED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*success.*Success.*", REVISION));
     myExpectedRegExps.put(EventToTest.FAILED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*Failure.*", REVISION));
@@ -58,7 +58,7 @@ public class GiteaPublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.COMMENTED_FAILED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS, null); // not to be tested
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED, null); // not to be tested
-    myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*warning.*%s.*", REVISION, PROBLEM_DESCR));
+    myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*%s.*", REVISION, PROBLEM_DESCR));
     myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*%s.*", REVISION, PROBLEM_DESCR));
     myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*success.*%s.*", REVISION, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL));
     myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL));
@@ -132,11 +132,11 @@ public class GiteaPublisherTest extends HttpPublisherTest {
     assertNull(publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL, null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), null, null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.STARTED, publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_STARTED, null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.WARNING.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null)).getTriggeredEvent());
-    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.WARNING.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED, null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.FAILURE.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.FAILURE.getName(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED, null, null)).getTriggeredEvent());
     assertNull(publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), "", null, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, null, null)).getTriggeredEvent());
-    assertNull(publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.WARNING.getName(), null, null, null)).getTriggeredEvent());
+    assertNull(publisher.getRevisionStatus(promotion, new GiteaCommitStatus(null, GiteaBuildStatus.FAILURE.getName(), null, null, null)).getTriggeredEvent());
   }
 
   public void should_allow_queued_depending_on_build_type() {

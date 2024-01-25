@@ -28,8 +28,7 @@ public enum GiteaBuildStatus {
   PENDING("pending"),
   SUCCESS("success"),
   ERROR("error"),
-  FAILURE("failure"),
-  WARNING("warning");
+  FAILURE("failure");
 
   private static final Map<String, GiteaBuildStatus> INDEX = Arrays.stream(values()).collect(Collectors.toMap(GiteaBuildStatus::getName, Function.identity()));
 
