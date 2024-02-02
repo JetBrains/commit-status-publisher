@@ -62,13 +62,9 @@
       <props:checkboxProperty name="${createSwarmTestField}" style="margin-top: 5px" />
       <span class="error" id="error_${createSwarmTestField}"></span>
       <span class="note">
-        If this setting is enabled, TeamCity will create new Swarm tests to publish build statuses.
-        Enter username and ticket of a user with administrator permissions to employ this approach.
+        Choose whether TeamCity should create new Swarm tests or use existing ones to publish build statuses.
+        Creating new Swarm tests requires a username and ticket of a user with administrative permissions.
         <p>
-          Leave this setting disabled to use existing Swarm tests instead of creating new ones.
-
-          This approach allows the Commit Status Publisher to use regular users' credentials.
-
           See <bs:helpLink file="integrating-with-helix-swarm">this documentation article</bs:helpLink> to learn how to set up Swarm workflows and tests for TeamCity.
         </p>
     </span>
