@@ -43,10 +43,10 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
     
     String updateUrl = "POST /api/v11/testruns/706/[0-9a-fA-F-]{36} HTTP/1.1";
     String generalMessagesRegexp = "\"Build queued: [^\"]+\",\"Build started: [^\"]+\",";
-    String urlParam = ",\"url\":\"http://localhost:8111/viewLog\\.html\\?buildId=\\d+&buildTypeId=MyDefaultTestBuildType\"";
+    String urlParam = ",\\s*\"url\":\\s*\"http://localhost:8111/buildConfiguration/MyDefaultTestBuildType/\\d+\"";
 
     // This is a message for "create test run" call
-    myExpectedRegExps.put(EventToTest.STARTED, "POST /api/v11/reviews/19/testruns HTTP/1.1\tENTITY:[\\s\\S]+\"url\":\\s*\"http://localhost:8111/viewLog.html\\?buildId=1[\\s\\S]+");
+    myExpectedRegExps.put(EventToTest.STARTED, "POST /api/v11/reviews/19/testruns HTTP/1.1\tENTITY:[\\s\\S]+"+urlParam+"[\\s\\S]+");
     
     myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, updateUrl + "\tENTITY: \\{\"messages\":\\["+ generalMessagesRegexp + "\"Status: Failure\"\\]" + urlParam + ",\"status\":\"fail\"}");
 
