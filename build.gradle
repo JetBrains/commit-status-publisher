@@ -1,21 +1,14 @@
+import java.nio.file.Paths
 
-
-ext {
-  pluginVersion = project.hasProperty("PluginVersion") ? "$PluginVersion"
-                                                         : "SNAPSHOT"
-  teamcityVersion = project.hasProperty("TeamCityVersion") ? "$TeamCityVersion"
-                                                           : "SNAPSHOT"
-  teamcityLibs = project.hasProperty("TeamCityLibs") ? "$TeamCityLibs"
-      : "../../../.idea_artifacts/web-deployment/WEB-INF/lib"
-  teamcityTestLibs = project.hasProperty("TeamCityTestLibs") ? "$TeamCityTestLibs"
-      : "../../../.idea_artifacts/dist_openapi_integration/tests"
-}
+def localRepo = anyParamPath('TC_LOCAL_REPO')
+def pluginVersion = anyParam('PluginVersion')
+def teamcityVersion = anyParam('teamcityVersion') ?: 'LOCAL-SNAPSHOT'
 
 allprojects {
   apply plugin: 'java'
 
   group = 'org.jetbrains.teamcity'
-  version = "$rootProject.ext.pluginVersion"
+  version = pluginVersion
 
   clean {
     delete "target"
@@ -24,36 +17,45 @@ allprojects {
 
 subprojects {
 
-    apply plugin: 'java'
+  apply plugin: 'java'
 
-    repositories {
-        maven {
-            url = 'https://download.jetbrains.com/teamcity-repository'
-        }
-
-        maven {
-            url = 'https://cache-redirector.jetbrains.com/repo.maven.apache.org/maven2'
-        }
-        mavenLocal()
+  repositories {
+    if (localRepo) {
+      maven {
+        name = "local-teamcity-artifacts"
+        url "file:///${localRepo}"
+      }
+    }
+    maven {
+      url = 'https://download.jetbrains.com/teamcity-repository'
+    }
+    maven {
+      url = 'https://repo.labs.intellij.net/teamcity'
     }
 
-    sourceCompatibility = '1.8'
+    maven {
+      url = 'https://cache-redirector.jetbrains.com/repo.maven.apache.org/maven2'
+    }
+    mavenLocal()
+  }
+
+  sourceCompatibility = '1.8'
 }
 
-task copyDependencies(type: Copy, dependsOn:  ':commit-status-publisher-server:jar') {
+task copyDependencies(type: Copy, dependsOn: ':commit-status-publisher-server:jar') {
   project(':commit-status-publisher-server').configurations.getAt("runtime").setCanBeResolved(true)
-  println("implementation canBeResolved change to ："+project(':commit-status-publisher-server').configurations.getAt("runtime").canBeResolved)
+  println("implementation canBeResolved change to ：" + project(':commit-status-publisher-server').configurations.getAt("runtime").canBeResolved)
   from project(':commit-status-publisher-server').configurations.getAt("runtime")
   include 'jsch*.jar'
   into './build/dependencies'
 }
 
 
-task copyPluginFiles(type: Copy, dependsOn:  ':commit-status-publisher-server:jar') {
+task copyPluginFiles(type: Copy, dependsOn: ':commit-status-publisher-server:jar') {
   from '.'
   include 'teamcity-plugin.xml'
   into './build/plugin-files'
-  expand(PluginVersion: "$rootProject.ext.pluginVersion")
+  expand(PluginVersion: pluginVersion)
 }
 
 task zipPlugin(type: Zip, dependsOn: ['copyDependencies', 'copyPluginFiles']) {
@@ -75,3 +77,28 @@ task zipPlugin(type: Zip, dependsOn: ['copyDependencies', 'copyPluginFiles']) {
 }
 
 build.dependsOn zipPlugin
+
+
+def anyParamPath(String... names) {
+  def param = anyParam(names);
+  if (param == null || param.isEmpty()) {
+    return null
+  }
+  return (Paths.get(param).isAbsolute()) ?
+         Paths.get(param) : getRootDir().toPath().resolve(param)
+}
+
+def anyParam(String... names) {
+  def param
+  try {
+    param = names.findResult {
+      project.hasProperty(it) ? project.getProperty(it) : System.getProperty(it) ?: System.getenv(it) ?: null
+    }
+    if (param == null || param.isEmpty()) {
+      param = null
+    }
+  } finally {
+    println("AnyParam: $names -> $param")
+  }
+  return param
+}
