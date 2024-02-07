@@ -32,6 +32,7 @@
       <class name="jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherWithNativeSwarmTest" />
       <class name="jetbrains.buildServer.swarm.web.SwarmBuildPageExtensionTest" />
       <class name="jetbrains.buildServer.swarm.web.SwarmChangeLinkExtensionTest" />
+      <class name="jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettingsTest" />
 
       <class name="jetbrains.buildServer.commitPublisher.reports.MissingVcsRootReportTest" />
       <class name="jetbrains.buildServer.commitPublisher.PublisherManagerTest" />

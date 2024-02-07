@@ -1,5 +1,6 @@
 package jetbrains.buildServer.swarm.commitPublisher;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.BuildProblemData;
@@ -59,7 +60,7 @@ public class SwarmPublisherTest extends HttpPublisherTest {
 
     Map<String, String> params = getPublisherParams();
     myPublisher = new SwarmPublisher((SwarmPublisherSettings)myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks,
-                                     clientManager.getSwarmClient(params));
+                                     clientManager.getSwarmClient(params), EnumSet.allOf(CommitStatusPublisher.Event.class));
 
 
     addShelvedChangelistParameter(CHANGELIST);
@@ -232,6 +233,16 @@ public class SwarmPublisherTest extends HttpPublisherTest {
   public void test_should_not_publish_queued_over_final_status() throws Exception {
     // not implemented for swarm
     super.test_should_not_publish_queued_over_final_status();
+  }
+
+  @Test
+  @TestFor(issues = "TW-77455")
+  public void should_not_comment_on_unwanted_event() throws Exception {
+    setInternalProperty("teamcity.internal.swarm.enableCommentsSelectively", true);
+    ((SwarmPublisher) myPublisher).getCommentOnEvents().remove(CommitStatusPublisher.Event.STARTED);
+
+    myPublisher.buildStarted(startBuildInCurrentBranch(myBuildType), myRevision);
+    then(getRequestAsString()).isNull();
   }
 
   @Override

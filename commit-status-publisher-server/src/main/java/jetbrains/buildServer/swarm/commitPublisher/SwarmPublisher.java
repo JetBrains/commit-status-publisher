@@ -1,15 +1,18 @@
 package jetbrains.buildServer.swarm.commitPublisher;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
 import jetbrains.buildServer.swarm.SwarmClient;
+import jetbrains.buildServer.swarm.SwarmConstants;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.TestOnly;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 import static jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings.ID;
@@ -24,6 +27,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
 
   private final SwarmClient mySwarmClient;
   private final boolean myShouldCreateTestRuns;
+  private final Set<Event> myCommentOnEvents;
 
   public SwarmPublisher(@NotNull SwarmPublisherSettings swarmPublisherSettings,
                         @NotNull SBuildType buildType,
@@ -31,11 +35,13 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
                         @NotNull Map<String, String> params,
                         @NotNull CommitStatusPublisherProblems problems,
                         @NotNull WebLinks links,
-                        @NotNull SwarmClient swarmClient) {
+                        @NotNull SwarmClient swarmClient,
+                        @NotNull Set<Event> commentOnEvents) {
     super(swarmPublisherSettings, buildType, buildFeatureId, params, problems, links);
     myShouldCreateTestRuns = StringUtil.isTrue(params.get(SwarmPublisherSettings.PARAM_CREATE_SWARM_TEST));
 
     mySwarmClient = swarmClient;
+    myCommentOnEvents = commentOnEvents;
   }
 
   @NotNull
@@ -184,6 +190,12 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
                                       @NotNull Event event) throws PublisherException {
 
     boolean commentsNotificationsEnabled = ((BuildPromotionEx)build).getBooleanInternalParameterOrTrue(SWARM_COMMENTS_NOTIFICATIONS_ENABLED);
+    boolean commentSelectively = ((BuildPromotionEx)build).getBooleanInternalParameter(SwarmConstants.FEATURE_ENABLE_COMMENTS_SELECTIVELY);
+
+    if (commentSelectively && !myCommentOnEvents.contains(event)) {
+      logStatusNotPublished(build, event, "Comments for this event type have been disabled");
+      return;
+    }
 
     PostResult result = postForEachReview(build, revision, new ReviewMessagePublisher() {
       @Override
@@ -208,8 +220,12 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
     });
 
     if (!result.isSuccess()) {
-      LOG.debug(() -> "status " + event.getName() + " was not published for build " + LogUtil.describe(build) + ": " + result.getMessage());
+      logStatusNotPublished(build, event, result.getMessage());
     }
+  }
+
+  private static void logStatusNotPublished(BuildPromotion build, @NotNull Event event, @NotNull String reason) {
+    LOG.debug(() -> "Status " + event.getName() + " was not published for build " + LogUtil.describe(build) + ": " + reason + ".");
   }
 
   @NotNull
@@ -260,6 +276,11 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
     return associatedBuild != null ? myLinks.getViewResultsUrl(associatedBuild) :
                  queuedBuild != null ? myLinks.getQueuedBuildUrl(queuedBuild) :
                  myLinks.getRootUrlByProjectExternalId(build.getProjectExternalId()) + "/build/" + build.getId();
+  }
+
+  @TestOnly
+  protected Set<Event> getCommentOnEvents() {
+    return myCommentOnEvents;
   }
 
   private static class PostResult {

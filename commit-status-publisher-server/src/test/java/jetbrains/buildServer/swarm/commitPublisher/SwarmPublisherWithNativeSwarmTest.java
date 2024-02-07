@@ -3,9 +3,11 @@ package jetbrains.buildServer.swarm.commitPublisher;
 import com.intellij.openapi.util.io.StreamUtil;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.buildTriggers.vcs.BuildBuilder;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.PublisherException;
@@ -84,7 +86,7 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
   private void recreateSwarmPublisher() {
     Map<String, String> params = getPublisherParams();
     myPublisher = new SwarmPublisher((SwarmPublisherSettings)myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks,
-                                     myClientManager.getSwarmClient(params));
+                                     myClientManager.getSwarmClient(params), EnumSet.allOf(CommitStatusPublisher.Event.class));
   }
 
   protected SRunningBuild startBuildInCurrentBranch(SBuildType buildType) {

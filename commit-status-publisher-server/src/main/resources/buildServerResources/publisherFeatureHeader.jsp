@@ -39,6 +39,7 @@
         $j('#publisherSettingsProgress').hide();
         $j("#publisherProperties").html(xhr);
         BS.AvailableParams.attachPopups('settingsId=${buildForm.settingsId}', 'textProperty', 'multilineProperty');
+        BS.BuildFeatureDialog.recenterDialog();
       });
       return false;
     },
