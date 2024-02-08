@@ -1,6 +1,7 @@
 package jetbrains.buildServer.swarm.commitPublisher;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.BasePublisherSettings;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
@@ -31,6 +32,8 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
   public static final String PARAM_PASSWORD = "secure:swarmPassword";
   public static final String PARAM_CREATE_SWARM_TEST = "createSwarmTest";
   public static final String PARAM_COMMENT_ON_EVENTS = "commentOnEvents";
+
+  private static final Set<CommitStatusPublisher.Event> DEFAULT_COMMENT_ON_EVENTS = Sets.immutableEnumSet(CommitStatusPublisher.Event.FINISHED);
 
   private static final Set<CommitStatusPublisher.Event> ourSupportedEvents = new HashSet<CommitStatusPublisher.Event>() {{
     add(CommitStatusPublisher.Event.QUEUED);
@@ -97,7 +100,7 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
 
     final String eventTypesValue = ((BuildTypeEx)buildType).getInternalParameterValue(SwarmConstants.PROP_COMMENT_EVENT_TYPES, "nil");
     if ("nil".equals(eventTypesValue)) {
-      return EnumSet.copyOf(ourSupportedEvents);
+      return DEFAULT_COMMENT_ON_EVENTS;
     }
 
     final Set<CommitStatusPublisher.Event> commentOnEvents = EnumSet.noneOf(CommitStatusPublisher.Event.class);

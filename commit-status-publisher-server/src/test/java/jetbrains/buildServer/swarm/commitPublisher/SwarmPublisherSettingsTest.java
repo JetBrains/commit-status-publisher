@@ -42,18 +42,18 @@ public class SwarmPublisherSettingsTest extends CommitStatusPublisherTestBase {
   }
 
   @Test
-  public void createPublisher_comment_on_all_events_by_default() {
+  public void createPublisher_comment_on_only_finished_by_default() {
     setInternalProperty("teamcity.internal.swarm.enableCommentsSelectively", true);
     final CommitStatusPublisher publisher = mySettings.createPublisher(myBuildType, "my-bf", Collections.emptyMap());
 
     then(publisher).isNotNull();
     then(publisher).isInstanceOf(SwarmPublisher.class);
     final SwarmPublisher swarmPublisher = (SwarmPublisher)publisher;
-    then(swarmPublisher.getCommentOnEvents()).containsAll(allSupportedEvents());
+    then(swarmPublisher.getCommentOnEvents()).containsOnly(CommitStatusPublisher.Event.FINISHED);
   }
 
   @Test
-  public void createPublisher_comment_on_all_events_when_enabled() {
+  public void createPublisher_comment_on_only_finished_when_enabled() {
     setInternalProperty("teamcity.internal.swarm.enableCommentsSelectively", true);
     final CommitStatusPublisher publisher = mySettings.createPublisher(myBuildType, "my-bf", ImmutableMap.of(
       SwarmPublisherSettings.PARAM_COMMENT_ON_EVENTS, "true"
@@ -62,7 +62,7 @@ public class SwarmPublisherSettingsTest extends CommitStatusPublisherTestBase {
     then(publisher).isNotNull();
     then(publisher).isInstanceOf(SwarmPublisher.class);
     final SwarmPublisher swarmPublisher = (SwarmPublisher)publisher;
-    then(swarmPublisher.getCommentOnEvents()).containsAll(allSupportedEvents());
+    then(swarmPublisher.getCommentOnEvents()).containsOnly(CommitStatusPublisher.Event.FINISHED);
   }
 
   @Test
