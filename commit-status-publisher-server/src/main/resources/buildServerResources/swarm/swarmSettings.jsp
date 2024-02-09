@@ -49,7 +49,7 @@
       <div class="checkBoxAndDescription">
         <props:checkboxProperty name="${commentOnEventsField}" uncheckedValue="false" style="margin-top: 5px" />
         <span class="error" id="error_${commentOnEventsField}"></span>
-        <span class="note">In addition to posting test run results, TeamCity can announce build events (added to queue, interrupted, marked as successful, and so on) as code review comments.</span>
+        <span class="note">If enabled, TeamCity will add comments to a related Swarm review when a build fails or finishes successfully.</span>
       </div>
     </td>
   </tr>
