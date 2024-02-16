@@ -227,7 +227,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
       .collect(Collectors.toList());
     String viewUrl = getViewUrl(buildPromotion);
     if (viewUrl == null) {
-      LOG.debug(String.format("Can not build view URL for the build #%d. Probadly build configuration was removed. Status \"%s\" won't be published",
+      LOG.warn(String.format("Can not build view URL for the build #%d. Probadly build configuration was removed. Status \"%s\" won't be published",
                               buildPromotion.getId(), status.getName()));
       return false;
     }
@@ -247,9 +247,6 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
 
     String description = LogUtil.describe(buildPromotion);
     final SpaceToken token = requestToken(revision.getRoot().getName(), description);
-    if (token == null) {
-      return false;
-    }
 
     final Repository repoInfo = SpaceUtils.getRepositoryInfo(revision.getRoot(), myParams.get(Constants.SPACE_PROJECT_KEY));
 
@@ -294,9 +291,6 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
 
     String buildDescription = LogUtil.describe(build);
     SpaceToken token = requestToken(revision.getRoot().getName(), buildDescription);
-    if (token == null) {
-      return;
-    }
 
     Repository repoInfo= SpaceUtils.getRepositoryInfo(revision.getRoot(), myParams.get(Constants.SPACE_PROJECT_KEY));
 

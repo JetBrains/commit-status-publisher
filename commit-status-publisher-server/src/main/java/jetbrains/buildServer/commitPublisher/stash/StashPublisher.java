@@ -512,7 +512,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
         String url = getBuildEndpointUrl(data);
         String msg = createBuildStatusMessage(data);
         if (msg.isEmpty()) {
-          LOG.debug(String.format("Can not build message for the build #%s. Status \"%s\" won't be published",
+          LOG.warn(String.format("Can not build message for the build #%s. Status \"%s\" won't be published",
                                   data.getBuildNumber(), data.getState()));
           return;
         }
@@ -529,7 +529,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
       try {
         String url = getPullRequestEndpointUrl(revision);
         if (url == null) {
-          LOG.debug("No endpoint URL is provided to get pull requests for revision " + revision.getRevision());
+          LOG.warn("No endpoint URL is provided to get pull requests for revision " + revision.getRevision());
           return null;
         }
         LoggerUtil.logRequest(getId(), HttpMethod.GET, url, null);
