@@ -131,6 +131,8 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
       Integer statusCode = pe.getStatusCode();
       if (Objects.equals(statusCode, 404)) {
         throw new PublisherException(String.format("Repository \"%s\" can not be found. Please check if it was renamed or moved to another namespace", repository.repositoryName()));
+      } else if (Objects.equals(statusCode, 401)) {
+        throw new PublisherException(String.format("Cannot access the \"%s\" repository. Ensure you are using a valid access token instead of a password (authentication via password is no longer available)", repository.repositoryName()));
       } else {
         throw new PublisherException("Request was failed with error", pe);
       }
