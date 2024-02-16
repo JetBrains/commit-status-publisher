@@ -1008,6 +1008,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
                            @Nullable Long lastDelay) {
       RetryInfo retryInfo = new RetryInfo();
       try {
+        LOG.info(String.format("Publishing status to %s: build id %d, revision %s, event %s", publisher.getSettings().getName(), promotion.getId(), revision.getRevision(), event.getName()));
         doRunTask(publishTask, publisher, revision, additionalTaskInfo);
         myBuildTypeToFirstPublishFailure.remove(promotion.getBuildTypeId());
       } catch (Throwable t) {

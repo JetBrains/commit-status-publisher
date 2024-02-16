@@ -268,7 +268,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
   ) throws PublisherException {
     final String url = getViewUrl(buildPromotion);
     if (url == null) {
-      LOG.debug(String.format("Can not build view URL for the build #%d. The build configuration was probably removed. Status \"%s\" won't be published",
+      LOG.warn(String.format("Can not build view URL for the build #%d. The build configuration was probably removed. Status \"%s\" won't be published",
                               buildPromotion.getId(), status.name()));
       return false;
     }
