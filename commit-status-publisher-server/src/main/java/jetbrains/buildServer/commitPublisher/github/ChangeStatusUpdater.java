@@ -243,7 +243,7 @@ public class ChangeStatusUpdater {
                                   @NotNull final GitHubChangeState targetStatus,
                                   @NotNull String viewUrl) throws PublisherException {
         final RepositoryVersion version = revision.getRepositoryVersion();
-        LOG.info("Scheduling GitHub status update for " +
+        LOG.debug("Scheduling GitHub status update for " +
                  "hash: " + version.getVersion() + ", " +
                  "branch: " + version.getVcsBranch() + ", " +
                  "buildId: " + build.getBuildId() + ", " +
@@ -262,7 +262,7 @@ public class ChangeStatusUpdater {
                                            boolean deletedFromQueue) throws PublisherException {
         final RepositoryVersion version = revision.getRepositoryVersion();
         final GitHubChangeState targetStatus = deletedFromQueue ? GitHubChangeState.Failure : GitHubChangeState.Pending;
-        LOG.info("Scheduling GitHub status update for " +
+        LOG.debug("Scheduling GitHub status update for " +
                  "hash: " + version.getVersion() + ", " +
                  "branch: " + version.getVcsBranch() + ", " +
                  "buildId: " + buildPromotion.getId() + ", " +
@@ -299,7 +299,7 @@ public class ChangeStatusUpdater {
           if (hash == null) {
             throw new IOException("Failed to find head hash for commit from " + vcsBranch);
           }
-          LOG.info("Resolved GitHub change commit for " + vcsBranch + " to point to pull request head for " +
+          LOG.debug("Resolved GitHub change commit for " + vcsBranch + " to point to pull request head for " +
                    "hash: " + myVersion.getVersion() + ", " +
                    "newHash: " + hash + ", " +
                    "branch: " + myVersion.getVcsBranch() + ", " +
@@ -429,7 +429,7 @@ public class ChangeStatusUpdater {
           compiledMessage,
           prMergeBranch ? myContext + " - merge" : myContext
         );
-        LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + buildPromotion.getAssociatedBuildId() + ", status: " + targetStatus);
+        LOG.debug("Updated GitHub status for hash: " + hash + ", buildId: " + buildPromotion.getAssociatedBuildId() + ", status: " + targetStatus);
       } catch (PublisherException | IOException e) {
         myPublisher.getProblems().reportProblem(String.format("Commit Status Publisher error. GitHub status: '%s'", targetStatus), myPublisher, LogUtil.describe(buildPromotion), myPublisher.getServerUrl(), e, LOG);
         throw new PublisherException("Commit Status Publisher error. GitHub", e);
@@ -492,7 +492,7 @@ public class ChangeStatusUpdater {
         message,
         prMergeBranch ? myContext + " - merge" : myContext
       );
-      LOG.info("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + targetStatus);
+      LOG.debug("Updated GitHub status for hash: " + hash + ", buildId: " + build.getBuildId() + ", status: " + targetStatus);
     }
 
     @NotNull
@@ -559,7 +559,7 @@ public class ChangeStatusUpdater {
         hash,
         comment
       );
-      LOG.info("Added comment to GitHub commit: " + hash + ", buildId: " + buildId + ", status: " + targetStatus);
+      LOG.debug("Added comment to GitHub commit: " + hash + ", buildId: " + buildId + ", status: " + targetStatus);
     }
   }
 
