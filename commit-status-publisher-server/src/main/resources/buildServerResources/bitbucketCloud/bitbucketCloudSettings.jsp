@@ -16,7 +16,7 @@
 
 <props:selectSectionProperty name="${keys.authType}" title="Authentication Type" style="width: 28em;">
 
-  <props:selectSectionPropertyContent value="${keys.authTypePassword}" caption="Username / Password">
+  <props:selectSectionPropertyContent value="${keys.authTypePassword}" caption="Username / App Password">
     <tr>
       <th><label for="${keys.bitbucketCloudUsername}">Bitbucket Username:<l:star/></label></th>
       <td>
