@@ -174,14 +174,22 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
       return null;
     }
     int i = url.indexOf(BUILD_ID_URL_PARAM);
-    if (i == -1) {
-      return null;
-    }
-    i += BUILD_ID_URL_PARAM.length();
-
     StringBuilder idBuilder = new StringBuilder();
-    while (i < url.length() && Character.isDigit(url.charAt(i))) {
-      idBuilder.append(url.charAt(i++));
+    if (i == -1) {
+      i = url.length() - 1;
+      while (i > 0 && Character.isDigit(url.charAt(i))) {
+        idBuilder.append(url.charAt(i--));
+      }
+      idBuilder.reverse();
+      if (i < 0 || url.charAt(i) != '/') {
+        return null;
+      }
+    } else {
+      i += BUILD_ID_URL_PARAM.length();
+
+      while (i < url.length() && Character.isDigit(url.charAt(i))) {
+        idBuilder.append(url.charAt(i++));
+      }
     }
 
     Long buildId = NumberUtils.toLong(idBuilder.toString(), -1);
