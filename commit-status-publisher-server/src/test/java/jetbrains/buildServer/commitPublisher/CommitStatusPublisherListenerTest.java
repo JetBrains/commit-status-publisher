@@ -33,6 +33,7 @@ import jetbrains.buildServer.vcs.impl.VcsRootInstanceImpl;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import static jetbrains.buildServer.commitPublisher.CommitStatusPublisherListener.*;
@@ -1029,6 +1030,36 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
     lastBuild.muteBuildProblems(myUser, true, "test");
     waitFor(() -> myPublisher.getLastEvent() == Event.MARKED_AS_SUCCESSFUL, TASK_COMPLETION_TIMEOUT_MS);
+  }
+
+
+  @DataProvider
+  public static Object[][] buildUrls() {
+    return new Object[][]{
+      {"http://localhost:8111/bs/buildConfiguration/GitHubApp_2_Build1/24401", 24401L},
+      {"http://localhost:8111/bs/buildConfiguration/GitHubApp_2_Build1/", null},
+      {"http://localhost:8111/bs/viewLog.html?buildId=12121&buildTypeId=Build1", 12121L},
+      {"http://localhost:8111/bs/viewLog.html?buildId=12121&buildTypeId=1323223", 12121L},
+      {"http://localhost:8111/bs/viewLog.html?buildTypeId=1323223", null}
+    };
+  }
+
+  @Test(dataProvider = "buildUrls")
+  public void should_parse_build_id_from_old_and_new_build_urls(@NotNull String buildUrl, Long buildId) {
+    BaseCommitStatusPublisher publisher = new BaseCommitStatusPublisher(myPublisherSettings, myBuildType, "", Collections.emptyMap(), myProblems) {
+      @Override
+      protected WebLinks getLinks() {
+        return null;
+      }
+
+      @NotNull
+      @Override
+      public String getId() {
+        return "test";
+      }
+    };
+
+    assertEquals(buildId, publisher.getBuildIdFromViewUrl(buildUrl));
   }
 
   private SVcsModification prepareVcs() {
