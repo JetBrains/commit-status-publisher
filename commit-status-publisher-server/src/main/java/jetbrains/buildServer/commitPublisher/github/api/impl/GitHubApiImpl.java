@@ -10,11 +10,13 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.*;
 import jetbrains.buildServer.http.SimpleCredentials;
+import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.util.StringUtil;
@@ -124,8 +126,9 @@ public abstract class GitHubApiImpl implements GitHubApi {
                      }
                    },
                    response -> {
-                     logFailedResponse(method, statusUrl, null, response);
-                     PublisherException ex = new PublisherException(getErrorMessage(response, null));
+                     String responseBody = logFailedResponse(method, statusUrl, null, response);
+                     String additionalErrorsMessage = parseErrorsFromResponse(responseBody);
+                     PublisherException ex = new PublisherException(getErrorMessage(response, additionalErrorsMessage));
                      if (RetryResponseProcessor.shouldRetryOnCode(response.getStatusCode())) {
                        ex.setShouldRetry();
                      }
@@ -178,8 +181,9 @@ public abstract class GitHubApiImpl implements GitHubApi {
         response -> {
         },
         response -> {
-          logFailedResponse(method, url, entity, response);
-          String additionalComment = response.getStatusCode() == HttpStatus.SC_NOT_FOUND ? MSG_NOT_FOUND : MSG_PROXY_OR_PERMISSIONS;
+          String responseBody = logFailedResponse(method, url, entity, response);
+          String githubError = parseErrorsFromResponse(responseBody);
+          String additionalComment = githubError != null ? githubError : response.getStatusCode() == HttpStatus.SC_NOT_FOUND ? MSG_NOT_FOUND : MSG_PROXY_OR_PERMISSIONS;
           PublisherException ex = new PublisherException(getErrorMessage(response, additionalComment));
           if (RetryResponseProcessor.shouldRetryOnCode(response.getStatusCode())) {
             ex.setShouldRetry();
@@ -269,8 +273,9 @@ public abstract class GitHubApiImpl implements GitHubApi {
                      }
                    },
                    error -> {
-                     logFailedResponse(HttpMethod.GET, uri, null, error, logErrorsDebugOnly);
-                     String additionalComment = error.getStatusCode() == HttpStatus.SC_NOT_FOUND ? MSG_NOT_FOUND : MSG_PROXY_OR_PERMISSIONS;
+                     String responseBody = logFailedResponse(HttpMethod.GET, uri, null, error, logErrorsDebugOnly);
+                     String githubError = parseErrorsFromResponse(responseBody);
+                     String additionalComment = githubError != null ? githubError :  error.getStatusCode() == HttpStatus.SC_NOT_FOUND ? MSG_NOT_FOUND : MSG_PROXY_OR_PERMISSIONS;
                      PublisherException ex = new PublisherException(getErrorMessage(error, additionalComment));
                      if (RetryResponseProcessor.shouldRetryOnCode(error.getStatusCode())) {
                        ex.setShouldRetry();
@@ -297,6 +302,24 @@ public abstract class GitHubApiImpl implements GitHubApi {
     return resultRef.get();
   }
 
+  @Nullable
+  private String parseErrorsFromResponse(@Nullable String responseBody) {
+    if (responseBody == null) {
+      return null;
+    }
+    try {
+      ResponseError responseError = myGson.fromJson(responseBody, ResponseError.class);
+      if (responseError.errors.isEmpty()) {
+        return responseError.message;
+      } else {
+        return responseError.errors.stream().map(error -> error.message).collect(Collectors.joining(", "));
+      }
+    } catch (Throwable t) {
+      Loggers.SERVER.debug("Failed to parse error from github response", t);
+    }
+    return null;
+  }
+
   @NotNull
   private static String getErrorMessage(@NotNull HTTPRequestBuilder.Response response,
                                         @Nullable String additionalComment) {
@@ -306,25 +329,28 @@ public abstract class GitHubApiImpl implements GitHubApi {
     if (null != additionalComment) {
       err = additionalComment + " ";
     }
-    return String.format("Failed to complete request to GitHub. %s", err);
+    return String.format("Failed to complete request to GitHub: %s. %s", statusLine.toString(), err);
   }
 
   protected abstract SimpleCredentials authenticationCredentials() throws IOException;
 
-  private void logFailedResponse(@NotNull HttpMethod method,
+  @Nullable
+  private String logFailedResponse(@NotNull HttpMethod method,
                                  @NotNull String uri,
                                  @Nullable String requestEntity,
                                  @NotNull HTTPRequestBuilder.Response response) throws IOException {
-    logFailedResponse(method, uri, requestEntity, response, false);
+    return logFailedResponse(method, uri, requestEntity, response, false);
   }
 
 
-  private void logFailedResponse(@NotNull HttpMethod method,
+  @Nullable
+  private String logFailedResponse(@NotNull HttpMethod method,
                                  @NotNull String uri,
                                  @Nullable String requestEntity,
                                  @NotNull HTTPRequestBuilder.Response response,
                                  boolean debugOnly) throws IOException {
-    String responseText = response.getBodyAsStringLimit(256 * 1024); //limit buffer with 256K
+    String responseBody = response.getBodyAsStringLimit(256 * 1024); //limit buffer with 256K
+    String responseText = responseBody;
     if (responseText == null) {
       responseText = "<none>";
     }
@@ -343,6 +369,7 @@ public abstract class GitHubApiImpl implements GitHubApi {
     } else {
       LOG.warn(logEntry);
     }
+    return responseBody;
   }
 
   public void postComment(@NotNull final String ownerName,
@@ -364,8 +391,9 @@ public abstract class GitHubApiImpl implements GitHubApi {
         response -> {
         },
         response -> {
-          logFailedResponse(method, url, entity, response);
-          exceptionRef.set(new IOException(getErrorMessage(response, null)));
+          String responseBody = logFailedResponse(method, url, entity, response);
+          String githubError = parseErrorsFromResponse(responseBody);
+          exceptionRef.set(new IOException(getErrorMessage(response, githubError)));
         },
         e -> exceptionRef.set(e));
     });

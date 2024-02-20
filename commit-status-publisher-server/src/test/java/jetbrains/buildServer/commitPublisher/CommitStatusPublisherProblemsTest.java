@@ -50,7 +50,7 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
     String lastLogged = myLogger.popLast();
     then(lastLogged)
       .contains("Some problem description")
-      .contains(myPublisher.getId())
+      .contains(myPublisher.toString())
       .contains("Build description");
     myProblems.clearProblem(myPublisher);
     then(myProblemEngine.getProblems(myBuildType).size()).isEqualTo(0);
