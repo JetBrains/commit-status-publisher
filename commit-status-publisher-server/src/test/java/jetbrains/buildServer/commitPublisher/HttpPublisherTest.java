@@ -82,7 +82,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
     then(getRequestAsString()).isNull();
     Collection<SystemProblemEntry> problems = myProblemNotificationEngine.getProblems(myBuildType);
     then(problems.size()).isGreaterThanOrEqualTo(1);
-    then(problems.iterator().next().getProblem().getDescription()).matches(String.format("Commit Status Publisher.*%s.*timed out.*", myPublisher.getId()));
+    then(problems.iterator().next().getProblem().getDescription()).matches(String.format("Failed to publish status for the.*%s.*timed out.*", myPublisher.toString()));
   }
 
   public void should_throw_exception_with_retry_flag_set_on_timeout_failure() {

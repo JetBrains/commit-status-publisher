@@ -33,18 +33,24 @@ public class CommitStatusPublisherProblems {
                               @NotNull Logger logger) {
 
     String dst = (null == destination) ? "" : "(" + destination + ")";
-    String errorDescription = String.format("%s. Publisher: %s%s.", errorMessage, publisher.getId(), dst);
-    String logEntry = String.format("%s. Build: %s", errorDescription, buildDescription);
+    if (!(buildDescription.startsWith("build") || buildDescription.startsWith("Build"))) {
+      buildDescription = "build " + buildDescription;
+    }
+    String errorDescription = String.format("Failed to publish status for the %s to %s%s: %s",
+                                   buildDescription, publisher.toString(), dst, errorMessage);
     if (null != t) {
+      logger.warnAndDebugDetails(errorDescription, t);
       String exMsg = t.getMessage();
+      if (!errorDescription.endsWith(".")) {
+        errorDescription += ".";
+      }
       if (null != exMsg) {
         errorDescription += " " + exMsg;
       } else {
         errorDescription += " " + t.toString();
       }
-      logger.warnAndDebugDetails(logEntry, t);
     } else {
-      logger.warn(logEntry);
+      logger.warn(errorDescription);
     }
     SBuildType buildType = publisher.getBuildType();
     SystemProblem problem = new SystemProblem(errorDescription, null, Constants.COMMIT_STATUS_PUBLISHER_PROBLEM_TYPE, null);

@@ -315,10 +315,10 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(problems.size()).isEqualTo(1);
     SystemProblem problem = problems.iterator().next().getProblem();
     then(problem.getDescription())
-      .contains("Commit Status Publisher")
+      .contains("Failed to publish status for the build")
       .contains("buildFinished")
       .contains(MockPublisher.PUBLISHER_ERROR)
-      .contains(myPublisher.getId());
+      .contains(myPublisher.toString());
   }
 
   public void should_handle_async_errors() {
