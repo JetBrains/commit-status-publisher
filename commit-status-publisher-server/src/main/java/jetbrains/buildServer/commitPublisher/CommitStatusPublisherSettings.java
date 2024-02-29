@@ -93,13 +93,14 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
    * Attempts to construct the specific {@link HttpCredentials} with the help of the provided parameters and other available data (e.g. token storage).
    * May return null if operation is not applicable.
    *
+   * @param project where build feature is set
    * @param root VCS root if available
    * @param params parameters
    * @return credentials or null
    * @throws PublisherException on configuration errors
    */
   @Nullable
-  default HttpCredentials getCredentials(@Nullable VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
+  default HttpCredentials getCredentials(@NotNull SProject project, @Nullable VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
     return null;
   }
 

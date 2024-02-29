@@ -339,7 +339,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
 
   @Nullable
   private HttpCredentials getCredentials(@NotNull VcsRootInstance root) throws PublisherException {
-    return getSettings().getCredentials(root, myParams);
+    return getSettings().getCredentials(myBuildType.getProject(), root, myParams);
   }
 
   @NotNull

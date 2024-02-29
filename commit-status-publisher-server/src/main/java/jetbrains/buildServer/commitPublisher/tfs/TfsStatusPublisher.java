@@ -637,7 +637,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
 
   @Nullable
   private HttpCredentials getCredentials(@NotNull VcsRoot root, Map<String, String> params) throws PublisherException {
-    return getSettings().getCredentials(root, params);
+    return getSettings().getCredentials(myBuildType.getProject(), root, params);
   }
 
   private static class Error {
