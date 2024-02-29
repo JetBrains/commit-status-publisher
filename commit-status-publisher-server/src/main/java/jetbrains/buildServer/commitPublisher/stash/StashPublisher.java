@@ -291,7 +291,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
 
   @Nullable
   private HttpCredentials getCredentials(@Nullable VcsRoot vcsRoot) throws PublisherException {
-    return getSettings().getCredentials(vcsRoot, myParams);
+    return getSettings().getCredentials(myBuildType.getProject(), vcsRoot, myParams);
   }
 
   private BitbucketEndpoint getEndpoint(@Nullable String vcsRootUrl) throws PublisherException {
@@ -516,6 +516,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
                                   data.getBuildNumber(), data.getState()));
           return;
         }
+
         postJson(url, getCredentials(data.getVcsRootInstance()), msg, null, buildDescription);
       } catch (PublisherException ex) {
         myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);

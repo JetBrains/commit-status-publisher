@@ -187,7 +187,7 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
 
     final Map<String, String> headers = ImmutableMap.of(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
 
-    final HttpCredentials credentials = getCredentials(root, params);
+    final HttpCredentials credentials = getCredentials(buildTypeOrTemplate.getProject(), root, params);
 
     HttpResponseProcessor<HttpPublisherException> processor = new DefaultHttpResponseProcessor() {
       @Override

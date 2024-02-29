@@ -111,7 +111,7 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
     if (null == repository)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
 
-    HttpCredentials credentials = getCredentials(root, params);
+    HttpCredentials credentials = getCredentials(buildTypeOrTemplate.getProject(), root, params);
     try {
       IOGuard.allowNetworkCall(() -> {
         ProjectInfoResponseProcessor processorPrj = new ProjectInfoResponseProcessor();
@@ -183,8 +183,8 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
 
   @NotNull
   @Override
-  protected HttpCredentials getStoredTokenCredentials(@NotNull String tokenId, @NotNull OAuthToken token, @NotNull VcsRoot root) throws PublisherException {
-    return new GitLabAccessTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
+  protected HttpCredentials getStoredTokenCredentials(@NotNull String tokenId, @NotNull OAuthToken token, @NotNull VcsRoot root, @Nullable SProject project) throws PublisherException {
+    return new GitLabAccessTokenCredentials(tokenId, token, myOAuthTokensStorage, project);
   }
 
   @NotNull

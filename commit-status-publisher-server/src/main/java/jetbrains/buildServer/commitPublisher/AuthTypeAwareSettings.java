@@ -67,8 +67,8 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
 
   @NotNull
   @Override
-  public HttpCredentials getCredentials(@Nullable VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    final HttpCredentials credentials = super.getCredentials(root, params);
+  public HttpCredentials getCredentials(@NotNull SProject project, @Nullable VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
+    final HttpCredentials credentials = super.getCredentials(project, root, params);
     if (credentials != null) {
       return credentials;
     }
@@ -94,11 +94,13 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
         if (StringUtil.isEmptyOrSpaces(tokenId)) {
           throw new PublisherException("authentication type is set to access token, but no token id is configured");
         }
-        final OAuthToken token = myOAuthTokensStorage.getToken(root.getExternalId(), tokenId, true, true);
+
+        final OAuthToken token = myOAuthTokensStorage.getToken(project, tokenId, true, true);
         if (token == null) {
           throw new PublisherException("The configured authentication with the " + tokenId + " ID is missing or invalid.");
         }
-        return getStoredTokenCredentials(tokenId, token, root);
+
+        return getStoredTokenCredentials(tokenId, token, root, project);
 
       case Constants.AUTH_TYPE_VCS:
         return getVcsRootCredentials(root);
@@ -117,8 +119,8 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
   }
 
   @NotNull
-  protected HttpCredentials getStoredTokenCredentials(@NotNull final String tokenId, @NotNull final OAuthToken token, @NotNull final VcsRoot root) throws PublisherException {
-    return new BearerTokenCredentials(tokenId, token, root.getExternalId(), myOAuthTokensStorage);
+  protected HttpCredentials getStoredTokenCredentials(@NotNull final String tokenId, @NotNull final OAuthToken token, @NotNull final VcsRoot root, @Nullable SProject project) throws PublisherException {
+    return new BearerTokenCredentials(tokenId, token, myOAuthTokensStorage, project);
   }
 
   @NotNull
@@ -187,7 +189,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
       throw new PublisherException("The configured VCS Root (" + root.getVcsName() + ") authentication with the refreshable token is missing or invalid.");
     }
 
-    return getStoredTokenCredentials(tokenId, token, root);
+    return getStoredTokenCredentials(tokenId, token, root, null);
   }
 
   @Nullable

@@ -159,7 +159,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
 
   private GitLabReceiveCommitStatus[] loadGitLabStatuses(@NotNull BuildRevision revision, @Nullable SBuildType buildType) throws PublisherException {
     String url = buildRevisionStatusesUrl(revision, buildType);
-    final HttpCredentials credentials = getSettings().getCredentials(revision.getRoot(), myParams);
+    final HttpCredentials credentials = getSettings().getCredentials(myBuildType.getProject(), revision.getRoot(), myParams);
     ResponseEntityProcessor<GitLabReceiveCommitStatus[]> processor = new ResponseEntityProcessor<>(GitLabReceiveCommitStatus[].class);
     GitLabReceiveCommitStatus[] commitStatuses = get(url, credentials, null, processor);
     if (commitStatuses == null || commitStatuses.length == 0) {
@@ -259,7 +259,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
     if (repository == null)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
 
-    final HttpCredentials credentials = getSettings().getCredentials(root, myParams);
+    final HttpCredentials credentials = getSettings().getCredentials(myBuildType.getProject(), root, myParams);
     try {
       final String commit = determineStatusCommit(credentials, repository, revision);
       if (commit != null) {

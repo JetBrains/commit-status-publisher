@@ -102,13 +102,13 @@ public class TfsPublisherSettings extends AuthTypeAwareSettings implements Commi
     }
 
     if (commitId == null) {
-      commitId = TfsStatusPublisher.getLatestCommitId(root, params, trustStore(), getCredentials(root, params));
+      commitId = TfsStatusPublisher.getLatestCommitId(root, params, trustStore(), getCredentials(buildTypeOrTemplate.getProject(), root, params));
       if (commitId == null) {
         throw new PublisherException("No commits found in the repository");
       }
     }
 
-    TfsStatusPublisher.testConnection(root, params, commitId, trustStore(), getCredentials(root, params));
+    TfsStatusPublisher.testConnection(root, params, commitId, trustStore(), getCredentials(buildTypeOrTemplate.getProject(), root, params));
   }
 
   @Nullable

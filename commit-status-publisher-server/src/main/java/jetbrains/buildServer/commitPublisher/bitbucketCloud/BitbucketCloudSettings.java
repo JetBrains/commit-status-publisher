@@ -189,8 +189,7 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
     final Map<String, String> headers = new HashMap<>();
     headers.put(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
 
-    final String authType = getAuthType(params);
-    final HttpCredentials credentials = getCredentials(root, params);
+    final HttpCredentials credentials = getCredentials(buildTypeOrTemplate.getProject(), root, params);
 
     try {
       IOGuard.allowNetworkCall(() -> {
