@@ -15,7 +15,7 @@
 <c:set var="createSwarmTestField" value="<%= SwarmPublisherSettings.PARAM_CREATE_SWARM_TEST%>"/>
 <c:set var="commentOnEventsField" value="<%= SwarmPublisherSettings.PARAM_COMMENT_ON_EVENTS%>"/>
 <c:set var="propCommentSelectively" value="<%= SwarmConstants.FEATURE_ENABLE_COMMENTS_SELECTIVELY%>"/>
-<c:set var="commentSelectively" value="${intprop:getBoolean(propCommentSelectively)}"/>
+<c:set var="commentSelectively" value="${intprop:getBooleanOrTrue(propCommentSelectively)}"/>
 
 <tr>
   <th><label for="${urlField}">Perforce Swarm URL:<l:star/></label></th>
