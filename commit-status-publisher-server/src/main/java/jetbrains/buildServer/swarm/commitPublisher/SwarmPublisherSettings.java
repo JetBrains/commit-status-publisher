@@ -33,7 +33,7 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
   public static final String PARAM_CREATE_SWARM_TEST = "createSwarmTest";
   public static final String PARAM_COMMENT_ON_EVENTS = "commentOnEvents";
 
-  private static final Set<CommitStatusPublisher.Event> DEFAULT_COMMENT_ON_EVENTS = Sets.immutableEnumSet(CommitStatusPublisher.Event.FINISHED);
+  private static final Set<CommitStatusPublisher.Event> DEFAULT_COMMENT_ON_EVENTS = Sets.immutableEnumSet(CommitStatusPublisher.Event.FINISHED, CommitStatusPublisher.Event.INTERRUPTED);
 
   private static final Set<CommitStatusPublisher.Event> ourSupportedEvents = new HashSet<CommitStatusPublisher.Event>() {{
     add(CommitStatusPublisher.Event.QUEUED);
