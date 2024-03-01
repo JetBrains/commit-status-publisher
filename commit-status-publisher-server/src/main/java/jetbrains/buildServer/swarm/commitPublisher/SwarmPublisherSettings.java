@@ -186,6 +186,6 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
   }
 
   private static boolean commentSelectively() {
-    return TeamCityProperties.getBoolean(SwarmConstants.FEATURE_ENABLE_COMMENTS_SELECTIVELY);
+    return TeamCityProperties.getBooleanOrTrue(SwarmConstants.FEATURE_ENABLE_COMMENTS_SELECTIVELY);
   }
 }

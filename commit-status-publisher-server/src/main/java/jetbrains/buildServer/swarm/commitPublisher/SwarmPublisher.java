@@ -190,7 +190,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
                                       @NotNull Event event) throws PublisherException {
 
     boolean commentsNotificationsEnabled = ((BuildPromotionEx)build).getBooleanInternalParameterOrTrue(SWARM_COMMENTS_NOTIFICATIONS_ENABLED);
-    boolean commentSelectively = ((BuildPromotionEx)build).getBooleanInternalParameter(SwarmConstants.FEATURE_ENABLE_COMMENTS_SELECTIVELY);
+    boolean commentSelectively = ((BuildPromotionEx)build).getBooleanInternalParameterOrTrue(SwarmConstants.FEATURE_ENABLE_COMMENTS_SELECTIVELY);
 
     if (commentSelectively && !myCommentOnEvents.contains(event)) {
       logStatusNotPublished(build, event, "Comments for this event type have been disabled");
