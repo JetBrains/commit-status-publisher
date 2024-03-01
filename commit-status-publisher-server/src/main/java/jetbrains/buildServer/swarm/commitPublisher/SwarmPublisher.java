@@ -84,8 +84,9 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
       commentTemplate += " by " + additionalTaskInfo.getCommentAuthor().getDescriptiveName();
     }
 
-    publishCommentIfNeeded(buildPromotion, revision, commentTemplate, Event.REMOVED_FROM_QUEUE);
-
+    // if build doesn't even start due to failing dependency, this is the final event
+    final Event effectiveEvent = (isCancelledByFailingDependency(additionalTaskInfo)) ? Event.FINISHED : Event.REMOVED_FROM_QUEUE;
+    publishCommentIfNeeded(buildPromotion, revision, commentTemplate, effectiveEvent);
 
     SBuild build = buildPromotion.getAssociatedBuild();
     if (build != null) {
@@ -101,6 +102,10 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
       return "";
     }
     return res;
+  }
+
+  private boolean isCancelledByFailingDependency(@NotNull AdditionalTaskInfo additionalTaskInfo) {
+    return DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED.equals(additionalTaskInfo.getComment());
   }
 
   @Override
