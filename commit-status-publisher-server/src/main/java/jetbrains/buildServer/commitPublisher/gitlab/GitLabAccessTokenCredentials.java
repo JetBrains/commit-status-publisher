@@ -20,14 +20,6 @@ public class GitLabAccessTokenCredentials extends AccessTokenCredentials impleme
     super(token);
   }
 
-  @Deprecated
-  public GitLabAccessTokenCredentials(@NotNull final String tokenId,
-                                      @NotNull final OAuthToken refreshableToken,
-                                      @NotNull final String vcsRootExtId,
-                                      @NotNull final OAuthTokensStorage tokensStorage) {
-    super(tokenId, refreshableToken, vcsRootExtId, tokensStorage);
-  }
-
   public GitLabAccessTokenCredentials(@NotNull final String tokenId,
                                       @NotNull final OAuthToken refreshableToken,
                                       @NotNull final OAuthTokensStorage tokensStorage,
