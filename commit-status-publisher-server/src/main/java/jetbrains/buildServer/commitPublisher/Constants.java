@@ -69,6 +69,10 @@ public class Constants {
   public static final int STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL = 50;
   public static final String GITLAB_FEATURE_TOGGLE_MERGE_RESULTS = "commitStatusPubliser.gitlab.supportMergeResults";
 
+  public static final String GITEA_PUBLISHER_ID = "giteaStatusPublisher";
+  public static final String GITEA_API_URL = "giteaApiUrl";
+  public static final String GITEA_TOKEN = "secure:giteaAccessToken";
+
   @NotNull
   public String getVcsRootIdParam() {
     return VCS_ROOT_ID_PARAM;
@@ -202,5 +206,20 @@ public class Constants {
   @NotNull
   public String getGitlabToken() {
     return GITLAB_TOKEN;
+  }
+
+  @NotNull
+  public String getGiteaPublisherId() {
+    return GITEA_PUBLISHER_ID;
+  }
+
+  @NotNull
+  public String getGiteaServer() {
+    return GITEA_API_URL;
+  }
+
+  @NotNull
+  public String getGiteaToken() {
+    return GITEA_TOKEN;
   }
 }
