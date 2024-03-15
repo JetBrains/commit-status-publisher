@@ -223,7 +223,7 @@ public class TfsPublisherSettings extends AuthTypeAwareSettings implements Commi
 
   @NotNull
   @Override
-  protected HttpCredentials getVcsRootCredentials(@Nullable VcsRoot root) throws PublisherException {
+  protected HttpCredentials getVcsRootCredentials(@Nullable VcsRoot root, @NotNull SProject project) throws PublisherException {
     throw new PublisherException("Unsupported authentication type VCS Root");
   }
 

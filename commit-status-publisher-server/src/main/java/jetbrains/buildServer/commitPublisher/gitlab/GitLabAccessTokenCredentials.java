@@ -31,7 +31,7 @@ public class GitLabAccessTokenCredentials extends AccessTokenCredentials impleme
   public GitLabAccessTokenCredentials(@NotNull final String tokenId,
                                       @NotNull final OAuthToken refreshableToken,
                                       @NotNull final OAuthTokensStorage tokensStorage,
-                                      @Nullable final SProject project) {
+                                      @NotNull final SProject project) {
     super(tokenId, refreshableToken, tokensStorage, project);
   }
 

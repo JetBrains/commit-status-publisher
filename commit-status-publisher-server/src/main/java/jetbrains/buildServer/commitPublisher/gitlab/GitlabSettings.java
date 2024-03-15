@@ -29,9 +29,6 @@ import jetbrains.buildServer.vcs.VcsModificationHistoryEx;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
-import jetbrains.buildServer.vcshostings.url.InvalidUriException;
-import jetbrains.buildServer.vcshostings.url.ServerURI;
-import jetbrains.buildServer.vcshostings.url.ServerURIParser;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
@@ -183,14 +180,14 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
 
   @NotNull
   @Override
-  protected HttpCredentials getStoredTokenCredentials(@NotNull String tokenId, @NotNull OAuthToken token, @NotNull VcsRoot root, @Nullable SProject project) throws PublisherException {
+  protected HttpCredentials getStoredTokenCredentials(@NotNull String tokenId, @NotNull OAuthToken token, @NotNull VcsRoot root, @NotNull SProject project) throws PublisherException {
     return new GitLabAccessTokenCredentials(tokenId, token, myOAuthTokensStorage, project);
   }
 
   @NotNull
   @Override
-  protected HttpCredentials getVcsRootCredentials(@Nullable VcsRoot root) throws PublisherException {
-    return super.getVcsRootCredentials(root);
+  protected HttpCredentials getVcsRootCredentials(@Nullable VcsRoot root, @NotNull SProject project) throws PublisherException {
+    return super.getVcsRootCredentials(root, project);
   }
 
   @Nullable

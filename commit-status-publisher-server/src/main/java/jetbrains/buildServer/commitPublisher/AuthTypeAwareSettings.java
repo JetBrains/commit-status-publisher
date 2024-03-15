@@ -103,7 +103,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
         return getStoredTokenCredentials(tokenId, token, root, project);
 
       case Constants.AUTH_TYPE_VCS:
-        return getVcsRootCredentials(root);
+        return getVcsRootCredentials(root, project);
 
       case Constants.AUTH_TYPE_ACCESS_TOKEN:
         return getAccessTokenCredentials(params);
@@ -119,7 +119,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
   }
 
   @NotNull
-  protected HttpCredentials getStoredTokenCredentials(@NotNull final String tokenId, @NotNull final OAuthToken token, @NotNull final VcsRoot root, @Nullable SProject project) throws PublisherException {
+  protected HttpCredentials getStoredTokenCredentials(@NotNull final String tokenId, @NotNull final OAuthToken token, @NotNull final VcsRoot root, @NotNull SProject project) throws PublisherException {
     return new BearerTokenCredentials(tokenId, token, myOAuthTokensStorage, project);
   }
 
@@ -134,7 +134,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
   }
 
   @NotNull
-  protected HttpCredentials getVcsRootCredentials(@Nullable VcsRoot root) throws PublisherException {
+  protected HttpCredentials getVcsRootCredentials(@Nullable VcsRoot root, @NotNull SProject project) throws PublisherException {
     if (root == null) {
       throw new PublisherException("unable to determine VCS root to using credentials");
     }
@@ -145,7 +145,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
     if (vcsAuthType.equals(VcsAuthType.PASSWORD)) {
       return getVcsRootPasswordCredentials(root, vcsProperties);
     } else if (vcsAuthType.equals(VcsAuthType.ACCESS_TOKEN)) { // refreshable token
-      return getVcsRootRefreshableTokenCredentials(root, vcsProperties);
+      return getVcsRootRefreshableTokenCredentials(root, project, vcsProperties);
     } else if (vcsAuthType.equals(VcsAuthType.ANONYMOUS)) {
       throw new PublisherException("Using anonymous VCS authentication method in " + root.getExternalId() + " is impossible. Please provide an access token");
     } else if (vcsAuthType.equals(VcsAuthType.PRIVATE_KEY_DEFAULT) ||
@@ -176,7 +176,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
     }
   }
 
-  public HttpCredentials getVcsRootRefreshableTokenCredentials(@NotNull VcsRoot root, @Nullable Map<String, String> vcsProperties) throws PublisherException {
+  public HttpCredentials getVcsRootRefreshableTokenCredentials(@NotNull VcsRoot root, @NotNull SProject project, @Nullable Map<String, String> vcsProperties) throws PublisherException {
     if (vcsProperties == null) vcsProperties = root.getProperties();
 
     final String tokenId = vcsProperties.get("tokenId");
@@ -189,7 +189,7 @@ public abstract class AuthTypeAwareSettings extends BasePublisherSettings {
       throw new PublisherException("The configured VCS Root (" + root.getVcsName() + ") authentication with the refreshable token is missing or invalid.");
     }
 
-    return getStoredTokenCredentials(tokenId, token, root, null);
+    return getStoredTokenCredentials(tokenId, token, root, project);
   }
 
   @Nullable
