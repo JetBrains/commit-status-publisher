@@ -634,7 +634,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     if (buildPromotion.isFailedToCollectChanges()) return publisher.getFallbackRevisions(buildPromotion.getAssociatedBuild());
 
     if (!((BuildPromotionEx)buildPromotion).isChangeCollectingNeeded(false)) {
-      return getBuildRevisionForVote(publisher, buildPromotion.getRevisions());
+      return getBuildRevisionForVote(publisher, buildPromotion.getRevisions(), buildPromotion.getBranch());
     }
     LOG.debug(() -> "No revision is found for build " + buildPromotion.getBuildTypeExternalId() + ". Queue-related status won't be published");
     return Collections.emptyList();
@@ -642,7 +642,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   @NotNull
   private List<BuildRevision> getBuildRevisionForVote(@NotNull CommitStatusPublisher publisher,
-                                                      @NotNull Collection<BuildRevision> revisionsToCheck) {
+                                                      @NotNull Collection<BuildRevision> revisionsToCheck,
+                                                      @Nullable Branch buildBranch) {
     if (revisionsToCheck.isEmpty()) return Collections.emptyList();
 
     String vcsRootId = publisher.getVcsRootId();
@@ -651,6 +652,30 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       for (BuildRevision revision : revisionsToCheck) {
         if (publisher.isPublishingForRevision(revision)) {
           revisions.add(revision);
+        }
+      }
+      // TW-79075
+      if (buildBranch != null && !buildBranch.isDefaultBranch()) {
+        Set<String> selectedBranchNames = new HashSet<>();
+        selectedBranchNames.add(buildBranch.getName());
+        selectedBranchNames.add("refs/heads/" + buildBranch.getName());  // git prepends this to the branch name
+        List<BuildRevision> revisionsForBranch = new ArrayList<>();
+        for(BuildRevision revision: revisions) {
+          String vcsBranch = revision.getRepositoryVersion().getVcsBranch();
+          if (vcsBranch != null && selectedBranchNames.contains(vcsBranch)) {
+            revisionsForBranch.add(revision);
+          }
+        }
+        if (!revisionsForBranch.isEmpty()) {
+          LOG.info("Selective publishing for buildBranch=" + buildBranch + ", selected "
+            + revisionsForBranch.stream().map(r -> r.getRoot().getName() + '@' + r.getRepositoryVersion().getVcsBranch()).collect(Collectors.joining(", ", "[", "]"))
+            + " out of " + revisions.stream().map(r -> r.getRoot().getName() + '@' + r.getRepositoryVersion().getVcsBranch()).collect(Collectors.joining(", ", "[", "]"))
+          );
+          revisions = revisionsForBranch;
+        } else {
+          LOG.warn("Attempted selective publishing, but did not find revisions for buildBranch=" + buildBranch + " among "
+            + revisions.stream().map(r -> r.getRoot().getName() + '@' + r.getRepositoryVersion().getVcsBranch()).collect(Collectors.joining(", ", "[", "]"))
+            + ", will publish all");
         }
       }
       return revisions;
@@ -821,7 +846,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
         @Override
         public Collection<BuildRevision> getRevisions(BuildType buildType, CommitStatusPublisher publisher) {
           if (buildPromotion.isFailedToCollectChanges()) return publisher.getFallbackRevisions(build);
-          return getBuildRevisionForVote(publisher, build.getRevisions());
+          return getBuildRevisionForVote(publisher, build.getRevisions(), build.getBranch());
         }
       };
 
