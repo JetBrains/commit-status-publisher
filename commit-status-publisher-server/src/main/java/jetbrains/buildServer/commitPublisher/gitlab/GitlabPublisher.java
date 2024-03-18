@@ -287,7 +287,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
     if (statusCode >= 400) {
       String responseString = response.getContent();
       if (404 == statusCode) {
-        throw new HttpPublisherException(statusCode, "Repository not found. Please check if it was renamed or moved to another namespace");
+        throw new HttpPublisherException(statusCode, "Repository not found. Please check if the api url is correct and if the repository was renamed or moved to another namespace");
       } else if (!responseString.contains("Cannot transition status via :enqueue from :pending") &&
           !responseString.contains("Cannot transition status via :enqueue from :running") &&
           !responseString.contains("Cannot transition status via :run from :running")) {

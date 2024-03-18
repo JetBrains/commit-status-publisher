@@ -54,8 +54,8 @@ public class RetryResponseProcessor implements HttpResponseProcessor<HttpPublish
     } catch (PublisherException ex) {
       if (shouldRetryOnCode(response.getStatusCode())) {
         ex.setShouldRetry();
-        throw ex;
       }
+      throw ex;
     }
   }
 
