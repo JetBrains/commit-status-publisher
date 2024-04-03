@@ -87,7 +87,8 @@
              tokenIntent="PUBLISH_STATUS"
              canObtainTokens="${canObtainTokens}"
              callback="BS.AuthTypeTokenSupport.tokenCallback"
-             oauthConnections="${oauthConnections}">
+             oauthConnections="${oauthConnections}"
+             checkForRefreshSupport="true">
             <jsp:attribute name="addCredentialFragment">
                <span class="smallNote connection-note">Add credentials via the
                     <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
