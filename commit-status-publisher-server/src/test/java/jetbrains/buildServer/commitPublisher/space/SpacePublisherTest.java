@@ -13,6 +13,8 @@ import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.serverSide.oauth.OAuthConstants;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthKeys;
+import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthProvider;
+import jetbrains.buildServer.serverSide.oauth.space.application.SpaceApplicationInformation;
 import jetbrains.buildServer.serverSide.oauth.space.application.SpaceApplicationInformationManager;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -26,6 +28,8 @@ import org.testng.annotations.Test;
 import static jetbrains.buildServer.commitPublisher.space.SpaceToken.ACCESS_TOKEN_FIELD_NAME;
 import static jetbrains.buildServer.commitPublisher.space.SpaceToken.TOKEN_TYPE_FIELD_NAME;
 import static org.assertj.core.api.BDDAssertions.then;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 /**
  * @author anton.zamolotskikh, 05/10/16.
@@ -64,11 +68,13 @@ public class SpacePublisherTest extends HttpPublisherTest {
     setExpectedEndpointPrefix("/projects/key:" + OWNER + "/repositories/" + CORRECT_REPO);
     super.setUp();
     myProjectFeatureId = myProject.addFeature(OAuthConstants.FEATURE_TYPE, new HashMap<String, String>() {{
+      put(OAuthConstants.OAUTH_TYPE_PARAM, SpaceOAuthProvider.TYPE);
       put(SpaceOAuthKeys.SPACE_CLIENT_ID, FAKE_CLIENT_ID);
       put(SpaceOAuthKeys.SPACE_CLIENT_SECRET, FAKE_CLIENT_SECRET);
       put(Constants.SPACE_SERVER_URL, getServerUrl());
     }}).getId();
     final SpaceApplicationInformationManager applicationInformationManager = Mockito.mock(SpaceApplicationInformationManager.class);
+    when(applicationInformationManager.getForConnection(any(SpaceConnectDescriber.class))).thenReturn(SpaceApplicationInformation.none());
     myPublisherSettings = new SpaceSettings(new MockPluginDescriptor(),
                                             myWebLinks,
                                             myProblems,

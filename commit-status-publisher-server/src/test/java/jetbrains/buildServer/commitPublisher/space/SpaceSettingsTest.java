@@ -18,6 +18,7 @@ import jetbrains.buildServer.serverSide.oauth.space.application.SpaceApplication
 import jetbrains.buildServer.serverSide.oauth.space.pojo.SpaceApplicationRights;
 import jetbrains.buildServer.serverSide.oauth.space.pojo.SpaceRight;
 import jetbrains.buildServer.serverSide.oauth.space.pojo.SpaceRightStatus;
+import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
@@ -254,6 +255,48 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
 
     then(publisher).isNull();
   }
+
+  @Test
+  @TestFor(issues = "TW-87183")
+  public void isFeatureLessPublishingSupported_must_be_false_by_default() {
+    final ProjectEx project = createProject("project");
+    final BuildTypeEx buildType = project.createBuildType("testbuild");
+
+    final boolean supported = mySettings.isFeatureLessPublishingSupported(buildType);
+
+    then(supported).as("featureless publishing supported").isFalse();
+  }
+
+  @Test
+  @TestFor(issues = "TW-87183")
+  public void isFeatureLessPublishingSupported_must_be_false_when_no_vcs_root_matches() {
+    final ProjectEx project = createProject("project");
+    enableUnconditionalStatusPublishing(project);
+    final BuildTypeEx buildType = project.createBuildType("testbuild");
+    final OAuthConnectionDescriptor connection = addSpaceConnection(project);
+    mockPublishBuildStatusCapability(connection);
+
+    final boolean supported = mySettings.isFeatureLessPublishingSupported(buildType);
+
+    then(supported).as("featureless publishing supported").isFalse();
+  }
+
+  @Test
+  @TestFor(issues = "TW-87183")
+  public void isFeatureLessPublishingSupported_should_be_true_with_vcs_root_and_connection() {
+    final ProjectEx project = createProject("project");
+    enableUnconditionalStatusPublishing(project);
+    final BuildTypeEx buildType = project.createBuildType("testbuild");
+    final OAuthConnectionDescriptor connection = addSpaceConnection(project);
+    mockPublishBuildStatusCapability(connection);
+    final OAuthToken token = createAccessToken(connection);
+    addVcsRoot(buildType, connection, token);
+
+    final boolean supported = mySettings.isFeatureLessPublishingSupported(buildType);
+
+    then(supported).as("featureless publishing supported").isTrue();
+  }
+
 
   private void enableUnconditionalStatusPublishing(@NotNull ProjectEx project) {
     project.addParameter(getParameterFactory().createSimpleParameter(SpaceConstants.FEATURE_TOGGLE_UNCONDITIONAL_COMMIT_STATUS, "true"));
