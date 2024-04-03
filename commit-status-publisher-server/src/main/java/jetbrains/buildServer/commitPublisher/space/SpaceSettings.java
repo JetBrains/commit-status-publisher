@@ -114,8 +114,10 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
       return false;
     }
 
+    // we don't do a strict check for the publishing capability of the potential connection to prevent unnecessary HTTP requests
+    // -> the capability will be checked in #createFeaturelessPublisher later on
     return buildType.getVcsRootInstances().stream()
-                    .anyMatch(vcsRootInstance -> findConnectionByVcsRoot(buildType, vcsRootInstance.getParent()) != null);
+                    .anyMatch(vcsRootInstance -> findConnectionByVcsRoot(buildType, vcsRootInstance.getParent(), false) != null);
   }
 
   @Override
@@ -138,7 +140,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
       return null;
     }
 
-    final SpaceConnectDescriber spaceConnection = findConnectionByVcsRoot(buildType, vcsRoot);
+    final SpaceConnectDescriber spaceConnection = findConnectionByVcsRoot(buildType, vcsRoot, true);
     if (spaceConnection == null) {
       return null;
     }
@@ -296,18 +298,18 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   }
 
   @Nullable
-  private SpaceConnectDescriber findConnectionByVcsRoot(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot) {
+  private SpaceConnectDescriber findConnectionByVcsRoot(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot, boolean checkPublishingCapability) {
     final String tokenId = vcsRoot.getProperty("tokenId");
     if (tokenId == null) {
       LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " is not using refreshable tokens, trying to guess connection from fetch URL");
-      return guessConnectionFromFetchUrl(buildType, vcsRoot);
+      return guessConnectionFromFetchUrl(buildType, vcsRoot, checkPublishingCapability);
     }
 
-    return findConnectionByTokenId(buildType, vcsRoot, tokenId);
+    return findConnectionByTokenId(buildType, vcsRoot, tokenId, checkPublishingCapability);
   }
 
   @Nullable
-  private SpaceConnectDescriber findConnectionByTokenId(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot, @NotNull String tokenId) {
+  private SpaceConnectDescriber findConnectionByTokenId(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot, @NotNull String tokenId, boolean checkPublishingCapability) {
     final TokenFullIdComponents tokenFullIdComponents = OAuthTokensStorage.parseFullTokenId(tokenId);
     if (tokenFullIdComponents == null) {
       LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used for unconditional status publishing: unparseable token ID " + tokenId);
@@ -320,7 +322,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
       return null;
     }
 
-    if (!connection.hasCapability(ConnectionCapability.PUBLISH_BUILD_STATUS)) {
+    if (checkPublishingCapability && !connection.hasCapability(ConnectionCapability.PUBLISH_BUILD_STATUS)) {
       LOG.debug(() -> "Space connection " + LogUtil.describe(connection) + " can't be used for unconditional status publishing: missing capability");
       return null;
     }
@@ -331,7 +333,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   }
 
   @Nullable
-  private SpaceConnectDescriber guessConnectionFromFetchUrl(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot) {
+  private SpaceConnectDescriber guessConnectionFromFetchUrl(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot, boolean checkPublishingCapability) {
     final String fetchUrl = vcsRoot.getProperty("url");
     if (StringUtil.isEmptyOrSpaces(fetchUrl)) {
       LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used for unconditional status publishing: the fetch URL is empty");
@@ -355,9 +357,15 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     final List<OAuthConnectionDescriptor> potentialConnections = myOAuthConnectionManager.getAvailableConnectionsOfType(buildType.getProject(), SpaceOAuthProvider.TYPE);
     for (OAuthConnectionDescriptor potentialConnection : potentialConnections) {
       final SpaceConnectDescriber spaceConnection = new SpaceConnectDescriber(potentialConnection);
-      final SpaceApplicationInformation applicationInfo = myApplicationInformationManager.getForConnection(spaceConnection);
-      if (hasPublishStatusRights(applicationInfo, projectKey) && matchesUrl(potentialConnection, spaceConnection, tokenizedFetchUrl)) {
-        return spaceConnection;
+      if (!matchesUrl(potentialConnection, spaceConnection, tokenizedFetchUrl)) {
+        continue;
+      }
+
+      if (checkPublishingCapability) {
+        final SpaceApplicationInformation applicationInfo = myApplicationInformationManager.getForConnection(spaceConnection);
+        if (hasPublishStatusRights(applicationInfo, projectKey)) {
+          return spaceConnection;
+        }
       }
     }
 
