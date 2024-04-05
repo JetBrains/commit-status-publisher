@@ -134,7 +134,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
 
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    myUpdater.testConnection(root, params);
+    myUpdater.testConnection(buildTypeOrTemplate.getProject(), root, params);
   }
 
   @Nullable
