@@ -47,7 +47,7 @@ public class ChangeStatusUpdater {
 
 
   @NotNull
-  private GitHubApi getGitHubApi(@NotNull Map<String, String> params, @NotNull VcsRoot root) {
+  private GitHubApi getGitHubApi(@NotNull Map<String, String> params, @NotNull SProject project, @NotNull VcsRoot root) {
     final String serverUrl = params.get(C.getServerKey());
     if (serverUrl == null || StringUtil.isEmptyOrSpaces(serverUrl)) {
       throw new IllegalArgumentException("Failed to read GitHub URL from the feature settings");
@@ -69,16 +69,16 @@ public class ChangeStatusUpdater {
 
       case STORED_TOKEN:
         final String tokenId = params.get(C.getTokenIdKey());
-        return myFactory.openGitHubForStoredToken(serverUrl, tokenId, root.getExternalId());
+        return myFactory.openGitHubForStoredToken(serverUrl, tokenId, project);
       case VCS_ROOT:
-        return getGitHubApiForVcsRootCredentials(root, serverUrl);
+        return getGitHubApiForVcsRootCredentials(project, root, serverUrl);
       default:
         throw new IllegalArgumentException("Failed to parse authentication type:" + authenticationType);
     }
   }
 
   @NotNull
-  private GitHubApi getGitHubApiForVcsRootCredentials(@NotNull VcsRoot root, @NotNull String serverUrl) {
+  private GitHubApi getGitHubApiForVcsRootCredentials(@NotNull SProject project, @NotNull VcsRoot root, @NotNull String serverUrl) {
     String vcsRootAuthType = root.getProperty("authMethod");
     if (vcsRootAuthType == null) {
       throw new IllegalArgumentException("Failed to parse VCS authentication type");
@@ -90,7 +90,7 @@ public class ChangeStatusUpdater {
         if (tokenId == null) {
           throw new IllegalArgumentException("Failed to get tokenId in VCS authentication type");
         }
-        return myFactory.openGitHubForStoredToken(serverUrl, tokenId, root.getExternalId());
+        return myFactory.openGitHubForStoredToken(serverUrl, tokenId, project);
       case "PASSWORD": //token auth
         String password = root.getProperty("secure:password");
         if (password == null) {
@@ -105,8 +105,8 @@ public class ChangeStatusUpdater {
     }
   }
 
-  void testConnection(@NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    getGitHubApi(params, root).testConnection(parseRepository(root));
+  void testConnection(@NotNull SProject project, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
+    getGitHubApi(params, project, root).testConnection(parseRepository(root));
   }
 
   @NotNull
@@ -287,7 +287,7 @@ public class ChangeStatusUpdater {
       myPublisher = publisher;
       String ctx = params.get(Constants.GITHUB_CONTEXT);
       myContext = StringUtil.isEmpty(ctx) ? DEFAULT_CONTEXT : ctx;
-      myApi = getGitHubApi(params, root);
+      myApi = getGitHubApi(params, publisher.getBuildType().getProject(), root);
     }
 
     @NotNull

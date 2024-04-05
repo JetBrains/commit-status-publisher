@@ -10,6 +10,7 @@ import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.RepoInfo;
 import jetbrains.buildServer.http.SimpleCredentials;
 import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.oauth.*;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
@@ -71,15 +72,14 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
   @Override
   public GitHubApi openGitHubForStoredToken(@NotNull final String url,
                                             @NotNull final String tokenId,
-                                            @NotNull final String vcsRootId) {
+                                            @NotNull final SProject project) {
 
     return new GitHubApiImpl(myWrapper, new GitHubApiPaths(url)){
       @Override
       protected SimpleCredentials authenticationCredentials() throws IOException {
-        //todo check scope here TW-86523
-        final OAuthToken gitHubOAuthToken = myOAuthTokensStorage.getToken(vcsRootId, tokenId, false, true);
+        final OAuthToken gitHubOAuthToken = myOAuthTokensStorage.getToken(project, tokenId, true, true);
         if (gitHubOAuthToken != null) {
-          //must be refactored to use Bearer token
+          //todo: must be refactored to use Bearer token TW-76091
           return new SimpleCredentials("oauth2", gitHubOAuthToken.getAccessToken());
         }
         else {
@@ -93,20 +93,14 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
           throw new PublisherException(String.format("Repository \"%s\" is inaccessible", repo.url()));
         }
 
-        final SVcsRoot vcsRoot = myProjectManager.findVcsRootByExternalId(vcsRootId);
-        if (vcsRoot == null) {
-          throw new PublisherException("Unable to find VCS root by external id " + vcsRootId);
-        }
-
-        //todo check scope here TW-86523
-        final OAuthToken gitHubOAuthToken = myOAuthTokensStorage.getToken(vcsRootId, tokenId, false, true);
+        final OAuthToken gitHubOAuthToken = myOAuthTokensStorage.getToken(project, tokenId, true, true);
         if (gitHubOAuthToken == null) {
           throw new PublisherException("Failed to retrieve configured token from storage (tokenId: " + tokenId + ")");
         }
 
         if (SUser.UKNOWN_USER_ID == gitHubOAuthToken.getTeamCityUserId()) { // GitHub App Connection
-          final OAuthConnectionDescriptor connection = getConnection(vcsRoot, tokenId);
-          final TokenIntent intent = new TokenIntent(TokenIntentType.PUBLISH_STATUS, vcsRoot.getProperty("url"));
+          final OAuthConnectionDescriptor connection = getConnection(project, tokenId);
+          final TokenIntent intent = new TokenIntent(TokenIntentType.PUBLISH_STATUS, repo.url());
           if (!connection.getOauthProvider().isSuitableToken(gitHubOAuthToken, intent)) {
             throw new PublisherException(String.format("The stored token doesn't have push access to the repository \"%s\"", repo.url()));
           }
@@ -120,13 +114,13 @@ public class GitHubApiFactoryImpl implements GitHubApiFactory {
 
 
       @NotNull
-      private OAuthConnectionDescriptor getConnection(@NotNull SVcsRoot vcsRoot, @NotNull String tokenId) throws PublisherException {
+      private OAuthConnectionDescriptor getConnection(@NotNull SProject project, @NotNull String tokenId) throws PublisherException {
         final TokenFullIdComponents components = OAuthTokensStorage.parseFullTokenId(tokenId);
         if (components == null) {
           throw new PublisherException("Unable to parse token id " + tokenId);
         }
 
-        final OAuthConnectionDescriptor connection = myConnectionsManager.findConnectionByTokenStorageId(vcsRoot.getProject(), components.getTokenStorageId());
+        final OAuthConnectionDescriptor connection = myConnectionsManager.findConnectionByTokenStorageId(project, components.getTokenStorageId());
         if (connection == null) {
           throw new PublisherException("Unable to find connection by token id " + tokenId);
         }

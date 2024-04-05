@@ -2,6 +2,7 @@
 
 package jetbrains.buildServer.commitPublisher.github.api;
 
+import jetbrains.buildServer.serverSide.SProject;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -23,5 +24,5 @@ public interface GitHubApiFactory {
   @NotNull
   GitHubApi openGitHubForStoredToken(@NotNull String url,
                                      @NotNull String tokenId,
-                                     @NotNull String vcsRootId);
+                                     @NotNull SProject project);
 }
