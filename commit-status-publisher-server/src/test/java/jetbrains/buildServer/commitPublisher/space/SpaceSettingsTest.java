@@ -298,6 +298,21 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
   }
 
 
+  @Test
+  @TestFor(issues = "TW-87290")
+  public void isFeatureLessPublishingSupported_should_be_true_with_vcs_root_without_token_id_and_connection() {
+    final ProjectEx project = createProject("project");
+    enableUnconditionalStatusPublishing(project);
+    final BuildTypeEx buildType = project.createBuildType("testbuild");
+    final OAuthConnectionDescriptor connection = addSpaceConnection(project, "http://space.test");
+    mockPublishBuildStatusCapability(connection);
+    addVcsRoot(buildType,"http://space.test/myorg/myproject/myrepo.git");
+
+    final boolean supported = mySettings.isFeatureLessPublishingSupported(buildType);
+
+    then(supported).as("featureless publishing supported").isTrue();
+  }
+
   private void enableUnconditionalStatusPublishing(@NotNull ProjectEx project) {
     project.addParameter(getParameterFactory().createSimpleParameter(SpaceConstants.FEATURE_TOGGLE_UNCONDITIONAL_COMMIT_STATUS, "true"));
   }
