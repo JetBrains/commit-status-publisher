@@ -3,8 +3,10 @@
 package jetbrains.buildServer.commitPublisher.space;
 
 import com.google.common.collect.ImmutableMap;
+import com.intellij.openapi.diagnostic.Logger;
 import java.net.URI;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
@@ -301,7 +303,8 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   private SpaceConnectDescriber findConnectionByVcsRoot(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot, boolean checkPublishingCapability) {
     final String tokenId = vcsRoot.getProperty("tokenId");
     if (tokenId == null) {
-      LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " is not using refreshable tokens, trying to guess connection from fetch URL");
+      debugLogUnconditionalPublishingInfo(buildType,
+                                          () -> "VCS root " + LogUtil.describe(vcsRoot) + " is not using refreshable tokens, trying to guess Space connection from fetch URL");
       return guessConnectionFromFetchUrl(buildType, vcsRoot, checkPublishingCapability);
     }
 
@@ -312,23 +315,22 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   private SpaceConnectDescriber findConnectionByTokenId(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot, @NotNull String tokenId, boolean checkPublishingCapability) {
     final TokenFullIdComponents tokenFullIdComponents = OAuthTokensStorage.parseFullTokenId(tokenId);
     if (tokenFullIdComponents == null) {
-      LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used for unconditional status publishing: unparseable token ID " + tokenId);
+      debugLogUnconditionalPublishingInfo(buildType, () -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used: unparseable token ID " + tokenId);
       return null;
     }
 
     final OAuthConnectionDescriptor connection = myOAuthConnectionManager.findConnectionByTokenStorageId(buildType.getProject(), tokenFullIdComponents.getTokenStorageId());
     if (!SpaceOAuthProvider.TYPE.equals(connection.getOauthProvider().getType())) {
-      LOG.debug(() -> "Space connection " + LogUtil.describe(connection) + " can't be used for unconditional status publishing: not a Space connection");
+      debugLogUnconditionalPublishingInfo(buildType, () -> "Connection " + LogUtil.describe(connection) + " can't be used: not a Space connection.");
       return null;
     }
 
     if (checkPublishingCapability && !connection.hasCapability(ConnectionCapability.PUBLISH_BUILD_STATUS)) {
-      LOG.debug(() -> "Space connection " + LogUtil.describe(connection) + " can't be used for unconditional status publishing: missing capability");
+      debugLogUnconditionalPublishingInfo(buildType, () -> "Space connection " + LogUtil.describe(connection) + " can't be used: missing capability.");
       return null;
     }
 
-    LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " on " + LogUtil.describe(buildType) +
-                    " is using Space refreshable tokens, unconditional status publishing is supported");
+    debugLogUnconditionalPublishingInfo(buildType, () -> "VCS root " + LogUtil.describe(vcsRoot) + " will be used: it is using Space refreshable tokens.");
     return new SpaceConnectDescriber(connection);
   }
 
@@ -336,7 +338,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   private SpaceConnectDescriber guessConnectionFromFetchUrl(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot, boolean checkPublishingCapability) {
     final String fetchUrl = vcsRoot.getProperty("url");
     if (StringUtil.isEmptyOrSpaces(fetchUrl)) {
-      LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used for unconditional status publishing: the fetch URL is empty");
+      debugLogUnconditionalPublishingInfo(buildType, () -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used: the fetch URL is empty");
       return null;
     }
 
@@ -344,12 +346,14 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     try {
       tokenizedFetchUrl = tokenizeFetchUrl(fetchUrl);
     } catch (InvalidUriException e) {
-      LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used for unconditional status publishing: failed to extract project key out of fetch URL " + fetchUrl, e);
+      debugLogUnconditionalPublishingInfo(buildType,
+                                          () -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used: failed to extract project key out of fetch URL " + fetchUrl,
+                                          e);
       return null;
     }
 
     if (tokenizedFetchUrl.getProjectKey() == null) {
-      LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used for unconditional status publishing: unable to locate project key in fetch URL " + fetchUrl);
+      debugLogUnconditionalPublishingInfo(buildType, () -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used: unable to locate project key in fetch URL " + fetchUrl);
       return null;
     }
     final String projectKey = tokenizedFetchUrl.getProjectKey().toUpperCase(Locale.ROOT);
@@ -357,7 +361,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     final List<OAuthConnectionDescriptor> potentialConnections = myOAuthConnectionManager.getAvailableConnectionsOfType(buildType.getProject(), SpaceOAuthProvider.TYPE);
     for (OAuthConnectionDescriptor potentialConnection : potentialConnections) {
       final SpaceConnectDescriber spaceConnection = new SpaceConnectDescriber(potentialConnection);
-      if (!matchesUrl(potentialConnection, spaceConnection, tokenizedFetchUrl)) {
+      if (!matchesUrl(buildType, potentialConnection, spaceConnection, tokenizedFetchUrl)) {
         continue;
       }
 
@@ -366,36 +370,58 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
       }
 
       final SpaceApplicationInformation applicationInfo = myApplicationInformationManager.getForConnection(spaceConnection);
-      if (hasPublishStatusRights(applicationInfo, projectKey)) {
+      if (hasPublishStatusRights(buildType, potentialConnection, applicationInfo, projectKey)) {
         return spaceConnection;
       }
     }
 
-    LOG.debug(() -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used for unconditional status publishing: there is no usable connection for project key " + projectKey);
+    debugLogUnconditionalPublishingInfo(buildType, () -> "VCS root " + LogUtil.describe(vcsRoot) + " can't be used: there is no usable connection for project key " + projectKey);
     return null;
   }
 
-  private boolean hasPublishStatusRights(@NotNull SpaceApplicationInformation applicationInformation, @NotNull String projectKey) {
+  private boolean hasPublishStatusRights(@NotNull SBuildType buildType,
+                                         @NotNull OAuthConnectionDescriptor connection,
+                                         @NotNull SpaceApplicationInformation applicationInformation,
+                                         @NotNull String projectKey) {
     final String contextIdentifierProject = SpaceConstants.CONTEXT_IDENTIFIER_PROJECT_KEY + projectKey;
-    return applicationInformation.getContextRights(contextIdentifierProject).areGranted(SpaceConstants.RIGHTS_COMMIT_STATUS) ||
-           applicationInformation.getGlobalRights().areGranted(SpaceConstants.RIGHTS_COMMIT_STATUS);
+    if (applicationInformation.getContextRights(contextIdentifierProject).areGranted(SpaceConstants.RIGHTS_COMMIT_STATUS)) {
+      debugLogUnconditionalPublishingInfo(buildType, () -> "Space connection " + LogUtil.describe(connection) +
+                                                           " will be used: sufficient rights to publish statuses are granted for the project " + projectKey);
+      return true;
+    }
+
+    if (applicationInformation.getGlobalRights().areGranted(SpaceConstants.RIGHTS_COMMIT_STATUS)) {
+      debugLogUnconditionalPublishingInfo(buildType,
+                                          () -> "Space connection " + LogUtil.describe(connection) + " will be used: sufficient rights to publish statuses are granted globally.");
+      return true;
+    }
+
+    debugLogUnconditionalPublishingInfo(buildType, () -> "Space connection " + LogUtil.describe(connection) + " can't be used: insufficient rights to publish statuses.");
+    return false;
   }
 
-  private boolean matchesUrl(@NotNull OAuthConnectionDescriptor connection, @NotNull SpaceConnectDescriber spaceConnection, @NotNull TokenizedFetchUrl tokenizedFetchUrl) {
+  private boolean matchesUrl(@NotNull SBuildType buildType,
+                             @NotNull OAuthConnectionDescriptor connection,
+                             @NotNull SpaceConnectDescriber spaceConnection,
+                             @NotNull TokenizedFetchUrl tokenizedFetchUrl) {
     final TokenizedServiceUrl tokenizedServiceUrl;
     try {
       tokenizedServiceUrl = tokenizeServiceUrl(spaceConnection.getFullAddress());
     } catch (IllegalArgumentException e) {
-      LOG.debug(() -> "Space connection " + LogUtil.describe(connection) + " can't be used for unconditional status publishing: service URL is not parseable", e);
+      debugLogUnconditionalPublishingInfo(buildType, () -> "Space connection " + LogUtil.describe(connection) + " can't be used: service URL is not parseable", e);
       return false;
     }
 
     if (!Objects.equals(tokenizedServiceUrl.getOrganization(), tokenizedFetchUrl.getOrganization())) {
-      LOG.debug(() -> "Space connection " + LogUtil.describe(connection) + " can't be used for unconditional status publishing: organizations don't match");
+      debugLogUnconditionalPublishingInfo(buildType, () -> "Space connection " + LogUtil.describe(connection) + " can't be used: organizations don't match, " +
+                                                           tokenizedServiceUrl.getOrganization() + " (from service URL) != " + tokenizedFetchUrl.getOrganization() +
+                                                           " (from fetch URL).");
       return false;
     }
 
     if (tokenizedServiceUrl.getHost().equals(tokenizedServiceUrl.getHost())) {
+      debugLogUnconditionalPublishingInfo(buildType,
+                                          () -> "Space connection " + LogUtil.describe(connection) + " will be used: fetch URL and service URL indicate identical host.");
       return true;
     }
 
@@ -407,7 +433,17 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     while (i >= 0 && j >= 0 && serviceHostTokens[i--].equals(fetchHostTokens[j--])) {
       matchCount++;
     }
-    return matchCount > 1;
+
+    if (matchCount <= 1) {
+      debugLogUnconditionalPublishingInfo(buildType, () -> "Space connection " + LogUtil.describe(connection) + " can't be used: hosts aren't similar enough, " +
+                                                           tokenizedServiceUrl.getHost() + "(from service URL) vs " + tokenizedFetchUrl.getHost() + " (from fetch URL).");
+      return false;
+    }
+
+    debugLogUnconditionalPublishingInfo(buildType,
+                                        () -> "Space connection " + LogUtil.describe(connection) + " will be used: hosts are similar enough, " + tokenizedServiceUrl.getHost() +
+                                              "(from service URL) vs " + tokenizedFetchUrl.getHost() + " (from fetch URL).");
+    return true;
   }
 
   @NotNull
@@ -435,6 +471,18 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     final String host = uri.getHost();
     final String organization = host.endsWith(Constants.DOMAIN_SPACE_CLOUD) ? host.split("\\.")[0] : null;
     return new TokenizedServiceUrl(host, organization);
+  }
+
+  private void debugLogUnconditionalPublishingInfo(@NotNull SBuildType buildType, @NotNull Supplier<String> messageSupplier) {
+    LOG.debug(chainLogMessageSupplier(buildType, messageSupplier));
+  }
+
+  private void debugLogUnconditionalPublishingInfo(@NotNull SBuildType buildType, @NotNull Supplier<String> messageSupplier, @NotNull Throwable t) {
+    LOG.debug(chainLogMessageSupplier(buildType, messageSupplier), t);
+  }
+
+  private static Logger.MessageSupplier chainLogMessageSupplier(@NotNull SBuildType buildType, @NotNull Supplier<String> messageSupplier) {
+    return () -> "Unconditional commit status publishing for " + LogUtil.describe(buildType) + ": " + messageSupplier.get();
   }
 
   private static class TokenizedFetchUrl {
