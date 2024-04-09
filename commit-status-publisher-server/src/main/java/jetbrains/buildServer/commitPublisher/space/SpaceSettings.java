@@ -361,11 +361,13 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
         continue;
       }
 
-      if (checkPublishingCapability) {
-        final SpaceApplicationInformation applicationInfo = myApplicationInformationManager.getForConnection(spaceConnection);
-        if (hasPublishStatusRights(applicationInfo, projectKey)) {
-          return spaceConnection;
-        }
+      if (!checkPublishingCapability) {
+        return spaceConnection;
+      }
+
+      final SpaceApplicationInformation applicationInfo = myApplicationInformationManager.getForConnection(spaceConnection);
+      if (hasPublishStatusRights(applicationInfo, projectKey)) {
+        return spaceConnection;
       }
     }
 
