@@ -31,6 +31,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
   private final SpaceConnectDescriber mySpaceConnector;
   private final Gson myGson = new Gson();
   private final CommitStatusesCache<SpaceBuildStatusInfo> myStatusesCache;
+  private final boolean myHasBuildFeature;
 
   SpacePublisher(@NotNull CommitStatusPublisherSettings settings,
                  @NotNull SBuildType buildType,
@@ -39,10 +40,12 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
                  @NotNull Map<String, String> params,
                  @NotNull CommitStatusPublisherProblems problems,
                  @NotNull SpaceConnectDescriber spaceConnector,
-                 @NotNull CommitStatusesCache<SpaceBuildStatusInfo> statusesCache) {
+                 @NotNull CommitStatusesCache<SpaceBuildStatusInfo> statusesCache,
+                 boolean hasBuildFeature) {
     super(settings, buildType, buildFeatureId, params, problems, links);
     mySpaceConnector = spaceConnector;
     myStatusesCache = statusesCache;
+    myHasBuildFeature = hasBuildFeature;
   }
 
   @NotNull
@@ -391,5 +394,10 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
 
   private static boolean vcsRootIdMatches(@NotNull String vcsRootId, @NotNull SVcsRootEx root) {
     return (vcsRootId.equals(root.getExternalId()) || root.isAliasExternalId(vcsRootId) || vcsRootId.equals(String.valueOf(root.getId())));
+  }
+
+  @Override
+  public boolean hasBuildFeature() {
+    return myHasBuildFeature;
   }
 }

@@ -69,6 +69,17 @@ public interface CommitStatusPublisher {
   @NotNull
   Collection<BuildRevision> getFallbackRevisions(@Nullable SBuild build);
 
+  /**
+   * Whether this publisher was created from a build feature or not.
+   * If the publisher settings support the creation of publishers without a build feature, and this particular
+   * publisher instance was created in such a way, this method will return {@code false}.
+   *
+   * @return true by default, false if no build feature exists for this publisher
+   * @see CommitStatusPublisherSettings#isFeatureLessPublishingSupported(SBuildType)
+   * @since 2024.07
+   */
+  boolean hasBuildFeature();
+
   enum Event {
     STARTED("buildStarted", EventPriority.FIRST, true), FINISHED("buildFinished", true),
     QUEUED("buildQueued", EventPriority.FIRST, true), REMOVED_FROM_QUEUE("buildRemovedFromQueue", EventPriority.FIRST, false),

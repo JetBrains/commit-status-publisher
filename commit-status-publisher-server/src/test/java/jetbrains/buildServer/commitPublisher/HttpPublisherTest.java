@@ -49,7 +49,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
   private String myLastAgent;
 
   private static final int TIMEOUT = 2000;
-  private static final int SHORT_TIMEOUT_TO_FAIL = 100;
+  protected static final int SHORT_TIMEOUT_TO_FAIL = 100;
 
 
   @DataProvider(name = "provideRedirectCodes")

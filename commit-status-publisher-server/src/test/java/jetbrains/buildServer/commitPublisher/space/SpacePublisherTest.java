@@ -84,7 +84,7 @@ public class SpacePublisherTest extends HttpPublisherTest {
                                             applicationInformationManager);
     Map<String, String> params = getPublisherParams();
     SpaceConnectDescriber connector = SpaceUtils.getConnectionData(params, myOAuthConnectionsManager, myBuildType.getProject());
-    myPublisher = new SpacePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, connector, new CommitStatusesCache<>());
+    myPublisher = new SpacePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, connector, new CommitStatusesCache<>(), true);
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }
 

@@ -100,7 +100,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   @Override
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
     SpaceConnectDescriber connector = SpaceUtils.getConnectionData(params, myOAuthConnectionManager, buildType.getProject());
-    return new SpacePublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, connector, myStatusesCache);
+    return new SpacePublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, connector, myStatusesCache, true);
   }
 
   @Override
@@ -152,7 +152,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     );
     final String buildFeatureId = String.format(Constants.SPACE_UNCONDITIONAL_FEATURE_FORMAT, buildType.getInternalId(), vcsRoot.getId());
 
-    return new SpacePublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, spaceConnection, myStatusesCache);
+    return new SpacePublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, spaceConnection, myStatusesCache, false);
   }
 
   @NotNull

@@ -99,6 +99,11 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     return Collections.emptyList();
   }
 
+  @Override
+  public boolean hasBuildFeature() {
+    return true;
+  }
+
   @Nullable
   public String getVcsRootId() {
     return myParams.get(Constants.VCS_ROOT_ID_PARAM);

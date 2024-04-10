@@ -52,10 +52,14 @@ public class CommitStatusPublisherProblems {
     } else {
       logger.warn(errorDescription);
     }
-    SBuildType buildType = publisher.getBuildType();
-    SystemProblem problem = new SystemProblem(errorDescription, null, Constants.COMMIT_STATUS_PUBLISHER_PROBLEM_TYPE, null);
 
-    myTicketManager.reportProblem(buildType, publisher.getBuildFeatureId(), problem);
+    // TW-87136: If the publisher was created automatically, users will likely not be able to deal with publishing problems.
+    if (publisher.hasBuildFeature()) {
+      SBuildType buildType = publisher.getBuildType();
+      SystemProblem problem = new SystemProblem(errorDescription, null, Constants.COMMIT_STATUS_PUBLISHER_PROBLEM_TYPE, null);
+
+      myTicketManager.reportProblem(buildType, publisher.getBuildFeatureId(), problem);
+    }
   }
 
   public void clearObsoleteProblems(@NotNull SBuildType buildType) {
