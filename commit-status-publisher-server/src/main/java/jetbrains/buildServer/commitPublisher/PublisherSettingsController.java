@@ -29,6 +29,7 @@ import jetbrains.buildServer.parameters.NullValueResolver;
 import jetbrains.buildServer.parameters.ValueResolver;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
+import jetbrains.buildServer.serverSide.auth.Permission;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.users.SUser;
@@ -73,6 +74,22 @@ public class PublisherSettingsController extends BaseController {
   @Nullable
   @Override
   protected ModelAndView doHandle(@NotNull HttpServletRequest request, @NotNull HttpServletResponse response) throws Exception {
+    BuildTypeIdentity buildTypeOrTemplate;
+    try {
+      buildTypeOrTemplate = getBuildTypeOrTemplate(request.getParameter("id"));
+    } catch (PublisherException e) {
+      response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+      return null;
+    }
+
+    SUser user = SessionUser.getUser(request);
+    if (user == null)
+      return null;
+    if(!user.isPermissionGrantedForProject(buildTypeOrTemplate.getProject().getProjectId(), Permission.EDIT_PROJECT)) {
+      response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+      return null;
+    }
+
     String publisherId = request.getParameter(Constants.PUBLISHER_ID_PARAM);
     if (publisherId == null)
       return null;
@@ -101,7 +118,6 @@ public class PublisherSettingsController extends BaseController {
     request.setAttribute("currentUser", SessionUser.getUser(request));
     request.setAttribute("testConnectionSupported", settings.isTestConnectionSupported());
 
-    SUser user = SessionUser.getUser(request);
     if (project != null && user != null) {
       Map<OAuthConnectionDescriptor, Boolean> oauthConnections = settings.getOAuthConnections(project, user);
       request.setAttribute("oauthConnections", oauthConnections);
