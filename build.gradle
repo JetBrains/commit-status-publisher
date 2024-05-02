@@ -1,8 +1,13 @@
 import java.nio.file.Paths
 
+initializeWorkspace()
+
 def localRepo = anyParamPath('TC_LOCAL_REPO')
 def pluginVersion = anyParam('PluginVersion')
-def teamcityVersion = anyParam('teamcityVersion') ?: 'LOCAL-SNAPSHOT'
+
+ext {
+  teamcityVersion = anyParam('teamcityVersion') ?: 'LOCAL-SNAPSHOT'
+}
 
 allprojects {
   apply plugin: 'java'
@@ -101,4 +106,19 @@ def anyParam(String... names) {
     println("AnyParam: $names -> $param")
   }
   return param
+}
+
+def initializeWorkspace() {
+  if (System.getProperty("idea.active") != null) {
+    println "Attempt to configure workspace in IDEA"
+    def coreVersionProperties = project.projectDir.toPath().parent.parent.resolve(".version.properties")
+    if (coreVersionProperties.toFile().exists()) {
+      def p = new Properties().tap {
+        it.load(new FileInputStream(coreVersionProperties.toFile()))
+      }
+      p.forEach { k,v ->
+        System.setProperty(k, v);
+      }
+    }
+  }
 }
