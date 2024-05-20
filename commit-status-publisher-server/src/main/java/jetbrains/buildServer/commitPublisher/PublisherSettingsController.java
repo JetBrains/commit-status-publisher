@@ -63,20 +63,24 @@ public class PublisherSettingsController extends BaseController {
   @Nullable
   @Override
   protected ModelAndView doHandle(@NotNull HttpServletRequest request, @NotNull HttpServletResponse response) throws Exception {
-    BuildTypeIdentity buildTypeOrTemplate;
-    try {
-      buildTypeOrTemplate = getBuildTypeOrTemplate(request.getParameter("id"));
-    } catch (PublisherException e) {
-      response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-      return null;
-    }
-
     SUser user = SessionUser.getUser(request);
     if (user == null)
       return null;
-    if(!user.isPermissionGrantedForProject(buildTypeOrTemplate.getProject().getProjectId(), Permission.EDIT_PROJECT)) {
-      response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-      return null;
+
+    String buildTypeId = request.getParameter("id");
+    if (buildTypeId != null) {
+      BuildTypeIdentity buildTypeOrTemplate;
+      try {
+        buildTypeOrTemplate = getBuildTypeOrTemplate(buildTypeId);
+      } catch (PublisherException e) {
+        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        return null;
+      }
+
+      if (!user.isPermissionGrantedForProject(buildTypeOrTemplate.getProject().getProjectId(), Permission.EDIT_PROJECT)) {
+        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        return null;
+      }
     }
 
     String publisherId = request.getParameter(Constants.PUBLISHER_ID_PARAM);
