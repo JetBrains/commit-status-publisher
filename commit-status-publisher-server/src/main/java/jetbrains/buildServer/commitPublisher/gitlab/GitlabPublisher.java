@@ -266,7 +266,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
         publish(credentials, commit, message, repository, buildDescription);
       }
     } catch (Exception e) {
-      throw new PublisherException("Cannot publish status to GitLab for VCS root " +
+      throw new PublisherException("Cannot publish status to GitLab(" + apiUrl + ") for VCS root " +
                                    revision.getRoot().getName() + ": " + e, e);
     }
   }
@@ -291,8 +291,13 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
       } else if (!responseString.contains("Cannot transition status via :enqueue from :pending") &&
           !responseString.contains("Cannot transition status via :enqueue from :running") &&
           !responseString.contains("Cannot transition status via :run from :running")) {
-        throw new HttpPublisherException(statusCode,
-          response.getStatusText(), "HTTP response error: " + responseString);
+        String message;
+        if (responseString.contains("<!DOCTYPE html>") || responseString.length() > 1000) {
+          message = "HTTP response error";
+        } else {
+          message =  "HTTP response error: " + responseString;
+        }
+        throw new HttpPublisherException(statusCode, response.getStatusText(), message);
       }
     }
   }

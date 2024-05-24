@@ -324,9 +324,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
         getSettings().trustStore()
       );
     } catch (Exception e) {
-      myProblems.reportProblem("Commit Status Publisher has failed to obtain a token from JetBrains Space for VCS root " + vcsRootName,
-                               this, description, null, e, LOG);
-      PublisherException ex = new PublisherException("Commit Status Publisher has failed to obtain a token from JetBrains Space", e);
+      PublisherException ex = new PublisherException("Commit Status Publisher has failed to obtain a token from JetBrains Space. " + e, e);
       RetryResponseProcessor.processNetworkException(e, ex);
       throw ex;
     }

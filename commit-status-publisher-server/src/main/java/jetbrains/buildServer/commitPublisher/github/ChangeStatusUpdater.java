@@ -431,8 +431,7 @@ public class ChangeStatusUpdater {
         );
         LOG.debug("Updated GitHub status for hash: " + hash + ", buildId: " + buildPromotion.getAssociatedBuildId() + ", status: " + targetStatus);
       } catch (PublisherException | IOException e) {
-        myPublisher.getProblems().reportProblem(String.format("Commit Status Publisher error. GitHub status: '%s'", targetStatus), myPublisher, LogUtil.describe(buildPromotion), myPublisher.getServerUrl(), e, LOG);
-        throw new PublisherException("Commit Status Publisher error. GitHub", e);
+        throw new PublisherException("Commit Status Publisher error. " + e, e);
       }
       return true;
     }
@@ -461,8 +460,7 @@ public class ChangeStatusUpdater {
       try {
         changeStatus(build, repo, hash, version, message, targetStatus, viewUrl);
       } catch (IOException | PublisherException e) {
-        problems.reportProblem(String.format("Commit Status Publisher error. GitHub status: '%s'", targetStatus), myPublisher, LogUtil.describe(build), myPublisher.getServerUrl(), e, LOG);
-        throw new PublisherException("Commit Status Publisher error. GitHub", e);
+        throw new PublisherException("Commit Status Publisher error. " + e, e);
       }
 
       if (myAddComment) {

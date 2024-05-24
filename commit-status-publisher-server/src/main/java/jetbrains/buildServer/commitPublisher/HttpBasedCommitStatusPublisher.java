@@ -53,8 +53,7 @@ public abstract class HttpBasedCommitStatusPublisher<Status> extends BaseCommitS
         () -> HttpHelper.post(url, credentials, data, ContentType.APPLICATION_JSON, headers, getConnectionTimeout(), getSettings().trustStore(), new RetryResponseProcessor(this))
       );
     } catch (Exception ex) {
-      myProblems.reportProblem("Commit Status Publisher HTTP request has failed", this, buildDescription, url, ex, LOG);
-      PublisherException e = new PublisherException("Commit Status Publisher POST HTTP request has failed", ex);
+      PublisherException e = new PublisherException("Commit Status Publisher POST HTTP request has failed. " + ex, ex);
       RetryResponseProcessor.processNetworkException(ex, e);
       throw e;
     }

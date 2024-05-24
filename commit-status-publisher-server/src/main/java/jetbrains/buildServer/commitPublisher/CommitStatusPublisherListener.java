@@ -866,7 +866,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       AdditionalTaskInfo additionalTaskInfo = new AdditionalTaskInfo(promotion, comment, commentAuthor);
 
       Long lastDelay = task.getLongArg2();
-      if (lastDelay != null && event == Event.QUEUED && promotion.getQueuedBuild() == null) {
+      if (lastDelay != null && eventType == Event.QUEUED && promotion.getQueuedBuild() == null) {
+        // we do not retry publishing queued status if the build is no longer in queue
         return;
       }
       runAsync(() -> runForEveryPublisher(eventType, promotion, additionalTaskInfo, lastDelay), () -> { eventProcessed(eventType); });

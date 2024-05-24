@@ -508,8 +508,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
 
     @Override
     public void publishBuildStatus(@NotNull StatusData data, @NotNull String buildDescription) throws PublisherException {
+      String url = getBuildEndpointUrl(data);
       try {
-        String url = getBuildEndpointUrl(data);
         String msg = createBuildStatusMessage(data);
         if (msg.isEmpty()) {
           LOG.warn(String.format("Can not build message for the build #%s. Status \"%s\" won't be published",
@@ -519,8 +519,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
 
         postJson(url, getCredentials(data.getVcsRootInstance()), msg, null, buildDescription);
       } catch (PublisherException ex) {
-        myProblems.reportProblem("Commit Status Publisher has failed to prepare a request", StashPublisher.this, buildDescription, null, ex, LOG);
-        throw ex;
+        throw new PublisherException("Cannot publish status to Stash(" + url + "): " + ex, ex);
       }
     }
 
