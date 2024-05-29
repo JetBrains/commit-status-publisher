@@ -35,18 +35,15 @@
   </props:selectSectionPropertyContent>
 
   <props:selectSectionPropertyContent value="${keys.authTypeStoredToken}" caption="Refreshable access token">
-
-    <%@include file="/admin/_tokenSupport.jspf"%>
-
     <tr>
       <th><label for="${keys.tokenId}">Refreshable access token:<l:star/></label></th>
       <td>
-        <span class="access-token-note" id="message_no_token">No access token configured.</span>
-        <span class="access-token-note" id="message_we_have_token"></span>
         <c:if test="${empty oauthConnections}">
-          <br/>
-          <span>There are no Bitbucket connections available to the project.</span>
+          <div>There are no Bitbucket connections available to the project.</div>
         </c:if>
+
+        <props:hiddenProperty name="${keys.tokenId}" />
+        <span class="error" id="error_${keys.tokenId}"></span>
 
         <c:set var="canObtainTokens" value="${canEditProject and not project.readOnly}"/>
         <c:set var="connectorType" value="<%=BitBucketOAuthProvider.TYPE%>"/>
@@ -62,9 +59,6 @@
                   <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
           </jsp:attribute>
         </oauth:tokenControlsForFeatures>
-
-        <props:hiddenProperty name="${keys.tokenId}" />
-        <span class="error" id="error_${keys.tokenId}"></span>
       </td>
     </tr>
   </props:selectSectionPropertyContent>

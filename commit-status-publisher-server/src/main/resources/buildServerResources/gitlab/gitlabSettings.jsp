@@ -28,19 +28,17 @@
     </tr>
   </props:selectSectionPropertyContent>
   <props:selectSectionPropertyContent value="storedToken" caption="Refreshable access token">
-    <%@include file="/admin/_tokenSupport.jspf"%>
     <tr>
       <th>
         <label for="refreshabletoken">Refreshable access token:</label>
       </th>
       <td>
-        <span class="access-token-note" id="message_no_token">No access token configured.</span>
-        <span class="access-token-note" id="message_we_have_token"></span>
-
         <c:if test="${empty oauthConnections}">
-          <br/>
-          <span>There are no GitLab OAuth 2.0 connections available to the project.</span>
+          <div>There are no GitLab OAuth 2.0 connections available to the project.</div>
         </c:if>
+
+        <props:hiddenProperty name="tokenId" />
+        <span class="error" id="error_tokenId"></span>
 
         <c:set var="canObtainTokens" value="${canEditProject and not project.readOnly}"/>
         <oauth:tokenControlsForFeatures
@@ -63,9 +61,6 @@
             </span>
           </jsp:attribute>
         </oauth:tokenControlsForFeatures>
-
-        <props:hiddenProperty name="tokenId" />
-        <span class="error" id="error_tokenId"></span>
       </td>
     </tr>
   </props:selectSectionPropertyContent>

@@ -64,19 +64,17 @@
 
    <c:if test='${!isAcquiringTokensDisabled}'>
      <props:selectSectionPropertyContent value="${keys.authentificationTypeGitHubAppTokenValue}" caption="GitHub App access token">
-       <%@include file="/admin/_tokenSupport.jspf"%>
        <tr>
          <th>
            <label for="${keys.tokenIdKey}">GitHub App Token:</label>
          </th>
          <td>
-           <span class="access-token-note" id="message_no_token">No access token configured.</span>
-           <span class="access-token-note" id="message_we_have_token"></span>
-
            <c:if test="${!refreshTokenSupported}">
-             <br/>
-             <span>There are no GitHub App connections available to the project.</span>
+             <div>There are no GitHub App connections available to the project.</div>
            </c:if>
+
+           <props:hiddenProperty name="${keys.tokenIdKey}" />
+           <span class="error" id="error_${keys.tokenIdKey}"></span>
 
            <c:set var="connectorType" value="GitHubApp"/>
            <c:set var="canObtainTokens" value="${canEditProject and not project.readOnly}"/>
@@ -88,15 +86,13 @@
              canObtainTokens="${canObtainTokens}"
              callback="BS.AuthTypeTokenSupport.tokenCallback"
              oauthConnections="${oauthConnections}"
-             checkForRefreshSupport="true">
+             checkForRefreshSupport="true"
+             canGenerate="${refreshTokenSupported}">
             <jsp:attribute name="addCredentialFragment">
                <span class="smallNote connection-note">Add credentials via the
                     <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=${connectorType}'/>" target="_blank" rel="noreferrer">Project Connections</a> page</span>
             </jsp:attribute>
            </oauth:tokenControlsForFeatures>
-
-           <props:hiddenProperty name="${keys.tokenIdKey}" />
-           <span class="error" id="error_${keys.tokenIdKey}"></span>
          </td>
        </tr>
      </props:selectSectionPropertyContent>
