@@ -62,6 +62,12 @@ public class Constants {
   public static final String BITBUCKET_CLOUD_USERNAME = "bitbucketUsername";
   public static final String BITBUCKET_CLOUD_PASSWORD = "secure:bitbucketPassword";
 
+  public static final String GITEA_PUBLISHER_ID = "giteaCloudPublisher";
+  public static final String GITEA_API_URL = "giteaApiUrl";
+  public static final String GITEA_USERNAME = "giteaUsername";
+  public static final String GITEA_PASSWORD = "secure:giteaPassword";
+  public static final String GITEA_TOKEN = "secure:github_access_token";
+
   public static final String GITLAB_PUBLISHER_ID = "gitlabStatusPublisher";
   public static final String GITLAB_API_URL = "gitlabApiUrl";
   public static final String GITLAB_TOKEN = "secure:gitlabAccessToken";
@@ -203,4 +209,15 @@ public class Constants {
   public String getGitlabToken() {
     return GITLAB_TOKEN;
   }
+
+  @NotNull
+  public String getGiteaToken() {
+    return GITEA_TOKEN;
+  }
+
+  @NotNull
+  public String getGiteaServer() {
+    return GITEA_API_URL;
+  }
+
 }

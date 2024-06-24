@@ -3,30 +3,22 @@
 package jetbrains.buildServer.commitPublisher.gitea;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
-import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudRepoInfo;
-import jetbrains.buildServer.commitPublisher.gitea.data.GiteaReceiveCommitStatus;
+import jetbrains.buildServer.commitPublisher.gitea.data.GiteaCommitStatus;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaRepoInfo;
-import jetbrains.buildServer.commitPublisher.gitlab.GitlabSettings;
-import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.serverSide.oauth.bitbucket.BitBucketOAuthProvider;
-import jetbrains.buildServer.serverSide.oauth.gitlab.GitLabClientImpl;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
-import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
@@ -40,8 +32,6 @@ import org.springframework.http.MediaType;
 
 public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatusPublisherSettings {
 
-  static final String DEFAULT_API_URL = "http://localhost:3000/api/v1/";
-  private static final Pattern URL_WITH_API_SUFFIX = Pattern.compile("(.*)/api/v1");
   static final String DEFAULT_AUTH_TYPE = Constants.PASSWORD;
   static final String ACCESS_TOKEN_USERNAME = "x-token-auth";
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
@@ -61,9 +51,7 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
     addAll(mySupportedEvents);
   }};
 
-  private final CommitStatusesCache<GiteaReceiveCommitStatus> myStatusesCache;
-
-  private final ProjectManager myProjectManager;
+  private final CommitStatusesCache<GiteaCommitStatus> myStatusesCache;
 
   public GiteaSettings(@NotNull PluginDescriptor descriptor,
                        @NotNull WebLinks links,
@@ -72,15 +60,9 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
                        @NotNull OAuthConnectionsManager oAuthConnectionsManager,
                        @NotNull OAuthTokensStorage oAuthTokensStorage,
                        @NotNull UserModel userModel,
-                       @NotNull SecurityContext securityContext,
-                       @NotNull ProjectManager projectManager) {
+                       @NotNull SecurityContext securityContext) {
     super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, oAuthConnectionsManager, securityContext);
     myStatusesCache = new CommitStatusesCache<>();
-    myProjectManager = projectManager;
-  }
-
-  protected String getDefaultApiUrl() {
-    return DEFAULT_API_URL;
   }
 
   @NotNull
@@ -140,16 +122,10 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
   }
 
   @Override
-  public boolean isFQDNTeamCityUrlRequired() {
-    return true;
-  }
-
-  @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
     String apiUrl = params.getOrDefault(Constants.GITEA_API_URL, guessApiURL(root.getProperty("url")));
     if (StringUtil.isEmptyOrSpaces(apiUrl))
       throw new PublisherException("Missing GitLab API URL parameter");
-    String pathPrefix = getPathPrefix(apiUrl);
     Repository repository = VCS_URL_PARSER.parseRepositoryUrl(root.getProperty("url"));
     String url = apiUrl + "/repos/" + repository.owner() + "/" + repository.repositoryName();
     HttpResponseProcessor<HttpPublisherException> processor = new DefaultHttpResponseProcessor() {
@@ -190,18 +166,6 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
   @Override
   protected Set<Event> getSupportedEvents(final SBuildType buildType, final Map<String, String> params) {
     return isBuildQueuedSupported(buildType) ? mySupportedEventsWithQueued : mySupportedEvents;
-  }
-
-  @Nullable
-  public static String getPathPrefix(final String apiUrl) {
-    if (!URL_WITH_API_SUFFIX.matcher(apiUrl).matches()) return null;
-    try {
-      URI uri = new URI(apiUrl);
-      String path = uri.getPath();
-      return path.substring(0, path.length() - "/api/v1".length());
-    } catch (URISyntaxException e) {
-      return null;
-    }
   }
 
   @Override

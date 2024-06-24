@@ -7,13 +7,10 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaCommitStatus;
-import jetbrains.buildServer.commitPublisher.gitea.data.GiteaReceiveCommitStatus;
-import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabReceiveCommitStatus;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
@@ -24,20 +21,18 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
 
-  private static final int DEFAULT_PAGE_SIZE = 25;
   private static final String BUILD_NUMBER_IN_STATUS_NAME_FEATURE_TOGGLE = "commitStatusPublisher.gitea.buildNumberToName.enabled";
-  private String myBaseUrl = GiteaSettings.DEFAULT_API_URL;
   private final Gson myGson = new Gson();
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
-  private final CommitStatusesCache<GiteaReceiveCommitStatus> myStatusesCache;
+  private final CommitStatusesCache<GiteaCommitStatus> myStatusesCache;
 
   GiteaPublisher(@NotNull CommitStatusPublisherSettings settings,
                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                  @NotNull WebLinks links,
                  @NotNull Map<String, String> params,
                  @NotNull CommitStatusPublisherProblems problems,
-                 @NotNull CommitStatusesCache<GiteaReceiveCommitStatus> statusesCache) {
+                 @NotNull CommitStatusesCache<GiteaCommitStatus> statusesCache) {
     super(settings, buildType, buildFeatureId, params, problems, links);
     myStatusesCache = statusesCache;
   }
@@ -57,19 +52,19 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion,
                              @NotNull BuildRevision revision,
                              @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    return vote(buildPromotion, revision, GiteaBuildStatus.PENDING, additionalTaskInfo.getComment());
+    return publish(buildPromotion, revision, GiteaBuildStatus.PENDING, additionalTaskInfo.getComment());
   }
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
                                        @NotNull BuildRevision revision,
                                        @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    return vote(buildPromotion, revision, GiteaBuildStatus.FAILURE, additionalTaskInfo.getComment());
+    return publish(buildPromotion, revision, GiteaBuildStatus.FAILURE, additionalTaskInfo.getComment());
   }
 
   @Override
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    vote(build.getBuildPromotion(), revision, GiteaBuildStatus.PENDING, DefaultStatusMessages.BUILD_STARTED);
+    publish(build.getBuildPromotion(), revision, GiteaBuildStatus.PENDING, DefaultStatusMessages.BUILD_STARTED);
     return true;
   }
 
@@ -77,7 +72,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
   public boolean buildFinished(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     GiteaBuildStatus status = build.getBuildStatus().isSuccessful() ? GiteaBuildStatus.SUCCESS : GiteaBuildStatus.FAILURE;
     String description = build.getStatusDescriptor().getText();
-    vote(build.getBuildPromotion(), revision, status, description);
+    publish(build.getBuildPromotion(), revision, status, description);
     return true;
   }
 
@@ -94,67 +89,52 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
     if (user != null && comment != null) {
       description += " with a comment by " + user.getExtendedName() + ": \"" + comment + "\"";
     }
-    vote(build.getBuildPromotion(), revision, status, description);
+    publish(build.getBuildPromotion(), revision, status, description);
     return true;
   }
 
   @Override
   public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    vote(build.getBuildPromotion(), revision, GiteaBuildStatus.ERROR, build.getStatusDescriptor().getText());
+    publish(build.getBuildPromotion(), revision, GiteaBuildStatus.ERROR, build.getStatusDescriptor().getText());
     return true;
   }
 
   @Override
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    vote(build.getBuildPromotion(), revision, GiteaBuildStatus.FAILURE, build.getStatusDescriptor().getText());
+    publish(build.getBuildPromotion(), revision, GiteaBuildStatus.FAILURE, build.getStatusDescriptor().getText());
     return true;
   }
 
   @Override
   public boolean buildMarkedAsSuccessful(@NotNull SBuild build, @NotNull BuildRevision revision, boolean buildInProgress) throws PublisherException {
-    vote(build.getBuildPromotion(), revision, buildInProgress ? GiteaBuildStatus.PENDING : GiteaBuildStatus.SUCCESS, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL);
+    publish(build.getBuildPromotion(), revision, buildInProgress ? GiteaBuildStatus.PENDING : GiteaBuildStatus.SUCCESS, DefaultStatusMessages.BUILD_MARKED_SUCCESSFULL);
     return true;
   }
 
   @Override
   public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
-    GiteaReceiveCommitStatus buildStatus = getLatestCommitStatusForBuild(revision, getBuildName(buildPromotion));
+    GiteaCommitStatus buildStatus = getLatestCommitStatusForBuild(revision, getBuildName(buildPromotion));
     return getRevisionStatus(buildPromotion, buildStatus);
   }
 
   @Nullable
-  private RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @Nullable GiteaReceiveCommitStatus commitStatus) {
+  private RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @Nullable GiteaCommitStatus commitStatus) {
     if (commitStatus == null) {
       return null;
     }
     Event event = getTriggeredEvent(commitStatus);
-    boolean isSameBuildType = StringUtil.areEqual(buildPromotion.getBuildType().getFullName(), commitStatus.description);
-    return new RevisionStatus(event, commitStatus.description, isSameBuildType, getBuildIdFromViewUrl(commitStatus.url));
+    boolean isSameBuildType = StringUtil.areEqual(buildPromotion.getBuildType().getFullName(), commitStatus.context);
+    return new RevisionStatus(event, commitStatus.description, isSameBuildType, getBuildIdFromViewUrl(commitStatus.target_url));
   }
 
-  @Override
-  public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
-    GiteaReceiveCommitStatus buildStatus = getLatestCommitStatusForBuild(revision, removedBuild.getBuildType().getFullName());
-    return getRevisionStatusForRemovedBuild(removedBuild, buildStatus);
-  }
-
-  private RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, GiteaReceiveCommitStatus buildStatus) {
-    if (buildStatus == null) {
-      return null;
-    }
-    Event event = getTriggeredEvent(buildStatus);
-    boolean isSameBuildType = StringUtil.areEqual(removedBuild.getBuildType().getFullName(), buildStatus.description);
-    return new RevisionStatus(event, buildStatus.description, isSameBuildType, getBuildIdFromViewUrl(buildStatus.url));
-  }
-
-  private GiteaReceiveCommitStatus getLatestCommitStatusForBuild(@NotNull BuildRevision revision, @NotNull String buildName) throws PublisherException {
-    Repository repository = VCS_URL_PARSER.parseRepositoryUrl(GiteaSettings.DEFAULT_API_URL);
+  private GiteaCommitStatus getLatestCommitStatusForBuild(@NotNull BuildRevision revision, @NotNull String buildName) throws PublisherException {
+    Repository repository = getRepositoryFromVcs(revision);
     if (repository == null)
       throw new PublisherException("Could not parse Gitea repository URL");
     AtomicReference<PublisherException> exception = new AtomicReference<>(null);
-    GiteaReceiveCommitStatus statusFromCache = myStatusesCache.getStatusFromCache(revision, buildName, () -> {
+    GiteaCommitStatus statusFromCache = myStatusesCache.getStatusFromCache(revision, buildName, () -> {
       try {
-        GiteaReceiveCommitStatus[] commitStatuses = loadCommitStatuses(repository, revision);
+        GiteaCommitStatus[] commitStatuses = loadCommitStatuses(repository, revision);
         return Arrays.asList(commitStatuses);
       } catch (PublisherException e) {
         exception.set(e);
@@ -169,17 +149,16 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
   }
 
 
-  private GiteaReceiveCommitStatus[] loadCommitStatuses(Repository repository, BuildRevision revision) throws PublisherException {
+  private GiteaCommitStatus[] loadCommitStatuses(Repository repository, BuildRevision revision) throws PublisherException {
     final String baseUrl = String.format("%s/repos/%s/%s/statuses/%s",
-                                         getBaseUrl(), repository.owner(), repository.repositoryName(), revision.getRevision());
-    ResponseEntityProcessor<GiteaReceiveCommitStatus[]> processor = new ResponseEntityProcessor<>(GiteaReceiveCommitStatus[].class);
-    GiteaReceiveCommitStatus[] commitStatuses = get(baseUrl, getCredentials(revision.getRoot()), null, processor);
+                                         getApiUrl(revision), repository.owner(), repository.repositoryName(), revision.getRevision());
+    ResponseEntityProcessor<GiteaCommitStatus[]> processor = new ResponseEntityProcessor<>(GiteaCommitStatus[].class);
+    GiteaCommitStatus[] commitStatuses = get(baseUrl, getCredentials(revision.getRoot()), null, processor);
     if (commitStatuses == null || commitStatuses.length == 0) {
-      return new GiteaReceiveCommitStatus[0];
+      return new GiteaCommitStatus[0];
     }
     return commitStatuses;
   }
-
 
 
   @Nullable
@@ -208,7 +187,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
       case SUCCESS:
         return null;  // these statuses do not affect on further behaviour
       default:
-        LOG.warn("No event is assosiated with BitBucket Cloud build status \"" + buildStatus.state + "\". Related event can not be defined");
+        LOG.warn("No event is assosiated with Gitea build status \"" + buildStatus.state + "\". Related event can not be defined");
     }
     return null;
   }
@@ -219,7 +198,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
                                                          @NotNull String comment,
                                                          @NotNull String url) {
     String buildName = getBuildName(promotion);
-    return new GiteaCommitStatus(buildName, comment, status.getName(), buildName, url);
+    return new GiteaCommitStatus(buildName, comment, status.getName(), url);
   }
 
   @NotNull
@@ -241,7 +220,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
     return sb.toString();
   }
 
-  private boolean vote(
+  private boolean publish(
     @NotNull BuildPromotion buildPromotion,
     @NotNull BuildRevision revision,
     @NotNull GiteaBuildStatus status,
@@ -254,24 +233,31 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
       return false;
     }
     final VcsRootInstance root = revision.getRoot();
-    Repository repository = VCS_URL_PARSER.parseRepositoryUrl(root.getProperty("url"));
+    Repository repository = getRepositoryFromVcs(revision);
     if (repository == null) {
       throw new PublisherException(String.format("Gitea publisher has failed to parse repository URL from VCS root '%s'", root.getName()));
     }
 
     GiteaCommitStatus buildStatus = getBuildStatus(buildPromotion, status, comment, url);
-    vote(revision, buildStatus, repository, LogUtil.describe(buildPromotion));
+    publish(revision, buildStatus, repository, LogUtil.describe(buildPromotion));
     myStatusesCache.removeStatusFromCache(revision, buildKey(buildPromotion));
     return true;
   }
 
-  private void vote(@NotNull BuildRevision revision, @NotNull GiteaCommitStatus status, @NotNull Repository repository, @NotNull String buildDescription)
+  private void publish(@NotNull BuildRevision revision, @NotNull GiteaCommitStatus status, @NotNull Repository repository, @NotNull String buildDescription)
     throws PublisherException {
     final String commit = revision.getRevision();
     String data = myGson.toJson(status);
-    LOG.debug(getBaseUrl() + " :: " + commit + " :: " + data);
-    String url = getBaseUrl() + "repos/" + repository.owner() + "/" + repository.repositoryName() + "/statuses/" + commit;
+    LOG.debug(getApiUrl(revision) + " :: " + commit + " :: " + data);
+    String url = getApiUrl(revision) + "/repos/" + repository.owner() + "/" + repository.repositoryName() + "/statuses/" + commit;
     postJson(url, getCredentials(revision.getRoot()), data, null, buildDescription);
+  }
+
+  private Repository getRepositoryFromVcs(@NotNull BuildRevision revision) {
+    final VcsRootInstance root = revision.getRoot();
+    String url = root.getProperty("url");
+    if (url == null) return null;
+    return VCS_URL_PARSER.parseRepositoryUrl(url);
   }
 
   @Override
@@ -316,7 +302,19 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
     }
   }
 
-  protected String getBaseUrl() { return myBaseUrl;  }
+  protected String getApiUrl(@Nullable BuildRevision revision)  throws PublisherException {
+    if (!StringUtil.isEmptyOrSpaces(myParams.get(Constants.GITEA_API_URL)))
+      return HttpHelper.stripTrailingSlash(myParams.get(Constants.GITEA_API_URL));
+
+    if (revision == null) {
+      throw new PublisherException("Gitea API URL not set and no Build Revision provided");
+    }
+    VcsRootInstance root = revision.getRoot();
+    if (root == null)
+      throw new PublisherException("Vcs Root is null.");
+    return getApiUrlFromVcsRootUrl(root.getProperty("url"));
+    }
+
 
   @Nullable
   private HttpCredentials getCredentials(@NotNull VcsRootInstance root) throws PublisherException {
