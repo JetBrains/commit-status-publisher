@@ -1,5 +1,3 @@
-
-
 package jetbrains.buildServer.commitPublisher;
 
 import java.io.File;
@@ -30,7 +28,7 @@ import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.http.HttpMethod;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.VcsRootInstanceImpl;
-import org.jdom.Element;
+import org.jdom2.Element;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
