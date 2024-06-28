@@ -4,18 +4,12 @@ package jetbrains.buildServer.commitPublisher.gitea;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
-import jetbrains.buildServer.commitPublisher.gitea.data.GiteaCommitStatus;
+import jetbrains.buildServer.commitPublisher.gitea.data.GiteaReceiveCommitStatus;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaRepoInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
-import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
-import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
-import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
-import jetbrains.buildServer.serverSide.oauth.bitbucket.BitBucketOAuthProvider;
-import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
@@ -51,17 +45,15 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
     addAll(mySupportedEvents);
   }};
 
-  private final CommitStatusesCache<GiteaCommitStatus> myStatusesCache;
+  private final CommitStatusesCache<GiteaReceiveCommitStatus> myStatusesCache;
 
   public GiteaSettings(@NotNull PluginDescriptor descriptor,
                        @NotNull WebLinks links,
                        @NotNull CommitStatusPublisherProblems problems,
                        @NotNull SSLTrustStoreProvider trustStoreProvider,
-                       @NotNull OAuthConnectionsManager oAuthConnectionsManager,
-                       @NotNull OAuthTokensStorage oAuthTokensStorage,
                        @NotNull UserModel userModel,
                        @NotNull SecurityContext securityContext) {
-    super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, oAuthConnectionsManager, securityContext);
+    super(descriptor, links, problems, trustStoreProvider, null, userModel, null, securityContext);
     myStatusesCache = new CommitStatusesCache<>();
   }
 
@@ -125,7 +117,7 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
     String apiUrl = params.getOrDefault(Constants.GITEA_API_URL, guessApiURL(root.getProperty("url")));
     if (StringUtil.isEmptyOrSpaces(apiUrl))
-      throw new PublisherException("Missing GitLab API URL parameter");
+      throw new PublisherException("Missing Gitea API URL parameter");
     Repository repository = VCS_URL_PARSER.parseRepositoryUrl(root.getProperty("url"));
     String url = apiUrl + "/repos/" + repository.owner() + "/" + repository.repositoryName();
     HttpResponseProcessor<HttpPublisherException> processor = new DefaultHttpResponseProcessor() {
@@ -136,11 +128,11 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
 
         final String json = response.getContent();
         if (null == json) {
-          throw new HttpPublisherException("Stash publisher has received no response");
+          throw new HttpPublisherException("Gitea publisher has received no response");
         }
         GiteaRepoInfo repoInfo = myGson.fromJson(json, GiteaRepoInfo.class);
         if (null == repoInfo)
-          throw new HttpPublisherException("Bitbucket Cloud publisher has received a malformed response");
+          throw new HttpPublisherException("Gitea publisher has received a malformed response");
       }
     };
 
@@ -175,15 +167,6 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
     if (hostUrl == null)
       return null;
     return hostUrl + "/api/v1";
-  }
-
-  @NotNull
-  @Override
-  public List<OAuthConnectionDescriptor> getOAuthConnections(@NotNull SProject project, @NotNull SUser user) {
-    return myOAuthConnectionsManager.getAvailableConnectionsOfType(project, BitBucketOAuthProvider.TYPE)
-                                    .stream()
-                                    .sorted(CONNECTION_DESCRIPTOR_NAME_COMPARATOR)
-                                    .collect(Collectors.toList());
   }
 
   @NotNull
@@ -245,5 +228,10 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
       return new BearerTokenCredentials(password);
     }
     return super.getVcsRootPasswordCredentials(root, vcsProperties);
+  }
+
+  @Override
+  public boolean isEnabled() {
+    return TeamCityProperties.getBoolean("teamcity.commitStatusPublisher.gitea.enabled");
   }
 }

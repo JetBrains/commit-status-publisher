@@ -4,14 +4,14 @@
 <suite name="Tests for Commit Status Publisher">
   <test name="Tests for Commit Status Publisher">
     <classes>
-      <class name="jetbrains.buildServer.commitPublisher.ServerListenerTest" />
+      <class name="jetbrains.buildServer.commitStatusPublisher.ServerListenerTest" />
       <class name="jetbrains.buildServer.commitPublisher.PublisherSettingsControllerTest" />
-      <class name="jetbrains.buildServer.commitPublisher.GitRepositoryParserTest" />
+      <class name="jetbrains.buildServer.commitStatusPublisher.GitRepositoryParserTest" />
       <class name="jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeatureTest" />
       <class name="jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeatureControllerTest" />
-      <class name="jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblemsTest" />
-      <class name="jetbrains.buildServer.commitPublisher.CommitStatusPublisherListenerTest" />
-      <class name="jetbrains.buildServer.commitPublisher.ConstantsTest" />
+      <class name="jetbrains.buildServer.commitStatusPublisher.CommitStatusPublisherProblemsTest" />
+      <class name="jetbrains.buildServer.commitStatusPublisher.CommitStatusPublisherListenerTest" />
+      <class name="jetbrains.buildServer.commitStatusPublisher.ConstantsTest" />
       <class name="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudRepositoryParserTest" />
       <class name="jetbrains.buildServer.commitPublisher.gerrit.GerritPublisherTest" />
@@ -25,7 +25,7 @@
       <class name="jetbrains.buildServer.commitPublisher.space.SpacePublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.space.SpaceFeatureLessPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.space.SpaceSettingsTest" />
-      <class name="jetbrains.buildServer.commitPublisher.CommitStatusesCacheTest" />
+      <class name="jetbrains.buildServer.commitStatusPublisher.CommitStatusesCacheTest" />
 
       <class name="jetbrains.buildServer.swarm.SwarmClientManagerTest" />
       <class name="jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherTest" />
@@ -35,7 +35,7 @@
       <class name="jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettingsTest" />
 
       <class name="jetbrains.buildServer.commitPublisher.reports.MissingVcsRootReportTest" />
-      <class name="jetbrains.buildServer.commitPublisher.PublisherManagerTest" />
+      <class name="jetbrains.buildServer.commitStatusPublisher.PublisherManagerTest" />
     </classes>
   </test>
 </suite>

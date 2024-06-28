@@ -6,7 +6,8 @@ import com.google.gson.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import jetbrains.buildServer.commitPublisher.*;
-import jetbrains.buildServer.commitPublisher.gitea.data.GiteaCommitStatus;
+import jetbrains.buildServer.commitPublisher.gitea.data.GiteaPublishCommitStatus;
+import jetbrains.buildServer.commitPublisher.gitea.data.GiteaReceiveCommitStatus;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.users.User;
@@ -25,14 +26,14 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
   private final Gson myGson = new Gson();
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
-  private final CommitStatusesCache<GiteaCommitStatus> myStatusesCache;
+  private final CommitStatusesCache<GiteaReceiveCommitStatus> myStatusesCache;
 
   GiteaPublisher(@NotNull CommitStatusPublisherSettings settings,
                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                  @NotNull WebLinks links,
                  @NotNull Map<String, String> params,
                  @NotNull CommitStatusPublisherProblems problems,
-                 @NotNull CommitStatusesCache<GiteaCommitStatus> statusesCache) {
+                 @NotNull CommitStatusesCache<GiteaReceiveCommitStatus> statusesCache) {
     super(settings, buildType, buildFeatureId, params, problems, links);
     myStatusesCache = statusesCache;
   }
@@ -113,12 +114,12 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
 
   @Override
   public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
-    GiteaCommitStatus buildStatus = getLatestCommitStatusForBuild(revision, getBuildName(buildPromotion));
+    GiteaReceiveCommitStatus buildStatus = getLatestCommitStatusForBuild(revision, getBuildName(buildPromotion));
     return getRevisionStatus(buildPromotion, buildStatus);
   }
 
   @Nullable
-  private RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @Nullable GiteaCommitStatus commitStatus) {
+  private RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @Nullable GiteaReceiveCommitStatus commitStatus) {
     if (commitStatus == null) {
       return null;
     }
@@ -127,14 +128,14 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
     return new RevisionStatus(event, commitStatus.description, isSameBuildType, getBuildIdFromViewUrl(commitStatus.target_url));
   }
 
-  private GiteaCommitStatus getLatestCommitStatusForBuild(@NotNull BuildRevision revision, @NotNull String buildName) throws PublisherException {
+  private GiteaReceiveCommitStatus getLatestCommitStatusForBuild(@NotNull BuildRevision revision, @NotNull String buildName) throws PublisherException {
     Repository repository = getRepositoryFromVcs(revision);
     if (repository == null)
       throw new PublisherException("Could not parse Gitea repository URL");
     AtomicReference<PublisherException> exception = new AtomicReference<>(null);
-    GiteaCommitStatus statusFromCache = myStatusesCache.getStatusFromCache(revision, buildName, () -> {
+    GiteaReceiveCommitStatus statusFromCache = myStatusesCache.getStatusFromCache(revision, buildName, () -> {
       try {
-        GiteaCommitStatus[] commitStatuses = loadCommitStatuses(repository, revision);
+        GiteaReceiveCommitStatus[] commitStatuses = loadCommitStatuses(repository, revision);
         return Arrays.asList(commitStatuses);
       } catch (PublisherException e) {
         exception.set(e);
@@ -149,28 +150,28 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
   }
 
 
-  private GiteaCommitStatus[] loadCommitStatuses(Repository repository, BuildRevision revision) throws PublisherException {
+  private GiteaReceiveCommitStatus[] loadCommitStatuses(Repository repository, BuildRevision revision) throws PublisherException {
     final String baseUrl = String.format("%s/repos/%s/%s/statuses/%s",
                                          getApiUrl(revision), repository.owner(), repository.repositoryName(), revision.getRevision());
-    ResponseEntityProcessor<GiteaCommitStatus[]> processor = new ResponseEntityProcessor<>(GiteaCommitStatus[].class);
-    GiteaCommitStatus[] commitStatuses = get(baseUrl, getCredentials(revision.getRoot()), null, processor);
+    ResponseEntityProcessor<GiteaReceiveCommitStatus[]> processor = new ResponseEntityProcessor<>(GiteaReceiveCommitStatus[].class);
+    GiteaReceiveCommitStatus[] commitStatuses = get(baseUrl, getCredentials(revision.getRoot()), null, processor);
     if (commitStatuses == null || commitStatuses.length == 0) {
-      return new GiteaCommitStatus[0];
+      return new GiteaReceiveCommitStatus[0];
     }
     return commitStatuses;
   }
 
 
   @Nullable
-  private Event getTriggeredEvent(@NotNull GiteaCommitStatus buildStatus) {
-    if (buildStatus.state == null) {
+  private Event getTriggeredEvent(@NotNull GiteaReceiveCommitStatus buildStatus) {
+    if (buildStatus.status == null) {
       LOG.warn("No Gitea build status is provided. Related event can not be calculated");
       return null;
     }
     GiteaBuildStatus
-      status = GiteaBuildStatus.getByName(buildStatus.state);
+      status = GiteaBuildStatus.getByName(buildStatus.status);
     if (status == null) {
-      LOG.warn(String.format("Unknown Gitea Cloud build status: \"%s\". Related event can not be calculated", buildStatus.state));
+      LOG.warn(String.format("Unknown Gitea Cloud build status: \"%s\". Related event can not be calculated", buildStatus.status));
       return null;
     }
     switch (status) {
@@ -187,18 +188,18 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
       case SUCCESS:
         return null;  // these statuses do not affect on further behaviour
       default:
-        LOG.warn("No event is assosiated with Gitea build status \"" + buildStatus.state + "\". Related event can not be defined");
+        LOG.warn("No event is assosiated with Gitea build status \"" + buildStatus.status + "\". Related event can not be defined");
     }
     return null;
   }
 
   @NotNull
-  private GiteaCommitStatus getBuildStatus(@NotNull BuildPromotion promotion,
+  private GiteaPublishCommitStatus getBuildStatus(@NotNull BuildPromotion promotion,
                                                          @NotNull GiteaBuildStatus status,
                                                          @NotNull String comment,
                                                          @NotNull String url) {
     String buildName = getBuildName(promotion);
-    return new GiteaCommitStatus(buildName, comment, status.getName(), url);
+    return new GiteaPublishCommitStatus(buildName, comment, status.getName(), url);
   }
 
   @NotNull
@@ -238,13 +239,13 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
       throw new PublisherException(String.format("Gitea publisher has failed to parse repository URL from VCS root '%s'", root.getName()));
     }
 
-    GiteaCommitStatus buildStatus = getBuildStatus(buildPromotion, status, comment, url);
+    GiteaPublishCommitStatus buildStatus = getBuildStatus(buildPromotion, status, comment, url);
     publish(revision, buildStatus, repository, LogUtil.describe(buildPromotion));
     myStatusesCache.removeStatusFromCache(revision, buildKey(buildPromotion));
     return true;
   }
 
-  private void publish(@NotNull BuildRevision revision, @NotNull GiteaCommitStatus status, @NotNull Repository repository, @NotNull String buildDescription)
+  private void publish(@NotNull BuildRevision revision, @NotNull GiteaPublishCommitStatus status, @NotNull Repository repository, @NotNull String buildDescription)
     throws PublisherException {
     final String commit = revision.getRevision();
     String data = myGson.toJson(status);
@@ -274,12 +275,12 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
       if (str == null) {
         return null;
       }
-      LOG.debug("Gitea Cloud response: " + str);
-      JsonElement json = new JsonParser().parse(str);
+      LOG.debug("Gitea response: " + str);
+      JsonElement json = JsonParser.parseString(str);
       if (!json.isJsonObject())
         return null;
       JsonObject jsonObj = json.getAsJsonObject();
-      JsonElement error = jsonObj.get("error");
+      JsonElement error = jsonObj.get("errors");
       if (error == null || !error.isJsonObject())
         return null;
 
@@ -288,14 +289,6 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
       if (msg == null)
         return null;
       StringBuilder result = new StringBuilder(msg.getAsString());
-      JsonElement fields = errorObj.get("fields");
-      if (fields != null && fields.isJsonObject()) {
-        result.append(". ");
-        JsonObject fieldsObj = fields.getAsJsonObject();
-        for (Map.Entry<String, JsonElement> e : fieldsObj.entrySet()) {
-          result.append("Field '").append(e.getKey()).append("': ").append(e.getValue().getAsString());
-        }
-      }
       return result.toString();
     } catch (JsonSyntaxException e) {
       return null;

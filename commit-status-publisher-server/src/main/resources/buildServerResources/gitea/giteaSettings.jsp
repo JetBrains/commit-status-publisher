@@ -5,13 +5,10 @@
 <%@ taglib prefix="bs" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
 <%@ taglib prefix="admin" tagdir="/WEB-INF/tags/admin" %>
-<%@ taglib prefix="oauth" tagdir="/WEB-INF/tags/oauth" %>
 
 
 
 <jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
-<jsp:useBean id="oauthConnections" scope="request" type="java.util.List"/>
-<jsp:useBean id="refreshTokenSupported" scope="request" type="java.lang.Boolean"/>
 
 
 <props:selectSectionProperty name="authType" title="Authentication Type:" style="width: 28em;">
@@ -24,43 +21,6 @@
               Can be found at <strong>/profile/account</strong> in Gitea
           </span>
         <span class="error" id="error_${keys.giteaToken}"></span>
-      </td>
-    </tr>
-  </props:selectSectionPropertyContent>
-  <props:selectSectionPropertyContent value="storedToken" caption="Refreshable access token">
-    <tr>
-      <th>
-        <label for="refreshabletoken">Refreshable access token:</label>
-      </th>
-      <td>
-        <c:if test="${empty oauthConnections}">
-          <div>There are no Gitea OAuth 2.0 connections available to the project.</div>
-        </c:if>
-
-        <props:hiddenProperty name="tokenId" />
-        <span class="error" id="error_tokenId"></span>
-
-        <c:set var="canObtainTokens" value="${canEditProject and not project.readOnly}"/>
-        <oauth:tokenControlsForFeatures
-          project="${project}"
-          providerTypes="'GiteaCom', 'GiteaCEorEE'"
-          tokenIntent="PUBLISH_STATUS"
-          canObtainTokens="${canObtainTokens}"
-          callback="BS.AuthTypeTokenSupport.tokenCallback"
-          oauthConnections="${oauthConnections}">
-          <jsp:attribute name="addCredentialFragment">
-            <span class="smallNote connection-note">
-              <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=GiteaCom'/>" target="_blank" rel="noreferrer">
-                Add Gitea.com
-              </a>
-              or either
-              <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=GiteaCEorEE'/>" target="_blank" rel="noreferrer">
-                add Gitea CE/EE
-              </a>
-              credentials via the Project Connections page
-            </span>
-          </jsp:attribute>
-        </oauth:tokenControlsForFeatures>
       </td>
     </tr>
   </props:selectSectionPropertyContent>
