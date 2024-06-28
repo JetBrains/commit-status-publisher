@@ -2,10 +2,10 @@
 
 package jetbrains.buildServer.commitPublisher.gitee;
 
-import com.google.gson.*;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
-import jetbrains.buildServer.commitPublisher.gitee.data.GiteeComment;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.userChanges.CanceledInfo;
@@ -23,21 +23,18 @@ class GiteePublisher extends HttpBasedCommitStatusPublisher<GiteeBuildStatus> {
 
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
-  private final CommitStatusesCache<GiteeComment> myStatusesCache;
 
   GiteePublisher(@NotNull CommitStatusPublisherSettings settings,
                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                  @NotNull WebLinks links,
                  @NotNull Map<String, String> params,
-                 @NotNull CommitStatusPublisherProblems problems,
-                 @NotNull CommitStatusesCache<GiteeComment> statusesCache) {
+                 @NotNull CommitStatusPublisherProblems problems) {
     super(settings, buildType, buildFeatureId, params, problems, links);
-    myStatusesCache = statusesCache;
   }
 
   @NotNull
   public String toString() {
-    return "giteeCloud";
+    return "Gitee";
   }
 
   @Override
@@ -141,7 +138,6 @@ class GiteePublisher extends HttpBasedCommitStatusPublisher<GiteeBuildStatus> {
                                "\nConfiguration: " + myBuildType.getExtendedFullName();
 
     publish(revision, fullComment, repository, LogUtil.describe(buildPromotion), pullRequestNumber);
-    myStatusesCache.removeStatusFromCache(revision, buildKey(buildPromotion));
     return true;
   }
 
@@ -154,7 +150,12 @@ class GiteePublisher extends HttpBasedCommitStatusPublisher<GiteeBuildStatus> {
     }
     String branchName = buildPromotion.getBranch().getName();
     Integer pullRequestNumber = null;
-    if (branchName.startsWith("pull/")) {
+
+    String regex = "pull/\\d+";
+    Pattern pattern = Pattern.compile(regex);
+    Matcher matcher = pattern.matcher(branchName);
+
+    if (matcher.matches()) {
       pullRequestNumber = Integer.parseInt(branchName.split("/")[1]);
     }
     return pullRequestNumber;
@@ -185,7 +186,7 @@ class GiteePublisher extends HttpBasedCommitStatusPublisher<GiteeBuildStatus> {
   private void publish(@NotNull BuildRevision revision, @NotNull String fullComment, @NotNull Repository repository, @NotNull String buildDescription, Integer pullRequestNumber)
     throws PublisherException {
     final String commit = revision.getRevision();
-    String url = "";
+    String url;
     if (pullRequestNumber == null) {
       url = getApiUrl(revision) + "/repos/" + repository.owner() + "/" + repository.repositoryName() + "/commits/" + commit + "/comments";
     } else {
@@ -207,42 +208,12 @@ class GiteePublisher extends HttpBasedCommitStatusPublisher<GiteeBuildStatus> {
   public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException {
     final int statusCode = response.getStatusCode();
     if (statusCode >= 400)
-      throw new HttpPublisherException(statusCode, response.getStatusText(), parseErrorMessage(response));
-  }
-
-  @Nullable
-  private String parseErrorMessage(@NotNull HttpHelper.HttpResponse response) {
-    try {
-      String str = response.getContent();
-      if (str == null) {
-        return null;
-      }
-      LOG.debug("Gitee response: " + str);
-      JsonElement json = new JsonParser().parse(str);
-      if (!json.isJsonObject())
-        return null;
-      JsonObject jsonObj = json.getAsJsonObject();
-      JsonElement error = jsonObj.get("error");
-      if (error == null || !error.isJsonObject())
-        return null;
-
-      final JsonObject errorObj = error.getAsJsonObject();
-      JsonElement msg = errorObj.get("message");
-      if (msg == null)
-        return null;
-      StringBuilder result = new StringBuilder(msg.getAsString());
-      JsonElement fields = errorObj.get("fields");
-      if (fields != null && fields.isJsonObject()) {
-        result.append(". ");
-        JsonObject fieldsObj = fields.getAsJsonObject();
-        for (Map.Entry<String, JsonElement> e : fieldsObj.entrySet()) {
-          result.append("Field '").append(e.getKey()).append("': ").append(e.getValue().getAsString());
+      if (statusCode == 404) {
+        if ("{\"message\":\"Pull Request not found\"}".equals(response.getContent())) {
+          throw new HttpPublisherException(statusCode, response.getStatusText(), "Pull Request not found. Branch name can not be \"pull/{number}\"");
         }
       }
-      return result.toString();
-    } catch (JsonSyntaxException e) {
-      return null;
-    }
+    throw new HttpPublisherException(statusCode, response.getStatusText(), response.getContent());
   }
 
   protected String getApiUrl(@Nullable BuildRevision revision)  throws PublisherException {
@@ -263,16 +234,4 @@ class GiteePublisher extends HttpBasedCommitStatusPublisher<GiteeBuildStatus> {
   private HttpCredentials getCredentials(@NotNull VcsRootInstance root) throws PublisherException {
     return getSettings().getCredentials(myBuildType.getProject(), root, myParams);
   }
-
-  @NotNull
-  private static String buildKey(@NotNull BuildPromotion promotion) {
-    if (promotion.isPersonal()) {
-      SBuildType buildType = promotion.getBuildType();
-      if (buildType != null)
-        return buildType.getBuildTypeId();
-    }
-    return promotion.getBuildTypeId();
-  }
-
-
 }

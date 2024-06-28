@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
-import jetbrains.buildServer.commitPublisher.gitee.data.GiteeComment;
 import jetbrains.buildServer.commitPublisher.gitee.data.GiteeRepoInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
@@ -46,7 +45,6 @@ public class GiteeSettings extends AuthTypeAwareSettings implements CommitStatus
     addAll(mySupportedEvents);
   }};
 
-  private final CommitStatusesCache<GiteeComment> myStatusesCache;
 
   public GiteeSettings(@NotNull PluginDescriptor descriptor,
                        @NotNull WebLinks links,
@@ -56,7 +54,6 @@ public class GiteeSettings extends AuthTypeAwareSettings implements CommitStatus
                        @NotNull UserModel userModel,
                        @NotNull SecurityContext securityContext) {
     super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, null, securityContext);
-    myStatusesCache = new CommitStatusesCache<>();
   }
 
   @NotNull
@@ -77,7 +74,7 @@ public class GiteeSettings extends AuthTypeAwareSettings implements CommitStatus
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new GiteePublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache);
+    return new GiteePublisher(this, buildType, buildFeatureId, myLinks, params, myProblems);
   }
 
   @Nullable
