@@ -1,0 +1,101 @@
+<%@ include file="/include-internal.jsp" %>
+<%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
+<%@ taglib prefix="l" tagdir="/WEB-INF/tags/layout" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="bs" tagdir="/WEB-INF/tags" %>
+<%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
+<%@ taglib prefix="admin" tagdir="/WEB-INF/tags/admin" %>
+<%@ taglib prefix="oauth" tagdir="/WEB-INF/tags/oauth" %>
+
+
+
+<jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
+<jsp:useBean id="oauthConnections" scope="request" type="java.util.List"/>
+<jsp:useBean id="refreshTokenSupported" scope="request" type="java.lang.Boolean"/>
+
+
+<props:selectSectionProperty name="authType" title="Authentication Type:" style="width: 28em;">
+  <props:selectSectionPropertyContent value="token" caption="Personal access token">
+    <tr>
+      <th><label for="${keys.giteeToken}">Access Token:<l:star/></label></th>
+      <td>
+        <props:passwordProperty name="${keys.giteeToken}" className="longField"/>
+        <span class="smallNote">
+              Can be found at <strong>/profile/account</strong> in gitee
+          </span>
+        <span class="error" id="error_${keys.giteeToken}"></span>
+      </td>
+    </tr>
+  </props:selectSectionPropertyContent>
+  <props:selectSectionPropertyContent value="storedToken" caption="Refreshable access token">
+    <tr>
+      <th>
+        <label for="refreshabletoken">Refreshable access token:</label>
+      </th>
+      <td>
+        <c:if test="${empty oauthConnections}">
+          <div>There are no Gitee OAuth 2.0 connections available to the project.</div>
+        </c:if>
+
+        <props:hiddenProperty name="tokenId" />
+        <span class="error" id="error_tokenId"></span>
+
+        <c:set var="canObtainTokens" value="${canEditProject and not project.readOnly}"/>
+        <oauth:tokenControlsForFeatures
+          project="${project}"
+          providerTypes="'GiteeCom', 'GiteeCEorEE'"
+          tokenIntent="PUBLISH_STATUS"
+          canObtainTokens="${canObtainTokens}"
+          callback="BS.AuthTypeTokenSupport.tokenCallback"
+          oauthConnections="${oauthConnections}">
+          <jsp:attribute name="addCredentialFragment">
+            <span class="smallNote connection-note">
+              <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=GiteeCom'/>" target="_blank" rel="noreferrer">
+                Add Gitee.com
+              </a>
+              or either
+              <a href="<c:url value='/admin/editProject.html?projectId=${project.externalId}&tab=oauthConnections#addDialog=GiteeCEorEE'/>" target="_blank" rel="noreferrer">
+                add Gitee CE/EE
+              </a>
+              credentials via the Project Connections page
+            </span>
+          </jsp:attribute>
+        </oauth:tokenControlsForFeatures>
+      </td>
+    </tr>
+  </props:selectSectionPropertyContent>
+
+  <props:selectSectionPropertyContent value="vcsRoot" caption="Use VCS root(-s) credentials">
+    <tr><td colspan="2">
+      <em>
+        TeamCity obtains token based credentials from the VCS root settings.
+        This option will not work if the VCS root uses an SSH fetch URL,
+        employs anonymous authentication or uses
+        an actual password
+        of the user rather than a token.
+      </em>
+    </td></tr>
+  </props:selectSectionPropertyContent>
+
+</props:selectSectionProperty>
+
+<l:settingsGroup title="On-premises Gitee installation" />
+<tr>
+  <th><label for="${keys.giteeServer}">Gitee API URL:</label></th>
+  <td>
+    <props:textProperty name="${keys.giteeServer}" className="longField"/>
+    <span class="smallNote">
+      Format: <strong>http[s]://&lt;hostname&gt;[:&lt;port&gt;]/api/v4</strong><br>
+      If left blank, the URL will be composed based on the VCS root fetch URL.
+    </span>
+    <span class="error" id="error_${keys.giteeServer}"></span>
+  </td>
+</tr>
+
+<c:if test="${testConnectionSupported}">
+  <script>
+    $j(document).ready(function() {
+      PublisherFeature.showTestConnection();
+    });
+  </script>
+</c:if>

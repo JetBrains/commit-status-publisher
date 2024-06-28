@@ -25,6 +25,7 @@
   <bean class="jetbrains.buildServer.commitPublisher.gerrit.GerritClientImpl"/>
   <bean class="jetbrains.buildServer.commitPublisher.gitlab.GitlabSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.gitea.GiteaSettings"/>
+  <bean class="jetbrains.buildServer.commitPublisher.gitee.GiteeSettings"/>
 
   <!-- github -->
   <bean class="jetbrains.buildServer.commitPublisher.github.ChangeStatusUpdater"/>
