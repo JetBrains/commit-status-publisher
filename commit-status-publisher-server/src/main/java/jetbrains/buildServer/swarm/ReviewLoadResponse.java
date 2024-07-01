@@ -33,6 +33,13 @@ public class ReviewLoadResponse {
                     .collect(Collectors.toList());
   }
 
+  @NotNull
+  public List<Long> getAllReviewIds() {
+    return myReviews.stream()
+                    .map(SingleReview::getId)
+                    .collect(Collectors.toList());
+  }
+
   public Date getCreated() {
     return myCreated;
   }

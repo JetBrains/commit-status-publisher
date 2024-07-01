@@ -32,21 +32,22 @@ public class SwarmPublisherTest extends HttpPublisherTest {
   private boolean myCreatePersonal;
   private boolean myNonAdmin;
   private boolean myCreateSwarmTestRun;
+  private String myReviewStatus;
 
   public SwarmPublisherTest() {
-    myExpectedRegExps.put(EventToTest.QUEUED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*%2Fbuild%2F\\d+.*");
-    myExpectedRegExps.put(EventToTest.REMOVED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*buildConfiguration%2FMyDefaultTestBuildType%2F\\d+.*removed.*" + COMMENT + ".*");
-    myExpectedRegExps.put(EventToTest.STARTED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*buildConfiguration%2FMyDefaultTestBuildType%2F\\d+.*started.*");
+    myExpectedRegExps.put(EventToTest.QUEUED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/[12]9.*%2Fbuild%2F\\d+.*");
+    myExpectedRegExps.put(EventToTest.REMOVED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/[12]9.*buildConfiguration%2FMyDefaultTestBuildType%2F\\d+.*removed.*" + COMMENT + ".*");
+    myExpectedRegExps.put(EventToTest.STARTED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/[12]9.*buildConfiguration%2FMyDefaultTestBuildType%2F\\d+.*started.*");
 
-    myExpectedRegExps.put(EventToTest.INTERRUPTED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*interrupted.*");
-    myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*failure%20was%20detected.*");
-    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*marked%20as%20successful.*");
+    myExpectedRegExps.put(EventToTest.INTERRUPTED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/[12]9.*interrupted.*");
+    myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/[12]9.*failure%20was%20detected.*");
+    myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/[12]9.*marked%20as%20successful.*");
     myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, myExpectedRegExps.get(EventToTest.MARKED_SUCCESSFUL));
 
-    myExpectedRegExps.put(EventToTest.FAILED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*has%20failed.*");
-    myExpectedRegExps.put(EventToTest.FINISHED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*has%20finished%20successfully.*");
+    myExpectedRegExps.put(EventToTest.FAILED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/[12]9.*has%20failed.*");
+    myExpectedRegExps.put(EventToTest.FINISHED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/[12]9.*has%20finished%20successfully.*");
 
-    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/19.*and%20%22");
+    myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, "POST /api/v9/comments HTTP/1.1\tENTITY: topic=reviews/[12]9.*and%20%22");
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, "POST /api/v9/login HTTP/1.1.*");
   }
 
@@ -65,6 +66,7 @@ public class SwarmPublisherTest extends HttpPublisherTest {
 
     addShelvedChangelistParameter(CHANGELIST);
     myCreatePersonal = true;
+    myReviewStatus = "needsReview";
 
     setInternalProperty(SWARM_TESTRUNS_DISCOVER, "false"); // Skip branch for detecting Swarm-originated test runs
   }
@@ -153,7 +155,7 @@ public class SwarmPublisherTest extends HttpPublisherTest {
       return true;
     }
     if (url.contains("/api/v9/reviews?fields=id,state,stateLabel&change[]=" + CHANGELIST)) {
-      httpResponse.setEntity(new StringEntity("{\"lastSeen\":19,\"reviews\":[{\"id\":19,\"state\":\"needsReview\"},{\"id\":29,\"state\":\"approved\"}],\"totalCount\":1}", "UTF-8"));
+      httpResponse.setEntity(new StringEntity("{\"lastSeen\":19,\"reviews\":[{\"id\":19,\"state\":\"" + myReviewStatus +"\"},{\"id\":29,\"state\":\"approved\"}],\"totalCount\":1}", "UTF-8"));
       return true;
     }
     return false;
@@ -173,7 +175,7 @@ public class SwarmPublisherTest extends HttpPublisherTest {
       return true;
     }
 
-    if (url.contains("/api/v9/comments") && requestData.contains("topic=reviews/19")) {
+    if (url.contains("/api/v9/comments") && (requestData.contains("topic=reviews/19") || requestData.contains("topic=reviews/29"))) {
       httpResponse.setEntity(new StringEntity("{}", "UTF-8"));
       return true;
     }
@@ -243,6 +245,13 @@ public class SwarmPublisherTest extends HttpPublisherTest {
 
     myPublisher.buildStarted(startBuildInCurrentBranch(myBuildType), myRevision);
     then(getRequestAsString()).isNull();
+  }
+
+  @Test
+  @TestFor(issues = "TW-85803")
+  public void should_publish_also_for_approved_review() throws Exception {
+    myReviewStatus = "approved";
+    test_buildFinished_Successfully();
   }
 
   @Override

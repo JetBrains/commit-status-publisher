@@ -36,6 +36,7 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
   private boolean myCreatePersonalBuild;
   private boolean myReviewsAlreadyRequested;
   private boolean myCreateTestRun;
+  private String myReviewStatus;
 
   private boolean myTriggerBySwarm;
   private SwarmClientManager myClientManager;
@@ -75,6 +76,8 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
 
     myCreatePersonalBuild = true;
     myReviewsAlreadyRequested = false;
+
+    myReviewStatus = "needsReview";
 
     myClientManager = new SwarmClientManager(myWebLinks, () -> null, new ResetCacheRegisterImpl());
     myPublisherSettings = new SwarmPublisherSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myClientManager);
@@ -129,7 +132,7 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
       if (myReviewsAlreadyRequested) {
         throw new AssertionError("Should not request reviews twice, should cache");
       }
-      httpResponse.setEntity(new StringEntity("{\"lastSeen\":19,\"reviews\":[{\"id\":19,\"state\":\"needsReview\"}],\"totalCount\":1}", "UTF-8"));
+      httpResponse.setEntity(new StringEntity("{\"lastSeen\":19,\"reviews\":[{\"id\":19,\"state\":\"" + myReviewStatus +"\"}],\"totalCount\":1}", "UTF-8"));
       myReviewsAlreadyRequested = true;
       return true;
     }
@@ -238,6 +241,35 @@ public class SwarmPublisherWithNativeSwarmTest extends HttpPublisherTest {
 
     then(getRequestAsString()).matches(myExpectedRegExps.get(EventToTest.FINISHED));
     then(getRequestAsString()).contains("FAE4501C-E4BC-73E4-A11A-FF710601BC3F"); // From Swarm
+  }
+
+  @Test
+  @TestFor(issues = "TW-85803")
+  public void should_update_test_run_when_review_is_already_approved() throws Exception {
+    myCreateTestRun = false;
+    myReviewStatus = "approved";
+    recreateSwarmPublisher();
+
+    super.test_buildFinished_Successfully();
+  }
+
+  @Test
+  @TestFor(issues = "TW-83006")
+  public void should_not_create_test_run_when_review_is_already_closed() throws Exception {
+    myTriggerBySwarm = false;
+    myCreateTestRun = true;
+    myReviewStatus = "approved";
+    recreateSwarmPublisher();
+
+    SRunningBuild build = startBuildInCurrentBranch(myBuildType);
+    myPublisher.buildStarted(build, myRevision);
+    then(getRequestAsString()).doesNotMatch(myExpectedRegExps.get(EventToTest.STARTED));
+
+    finishBuild(build, false);
+    myReviewsAlreadyRequested = false;
+    myPublisher.buildFinished(build.getBuildPromotion().getAssociatedBuild(), myRevision);
+
+    then(getRequestAsString()).doesNotMatch(myExpectedRegExps.get(EventToTest.FINISHED));
   }
 
   @Test(enabled = false)

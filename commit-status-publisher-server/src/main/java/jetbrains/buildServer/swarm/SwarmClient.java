@@ -112,7 +112,7 @@ public class SwarmClient {
   }
 
   @NotNull
-  public List<Long> getOpenReviewIds(@NotNull String changelistId, @NotNull String debugInfo) throws PublisherException {
+  public List<Long> getReviewIdsForPublishing(@NotNull String changelistId, @NotNull String debugInfo, boolean onlyOpenReviews) throws PublisherException {
     ReviewLoadResponse reviews = getReviews(changelistId, debugInfo, false);
     Date expireTime = new Date(System.currentTimeMillis() - Dates.seconds(10));
     if (reviews.getError() != null || reviews.getCreated().before(expireTime)) {
@@ -130,7 +130,11 @@ public class SwarmClient {
         throw new RuntimeException(e);
       }
     }
-    return reviews.getOpenReviewIds();
+
+    if (onlyOpenReviews) {
+      return reviews.getOpenReviewIds();
+    }
+    return reviews.getAllReviewIds();
   }
 
   @NotNull
