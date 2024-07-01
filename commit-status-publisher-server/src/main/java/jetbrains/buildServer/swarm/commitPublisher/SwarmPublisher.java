@@ -123,7 +123,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
   }
 
   private void createTestRunsForReviewsOnSwarm(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    postForEachReview(build.getBuildPromotion(), revision, new ReviewMessagePublisher() {
+    postForEachReview(build.getBuildPromotion(), revision, /*onlyOpenReviews=*/true, new ReviewMessagePublisher() {
       @Override
       public void publishMessage(@NotNull Long reviewId, @NotNull BuildPromotion buildPromo, @NotNull String debugBuildInfo) throws PublisherException {
         mySwarmClient.createSwarmTestRun(reviewId, build, debugBuildInfo);
@@ -235,6 +235,14 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
 
   @NotNull
   private PostResult postForEachReview(BuildPromotion build, @NotNull BuildRevision revision, @NotNull final ReviewMessagePublisher messagePublisher) throws PublisherException {
+    return postForEachReview(build, revision, false, messagePublisher);
+  }
+
+  @NotNull
+  private PostResult postForEachReview(BuildPromotion build,
+                                       @NotNull BuildRevision revision,
+                                       boolean onlyOpenReviews,
+                                       @NotNull final ReviewMessagePublisher messagePublisher) throws PublisherException {
 
     final String changelistId = getChangelistId(build, revision);
     if (StringUtil.isEmpty(changelistId)) return new PostResult(false, "unable to determine changelist ID");
@@ -248,7 +256,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
     IOGuard.allowNetworkCall(() -> {
       final String debugBuildInfo = "build [id=" + build.getId() + "] in " + buildType.getExtendedFullName();
 
-      for (Long reviewId : mySwarmClient.getOpenReviewIds(changelistId, debugBuildInfo)) {
+      for (Long reviewId : mySwarmClient.getReviewIdsForPublishing(changelistId, debugBuildInfo, onlyOpenReviews)) {
         messagePublisher.publishMessage(reviewId, build, debugBuildInfo);
         didPost.set(true);
       }
