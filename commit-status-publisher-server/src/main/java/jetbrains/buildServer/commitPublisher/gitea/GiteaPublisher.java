@@ -40,7 +40,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
 
   @NotNull
   public String toString() {
-    return "giteaCloud";
+    return "Gitea";
   }
 
   @Override

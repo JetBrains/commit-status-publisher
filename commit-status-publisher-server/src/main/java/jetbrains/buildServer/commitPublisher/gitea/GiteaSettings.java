@@ -140,10 +140,10 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
         }
         GiteaRepoInfo repoInfo = myGson.fromJson(json, GiteaRepoInfo.class);
         if (repoInfo == null) {
-          throw new HttpPublisherException("Couldnt parse Repository from returned Json");
+          throw new HttpPublisherException("Could not parse Repository from returned Json");
         }
         if (repoInfo.permissions == null) {
-          throw new HttpPublisherException("Couldnt parse Repository Permission from returned Json");
+          throw new HttpPublisherException("Could not parse Repository Permission from returned Json");
         }
         if (!repoInfo.permissions.push)
           throw new HttpPublisherException("No push permissions to repository. Ensure user and access token have proper rights. Access token needs write:repository rights.");
