@@ -1,0 +1,22 @@
+package jetbrains.buildServer.commitPublisher.gitee;
+
+import jetbrains.buildServer.util.HTTPRequestBuilder;
+import jetbrains.buildServer.vcshostings.http.credentials.AccessTokenCredentials;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
+import org.jetbrains.annotations.NotNull;
+
+public class GiteeAccessTokenCredentials extends AccessTokenCredentials implements HttpCredentials {
+
+  private static final String HEADER_AUTHORIZATION = "Authorization";
+
+  private static final String AUTHORIZATION_BEARER_PREFIX = "Bearer ";
+
+  public GiteeAccessTokenCredentials(@NotNull final String token) {
+    super(token);
+  }
+
+  @Override
+  public void set(@NotNull final HTTPRequestBuilder requestBuilder) {
+    requestBuilder.withHeader(HEADER_AUTHORIZATION, AUTHORIZATION_BEARER_PREFIX + getToken());
+  }
+}

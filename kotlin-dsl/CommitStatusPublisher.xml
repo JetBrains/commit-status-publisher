@@ -313,6 +313,41 @@
           </option>
         </param>
       </option>
+      <option name="gitee" value="giteeStatusPublisher">
+        <description>
+          Publish status to Gitee
+        </description>
+        <param name="giteeApiUrl">
+          <description>
+            Gitee URL in the format http[s]://{hostname}[:port]/api/v5. If unspecified, the URL will be composed based on the VCS root fetch URL.
+          </description>
+        </param>
+        <param name="secure:giteeAccessToken" dslName="accessToken" deprecated="true">
+          <description>
+            Access token to use for GitLab connection. Can be found at /profile/personal_access_tokens in Gitee.
+          </description>
+          <deprecated>
+            Use authType property instead
+          </deprecated>
+        </param>
+        <param name="authType" dslName="authType" type="compound">
+          <option name="personalToken" value="token">
+            <description>
+              Authentication using personal token
+            </description>
+            <param name="secure:giteeAccessToken" dslName="accessToken" mandatory="true">
+              <description>
+                Access token to use for Gitee connection. Can be found at /profile/personal_access_tokens in Gitee.
+              </description>
+            </param>
+          </option>
+          <option name="vcsRoot" value="vcsRoot">
+            <description>
+              Use VCS root credentials
+            </description>
+          </option>
+        </param>
+      </option>
       <option name="upsource" value="upsourcePublisher">
         <description>
           Publish status to Upsource
@@ -583,13 +618,32 @@
       </description>
       <code>
         commitStatusPublisher {
-        vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
-        publisher = gitea {
-        giteaApiUrl = "https://&lt;Gitea URL>/api/v1" // optional, the URL will be composed based on the VCS root fetch URL if omitted
-        accessToken = personalToken { // authType = vcsRoot() to take credentials from the VCS root
-        accessToken = "credentialsJSON:*****"
+          vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
+          publisher = gitlab {
+            gitlabApiUrl = "https://&lt;Gitea URL>/api/v1" // optional, the URL will be composed based on the VCS root fetch URL if omitted
+            accessToken = personalToken { // authType = vcsRoot() to take credentials from the VCS root
+              accessToken = "credentialsJSON:*****"
+            }
+          }
         }
-        }
+      </code>
+    </example>
+    <example>
+      <description>
+        Enables publishing build statuses to commits in Gitee.
+        It is not recommended to store secure values directly in the DSL code,
+        see [Managing Tokens](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Managing+Tokens)
+        section of our documentation.
+      </description>
+      <code>
+        commitStatusPublisher {
+          vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
+          publisher = gitlab {
+            gitlabApiUrl = "https://&lt;Gitee URL>/api/v5" // optional, the URL will be composed based on the VCS root fetch URL if omitted
+            accessToken = personalToken { // authType = vcsRoot() to take credentials from the VCS root
+              accessToken = "credentialsJSON:*****"
+            }
+          }
         }
       </code>
     </example>

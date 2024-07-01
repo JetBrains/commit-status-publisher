@@ -10,6 +10,8 @@ import jetbrains.buildServer.commitPublisher.gitea.data.GiteaReceiveCommitStatus
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaRepoInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
+import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
@@ -51,9 +53,11 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
                        @NotNull WebLinks links,
                        @NotNull CommitStatusPublisherProblems problems,
                        @NotNull SSLTrustStoreProvider trustStoreProvider,
+                       @NotNull OAuthTokensStorage oAuthTokensStorage,
+                       @NotNull OAuthConnectionsManager oAuthConnectionsManager,
                        @NotNull UserModel userModel,
                        @NotNull SecurityContext securityContext) {
-    super(descriptor, links, problems, trustStoreProvider, null, userModel, null, securityContext);
+    super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, oAuthConnectionsManager, securityContext);
     myStatusesCache = new CommitStatusesCache<>();
   }
 
@@ -88,7 +92,7 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
 
         if (Constants.AUTH_TYPE_STORED_TOKEN.equalsIgnoreCase(authenticationType)) {
           if (StringUtil.isEmptyOrSpaces(params.get(Constants.TOKEN_ID))) {
-            errors.add(new InvalidProperty(Constants.TOKEN_ID, "The refreshable token must be acquired"));
+            errors.add(new InvalidProperty(Constants.TOKEN_ID, "The token must be acquired"));
           }
         } else {
           params.remove(Constants.TOKEN_ID);
@@ -140,10 +144,10 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
         }
         GiteaRepoInfo repoInfo = myGson.fromJson(json, GiteaRepoInfo.class);
         if (repoInfo == null) {
-          throw new HttpPublisherException("Could not parse Repository from returned Json");
+          throw new HttpPublisherException("Could not parse Repository from Gitea response.");
         }
         if (repoInfo.permissions == null) {
-          throw new HttpPublisherException("Could not parse Repository Permission from returned Json");
+          throw new HttpPublisherException("Could not parse Repository Permission from Gitea response.");
         }
         if (!repoInfo.permissions.push)
           throw new HttpPublisherException("No push permissions to repository. Ensure user and access token have proper rights. Access token needs write:repository rights.");
@@ -180,6 +184,17 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
     if (hostUrl == null)
       return null;
     return hostUrl + "/api/v1";
+  }
+
+
+  @NotNull
+  @Override
+  protected HttpCredentials getAccessTokenCredentials(@NotNull Map<String, String> params) throws PublisherException {
+    final String token = params.get(Constants.GITEA_TOKEN);
+    if (token == null) {
+      throw new PublisherException("Gitea Access token is not defined");
+    }
+    return new GiteaAccessTokenCredentials(token);
   }
 
   @NotNull

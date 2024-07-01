@@ -7,6 +7,6 @@ package jetbrains.buildServer.commitPublisher.gitee.data;
  */
 public class GiteeRepoInfo {
   public String full_name;
-  public Boolean fork;
   public String description;
+  public GiteeRepoPermissions permissions;
 }

@@ -9,6 +9,7 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.gitee.data.GiteeRepoInfo;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
@@ -51,9 +52,10 @@ public class GiteeSettings extends AuthTypeAwareSettings implements CommitStatus
                        @NotNull CommitStatusPublisherProblems problems,
                        @NotNull SSLTrustStoreProvider trustStoreProvider,
                        @NotNull OAuthTokensStorage oAuthTokensStorage,
+                       @NotNull OAuthConnectionsManager oAuthConnectionsManager,
                        @NotNull UserModel userModel,
                        @NotNull SecurityContext securityContext) {
-    super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, null, securityContext);
+    super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, oAuthConnectionsManager, securityContext);
   }
 
   @NotNull
@@ -130,8 +132,14 @@ public class GiteeSettings extends AuthTypeAwareSettings implements CommitStatus
           throw new HttpPublisherException("Gitee publisher has received no response");
         }
         GiteeRepoInfo repoInfo = myGson.fromJson(json, GiteeRepoInfo.class);
-        if (null == repoInfo)
-          throw new HttpPublisherException("Gitee publisher has received a malformed response");
+        if (repoInfo == null) {
+          throw new HttpPublisherException("Could not parse Repository from Gitea response.");
+        }
+        if (repoInfo.permissions == null) {
+          throw new HttpPublisherException("Could not parse Repository Permission from Gitea response.");
+        }
+        if (!repoInfo.permissions.push)
+          throw new HttpPublisherException("No push permissions to repository. Ensure user and access token have proper rights. Access token needs write:repository rights.");
       }
     };
 
@@ -166,6 +174,16 @@ public class GiteeSettings extends AuthTypeAwareSettings implements CommitStatus
     if (hostUrl == null)
       return null;
     return hostUrl + "/api/v5";
+  }
+
+  @NotNull
+  @Override
+  protected HttpCredentials getAccessTokenCredentials(@NotNull Map<String, String> params) throws PublisherException {
+    final String token = params.get(Constants.GITEE_TOKEN);
+    if (token == null) {
+      throw new PublisherException("Gitee Access token is not defined");
+    }
+    return new GiteeAccessTokenCredentials(token);
   }
 
 

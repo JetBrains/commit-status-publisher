@@ -66,13 +66,13 @@ public class Constants {
   public static final String GITEA_API_URL = "giteaApiUrl";
   public static final String GITEA_USERNAME = "giteaUsername";
   public static final String GITEA_PASSWORD = "secure:giteaPassword";
-  public static final String GITEA_TOKEN = "secure:gitea_access_token";
+  public static final String GITEA_TOKEN = "secure:giteaAccessToken";
 
   public static final String GITEE_PUBLISHER_ID = "giteeStatusPublisher";
   public static final String GITEE_API_URL = "giteeApiUrl";
   public static final String GITEE_USERNAME = "giteeUsername";
   public static final String GITEE_PASSWORD = "secure:giteePassword";
-  public static final String GITEE_TOKEN = "secure:gitee_access_token";
+  public static final String GITEE_TOKEN = "secure:giteeAccessToken";
 
   public static final String GITLAB_PUBLISHER_ID = "gitlabStatusPublisher";
   public static final String GITLAB_API_URL = "gitlabApiUrl";
@@ -222,11 +222,6 @@ public class Constants {
   }
 
   @NotNull
-  public String getGiteaServer() {
-    return GITEA_API_URL;
-  }
-
-  @NotNull
   public String getGiteeToken() {
     return GITEE_TOKEN;
   }
@@ -234,6 +229,11 @@ public class Constants {
   @NotNull
   public String getGiteeServer() {
     return GITEE_API_URL;
+  }
+
+  @NotNull
+  public String getGiteaServer() {
+    return GITEA_API_URL;
   }
 
 }
