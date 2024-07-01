@@ -171,7 +171,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
     GiteaBuildStatus
       status = GiteaBuildStatus.getByName(buildStatus.status);
     if (status == null) {
-      LOG.warn(String.format("Unknown Gitea Cloud build status: \"%s\". Related event can not be calculated", buildStatus.status));
+      LOG.warn(String.format("Unknown Gitea build status: \"%s\". Related event can not be calculated", buildStatus.status));
       return null;
     }
     switch (status) {

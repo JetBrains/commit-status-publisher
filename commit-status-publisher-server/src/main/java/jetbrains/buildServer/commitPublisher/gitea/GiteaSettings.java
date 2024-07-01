@@ -119,8 +119,11 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
     if (StringUtil.isEmptyOrSpaces(apiUrl))
       throw new PublisherException("Missing Gitea API URL parameter");
     Repository repository = VCS_URL_PARSER.parseRepositoryUrl(root.getProperty("url"));
+    if (null == repository)
+      throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
     String url = apiUrl + "/repos/" + repository.owner() + "/" + repository.repositoryName();
     HttpResponseProcessor<HttpPublisherException> processor = new DefaultHttpResponseProcessor() {
+
       @Override
       public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
 
@@ -130,29 +133,39 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
         if (null == json) {
           throw new HttpPublisherException("Gitea publisher has received no response");
         }
+        if (response.getStatusCode() == 401) {
+          throw new HttpPublisherException(String.format(
+            "Cannot access the \"%s\" repository. Ensure you are using a valid access token instead of a password (authentication via password is no longer available)",
+            repository.repositoryName()));
+        }
         GiteaRepoInfo repoInfo = myGson.fromJson(json, GiteaRepoInfo.class);
-        if (null == repoInfo)
-          throw new HttpPublisherException("Gitea publisher has received a malformed response");
+        if (repoInfo == null) {
+          throw new HttpPublisherException("Couldnt parse Repository from returned Json");
+        }
+        if (repoInfo.permissions == null) {
+          throw new HttpPublisherException("Couldnt parse Repository Permission from returned Json");
+        }
+        if (!repoInfo.permissions.push)
+          throw new HttpPublisherException("No push permissions to repository. Ensure user and access token have proper rights. Access token needs write:repository rights.");
       }
     };
-
-    final Map<String, String> headers = new HashMap<>();
+      final Map<String, String> headers = new HashMap<>();
     headers.put(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
 
-    final HttpCredentials credentials = getCredentials(buildTypeOrTemplate.getProject(), root, params);
+      final HttpCredentials credentials = getCredentials(buildTypeOrTemplate.getProject(), root, params);
 
     try {
-      IOGuard.allowNetworkCall(() -> {
-        HttpHelper.get(url,
-                       credentials,
-                       headers,
-                       BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
-                       trustStore(),
-                       processor);
-      });
-    } catch (Exception ex) {
-      throw new PublisherException(String.format("Gitea publisher has failed to connect to \"%s\" repository", repository.url()), ex);
-    }
+        IOGuard.allowNetworkCall(() -> {
+          HttpHelper.get(url,
+                         credentials,
+                         headers,
+                         BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
+                         trustStore(),
+                         processor);
+        });
+      } catch (Exception ex) {
+        throw new PublisherException(String.format("Gitea publisher has failed to connect to \"%s\" repository", repository.url()), ex);
+      }
   }
 
   @Override
