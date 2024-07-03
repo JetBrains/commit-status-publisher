@@ -1032,6 +1032,21 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitFor(() -> myPublisher.getLastEvent() == Event.MARKED_AS_SUCCESSFUL, TASK_COMPLETION_TIMEOUT_MS);
   }
 
+  @Test
+  public void should_publish_failed_status_on_build_marked_as_failed() {
+    prepareVcs();
+    addBuildToQueue();
+    waitForTasksToFinish(Event.QUEUED);
+    SRunningBuild runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
+    myFixture.finishBuild(runningBuild, false);
+    waitForTasksToFinish(Event.FINISHED);
+    myListener.buildChangedStatus(runningBuild, Status.NORMAL, Status.FAILURE);
+    waitForTasksToFinish(Event.FAILURE_DETECTED);
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED, Event.FAILURE_DETECTED));
+    then(myPublisher.isFailureReceived()).isTrue();
+  }
+
 
   @DataProvider
   public static Object[][] buildUrls() {
