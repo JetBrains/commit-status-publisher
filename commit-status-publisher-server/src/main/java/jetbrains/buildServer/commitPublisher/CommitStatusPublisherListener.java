@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.BuildProblemData;
+import jetbrains.buildServer.BuildProblemTypes;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.Used;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
@@ -301,13 +302,24 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   @Override
   public void buildProblemsChanged(@NotNull final SBuild build, @NotNull final List<BuildProblemData> before, @NotNull final List<BuildProblemData> after) {
-    SBuildType buildType = getBuildType(Event.MARKED_AS_SUCCESSFUL, build);
+    Event actualEvent = null;
+    if (!before.isEmpty() && after.isEmpty()) {
+      actualEvent = Event.MARKED_AS_SUCCESSFUL;
+    } else if (!after.isEmpty()) {
+      BuildProblemData problemData = after.iterator().next();
+      if (BuildProblemTypes.TC_USER_PROVIDED_TYPE.equalsIgnoreCase(problemData.getType())) {
+        actualEvent = Event.FAILURE_DETECTED;
+      }
+    }
+    if (actualEvent == null) {
+      LOG.debug(() -> "Cannot define event for build " + LogUtil.describe(build) + " on problems change");
+      return;
+    }
+    SBuildType buildType = getBuildType(actualEvent, build);
     if (shouldNotPublish(buildType, buildReason(build.getTriggeredBy())))
       return;
 
-    if (!before.isEmpty() && after.isEmpty()) {
-      submitTaskForBuild(Event.MARKED_AS_SUCCESSFUL, build);
-    }
+    submitTaskForBuild(actualEvent, build);
   }
 
   private void buildAddedToQueue(@NotNull SQueuedBuild build) {
