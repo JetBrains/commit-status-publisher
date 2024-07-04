@@ -7,7 +7,7 @@
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
 
 
-<jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
+<jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.gerrit.GerritConstants"/>
 
   <tr>
     <th><label for="${keys.gerritServer}">Gerrit Server:<l:star/></label></th>

@@ -52,7 +52,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
   @Override
   @NotNull
   public String getId() {
-    return Constants.BITBUCKET_PUBLISHER_ID;
+    return BitbucketCloudConstants.BITBUCKET_PUBLISHER_ID;
   }
 
   @Override

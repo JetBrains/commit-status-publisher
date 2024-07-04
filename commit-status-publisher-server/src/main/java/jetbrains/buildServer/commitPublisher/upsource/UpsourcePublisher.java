@@ -44,7 +44,7 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher<UpsourceStatus> {
   @NotNull
   @Override
   public String getId() {
-    return Constants.UPSOURCE_PUBLISHER_ID;
+    return UpsourceConstants.UPSOURCE_PUBLISHER_ID;
   }
 
   @Override
@@ -97,7 +97,7 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher<UpsourceStatus> {
       }
     }
     String buildName = build.getFullName() + " #" + build.getBuildNumber();
-    String payload = createPayload(myParams.get(Constants.UPSOURCE_PROJECT_ID),
+    String payload = createPayload(myParams.get(UpsourceConstants.UPSOURCE_PROJECT_ID),
             build.getBuildTypeExternalId(),
             status,
             buildName,
@@ -116,15 +116,15 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher<UpsourceStatus> {
 
 
   private void publish(@NotNull String payload, @NotNull String buildDescription) throws PublisherException {
-    String url = HttpHelper.stripTrailingSlash(myParams.get(Constants.UPSOURCE_SERVER_URL)) + "/" + UpsourceSettings.ENDPOINT_BUILD_STATUS;
+    String url = HttpHelper.stripTrailingSlash(myParams.get(UpsourceConstants.UPSOURCE_SERVER_URL)) + "/" + UpsourceSettings.ENDPOINT_BUILD_STATUS;
     final HttpCredentials credentials = getCredentials();
     postJson(url, credentials, payload, null, buildDescription);
   }
 
   @Nullable
   private HttpCredentials getCredentials() {
-    final String username = myParams.get(Constants.UPSOURCE_USERNAME);
-    final String password = myParams.get(Constants.UPSOURCE_PASSWORD);
+    final String username = myParams.get(UpsourceConstants.UPSOURCE_USERNAME);
+    final String password = myParams.get(UpsourceConstants.UPSOURCE_PASSWORD);
     return (username != null && password != null) ? new UsernamePasswordCredentials(username, password) : null;
   }
 

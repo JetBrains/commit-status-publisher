@@ -5,6 +5,7 @@ dependencies {
     compile "org.apache.tomcat:tomcat-servlet-api:8.5.32"
     compile 'com.github.mwiede:jsch:0.1.67'
     compile "org.jetbrains.teamcity:web-core:$teamcityVersion"
+    compileOnly "org.jetbrains.teamcity:vcs-hostings-plugin-api:$teamcityVersion"
     testCompile "org.jetbrains.teamcity:tests-support:$teamcityVersion"
     testCompile "org.jetbrains.teamcity:server-test-core:$teamcityVersion"
     testCompile "org.jetbrains.teamcity:web-test-core:$teamcityVersion"

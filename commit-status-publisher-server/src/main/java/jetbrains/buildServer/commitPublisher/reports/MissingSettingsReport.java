@@ -13,8 +13,10 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.healthStatus.*;
 import org.jetbrains.annotations.NotNull;
 
-import static jetbrains.buildServer.commitPublisher.Constants.*;
+import static jetbrains.buildServer.commitPublisher.github.GithubConstants.GITHUB_PUBLISHER_ID;
 import static jetbrains.buildServer.commitPublisher.space.Constants.SPACE_PUBLISHER_ID;
+import static jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudConstants.BITBUCKET_PUBLISHER_ID;
+import static jetbrains.buildServer.commitPublisher.stash.StashConstants.STASH_PUBLISHER_ID;
 
 public class MissingSettingsReport extends HealthStatusReport {
 

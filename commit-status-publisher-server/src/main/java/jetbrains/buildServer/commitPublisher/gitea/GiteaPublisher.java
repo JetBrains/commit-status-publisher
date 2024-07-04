@@ -46,7 +46,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
   @Override
   @NotNull
   public String getId() {
-    return Constants.GITEA_PUBLISHER_ID;
+    return GiteaConstants.GITEA_PUBLISHER_ID;
   }
 
   @Override
@@ -296,8 +296,8 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
   }
 
   protected String getApiUrl(@Nullable BuildRevision revision)  throws PublisherException {
-    if (!StringUtil.isEmptyOrSpaces(myParams.get(Constants.GITEA_API_URL)))
-      return HttpHelper.stripTrailingSlash(myParams.get(Constants.GITEA_API_URL));
+    if (!StringUtil.isEmptyOrSpaces(myParams.get(GiteaConstants.GITEA_API_URL)))
+      return HttpHelper.stripTrailingSlash(myParams.get(GiteaConstants.GITEA_API_URL));
 
     if (revision == null) {
       throw new PublisherException("Gitea API URL not set and no Build Revision provided");

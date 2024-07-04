@@ -8,7 +8,7 @@
 <%@ taglib prefix="oauth" tagdir="/WEB-INF/tags/oauth" %>
 
 
-<jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
+<jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudConstants"/>
 <jsp:useBean id="oauthConnections" scope="request" type="java.util.List"/>
 <jsp:useBean id="project" scope="request" type="jetbrains.buildServer.serverSide.SProject"/>
 

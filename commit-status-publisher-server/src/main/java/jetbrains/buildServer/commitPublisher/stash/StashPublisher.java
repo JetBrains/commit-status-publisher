@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.stash.data.DeprecatedJsonStashBuildStatuses;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
 import jetbrains.buildServer.serverSide.*;
@@ -57,7 +58,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
   @NotNull
   @Override
   public String getId() {
-    return Constants.STASH_PUBLISHER_ID;
+    return StashConstants.STASH_PUBLISHER_ID;
   }
 
   @Override
@@ -283,8 +284,8 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
 
   @NotNull
   public String getBaseUrl(@Nullable String vcsRootUrl) throws PublisherException {
-    if (!StringUtil.isEmptyOrSpaces(myParams.get(Constants.STASH_BASE_URL)))
-      return HttpHelper.stripTrailingSlash(myParams.get(Constants.STASH_BASE_URL));
+    if (!StringUtil.isEmptyOrSpaces(myParams.get(StashConstants.STASH_BASE_URL)))
+      return HttpHelper.stripTrailingSlash(myParams.get(StashConstants.STASH_BASE_URL));
 
     return getApiUrlFromVcsRootUrl(vcsRootUrl);
   }

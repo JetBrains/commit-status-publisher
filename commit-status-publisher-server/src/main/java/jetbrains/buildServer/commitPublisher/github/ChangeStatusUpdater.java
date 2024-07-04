@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApi;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiFactory;
@@ -59,7 +60,7 @@ public class ChangeStatusUpdater {
         final String username = params.get(C.getUserNameKey());
         String password = params.get(C.getPasswordKey());
         if (password == null) {
-          password = params.get(Constants.GITHUB_PASSWORD_DEPRECATED);
+          password = params.get(GithubConstants.GITHUB_PASSWORD_DEPRECATED);
         }
         return myFactory.openGitHubForUser(serverUrl, username, password);
 
@@ -181,7 +182,7 @@ public class ChangeStatusUpdater {
       @Override
       public CommitStatus getStatus(@NotNull BuildRevision revision) throws PublisherException {
         RepositoryVersion version = revision.getRepositoryVersion();
-        String buildContext = params.get(Constants.GITHUB_CONTEXT);
+        String buildContext = params.get(GithubConstants.GITHUB_CONTEXT);
         LOG.debug("Requesting statuses for " +
                   "hash: " + version.getVersion() + ", " +
                   "branch: " + version.getVcsBranch() + ", " +
@@ -201,7 +202,7 @@ public class ChangeStatusUpdater {
       @Override
       public Collection<CommitStatus> getStatuses(@NotNull BuildRevision revision) throws PublisherException {
         RepositoryVersion version = revision.getRepositoryVersion();
-        String buildContext = params.get(Constants.GITHUB_CONTEXT);
+        String buildContext = params.get(GithubConstants.GITHUB_CONTEXT);
         LOG.debug("Requesting statuses for " +
                   "hash: " + version.getVersion() + ", " +
                   "branch: " + version.getVcsBranch() + ", " +
@@ -285,7 +286,7 @@ public class ChangeStatusUpdater {
 
     GitHubCommonStatusClient(Map<String, String> params, GitHubPublisher publisher, @NotNull VcsRoot root) {
       myPublisher = publisher;
-      String ctx = params.get(Constants.GITHUB_CONTEXT);
+      String ctx = params.get(GithubConstants.GITHUB_CONTEXT);
       myContext = StringUtil.isEmpty(ctx) ? DEFAULT_CONTEXT : ctx;
       myApi = getGitHubApi(params, publisher.getBuildType().getProject(), root);
     }

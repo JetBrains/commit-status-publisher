@@ -53,7 +53,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
   @NotNull
   @Override
   public String getId() {
-    return Constants.GITLAB_PUBLISHER_ID;
+    return GitlabConstants.GITLAB_PUBLISHER_ID;
   }
 
 
@@ -338,8 +338,8 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
 
   @NotNull
   public String getApiUrl(@Nullable String vcsRootUrl) throws PublisherException {
-    if (!StringUtil.isEmptyOrSpaces(myParams.get(Constants.GITLAB_API_URL)))
-      return HttpHelper.stripTrailingSlash(myParams.get(Constants.GITLAB_API_URL));
+    if (!StringUtil.isEmptyOrSpaces(myParams.get(GitlabConstants.GITLAB_API_URL)))
+      return HttpHelper.stripTrailingSlash(myParams.get(GitlabConstants.GITLAB_API_URL));
 
     return getApiUrlFromVcsRootUrl(vcsRootUrl);
   }
@@ -455,7 +455,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
 
   private static boolean supportMergeResults(@NotNull BuildType buildType) {
     if (buildType instanceof InternalParameters) {
-      return ((InternalParameters)buildType).getBooleanInternalParameterOrTrue(Constants.GITLAB_FEATURE_TOGGLE_MERGE_RESULTS);
+      return ((InternalParameters)buildType).getBooleanInternalParameterOrTrue(GitlabConstants.GITLAB_FEATURE_TOGGLE_MERGE_RESULTS);
     }
 
     return true;

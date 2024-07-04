@@ -31,6 +31,7 @@ import org.springframework.web.servlet.ModelAndView;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
+
 public class PublisherSettingsController extends BaseController {
 
   private final String myUrl;

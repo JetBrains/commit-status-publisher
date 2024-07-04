@@ -8,7 +8,7 @@
 
 
 
-<jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
+<jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.gitee.GiteeConstants"/>
 
 
 <props:selectSectionProperty name="authType" title="Authentication Type:" style="width: 28em;">

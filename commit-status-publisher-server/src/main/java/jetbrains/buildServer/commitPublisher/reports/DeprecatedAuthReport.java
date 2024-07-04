@@ -10,6 +10,7 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.PublisherManager;
+import jetbrains.buildServer.commitPublisher.github.GithubConstants;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationType;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -62,10 +63,10 @@ public class DeprecatedAuthReport extends HealthStatusReport {
         if (bt.isEnabled(feature.getId())) {
           Map<String, String> params = feature.getParameters();
           String publisherId = params.get(Constants.PUBLISHER_ID_PARAM);
-          if (publisherId == null || !publisherId.equals(Constants.GITHUB_PUBLISHER_ID))
+          if (publisherId == null || !publisherId.equals(GithubConstants.GITHUB_PUBLISHER_ID))
             continue;
           CommitStatusPublisherSettings settings = myPublisherManager.findSettings(publisherId);
-          if (null != settings && GitHubApiAuthenticationType.PASSWORD_AUTH.getValue().equals(params.get(Constants.GITHUB_AUTH_TYPE))) {
+          if (null != settings && GitHubApiAuthenticationType.PASSWORD_AUTH.getValue().equals(params.get(GithubConstants.GITHUB_AUTH_TYPE))) {
             String identity = REPORT_TYPE + "_BT_" + bt.getInternalId() + "_FEATURE_" + feature.getId();
             Map<String, Object> additionalData = new HashMap<>();
             additionalData.put("buildType", bt);

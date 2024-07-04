@@ -5,7 +5,6 @@ package jetbrains.buildServer.commitPublisher.gitea;
 import java.io.IOException;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaReceiveCommitStatus;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaRepoInfo;
 import jetbrains.buildServer.serverSide.*;
@@ -25,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatusPublisherSettings {
 
@@ -63,7 +63,7 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
 
   @NotNull
   public String getId() {
-    return Constants.GITEA_PUBLISHER_ID;
+    return GiteaConstants.GITEA_PUBLISHER_ID;
   }
 
   @NotNull
@@ -99,11 +99,11 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
         }
 
         if (Constants.AUTH_TYPE_ACCESS_TOKEN.equalsIgnoreCase(authenticationType)) {
-          if (StringUtil.isEmptyOrSpaces(params.get(Constants.GITEA_TOKEN)))
-            errors.add(new InvalidProperty(Constants.GITEA_TOKEN, "Access token must be specified"));
+          if (StringUtil.isEmptyOrSpaces(params.get(GiteaConstants.GITEA_TOKEN)))
+            errors.add(new InvalidProperty(GiteaConstants.GITEA_TOKEN, "Access token must be specified"));
         }
         else {
-          params.remove(Constants.GITEA_TOKEN);
+          params.remove(GiteaConstants.GITEA_TOKEN);
         }
 
         return errors;
@@ -119,7 +119,7 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
 
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    String apiUrl = params.getOrDefault(Constants.GITEA_API_URL, guessApiURL(root.getProperty("url")));
+    String apiUrl = params.getOrDefault(GiteaConstants.GITEA_API_URL, guessApiURL(root.getProperty("url")));
     if (StringUtil.isEmptyOrSpaces(apiUrl))
       throw new PublisherException("Missing Gitea API URL parameter");
     Repository repository = VCS_URL_PARSER.parseRepositoryUrl(root.getProperty("url"));
@@ -190,7 +190,7 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
   @NotNull
   @Override
   protected HttpCredentials getAccessTokenCredentials(@NotNull Map<String, String> params) throws PublisherException {
-    final String token = params.get(Constants.GITEA_TOKEN);
+    final String token = params.get(GiteaConstants.GITEA_TOKEN);
     if (token == null) {
       throw new PublisherException("Gitea Access token is not defined");
     }
@@ -233,13 +233,13 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
   @Nullable
   @Override
   protected String getUsername(@NotNull Map<String, String> params) {
-    return params.get(Constants.GITEA_USERNAME);
+    return params.get(GiteaConstants.GITEA_USERNAME);
   }
 
   @Nullable
   @Override
   protected String getPassword(@NotNull Map<String, String> params) {
-    return params.get(Constants.GITEA_PASSWORD);
+    return params.get(GiteaConstants.GITEA_PASSWORD);
   }
 
 

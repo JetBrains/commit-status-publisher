@@ -40,7 +40,7 @@ class GiteePublisher extends HttpBasedCommitStatusPublisher<GiteeBuildStatus> {
   @Override
   @NotNull
   public String getId() {
-    return Constants.GITEE_PUBLISHER_ID;
+    return GiteeConstants.GITEE_PUBLISHER_ID;
   }
 
   @Override
@@ -217,8 +217,8 @@ class GiteePublisher extends HttpBasedCommitStatusPublisher<GiteeBuildStatus> {
   }
 
   protected String getApiUrl(@Nullable BuildRevision revision)  throws PublisherException {
-    if (!StringUtil.isEmptyOrSpaces(myParams.get(Constants.GITEE_API_URL)))
-      return HttpHelper.stripTrailingSlash(myParams.get(Constants.GITEE_API_URL));
+    if (!StringUtil.isEmptyOrSpaces(myParams.get(GiteeConstants.GITEE_API_URL)))
+      return HttpHelper.stripTrailingSlash(myParams.get(GiteeConstants.GITEE_API_URL));
 
     if (revision == null) {
       throw new PublisherException("Gitee API URL not set and no Build Revision provided");

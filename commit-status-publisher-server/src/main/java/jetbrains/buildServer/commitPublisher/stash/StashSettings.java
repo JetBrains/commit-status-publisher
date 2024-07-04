@@ -78,7 +78,7 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
 
   @NotNull
   public String getId() {
-    return Constants.STASH_PUBLISHER_ID;
+    return StashConstants.STASH_PUBLISHER_ID;
   }
 
   @NotNull
@@ -100,7 +100,7 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
   public String describeParameters(@NotNull Map<String, String> params) {
     final StringBuilder sb = new StringBuilder(super.describeParameters(params));
 
-    final String url = params.get(Constants.STASH_BASE_URL);
+    final String url = params.get(StashConstants.STASH_BASE_URL);
     if (url != null) {
       sb.append(": ").append(WebUtil.escapeXml(url));
     }
@@ -131,19 +131,19 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
         switch(authType) {
           case Constants.PASSWORD:
             params.remove(Constants.TOKEN_ID);
-            mandatoryString(Constants.STASH_USERNAME, "Username must be specified", params, errors);
-            mandatoryString(Constants.STASH_PASSWORD, "Password must be specified", params, errors);
+            mandatoryString(StashConstants.STASH_USERNAME, "Username must be specified", params, errors);
+            mandatoryString(StashConstants.STASH_PASSWORD, "Password must be specified", params, errors);
             break;
 
           case Constants.AUTH_TYPE_STORED_TOKEN:
-            params.remove(Constants.STASH_USERNAME);
-            params.remove(Constants.STASH_PASSWORD);
+            params.remove(StashConstants.STASH_USERNAME);
+            params.remove(StashConstants.STASH_PASSWORD);
             mandatoryString(Constants.TOKEN_ID, "No token configured", params, errors);
             break;
 
           case Constants.AUTH_TYPE_VCS:
-            params.remove(Constants.STASH_USERNAME);
-            params.remove(Constants.STASH_PASSWORD);
+            params.remove(StashConstants.STASH_USERNAME);
+            params.remove(StashConstants.STASH_PASSWORD);
             params.remove(Constants.TOKEN_ID);
 
             String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
@@ -180,7 +180,7 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
     final Repository repository = VCS_URL_PARSER.parseRepositoryUrl(vcsRootUrl);
     if (null == repository)
       throw new PublisherException("Cannot parse repository URL from VCS root " + root.getName());
-    String apiUrl = params.getOrDefault(Constants.STASH_BASE_URL, guessApiURL(root.getProperty("url")));
+    String apiUrl = params.getOrDefault(StashConstants.STASH_BASE_URL, guessApiURL(root.getProperty("url")));
     if (null == apiUrl || apiUrl.length() == 0)
       throw new PublisherException("Missing Bitbucket Server API URL parameter");
     String url = apiUrl + "/rest/api/1.0/projects/" + repository.owner() + "/repos/" + repository.repositoryName();
@@ -254,7 +254,7 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
   @NotNull
   @Override
   public List<OAuthConnectionDescriptor> getOAuthConnections(@NotNull SProject project, @NotNull SUser user) {
-    return myOAuthConnectionsManager.getAvailableConnectionsOfType(project, Constants.STASH_OAUTH_PROVIDER_TYPE).stream()
+    return myOAuthConnectionsManager.getAvailableConnectionsOfType(project, StashConstants.STASH_OAUTH_PROVIDER_TYPE).stream()
       .sorted(CONNECTION_DESCRIPTOR_NAME_COMPARATOR)
       .collect(Collectors.toList());
   }
@@ -268,13 +268,13 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
   @Nullable
   @Override
   protected String getUsername(@NotNull Map<String, String> params) {
-    return params.get(Constants.STASH_USERNAME);
+    return params.get(StashConstants.STASH_USERNAME);
   }
 
   @Nullable
   @Override
   protected String getPassword(@NotNull Map<String, String> params) {
-    return params.get(Constants.STASH_PASSWORD);
+    return params.get(StashConstants.STASH_PASSWORD);
   }
 
   private class ServerVersionResponseProcessor extends DefaultHttpResponseProcessor {

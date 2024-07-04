@@ -27,7 +27,7 @@ import org.springframework.http.MediaType;
 
 public class GiteeSettings extends AuthTypeAwareSettings implements CommitStatusPublisherSettings {
 
-  static final String DEFAULT_AUTH_TYPE = Constants.PASSWORD;
+  static final String DEFAULT_AUTH_TYPE = GiteeConstants.GITEE_PASSWORD;
   static final String ACCESS_TOKEN_USERNAME = "x-token-auth";
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
@@ -60,7 +60,7 @@ public class GiteeSettings extends AuthTypeAwareSettings implements CommitStatus
 
   @NotNull
   public String getId() {
-    return Constants.GITEE_PUBLISHER_ID;
+    return GiteeConstants.GITEE_PUBLISHER_ID;
   }
 
   @NotNull
@@ -96,11 +96,11 @@ public class GiteeSettings extends AuthTypeAwareSettings implements CommitStatus
         }
 
         if (Constants.AUTH_TYPE_ACCESS_TOKEN.equalsIgnoreCase(authenticationType)) {
-          if (StringUtil.isEmptyOrSpaces(params.get(Constants.GITEE_TOKEN)))
-            errors.add(new InvalidProperty(Constants.GITEE_TOKEN, "Access token must be specified"));
+          if (StringUtil.isEmptyOrSpaces(params.get(GiteeConstants.GITEE_TOKEN)))
+            errors.add(new InvalidProperty(GiteeConstants.GITEE_TOKEN, "Access token must be specified"));
         }
         else {
-          params.remove(Constants.GITEE_TOKEN);
+          params.remove(GiteeConstants.GITEE_TOKEN);
         }
 
         return errors;
@@ -116,7 +116,7 @@ public class GiteeSettings extends AuthTypeAwareSettings implements CommitStatus
 
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    String apiUrl = params.getOrDefault(Constants.GITEE_API_URL, guessApiURL(root.getProperty("url")));
+    String apiUrl = params.getOrDefault(GiteeConstants.GITEE_API_URL, guessApiURL(root.getProperty("url")));
     if (StringUtil.isEmptyOrSpaces(apiUrl))
       throw new PublisherException("Missing Gitee API URL parameter");
     Repository repository = VCS_URL_PARSER.parseRepositoryUrl(root.getProperty("url"));
@@ -133,12 +133,12 @@ public class GiteeSettings extends AuthTypeAwareSettings implements CommitStatus
         }
         GiteeRepoInfo repoInfo = myGson.fromJson(json, GiteeRepoInfo.class);
         if (repoInfo == null) {
-          throw new HttpPublisherException("Could not parse Repository from Gitea response.");
+          throw new HttpPublisherException("Could not parse Repository from Gitee response.");
         }
-        if (repoInfo.permissions == null) {
-          throw new HttpPublisherException("Could not parse Repository Permission from Gitea response.");
+        if (repoInfo.permission == null) {
+          throw new HttpPublisherException("Could not parse Repository Permission from Gitee response.");
         }
-        if (!repoInfo.permissions.push)
+        if (!repoInfo.permission.push)
           throw new HttpPublisherException("No push permissions to repository. Ensure user and access token have proper rights. Access token needs write:repository rights.");
       }
     };
@@ -179,7 +179,7 @@ public class GiteeSettings extends AuthTypeAwareSettings implements CommitStatus
   @NotNull
   @Override
   protected HttpCredentials getAccessTokenCredentials(@NotNull Map<String, String> params) throws PublisherException {
-    final String token = params.get(Constants.GITEE_TOKEN);
+    final String token = params.get(GiteeConstants.GITEE_TOKEN);
     if (token == null) {
       throw new PublisherException("Gitee Access token is not defined");
     }
@@ -223,13 +223,13 @@ public class GiteeSettings extends AuthTypeAwareSettings implements CommitStatus
   @Nullable
   @Override
   protected String getUsername(@NotNull Map<String, String> params) {
-    return params.get(Constants.GITEE_USERNAME);
+    return params.get(GiteeConstants.GITEE_USERNAME);
   }
 
   @Nullable
   @Override
   protected String getPassword(@NotNull Map<String, String> params) {
-    return params.get(Constants.GITEE_PASSWORD);
+    return params.get(GiteeConstants.GITEE_PASSWORD);
   }
 
 

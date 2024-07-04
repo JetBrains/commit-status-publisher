@@ -9,7 +9,7 @@
 
 
 
-<jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.Constants"/>
+<jsp:useBean id="keys" class="jetbrains.buildServer.commitPublisher.gitlab.GitlabConstants"/>
 <jsp:useBean id="oauthConnections" scope="request" type="java.util.List"/>
 <jsp:useBean id="refreshTokenSupported" scope="request" type="java.lang.Boolean"/>
 

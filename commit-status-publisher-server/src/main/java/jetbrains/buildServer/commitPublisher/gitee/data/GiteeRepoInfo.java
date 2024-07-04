@@ -8,5 +8,5 @@ package jetbrains.buildServer.commitPublisher.gitee.data;
 public class GiteeRepoInfo {
   public String full_name;
   public String description;
-  public GiteeRepoPermissions permissions;
+  public GiteeRepoPermissions permission;
 }
