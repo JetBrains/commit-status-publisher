@@ -1,32 +1,64 @@
-
-
 package jetbrains.buildServer.commitPublisher;
 
-import jetbrains.buildServer.serverSide.InvalidProperty;
-import jetbrains.buildServer.serverSide.PropertiesProcessor;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import java.util.*;
+import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.executors.ExecutorServices;
+import jetbrains.buildServer.users.UserModel;
+import jetbrains.buildServer.vcs.*;
+import jetbrains.buildServer.web.openapi.PluginDescriptor;
+import jetbrains.buildServer.web.openapi.WebControllerManager;
+import org.assertj.core.api.BDDAssertions;
 
-import java.util.Collection;
+public class CommitStatusPublisherFeatureTest extends CommitStatusPublisherTest {
+  public void test_should_not_publish_queued_over_final_status() throws Exception {
+    if (isSkipEvent(EventToTest.QUEUED)) return;
 
-import static jetbrains.buildServer.util.Util.map;
-import static org.assertj.core.api.BDDAssertions.then;
-import static org.assertj.core.groups.Tuple.tuple;
+    setInternalProperty("teamcity.commitStatusPublisher.statusCache.wildcardTtl", 0); // disable status caching when there were no statuses returned
 
-@Test
-public class CommitStatusPublisherFeatureTest extends CommitStatusPublisherTestBase {
+    new CommitStatusPublisherListener(myFixture.getEventDispatcher(), new PublisherManager(myServer), myFixture.getHistory(), myFixture.getBuildsManager(), myFixture.getBuildPromotionManager(), myProblems,
+                                      myFixture.getServerResponsibility(), myFixture.getSingletonService(ExecutorServices.class),
+                                      myFixture.getSingletonService(ProjectManager.class), myFixture.getSingletonService(TeamCityNodes.class),
+                                      myFixture.getSingletonService(UserModel.class), myFixture.getMultiNodeTasks());
 
-  @BeforeMethod
-  public void setUp() throws Exception {
-    super.setUp();
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().stream().filter(root -> root.getParent().getId() == myVcsRoot.getId()).findFirst().get();
+    setUpFeature();
+
+    addToQueueWithRevision(vcsRootInstance, "2");
+    waitFor(() -> checkLastEventQueued());
+
+    SRunningBuild build = myFixture.flushQueueAndWait();
+    waitFor(() -> checkLastEventStarted());
+
+    myFixture.finishBuild(build, false);
+    waitFor(() -> checkLastEventFinished(true));
+
+    addToQueueWithRevision(vcsRootInstance, "2");
+    checkLastEventFinished(true);
+
+    SRunningBuild build2 = myFixture.flushQueueAndWait();
+    waitFor(() -> checkLastEventStarted());
+
+    myFixture.finishBuild(build2, false);
+    waitFor(() -> checkLastEventFinished(true));
+
+    BDDAssertions.then(getAllRequestsAsString().stream().filter(request -> checkEventQueued(request)).count()).isEqualTo(1);
   }
+  protected void setUpFeature() {
 
-  public void should_not_allow_to_save_feature_without_publisher_selected() {
-    PropertiesProcessor processor = myFeature.getParametersProcessor(myBuildType);
-    Collection<InvalidProperty> errors = processor.process(map(Constants.VCS_ROOT_ID_PARAM, "someRootId"));
-    then(errors).extracting("propertyName", "invalidReason").contains(tuple(Constants.PUBLISHER_ID_PARAM, "Choose a publisher"));
+    Map<String, String> featureParams = getPublisherParams();
+    featureParams.put(Constants.PUBLISHER_ID_PARAM, myPublisher.getId());
+    myBuildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, featureParams);
+    myServer.registerExtension(CommitStatusPublisherSettings.class, "test", myPublisherSettings);
 
-    errors = processor.process(map(Constants.VCS_ROOT_ID_PARAM, "someRootId", Constants.PUBLISHER_ID_PARAM, DummyPublisherSettings.ID));
-    then(errors).extracting("propertyName", "invalidReason").contains(tuple(Constants.PUBLISHER_ID_PARAM, "Choose a publisher"));
+    PublisherManager publisherManager = new PublisherManager(myServer);
+    WebControllerManager wcm = new CommitStatusPublisherTestBase.MockWebControllerManager();
+    PluginDescriptor pluginDescr = new MockPluginDescriptor();
+    PublisherSettingsController settingsController = new PublisherSettingsController(wcm, pluginDescr, publisherManager, myProjectManager, myFixture.getSingletonService(SecurityContext.class));
+    CommitStatusPublisherFeatureController featureController = new CommitStatusPublisherFeatureController(myProjectManager, wcm, pluginDescr, publisherManager, settingsController, myFixture.getSecurityContext());
+    CommitStatusPublisherFeature feature = new CommitStatusPublisherFeature(featureController, publisherManager);
+    myServer.registerExtension(BuildFeature.class, CommitStatusPublisherFeature.TYPE, feature);
   }
 }
+

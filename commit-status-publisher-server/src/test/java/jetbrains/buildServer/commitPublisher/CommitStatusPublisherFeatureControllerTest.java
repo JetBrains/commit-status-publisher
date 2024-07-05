@@ -2,6 +2,7 @@
 
 package jetbrains.buildServer.commitPublisher;
 
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.controllers.BasePropertiesBean;
 import jetbrains.buildServer.controllers.MockRequest;
 import jetbrains.buildServer.controllers.MockResponse;
@@ -53,7 +54,7 @@ public class CommitStatusPublisherFeatureControllerTest extends CommitStatusPubl
     ModelAndView mv = myFeatureController.handleRequestInternal(myRequest, myResponse);
 
     then(mv.getModel().get("hasMissingVcsRoot")).isNull();
-    List<VcsRoot> vcsRoots = (List<VcsRoot>) mv.getModel().get("vcsRoots");
+    List<VcsRoot> vcsRoots = (List<VcsRoot>)mv.getModel().get("vcsRoots");
     then(vcsRoots).isNotNull();
     then(vcsRoots).contains(vcs);
   }

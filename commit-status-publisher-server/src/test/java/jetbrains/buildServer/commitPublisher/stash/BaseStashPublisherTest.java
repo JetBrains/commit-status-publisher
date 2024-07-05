@@ -5,7 +5,6 @@ package jetbrains.buildServer.commitPublisher.stash;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import jetbrains.BuildServerCreator;
-import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.stash.data.DeprecatedJsonStashBuildStatuses;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
 import jetbrains.buildServer.commitPublisher.stash.data.StashRepoInfo;

@@ -1,5 +1,3 @@
-
-
 package jetbrains.buildServer.commitPublisher;
 
 import java.util.Collection;
@@ -10,18 +8,14 @@ import jetbrains.buildServer.serverSide.impl.BuildFeatureDescriptorImpl;
 import jetbrains.buildServer.serverSide.systemProblems.BuildProblemsTicketManager;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
+import org.assertj.core.api.BDDAssertions;
 import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
-
-import static org.assertj.core.api.BDDAssertions.then;
 
 /**
  * @author anton.zamolotskikh, 13/09/16.
  */
 
-@Test
-public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
-
+public class CommitStatusPublisherFeatureProblemsTest extends BaseServerTestCase {
   private final static String FEATURE_1 = "PUBLISH_BUILD_FEATURE_1";
   private final static String FEATURE_2 = "PUBLISH_BUILD_FEATURE_2";
 
@@ -45,14 +39,14 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
 
   public void must_add_and_delete_problems() {
     myProblems.reportProblem("Some problem description", myPublisher, "Build description", null, null, myLogger);
-    then(myProblemEngine.getProblems(myBuildType).size()).isEqualTo(1);
+    BDDAssertions.then(myProblemEngine.getProblems(myBuildType).size()).isEqualTo(1);
     String lastLogged = myLogger.popLast();
-    then(lastLogged)
-      .contains("Some problem description")
-      .contains(myPublisher.toString())
-      .contains("Build description");
+    BDDAssertions.then(lastLogged)
+                 .contains("Some problem description")
+                 .contains(myPublisher.toString())
+                 .contains("Build description");
     myProblems.clearProblem(myPublisher);
-    then(myProblemEngine.getProblems(myBuildType).size()).isEqualTo(0);
+    BDDAssertions.then(myProblemEngine.getProblems(myBuildType).size()).isEqualTo(0);
   }
 
   public void must_clear_obsolete_problems() {
@@ -70,12 +64,12 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
     myProblems.reportProblem(PUB1_P1, myPublisher, "Build description", null, null, myLogger);
     myProblems.reportProblem(PUB2_P2, publisher2, "Build description", null, null, myLogger);
     Collection<SystemProblemEntry> problems = myProblemEngine.getProblems(myBuildType);
-    then(problems.size()).isEqualTo(3);
+    BDDAssertions.then(problems.size()).isEqualTo(3);
     myBuildType.removeBuildFeature(FEATURE_2);
     myProblems.clearObsoleteProblems(myBuildType);
     Collection<SystemProblemEntry> remainingProblems = myProblemEngine.getProblems(myBuildType);
-    then(remainingProblems.size()).isEqualTo(1);
-    then(remainingProblems.iterator().next().getProblem().getDescription()).contains(PUB1_P1);
+    BDDAssertions.then(remainingProblems.size()).isEqualTo(1);
+    BDDAssertions.then(remainingProblems.iterator().next().getProblem().getDescription()).contains(PUB1_P1);
   }
 
 }

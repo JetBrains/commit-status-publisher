@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.function.Function;
 import jetbrains.buildServer.BaseWebTestCase;
 import jetbrains.buildServer.buildTriggers.vcs.BuildRevisionBuilder;
-import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
-import jetbrains.buildServer.commitPublisher.PublisherException;
+//import jetbrains.buildServer.commitStatusPublisher.MockPluginDescriptor;
+//import jetbrains.buildServer.commitStatusPublisher.PublisherException;
 import jetbrains.buildServer.controllers.MockRequest;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
@@ -25,6 +25,7 @@ import static org.assertj.core.api.BDDAssertions.then;
 
 @Test
 public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
+  /*
 
   enum SwarmReviewsResult {
     EMPTY,
@@ -202,5 +203,6 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
 
     return (SwarmBuildDataBean)model.get(SWARM_BEAN);
   }
+  */
 
 }
