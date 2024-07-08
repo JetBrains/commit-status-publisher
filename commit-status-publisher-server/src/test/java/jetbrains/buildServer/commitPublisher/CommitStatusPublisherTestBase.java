@@ -16,7 +16,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
-import jetbrains.buildServer.serverSide.systemProblems.BuildFeatureProblemsTicketManager;
+import jetbrains.buildServer.serverSide.systemProblems.BuildProblemsTicketManager;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
 import jetbrains.buildServer.util.browser.Browser;
 import jetbrains.buildServer.vcs.*;
@@ -78,7 +78,7 @@ public class CommitStatusPublisherTestBase extends BaseServerTestCase {
     myFeature = new CommitStatusPublisherFeature(myFeatureController, publisherManager);
     myBuildsManager = myFixture.getSingletonService(BuildsManager.class);
     myProblemNotificationEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
-    myProblems = new CommitStatusPublisherProblems(myFixture.getSingletonService(BuildFeatureProblemsTicketManager.class));
+    myProblems = new CommitStatusPublisherProblems(myFixture.getSingletonService(BuildProblemsTicketManager.class));
     ExtensionHolder extensionHolder = myFixture.getSingletonService(ExtensionHolder.class);
     extensionHolder.registerExtension(BuildFeature.class, CommitStatusPublisherFeature.TYPE, myFeature);
   }
