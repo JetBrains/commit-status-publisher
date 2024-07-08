@@ -4,16 +4,16 @@ package jetbrains.buildServer.commitPublisher;
 
 import com.intellij.openapi.diagnostic.Logger;
 import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.systemProblems.BuildFeatureProblemsTicketManager;
+import jetbrains.buildServer.serverSide.systemProblems.BuildProblemsTicketManager;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class CommitStatusPublisherProblems {
 
-  private final BuildFeatureProblemsTicketManager myTicketManager;
+  private final BuildProblemsTicketManager myTicketManager;
 
-  public CommitStatusPublisherProblems(@NotNull BuildFeatureProblemsTicketManager ticketManager) {
+  public CommitStatusPublisherProblems(@NotNull BuildProblemsTicketManager ticketManager) {
     myTicketManager = ticketManager;
   }
 

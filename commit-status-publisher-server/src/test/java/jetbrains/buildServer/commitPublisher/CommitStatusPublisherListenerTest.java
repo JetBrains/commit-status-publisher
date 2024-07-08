@@ -21,7 +21,7 @@ import jetbrains.buildServer.serverSide.impl.RunningBuildState;
 import jetbrains.buildServer.serverSide.impl.beans.VcsRootInstanceContext;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsWatcher;
 import jetbrains.buildServer.serverSide.impl.xml.XmlConstants;
-import jetbrains.buildServer.serverSide.systemProblems.BuildFeatureProblemsTicketManagerImpl;
+import jetbrains.buildServer.serverSide.systemProblems.BuildProblemsTicketManagerImpl;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.users.SUser;
@@ -47,7 +47,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   private CommitStatusPublisherListener myListener;
   private MockPublisher myPublisher;
-  private BuildFeatureProblemsTicketManagerImpl myTicketManager;
+  private BuildProblemsTicketManagerImpl myTicketManager;
   private PublisherLogger myLogger;
   private SUser myUser;
   private Event myLastEventProcessed;
@@ -69,7 +69,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myUser = myFixture.createUserAccount("newuser");
     myPublisherSettings.setPublisher(myPublisher);
     myPublisherSettings.setLinks(myWebLinks);
-    myTicketManager = myFixture.findSingletonService(BuildFeatureProblemsTicketManagerImpl.class);
+    myTicketManager = myFixture.findSingletonService(BuildProblemsTicketManagerImpl.class);
     myRoots = new HashMap<>();
   }
   

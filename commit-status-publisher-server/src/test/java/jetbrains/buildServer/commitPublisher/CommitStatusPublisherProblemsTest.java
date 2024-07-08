@@ -4,11 +4,10 @@ package jetbrains.buildServer.commitPublisher;
 
 import java.util.Collection;
 import java.util.Collections;
-import jetbrains.buildServer.serverSide.BuildTypeEx;
 import jetbrains.buildServer.serverSide.WebLinks;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.impl.BuildFeatureDescriptorImpl;
-import jetbrains.buildServer.serverSide.systemProblems.BuildFeatureProblemsTicketManager;
+import jetbrains.buildServer.serverSide.systemProblems.BuildProblemsTicketManager;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
 import org.testng.annotations.BeforeMethod;
@@ -38,7 +37,7 @@ public class CommitStatusPublisherProblemsTest extends BaseServerTestCase {
     super.setUp();
     myLogger = new PublisherLogger();
     myProblemEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
-    myProblems = new CommitStatusPublisherProblems(myFixture.getSingletonService(BuildFeatureProblemsTicketManager.class));
+    myProblems = new CommitStatusPublisherProblems(myFixture.getSingletonService(BuildProblemsTicketManager.class));
     myPublisherSettings = new MockPublisherSettings(myProblems);
     myLinks = myFixture.getSingletonService(WebLinks.class);
     myPublisher = new MockPublisher(myPublisherSettings, "PUBLISHER1", myBuildType, FEATURE_1, Collections.emptyMap(), myProblems, myLogger, myLinks);

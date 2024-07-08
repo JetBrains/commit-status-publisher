@@ -15,7 +15,7 @@ import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
-import jetbrains.buildServer.serverSide.systemProblems.BuildFeatureProblemsTicketManager;
+import jetbrains.buildServer.serverSide.systemProblems.BuildProblemsTicketManager;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
@@ -90,7 +90,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     myUser = myFixture.createUserAccount(USER);
     myProblemNotificationEngine = myFixture.getSingletonService(SystemProblemNotificationEngine.class);
-    myProblems = new CommitStatusPublisherProblems(myFixture.getSingletonService(BuildFeatureProblemsTicketManager.class));
+    myProblems = new CommitStatusPublisherProblems(myFixture.getSingletonService(BuildProblemsTicketManager.class));
     myBranch = null;
     myOAuthConnectionsManager = myFixture.getSingletonService(OAuthConnectionsManager.class);
     myOAuthTokenStorage = myFixture.getSingletonService(OAuthTokensStorage.class);
