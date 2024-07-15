@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import jetbrains.buildServer.ExtensionHolder;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherTest;
+import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.messages.Status;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
@@ -73,7 +75,7 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
 
   public void test_buildFinished_with_no_label() throws Exception {
     Map<String, String> params = getPublisherParams();
-    params.remove(Constants.GERRIT_LABEL);
+    params.remove(GerritConstants.GERRIT_LABEL);
     myPublisher = new GerritPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myGerritClient, myWebLinks, params, myProblems);
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
     then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
@@ -91,7 +93,7 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
 
   public void test_buildFinished_with_verified_option_in_settings() throws Exception {
     Map<String, String> params = getPublisherParams();
-    params.put(Constants.GERRIT_LABEL, "$verified-option");
+    params.put(GerritConstants.GERRIT_LABEL, "$verified-option");
     myPublisher = new GerritPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myGerritClient, myWebLinks, params, myProblems);
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
     then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
@@ -106,12 +108,12 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
 
   protected Map<String, String> getPublisherParams(final String gerritProjectName) {
     return new HashMap<String, String>() {{
-      put(Constants.GERRIT_PROJECT, gerritProjectName);
-      put(Constants.GERRIT_SERVER, "gerrit_server");
-      put(Constants.GERRIT_USERNAME, "gerrit_user");
-      put(Constants.GERRIT_LABEL, "Verified");
-      put(Constants.GERRIT_SUCCESS_VOTE, "+1");
-      put(Constants.GERRIT_FAILURE_VOTE, "-1");
+      put(GerritConstants.GERRIT_PROJECT, gerritProjectName);
+      put(GerritConstants.GERRIT_SERVER, "gerrit_server");
+      put(GerritConstants.GERRIT_USERNAME, "gerrit_user");
+      put(GerritConstants.GERRIT_LABEL, "Verified");
+      put(GerritConstants.GERRIT_SUCCESS_VOTE, "+1");
+      put(GerritConstants.GERRIT_FAILURE_VOTE, "-1");
     }};
   }
 

@@ -230,11 +230,9 @@ public class SwarmPublisherTest extends HttpPublisherTest {
     then(getRequestAsString()).isNull();
   }
 
-  @Override
   @Test(enabled = false)
   public void test_should_not_publish_queued_over_final_status() throws Exception {
     // not implemented for swarm
-    super.test_should_not_publish_queued_over_final_status();
   }
 
   @Test

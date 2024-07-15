@@ -2,38 +2,49 @@
 
 package jetbrains.buildServer.commitPublisher;
 
-import jetbrains.buildServer.commitPublisher.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import jetbrains.buildServer.controllers.BasePropertiesBean;
 import jetbrains.buildServer.controllers.MockRequest;
 import jetbrains.buildServer.controllers.MockResponse;
 import jetbrains.buildServer.controllers.admin.projects.BuildTypeForm;
 import jetbrains.buildServer.controllers.admin.projects.VcsSettingsBean;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.web.openapi.PluginDescriptor;
+import jetbrains.buildServer.web.openapi.WebControllerManager;
 import org.springframework.web.servlet.ModelAndView;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.util.*;
 
 import static org.assertj.core.api.BDDAssertions.then;
 
 @Test
 public class CommitStatusPublisherFeatureControllerTest extends CommitStatusPublisherTestBase {
+  protected PublisherSettingsController mySettingsController;
   private VcsSettingsBean myBean;
   private HttpServletRequest myRequest;
   private HttpServletResponse myResponse;
+
+  private CommitStatusPublisherFeatureController myFeatureController;
 
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
     myBean = new MockVcsSettingsBean(myProject, myBuildType, myVcsManager, myProjectManager);
-    final BuildTypeForm form = new MockBuildTypeForm(myBuildType, myBean);
     myRequest = new MockRequest();
+    final BuildTypeForm form = new MockBuildTypeForm(myBuildType, myBean);
     myRequest.setAttribute("buildForm", form);
     myResponse = new MockResponse();
+    WebControllerManager wcm = new MockWebControllerManager();
+    PluginDescriptor pluginDescr = new MockPluginDescriptor();
+    PublisherManager publisherManager = new PublisherManager(myServer);
+    mySettingsController = new PublisherSettingsController(wcm, pluginDescr, publisherManager, myProjectManager, myFixture.getSingletonService(SecurityContext.class));
+    myFeatureController = new CommitStatusPublisherFeatureController(myProjectManager, wcm, pluginDescr, publisherManager, mySettingsController, myFixture.getSecurityContext());
   }
 
 

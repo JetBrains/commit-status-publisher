@@ -6,7 +6,7 @@ dependencies {
     compile 'com.github.mwiede:jsch:0.1.67'
     compile "org.jetbrains.teamcity:web-core:$teamcityVersion"
     compileOnly "org.jetbrains.teamcity:vcs-hostings-plugin-api:$teamcityVersion"
-    testCompileOnly "org.jetbrains.teamcity:vcs-hostings-test:$teamcityVersion"
+    testCompile "org.jetbrains.teamcity:vcs-hostings-test:$teamcityVersion"
     testCompile "org.jetbrains.teamcity:tests-support:$teamcityVersion"
     testCompile "org.jetbrains.teamcity:server-test-core:$teamcityVersion"
     testCompile "org.jetbrains.teamcity:web-test-core:$teamcityVersion"

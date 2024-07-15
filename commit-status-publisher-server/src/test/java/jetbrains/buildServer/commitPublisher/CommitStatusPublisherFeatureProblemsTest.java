@@ -10,11 +10,13 @@ import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotificationEngine;
 import org.assertj.core.api.BDDAssertions;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 /**
  * @author anton.zamolotskikh, 13/09/16.
  */
 
+@Test
 public class CommitStatusPublisherFeatureProblemsTest extends BaseServerTestCase {
   private final static String FEATURE_1 = "PUBLISH_BUILD_FEATURE_1";
   private final static String FEATURE_2 = "PUBLISH_BUILD_FEATURE_2";

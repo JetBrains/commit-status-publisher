@@ -5,7 +5,10 @@ package jetbrains.buildServer.commitPublisher.stash;
 import java.util.Collections;
 import java.util.Map;
 import jetbrains.buildServer.MockBuildPromotion;
-import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
+import jetbrains.buildServer.commitPublisher.CommitStatusesCache;
+import jetbrains.buildServer.commitPublisher.DefaultStatusMessages;
+import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SQueuedBuild;
@@ -88,7 +91,7 @@ public class StashPublisherTest extends BaseStashPublisherTest {
 
   public void url_getting_VCS_URL_test() throws PublisherException {
     Map<String, String> params = getPublisherParams();
-    params.remove(Constants.STASH_BASE_URL);
+    params.remove(StashConstants.STASH_BASE_URL);
     myVcsRoot.setProperties(Collections.singletonMap("url", "git@url.com:owner/some_/path/project.git"));
     myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
     assertEquals("https://url.com", ((StashPublisher)myPublisher).getBaseUrl(myVcsRoot.getProperty("url")));

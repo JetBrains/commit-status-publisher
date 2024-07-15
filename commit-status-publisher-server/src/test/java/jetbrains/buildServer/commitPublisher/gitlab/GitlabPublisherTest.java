@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.MockBuildPromotion;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.gitlab.data.*;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -60,7 +61,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   public void test_buildFinishedSuccessfully_server_url_with_subdir() throws Exception {
     Map<String, String> params = getPublisherParams();
     setExpectedApiPath("/subdir/api/v4");
-    params.put(Constants.GITLAB_API_URL, getServerUrl() + "/subdir/api/v4");
+    params.put(GitlabConstants.GITLAB_API_URL, getServerUrl() + "/subdir/api/v4");
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
@@ -71,7 +72,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   public void test_buildFinishedSuccessfully_server_url_with_slash() throws Exception {
     Map<String, String> params = getPublisherParams();
     setExpectedApiPath("/subdir/api/v4");
-    params.put(Constants.GITLAB_API_URL, getServerUrl() + "/subdir/api/v4/");
+    params.put(GitlabConstants.GITLAB_API_URL, getServerUrl() + "/subdir/api/v4/");
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
@@ -157,12 +158,12 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   }
 
   public void buildFinishedSuccessfully_on_merge_result_ref() throws Exception {
-    setInternalProperty("teamcity.internal." + Constants.GITLAB_FEATURE_TOGGLE_MERGE_RESULTS, true);
+    setInternalProperty("teamcity.internal." + GitlabConstants.GITLAB_FEATURE_TOGGLE_MERGE_RESULTS, true);
     final String mergeResultRevision = MERGE_RESULT_COMMIT;
     final String mergeResultRef = "refs/merge-requests/1/merge";
     final Map<String, String> params = getPublisherParams();
     setExpectedApiPath("/api/v4");
-    params.put(Constants.GITLAB_API_URL, getServerUrl() + "/api/v4");
+    params.put(GitlabConstants.GITLAB_API_URL, getServerUrl() + "/api/v4");
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/owner/project"));
     final VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     final VcsRootInstanceEntry rootEntry = new VcsRootInstanceEntry(vcsRootInstance, CheckoutRules.createOn(""));
@@ -204,7 +205,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
 
   public void url_getting_VCS_URL_test() throws PublisherException {
     Map<String, String> params = getPublisherParams();
-    params.remove(Constants.GITLAB_API_URL);
+    params.remove(GitlabConstants.GITLAB_API_URL);
     myVcsRoot.setProperties(Collections.singletonMap("url", "git@url.com:owner/some_/path/project.git"));
     myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory);
     assertEquals("https://url.com/api/v4", ((GitlabPublisher)myPublisher).getApiUrl(myVcsRoot.getProperty("url")));
@@ -240,8 +241,8 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   @Override
   protected Map<String, String> getPublisherParams() {
     return new HashMap<String, String>() {{
-      put(Constants.GITLAB_TOKEN, "TOKEN");
-      put(Constants.GITLAB_API_URL, getServerUrl() + getExpectedApiPath());
+      put(GitlabConstants.GITLAB_TOKEN, "TOKEN");
+      put(GitlabConstants.GITLAB_API_URL, getServerUrl() + getExpectedApiPath());
     }};
   }
 

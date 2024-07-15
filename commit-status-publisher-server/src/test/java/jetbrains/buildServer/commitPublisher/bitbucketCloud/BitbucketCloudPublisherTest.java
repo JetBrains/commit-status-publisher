@@ -5,6 +5,7 @@ package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import jetbrains.buildServer.MockBuildPromotion;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudBuildStatuses;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudCommitBuildStatus;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudRepoInfo;
@@ -205,8 +206,8 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
   @Override
   protected Map<String, String> getPublisherParams() {
     return new HashMap<String, String>() {{
-      put(Constants.BITBUCKET_CLOUD_USERNAME, "user");
-      put(Constants.BITBUCKET_CLOUD_PASSWORD, "pwd");
+      put(BitbucketCloudConstants.BITBUCKET_CLOUD_USERNAME, "user");
+      put(BitbucketCloudConstants.BITBUCKET_CLOUD_PASSWORD, "pwd");
     }};
   }
 

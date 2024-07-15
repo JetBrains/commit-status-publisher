@@ -5,6 +5,10 @@ package jetbrains.buildServer.commitPublisher.stash;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import jetbrains.BuildServerCreator;
+import jetbrains.buildServer.commitPublisher.CommitStatusesCache;
+import jetbrains.buildServer.commitPublisher.DefaultStatusMessages;
+import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
+import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
 import jetbrains.buildServer.commitPublisher.stash.data.DeprecatedJsonStashBuildStatuses;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
 import jetbrains.buildServer.commitPublisher.stash.data.StashRepoInfo;
@@ -48,7 +52,7 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
   public void test_buildFinishedSuccessfully_server_url_with_subdir() throws Exception {
     Map<String, String> params = getPublisherParams();
     setExpectedApiPath("/subdir/rest");
-    params.put(Constants.STASH_BASE_URL, getServerUrl() + "/subdir");
+    params.put(StashConstants.STASH_BASE_URL, getServerUrl() + "/subdir");
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
@@ -59,7 +63,7 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
   public void test_buildFinishedSuccessfully_server_url_with_slash() throws Exception {
     Map<String, String> params = getPublisherParams();
     setExpectedApiPath("/subdir/rest");
-    params.put(Constants.STASH_BASE_URL, getServerUrl() + "/subdir/");
+    params.put(StashConstants.STASH_BASE_URL, getServerUrl() + "/subdir/");
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
@@ -70,9 +74,9 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
   @Override
   protected Map<String, String> getPublisherParams() {
     return new HashMap<String, String>() {{
-      put(Constants.STASH_USERNAME, "user");
-      put(Constants.STASH_PASSWORD, "pwd");
-      put(Constants.STASH_BASE_URL, getServerUrl());
+      put(StashConstants.STASH_USERNAME, "user");
+      put(StashConstants.STASH_PASSWORD, "pwd");
+      put(StashConstants.STASH_BASE_URL, getServerUrl());
     }};
   }
 

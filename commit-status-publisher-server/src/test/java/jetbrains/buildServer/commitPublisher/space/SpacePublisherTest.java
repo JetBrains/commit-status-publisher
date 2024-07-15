@@ -5,6 +5,7 @@ package jetbrains.buildServer.commitPublisher.space;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import jetbrains.buildServer.MockBuildPromotion;
+import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.space.data.SpaceBuildStatusInfo;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SQueuedBuild;
@@ -26,7 +27,6 @@ import org.testng.annotations.Test;
 
 import static jetbrains.buildServer.commitPublisher.space.SpaceToken.ACCESS_TOKEN_FIELD_NAME;
 import static jetbrains.buildServer.commitPublisher.space.SpaceToken.TOKEN_TYPE_FIELD_NAME;
-import static org.assertj.core.api.BDDAssertions.then;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 

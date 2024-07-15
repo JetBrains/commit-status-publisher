@@ -7,14 +7,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import jetbrains.buildServer.serverSide.BuildFeature;
 import jetbrains.buildServer.serverSide.BuildTypeIdentity;
 import jetbrains.buildServer.serverSide.InvalidProperty;
 import jetbrains.buildServer.serverSide.PropertiesProcessor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class CommitStatusPublisherFeature extends BuildFeature {
+public class CommitStatusPublisherFeature extends BaseCommitStatusPublisherFeature {
 
   public static final String TYPE = "commit-status-publisher";
   private final CommitStatusPublisherFeatureController myController;
@@ -22,6 +21,7 @@ public class CommitStatusPublisherFeature extends BuildFeature {
 
   public CommitStatusPublisherFeature(@NotNull CommitStatusPublisherFeatureController controller,
                                       @NotNull PublisherManager publisherManager) {
+    super(publisherManager);
     myController = controller;
     myPublisherManager = publisherManager;
   }

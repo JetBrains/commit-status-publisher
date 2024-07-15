@@ -7,7 +7,6 @@ import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.DefaultStatusMessages;
 import jetbrains.buildServer.commitPublisher.HttpPublisherTest;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
@@ -58,7 +57,7 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
   public void test_buildFinishedSuccessfully_server_url_with_subdir() throws Exception {
     Map<String, String> params = getPublisherParams();
     setExpectedApiPath("/subdir/~buildStatus");
-    params.put(Constants.UPSOURCE_SERVER_URL, getServerUrl() + "/subdir");
+    params.put(UpsourceConstants.UPSOURCE_SERVER_URL, getServerUrl() + "/subdir");
     myPublisher = new UpsourcePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myFixture.getVcsHistory(), myWebLinks, params, myProblems);
     test_buildFinished_Successfully();
   }
@@ -66,7 +65,7 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
   public void test_buildFinishedSuccessfully_server_url_with_slash() throws Exception {
     Map<String, String> params = getPublisherParams();
     setExpectedApiPath("/subdir/~buildStatus");
-    params.put(Constants.UPSOURCE_SERVER_URL, getServerUrl() + "/subdir/");
+    params.put(UpsourceConstants.UPSOURCE_SERVER_URL, getServerUrl() + "/subdir/");
     myPublisher = new UpsourcePublisher(myPublisherSettings, myBuildType, FEATURE_ID, myFixture.getVcsHistory(), myWebLinks, params, myProblems);
     test_buildFinished_Successfully();
   }
@@ -103,10 +102,10 @@ public class UpsourcePublisherTest extends HttpPublisherTest {
 
   private Map<String, String> getPublisherParams(final String projectId, final String username) {
     return new HashMap<String, String>() {{
-      put(Constants.UPSOURCE_PROJECT_ID, projectId);
-      put(Constants.UPSOURCE_USERNAME, username);
-      put(Constants.UPSOURCE_PASSWORD, "pwd");
-      put(Constants.UPSOURCE_SERVER_URL, getServerUrl());
+      put(UpsourceConstants.UPSOURCE_PROJECT_ID, projectId);
+      put(UpsourceConstants.UPSOURCE_USERNAME, username);
+      put(UpsourceConstants.UPSOURCE_PASSWORD, "pwd");
+      put(UpsourceConstants.UPSOURCE_SERVER_URL, getServerUrl());
     }};
   }
 

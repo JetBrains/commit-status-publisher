@@ -7,10 +7,13 @@ import jetbrains.buildServer.controllers.MockRequest;
 import jetbrains.buildServer.controllers.MockResponse;
 import jetbrains.buildServer.serverSide.auth.Role;
 import jetbrains.buildServer.serverSide.auth.RoleScope;
+import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
+import jetbrains.buildServer.web.openapi.PluginDescriptor;
+import jetbrains.buildServer.web.openapi.WebControllerManager;
 import jetbrains.buildServer.web.util.SessionUser;
-import org.assertj.core.api.BDDAssertions;
+import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -19,9 +22,16 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public class PublisherSettingsControllerTest extends CommitStatusPublisherTestBase {
 
+  private PublisherSettingsController mySettingsController;
+
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
+    WebControllerManager wcm = new MockWebControllerManager();
+    PluginDescriptor pluginDescr = new MockPluginDescriptor();
+    final PublisherManager publisherManager = new PublisherManager(myServer);
+
+    mySettingsController = new PublisherSettingsController(wcm, pluginDescr, publisherManager, myProjectManager, myFixture.getSingletonService(SecurityContext.class));
   }
 
   private SUser setUserWithRole(final Role projectViewerRole) {
@@ -60,7 +70,7 @@ public class PublisherSettingsControllerTest extends CommitStatusPublisherTestBa
 
     mySettingsController.handleRequestInternal(request, response);
 
-    BDDAssertions.then(((MockResponse)response).getReturnedContent())
+    then(((MockResponse)response).getReturnedContent())
                  .contains("VCS Root 1")
                  .doesNotContain("VCS Root 2")
                  .contains("VCS Root 3")
@@ -90,7 +100,7 @@ public class PublisherSettingsControllerTest extends CommitStatusPublisherTestBa
 
     mySettingsController.handleRequestInternal(request, response);
 
-    BDDAssertions.then(((MockResponse)response).getReturnedContent())
+    then(((MockResponse)response).getReturnedContent())
                  .contains("VCS Root 1")
                  .contains("VCS Root 2")
                  .doesNotContain("No relevant VCS");
@@ -119,7 +129,7 @@ public class PublisherSettingsControllerTest extends CommitStatusPublisherTestBa
 
     mySettingsController.handleRequestInternal(request, response);
 
-    BDDAssertions.then(((MockResponse)response).getReturnedContent())
+    then(((MockResponse)response).getReturnedContent())
                  .doesNotContain("VCS Root 1")
                  .doesNotContain("VCS Root 2")
                  .contains("No relevant VCS");
