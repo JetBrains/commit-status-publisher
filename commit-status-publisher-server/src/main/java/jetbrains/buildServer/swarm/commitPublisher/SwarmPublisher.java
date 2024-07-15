@@ -55,7 +55,6 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
     return "perforceSwarm";
   }
 
-
   @Override
   public boolean isAvailable(@NotNull BuildPromotion buildPromotion) {
     // Process both ordinary builds and personal builds with shelved changelists
