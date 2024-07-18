@@ -5,6 +5,7 @@ package jetbrains.buildServer.commitPublisher.gitea;
 import java.io.IOException;
 import java.util.*;
 import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaReceiveCommitStatus;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaRepoInfo;
 import jetbrains.buildServer.serverSide.*;
@@ -24,7 +25,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 
 public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatusPublisherSettings {
 
@@ -63,7 +63,7 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
 
   @NotNull
   public String getId() {
-    return GiteaConstants.STATUS_PUBLISHER;
+    return GiteaConstants.PUBLISHER_ID;
   }
 
   @NotNull

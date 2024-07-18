@@ -3,7 +3,7 @@ package jetbrains.buildServer.commitPublisher.gerrit;
 import org.jetbrains.annotations.NotNull;
 
 public class GerritConstants {
-  public static final String STATUS_PUBLISHER = "gerritStatusPublisher";
+  public static final String PUBLISHER_ID = "gerritStatusPublisher";
   public static final String SERVER = "gerritServer";
   public static final String PROJECT = "gerritProject";
   public static final String USERNAME = "gerritUsername";

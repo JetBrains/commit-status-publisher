@@ -3,7 +3,7 @@ package jetbrains.buildServer.commitPublisher.gitee;
 import org.jetbrains.annotations.NotNull;
 
 public class GiteeConstants {
-  public static final String STATUS_PUBLISHER = "giteeStatusPublisher";
+  public static final String PUBLISHER_ID = "giteeStatusPublisher";
   public static final String API_URL = "giteeApiUrl";
   public static final String USERNAME = "giteeUsername";
   public static final String PASSWORD = "secure:giteePassword";

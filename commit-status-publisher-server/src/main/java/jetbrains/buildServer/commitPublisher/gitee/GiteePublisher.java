@@ -40,7 +40,7 @@ class GiteePublisher extends HttpBasedCommitStatusPublisher<GiteeBuildStatus> {
   @Override
   @NotNull
   public String getId() {
-    return GiteeConstants.STATUS_PUBLISHER;
+    return GiteeConstants.PUBLISHER_ID;
   }
 
   @Override

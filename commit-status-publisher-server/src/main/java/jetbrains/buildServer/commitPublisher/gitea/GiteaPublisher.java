@@ -3,7 +3,9 @@
 package jetbrains.buildServer.commitPublisher.gitea;
 
 import com.google.gson.*;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaPublishCommitStatus;
@@ -46,7 +48,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
   @Override
   @NotNull
   public String getId() {
-    return GiteaConstants.STATUS_PUBLISHER;
+    return GiteaConstants.PUBLISHER_ID;
   }
 
   @Override

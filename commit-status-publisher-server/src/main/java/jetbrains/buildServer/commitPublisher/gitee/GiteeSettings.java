@@ -60,7 +60,7 @@ public class GiteeSettings extends AuthTypeAwareSettings implements CommitStatus
 
   @NotNull
   public String getId() {
-    return GiteeConstants.STATUS_PUBLISHER;
+    return GiteeConstants.PUBLISHER_ID;
   }
 
   @NotNull

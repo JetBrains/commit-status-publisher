@@ -2,19 +2,21 @@
 
 package jetbrains.buildServer.commitPublisher.gerrit;
 
+import java.util.*;
 import jetbrains.buildServer.ExtensionHolder;
-import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.BasePublisherSettings;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
+import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
+import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
-
-import java.util.*;
 
 import static jetbrains.buildServer.ssh.ServerSshKeyManager.TEAMCITY_SSH_KEY_PROP;
 
@@ -49,7 +51,7 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
 
   @NotNull
   public String getId() {
-    return GerritConstants.STATUS_PUBLISHER;
+    return GerritConstants.PUBLISHER_ID;
   }
 
   @NotNull

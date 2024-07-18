@@ -3,7 +3,10 @@
 package jetbrains.buildServer.commitPublisher.gerrit;
 
 import java.util.Map;
-import jetbrains.buildServer.commitPublisher.*;
+import jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
+import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
+import jetbrains.buildServer.commitPublisher.PublisherException;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
 import org.jetbrains.annotations.NotNull;
@@ -32,7 +35,7 @@ class GerritPublisher extends BaseCommitStatusPublisher {
   @NotNull
   @Override
   public String getId() {
-    return GerritConstants.STATUS_PUBLISHER;
+    return GerritConstants.PUBLISHER_ID;
   }
 
   @Override

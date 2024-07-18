@@ -107,18 +107,18 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
           case Constants.PASSWORD:
             params.remove(Constants.TOKEN_ID);
 
-            if (StringUtil.isEmptyOrSpaces(params.get(BitbucketCloudConstants.CLOUD_USERNAME))) {
-              errors.add(new InvalidProperty(BitbucketCloudConstants.CLOUD_USERNAME, "Username must be specified"));
+            if (StringUtil.isEmptyOrSpaces(params.get(BitbucketCloudConstants.USERNAME))) {
+              errors.add(new InvalidProperty(BitbucketCloudConstants.USERNAME, "Username must be specified"));
             }
 
-            if (StringUtil.isEmptyOrSpaces(params.get(BitbucketCloudConstants.CLOUD_PASSWORD))) {
-              errors.add(new InvalidProperty(BitbucketCloudConstants.CLOUD_PASSWORD, "Password must be specified"));
+            if (StringUtil.isEmptyOrSpaces(params.get(BitbucketCloudConstants.PASSWORD))) {
+              errors.add(new InvalidProperty(BitbucketCloudConstants.PASSWORD, "Password must be specified"));
             }
             break;
 
           case Constants.AUTH_TYPE_STORED_TOKEN:
-            params.remove(BitbucketCloudConstants.CLOUD_USERNAME);
-            params.remove(BitbucketCloudConstants.CLOUD_PASSWORD);
+            params.remove(BitbucketCloudConstants.USERNAME);
+            params.remove(BitbucketCloudConstants.PASSWORD);
 
             if (StringUtil.isEmpty(params.get(Constants.TOKEN_ID))) {
               errors.add(new InvalidProperty(Constants.TOKEN_ID, "No token configured"));
@@ -126,8 +126,8 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
             break;
 
           case Constants.AUTH_TYPE_VCS:
-            params.remove(BitbucketCloudConstants.CLOUD_USERNAME);
-            params.remove(BitbucketCloudConstants.CLOUD_PASSWORD);
+            params.remove(BitbucketCloudConstants.USERNAME);
+            params.remove(BitbucketCloudConstants.PASSWORD);
             params.remove(Constants.TOKEN_ID);
 
             String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
@@ -260,13 +260,13 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
   @Nullable
   @Override
   protected String getUsername(@NotNull Map<String, String> params) {
-    return params.get(BitbucketCloudConstants.CLOUD_USERNAME);
+    return params.get(BitbucketCloudConstants.USERNAME);
   }
 
   @Nullable
   @Override
   protected String getPassword(@NotNull Map<String, String> params) {
-    return params.get(BitbucketCloudConstants.CLOUD_PASSWORD);
+    return params.get(BitbucketCloudConstants.PASSWORD);
   }
 
 
