@@ -3,29 +3,29 @@ package jetbrains.buildServer.commitPublisher.stash;
 import org.jetbrains.annotations.NotNull;
 
 public class StashConstants {
-  public static final String STASH_PUBLISHER_ID = "atlassianStashPublisher";
-  public static final String STASH_BASE_URL = "stashBaseUrl";
-  public static final String STASH_USERNAME = "stashUsername";
-  public static final String STASH_PASSWORD = "secure:stashPassword";
-  public static final String STASH_OAUTH_PROVIDER_TYPE = "BitbucketServer";
+  public static final String PUBLISHER_ID = "atlassianStashPublisher";
+  public static final String BASE_URL = "stashBaseUrl";
+  public static final String USERNAME = "stashUsername";
+  public static final String PASSWORD = "secure:stashPassword";
+  public static final String OAUTH_PROVIDER_TYPE = "BitbucketServer";
 
   @NotNull
-  public String getStashBaseUrl() {
-    return STASH_BASE_URL;
+  public String getBaseUrl() {
+    return BASE_URL;
   }
 
   @NotNull
-  public String getStashUsername() {
-    return STASH_USERNAME;
+  public String getUsername() {
+    return USERNAME;
   }
 
   @NotNull
-  public String getStashPassword() {
-    return STASH_PASSWORD;
+  public String getPassword() {
+    return PASSWORD;
   }
 
   @NotNull
-  public String getStashOauthProviderType() {
-    return STASH_OAUTH_PROVIDER_TYPE;
+  public String getOauthProviderType() {
+    return OAUTH_PROVIDER_TYPE;
   }
   }

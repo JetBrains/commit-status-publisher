@@ -60,7 +60,7 @@ public class ChangeStatusUpdater {
         final String username = params.get(C.getUserNameKey());
         String password = params.get(C.getPasswordKey());
         if (password == null) {
-          password = params.get(GithubConstants.GITHUB_PASSWORD_DEPRECATED);
+          password = params.get(GithubConstants.PASSWORD_DEPRECATED);
         }
         return myFactory.openGitHubForUser(serverUrl, username, password);
 
@@ -182,7 +182,7 @@ public class ChangeStatusUpdater {
       @Override
       public CommitStatus getStatus(@NotNull BuildRevision revision) throws PublisherException {
         RepositoryVersion version = revision.getRepositoryVersion();
-        String buildContext = params.get(GithubConstants.GITHUB_CONTEXT);
+        String buildContext = params.get(GithubConstants.CONTEXT);
         LOG.debug("Requesting statuses for " +
                   "hash: " + version.getVersion() + ", " +
                   "branch: " + version.getVcsBranch() + ", " +
@@ -202,7 +202,7 @@ public class ChangeStatusUpdater {
       @Override
       public Collection<CommitStatus> getStatuses(@NotNull BuildRevision revision) throws PublisherException {
         RepositoryVersion version = revision.getRepositoryVersion();
-        String buildContext = params.get(GithubConstants.GITHUB_CONTEXT);
+        String buildContext = params.get(GithubConstants.CONTEXT);
         LOG.debug("Requesting statuses for " +
                   "hash: " + version.getVersion() + ", " +
                   "branch: " + version.getVcsBranch() + ", " +
@@ -286,7 +286,7 @@ public class ChangeStatusUpdater {
 
     GitHubCommonStatusClient(Map<String, String> params, GitHubPublisher publisher, @NotNull VcsRoot root) {
       myPublisher = publisher;
-      String ctx = params.get(GithubConstants.GITHUB_CONTEXT);
+      String ctx = params.get(GithubConstants.CONTEXT);
       myContext = StringUtil.isEmpty(ctx) ? DEFAULT_CONTEXT : ctx;
       myApi = getGitHubApi(params, publisher.getBuildType().getProject(), root);
     }

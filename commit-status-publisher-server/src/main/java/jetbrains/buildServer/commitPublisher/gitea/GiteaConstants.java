@@ -3,21 +3,21 @@ package jetbrains.buildServer.commitPublisher.gitea;
 import org.jetbrains.annotations.NotNull;
 
 public class GiteaConstants {
-  public static final String GITEA_PUBLISHER_ID = "giteaStatusPublisher";
-  public static final String GITEA_API_URL = "giteaApiUrl";
-  public static final String GITEA_USERNAME = "giteaUsername";
-  public static final String GITEA_PASSWORD = "secure:giteaPassword";
-  public static final String GITEA_TOKEN = "secure:giteaAccessToken";
+  public static final String STATUS_PUBLISHER = "giteaStatusPublisher";
+  public static final String API_URL = "giteaApiUrl";
+  public static final String USERNAME = "giteaUsername";
+  public static final String PASSWORD = "secure:giteaPassword";
+  public static final String TOKEN = "secure:giteaAccessToken";
 
 
   @NotNull
-  public String getGiteaToken() {
-    return GITEA_TOKEN;
+  public String getToken() {
+    return TOKEN;
   }
 
   @NotNull
-  public String getGiteaServer() {
-    return GITEA_API_URL;
+  public String getServer() {
+    return API_URL;
   }
 
 }

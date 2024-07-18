@@ -22,12 +22,12 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
 
   private final ExtensionHolder myExtensionHolder;
   private final Map<String, String> myMandatoryProperties = new HashMap<String, String>() {{
-          put(GerritConstants.GERRIT_SERVER, "Server URL");
-          put(GerritConstants.GERRIT_PROJECT, "Gerrit project");
-          put(GerritConstants.GERRIT_USERNAME, "Username");
-          put(GerritConstants.GERRIT_LABEL, "Gerrit Label");
-          put(GerritConstants.GERRIT_SUCCESS_VOTE, "Success vote");
-          put(GerritConstants.GERRIT_FAILURE_VOTE, "Failure vote");
+          put(GerritConstants.SERVER, "Server URL");
+          put(GerritConstants.PROJECT, "Gerrit project");
+          put(GerritConstants.USERNAME, "Username");
+          put(GerritConstants.LABEL, "Gerrit Label");
+          put(GerritConstants.SUCCESS_VOTE, "Success vote");
+          put(GerritConstants.FAILURE_VOTE, "Failure vote");
           put(TEAMCITY_SSH_KEY_PROP, "SSH key");
   }};
   private GerritClient myGerritClient;
@@ -49,7 +49,7 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
 
   @NotNull
   public String getId() {
-    return GerritConstants.GERRIT_PUBLISHER_ID;
+    return GerritConstants.STATUS_PUBLISHER;
   }
 
   @NotNull
@@ -65,9 +65,9 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
   @Nullable
   public Map<String, String> getDefaultParameters() {
     Map<String, String> params = new HashMap<String, String>();
-    params.put(GerritConstants.GERRIT_LABEL, "Verified");
-    params.put(GerritConstants.GERRIT_SUCCESS_VOTE, "+1");
-    params.put(GerritConstants.GERRIT_FAILURE_VOTE, "-1");
+    params.put(GerritConstants.LABEL, "Verified");
+    params.put(GerritConstants.SUCCESS_VOTE, "+1");
+    params.put(GerritConstants.FAILURE_VOTE, "-1");
     return params;
   }
 
@@ -84,7 +84,7 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
 
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
-    return super.describeParameters(params) + ": " + WebUtil.escapeXml(params.get(GerritConstants.GERRIT_SERVER)) + "/" + WebUtil.escapeXml(params.get(GerritConstants.GERRIT_PROJECT));
+    return super.describeParameters(params) + ": " + WebUtil.escapeXml(params.get(GerritConstants.SERVER)) + "/" + WebUtil.escapeXml(params.get(GerritConstants.PROJECT));
   }
 
   @Nullable
@@ -110,8 +110,8 @@ public class GerritSettings extends BasePublisherSettings implements CommitStatu
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
     try {
       myGerritClient.testConnection(
-        new GerritConnectionDetails(buildTypeOrTemplate.getProject(), params.get(GerritConstants.GERRIT_PROJECT),
-                                    params.get(GerritConstants.GERRIT_SERVER), params.get(GerritConstants.GERRIT_USERNAME),
+        new GerritConnectionDetails(buildTypeOrTemplate.getProject(), params.get(GerritConstants.PROJECT),
+                                    params.get(GerritConstants.SERVER), params.get(GerritConstants.USERNAME),
                                     params.get(ServerSshKeyManager.TEAMCITY_SSH_KEY_PROP))
       );
     } catch (Exception e) {

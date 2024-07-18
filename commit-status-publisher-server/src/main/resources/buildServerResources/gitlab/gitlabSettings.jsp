@@ -17,13 +17,13 @@
 <props:selectSectionProperty name="authType" title="Authentication Type:" style="width: 28em;">
   <props:selectSectionPropertyContent value="token" caption="Personal access token">
     <tr>
-      <th><label for="${keys.gitlabToken}">Access Token:<l:star/></label></th>
+      <th><label for="${keys.token}">Access Token:<l:star/></label></th>
       <td>
-        <props:passwordProperty name="${keys.gitlabToken}" className="longField"/>
+        <props:passwordProperty name="${keys.token}" className="longField"/>
         <span class="smallNote">
               Can be found at <strong>/profile/account</strong> in GitLab
           </span>
-        <span class="error" id="error_${keys.gitlabToken}"></span>
+        <span class="error" id="error_${keys.token}"></span>
       </td>
     </tr>
   </props:selectSectionPropertyContent>
@@ -81,14 +81,14 @@
 
 <l:settingsGroup title="On-premises GitLab installation" />
 <tr>
-  <th><label for="${keys.gitlabServer}">GitLab API URL:</label></th>
+  <th><label for="${keys.server}">GitLab API URL:</label></th>
   <td>
-    <props:textProperty name="${keys.gitlabServer}" className="longField"/>
+    <props:textProperty name="${keys.server}" className="longField"/>
     <span class="smallNote">
       Format: <strong>http[s]://&lt;hostname&gt;[:&lt;port&gt;]/api/v4</strong><br>
       If left blank, the URL will be composed based on the VCS root fetch URL.
     </span>
-    <span class="error" id="error_${keys.gitlabServer}"></span>
+    <span class="error" id="error_${keys.server}"></span>
   </td>
 </tr>
 

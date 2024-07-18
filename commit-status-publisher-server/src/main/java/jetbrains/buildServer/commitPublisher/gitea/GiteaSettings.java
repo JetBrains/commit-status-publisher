@@ -63,7 +63,7 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
 
   @NotNull
   public String getId() {
-    return GiteaConstants.GITEA_PUBLISHER_ID;
+    return GiteaConstants.STATUS_PUBLISHER;
   }
 
   @NotNull
@@ -99,11 +99,11 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
         }
 
         if (Constants.AUTH_TYPE_ACCESS_TOKEN.equalsIgnoreCase(authenticationType)) {
-          if (StringUtil.isEmptyOrSpaces(params.get(GiteaConstants.GITEA_TOKEN)))
-            errors.add(new InvalidProperty(GiteaConstants.GITEA_TOKEN, "Access token must be specified"));
+          if (StringUtil.isEmptyOrSpaces(params.get(GiteaConstants.TOKEN)))
+            errors.add(new InvalidProperty(GiteaConstants.TOKEN, "Access token must be specified"));
         }
         else {
-          params.remove(GiteaConstants.GITEA_TOKEN);
+          params.remove(GiteaConstants.TOKEN);
         }
 
         return errors;
@@ -119,7 +119,7 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
 
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    String apiUrl = params.getOrDefault(GiteaConstants.GITEA_API_URL, guessApiURL(root.getProperty("url")));
+    String apiUrl = params.getOrDefault(GiteaConstants.API_URL, guessApiURL(root.getProperty("url")));
     if (StringUtil.isEmptyOrSpaces(apiUrl))
       throw new PublisherException("Missing Gitea API URL parameter");
     Repository repository = VCS_URL_PARSER.parseRepositoryUrl(root.getProperty("url"));
@@ -190,7 +190,7 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
   @NotNull
   @Override
   protected HttpCredentials getAccessTokenCredentials(@NotNull Map<String, String> params) throws PublisherException {
-    final String token = params.get(GiteaConstants.GITEA_TOKEN);
+    final String token = params.get(GiteaConstants.TOKEN);
     if (token == null) {
       throw new PublisherException("Gitea Access token is not defined");
     }
@@ -233,13 +233,13 @@ public class GiteaSettings extends AuthTypeAwareSettings implements CommitStatus
   @Nullable
   @Override
   protected String getUsername(@NotNull Map<String, String> params) {
-    return params.get(GiteaConstants.GITEA_USERNAME);
+    return params.get(GiteaConstants.USERNAME);
   }
 
   @Nullable
   @Override
   protected String getPassword(@NotNull Map<String, String> params) {
-    return params.get(GiteaConstants.GITEA_PASSWORD);
+    return params.get(GiteaConstants.PASSWORD);
   }
 
 

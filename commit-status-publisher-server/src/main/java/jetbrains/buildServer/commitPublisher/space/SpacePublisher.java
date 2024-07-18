@@ -57,7 +57,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
   @NotNull
   @Override
   public String getId() {
-    return Constants.SPACE_PUBLISHER_ID;
+    return SpaceConstants.PUBLISHER_ID;
   }
 
   @Override
@@ -176,7 +176,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
   }
 
   private String buildStatusesUrl(BuildRevision revision) throws PublisherException {
-    Repository repo = SpaceUtils.getRepositoryInfo(revision.getRoot(), myParams.get(Constants.SPACE_PROJECT_KEY));
+    Repository repo = SpaceUtils.getRepositoryInfo(revision.getRoot(), myParams.get(SpaceConstants.PROJECT_KEY));
     return SpaceApiUrls.commitStatusUrl(mySpaceConnector.getFullAddress(), repo.owner(), repo.repositoryName(), revision.getRevision());
   }
 
@@ -251,7 +251,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     String description = LogUtil.describe(buildPromotion);
     final SpaceToken token = requestToken(revision.getRoot().getName(), description);
 
-    final Repository repoInfo = SpaceUtils.getRepositoryInfo(revision.getRoot(), myParams.get(Constants.SPACE_PROJECT_KEY));
+    final Repository repoInfo = SpaceUtils.getRepositoryInfo(revision.getRoot(), myParams.get(SpaceConstants.PROJECT_KEY));
 
     final String requestUrl = SpaceApiUrls.commitStatusUrl(
       mySpaceConnector.getFullAddress(),
@@ -295,7 +295,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     String buildDescription = LogUtil.describe(build);
     SpaceToken token = requestToken(revision.getRoot().getName(), buildDescription);
 
-    Repository repoInfo= SpaceUtils.getRepositoryInfo(revision.getRoot(), myParams.get(Constants.SPACE_PROJECT_KEY));
+    Repository repoInfo= SpaceUtils.getRepositoryInfo(revision.getRoot(), myParams.get(SpaceConstants.PROJECT_KEY));
 
     String url = SpaceApiUrls.commitStatusUrl(
       mySpaceConnector.getFullAddress(),

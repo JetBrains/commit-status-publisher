@@ -73,7 +73,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
   public void test_buildFinishedSuccessfully_server_url_with_subdir() throws Exception {
     Map<String, String> params = getPublisherParams();
     setExpectedApiPath("/subdir/api/v3");
-    params.put(GithubConstants.GITHUB_SERVER, getServerUrl() + "/subdir/api/v3");
+    params.put(GithubConstants.SERVER, getServerUrl() + "/subdir/api/v3");
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
@@ -84,7 +84,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
   public void test_buildFinishedSuccessfully_server_url_with_slash() throws Exception {
     Map<String, String> params = getPublisherParams();
     setExpectedApiPath("/subdir/api/v3");
-    params.put(GithubConstants.GITHUB_SERVER, getServerUrl() + "/subdir/api/v3/");
+    params.put(GithubConstants.SERVER, getServerUrl() + "/subdir/api/v3/");
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
@@ -158,7 +158,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
 
   public void should_use_context_from_parameters() throws Exception {
     final String expectedContext = "My custom context name";
-    myBuildType.addBuildParameter(new SimpleParameter(GithubConstants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM, expectedContext));
+    myBuildType.addBuildParameter(new SimpleParameter(GithubConstants.CUSTOM_CONTEXT_BUILD_PARAM, expectedContext));
     GitHubPublisher publisher = (GitHubPublisher)myPublisher;
     SQueuedBuild queuedBuild = myBuildType.addToQueue("");
     assertNotNull(queuedBuild);
@@ -257,9 +257,9 @@ public class GitHubPublisherTest extends HttpPublisherTest {
   @Override
   protected Map<String, String> getPublisherParams() {
     return new HashMap<String, String>() {{
-      put(GithubConstants.GITHUB_USERNAME, "user");
-      put(GithubConstants.GITHUB_PASSWORD, "pwd");
-      put(GithubConstants.GITHUB_SERVER, getServerUrl());
+      put(GithubConstants.USERNAME, "user");
+      put(GithubConstants.PASSWORD, "pwd");
+      put(GithubConstants.SERVER, getServerUrl());
     }};
   }
 

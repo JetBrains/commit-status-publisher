@@ -75,7 +75,7 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
 
   public void test_buildFinished_with_no_label() throws Exception {
     Map<String, String> params = getPublisherParams();
-    params.remove(GerritConstants.GERRIT_LABEL);
+    params.remove(GerritConstants.LABEL);
     myPublisher = new GerritPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myGerritClient, myWebLinks, params, myProblems);
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
     then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
@@ -93,7 +93,7 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
 
   public void test_buildFinished_with_verified_option_in_settings() throws Exception {
     Map<String, String> params = getPublisherParams();
-    params.put(GerritConstants.GERRIT_LABEL, "$verified-option");
+    params.put(GerritConstants.LABEL, "$verified-option");
     myPublisher = new GerritPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myGerritClient, myWebLinks, params, myProblems);
     myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
     then(getRequestAsString()).isNotNull().doesNotMatch(".*error.*")
@@ -108,12 +108,12 @@ public class GerritPublisherTest extends CommitStatusPublisherTest {
 
   protected Map<String, String> getPublisherParams(final String gerritProjectName) {
     return new HashMap<String, String>() {{
-      put(GerritConstants.GERRIT_PROJECT, gerritProjectName);
-      put(GerritConstants.GERRIT_SERVER, "gerrit_server");
-      put(GerritConstants.GERRIT_USERNAME, "gerrit_user");
-      put(GerritConstants.GERRIT_LABEL, "Verified");
-      put(GerritConstants.GERRIT_SUCCESS_VOTE, "+1");
-      put(GerritConstants.GERRIT_FAILURE_VOTE, "-1");
+      put(GerritConstants.PROJECT, gerritProjectName);
+      put(GerritConstants.SERVER, "gerrit_server");
+      put(GerritConstants.USERNAME, "gerrit_user");
+      put(GerritConstants.LABEL, "Verified");
+      put(GerritConstants.SUCCESS_VOTE, "+1");
+      put(GerritConstants.FAILURE_VOTE, "-1");
     }};
   }
 

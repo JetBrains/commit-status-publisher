@@ -50,11 +50,11 @@ public class SpaceUtils {
                                                         @NotNull OAuthConnectionsManager oAuthConnectionsManager,
                                                         @NotNull SProject project) {
 
-    String credentialsType = params.get(Constants.SPACE_CREDENTIALS_TYPE);
+    String credentialsType = params.get(SpaceConstants.CREDENTIALS_TYPE);
 
     switch (credentialsType) {
-      case Constants.SPACE_CREDENTIALS_CONNECTION:
-        OAuthConnectionDescriptor oAuthConnectionDescriptor = oAuthConnectionsManager.findConnectionById(project, params.get(Constants.SPACE_CONNECTION_ID));
+      case SpaceConstants.CREDENTIALS_CONNECTION:
+        OAuthConnectionDescriptor oAuthConnectionDescriptor = oAuthConnectionsManager.findConnectionById(project, params.get(SpaceConstants.CONNECTION_ID));
         if (oAuthConnectionDescriptor == null) {
           throw new IllegalArgumentException("Can't find JetBrains Space connection");
         }

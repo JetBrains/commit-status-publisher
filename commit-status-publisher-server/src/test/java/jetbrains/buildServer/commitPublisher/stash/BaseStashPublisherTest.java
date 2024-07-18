@@ -52,7 +52,7 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
   public void test_buildFinishedSuccessfully_server_url_with_subdir() throws Exception {
     Map<String, String> params = getPublisherParams();
     setExpectedApiPath("/subdir/rest");
-    params.put(StashConstants.STASH_BASE_URL, getServerUrl() + "/subdir");
+    params.put(StashConstants.BASE_URL, getServerUrl() + "/subdir");
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
@@ -63,7 +63,7 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
   public void test_buildFinishedSuccessfully_server_url_with_slash() throws Exception {
     Map<String, String> params = getPublisherParams();
     setExpectedApiPath("/subdir/rest");
-    params.put(StashConstants.STASH_BASE_URL, getServerUrl() + "/subdir/");
+    params.put(StashConstants.BASE_URL, getServerUrl() + "/subdir/");
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
@@ -74,9 +74,9 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
   @Override
   protected Map<String, String> getPublisherParams() {
     return new HashMap<String, String>() {{
-      put(StashConstants.STASH_USERNAME, "user");
-      put(StashConstants.STASH_PASSWORD, "pwd");
-      put(StashConstants.STASH_BASE_URL, getServerUrl());
+      put(StashConstants.USERNAME, "user");
+      put(StashConstants.PASSWORD, "pwd");
+      put(StashConstants.BASE_URL, getServerUrl());
     }};
   }
 

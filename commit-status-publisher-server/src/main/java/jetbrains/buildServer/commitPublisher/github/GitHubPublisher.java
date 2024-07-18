@@ -44,7 +44,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   @NotNull
   @Override
   public String getId() {
-    return GithubConstants.GITHUB_PUBLISHER_ID;
+    return GithubConstants.PUBLISHER_ID;
   }
 
   @Override
@@ -175,7 +175,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   public String getServerUrl() {
-    return myParams.get(GithubConstants.GITHUB_SERVER);
+    return myParams.get(GithubConstants.SERVER);
   }
 
   private void updateBuildStatus(@NotNull SBuild build, @NotNull BuildRevision revision, boolean isStarting) throws PublisherException {
@@ -204,7 +204,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       h.changeCompleted(revision, build, viewUrl);
     }
 
-    String context = params.get(GithubConstants.GITHUB_CONTEXT);
+    String context = params.get(GithubConstants.CONTEXT);
     myStatusesCache.removeStatusFromCache(revision, context);
   }
 
@@ -223,7 +223,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       return null;
     }
 
-    final String context = params.get(GithubConstants.GITHUB_CONTEXT);
+    final String context = params.get(GithubConstants.CONTEXT);
     if (context == null) {
       return null;
     }
@@ -276,7 +276,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     }
 
     if (statusUpdated) {
-      String context = params.get(GithubConstants.GITHUB_CONTEXT);
+      String context = params.get(GithubConstants.CONTEXT);
       myStatusesCache.removeStatusFromCache(revision, context);
     }
     return statusUpdated;
@@ -286,7 +286,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   private Map<String, String> getParams(@NotNull BuildPromotion buildPromotion) throws GitHubContextResolveException {
     String context = getBuildContext(buildPromotion);
     Map<String, String> result = new HashMap<String, String>(myParams);
-    result.put(GithubConstants.GITHUB_CONTEXT, context);
+    result.put(GithubConstants.CONTEXT, context);
     return result;
   }
 
@@ -323,7 +323,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   private String getCustomContextFromParameter(@NotNull BuildPromotion buildPromotion) throws GitHubContextResolveException {
     SBuild build = buildPromotion.getAssociatedBuild();
     if (build != null) {
-      String value = build.getParametersProvider().get(GithubConstants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM);
+      String value = build.getParametersProvider().get(GithubConstants.CUSTOM_CONTEXT_BUILD_PARAM);
       if (value == null) return null;
 
       if (isRemovedFromQueue(build) && ReferencesResolverUtil.mayContainReference(value)) {
@@ -332,7 +332,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       return build.getValueResolver().resolve(value).getResult();
     }
 
-    String value = myBuildType.getParameters().get(GithubConstants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM);
+    String value = myBuildType.getParameters().get(GithubConstants.CUSTOM_CONTEXT_BUILD_PARAM);
     if (value == null) return null;
 
     if(ReferencesResolverUtil.mayContainReference(value)) {

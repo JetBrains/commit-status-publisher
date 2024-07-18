@@ -22,7 +22,7 @@
         baseUrlChanged: false,
 
         onTokenObtained(it) {
-          const baseUrlField = $('${keys.stashBaseUrl}');
+          const baseUrlField = $('${keys.baseUrl}');
           if (!BS.BBDataCenterCspSettings.baseUrlChanged || !baseUrlField.value) {
             baseUrlField.value = BS.BBDataCenterCspSettings.connectionToServerUrl.get(it.connectionId);
           }
@@ -34,14 +34,14 @@
         }
       }
     </script>
-    <th><label for="${keys.stashBaseUrl}">Bitbucket Server Base URL:</label></th>
+    <th><label for="${keys.baseUrl}">Bitbucket Server Base URL:</label></th>
     <td>
-      <props:textProperty name="${keys.stashBaseUrl}" className="longField" onchange="BS.BBDataCenterCspSettings.onBaseUrlChange();"/>
+      <props:textProperty name="${keys.baseUrl}" className="longField" onchange="BS.BBDataCenterCspSettings.onBaseUrlChange();"/>
       <span class="smallNote">
         Base URL field in Bitbucket Server settings.<br/>
         If left blank, the URL will be composed based on the VCS root fetch URL.
       </span>
-      <span class="error" id="error_${keys.stashBaseUrl}"></span>
+      <span class="error" id="error_${keys.baseUrl}"></span>
     </td>
   </tr>
 
@@ -49,18 +49,18 @@
 
     <props:selectSectionPropertyContent value="${keys.authTypePassword}" caption="Username / Password">
       <tr>
-        <th><label for="${keys.stashUsername}">Username:<l:star/></label></th>
+        <th><label for="${keys.username}">Username:<l:star/></label></th>
         <td>
-          <props:textProperty name="${keys.stashUsername}" className="longField"/>
-          <span class="error" id="error_${keys.stashUsername}"></span>
+          <props:textProperty name="${keys.username}" className="longField"/>
+          <span class="error" id="error_${keys.username}"></span>
         </td>
       </tr>
 
       <tr>
-        <th><label for="${keys.stashPassword}">Password:<l:star/></label></th>
+        <th><label for="${keys.password}">Password:<l:star/></label></th>
         <td>
-          <props:passwordProperty name="${keys.stashPassword}" className="longField"/>
-          <span class="error" id="error_${keys.stashPassword}"></span>
+          <props:passwordProperty name="${keys.password}" className="longField"/>
+          <span class="error" id="error_${keys.password}"></span>
         </td>
       </tr>
     </props:selectSectionPropertyContent>
@@ -77,7 +77,7 @@
           <span class="error" id="error_${keys.tokenId}"></span>
 
           <c:set var="canObtainTokens" value="${canEditProject and not project.readOnly}"/>
-          <c:set var="connectorType" value="${keys.stashOauthProviderType}"/>
+          <c:set var="connectorType" value="${keys.oauthProviderType}"/>
           <oauth:tokenControlsForFeatures
             project="${project}"
             providerTypes="'${connectorType}'"

@@ -17,7 +17,6 @@ import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.serverSide.oauth.*;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceConnectDescriber;
-import jetbrains.buildServer.serverSide.oauth.space.SpaceConstants;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceFeatures;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthProvider;
 import jetbrains.buildServer.serverSide.oauth.space.application.SpaceApplicationInformation;
@@ -81,7 +80,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   @NotNull
   @Override
   public String getId() {
-    return Constants.SPACE_PUBLISHER_ID;
+    return SpaceConstants.PUBLISHER_ID;
   }
 
   @NotNull
@@ -150,7 +149,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     final Map<String, String> params = ImmutableMap.of(
       jetbrains.buildServer.commitPublisher.Constants.VCS_ROOT_ID_PARAM, String.valueOf(vcsRoot.getId())
     );
-    final String buildFeatureId = String.format(Constants.SPACE_UNCONDITIONAL_FEATURE_FORMAT, buildType.getInternalId(), vcsRoot.getId());
+    final String buildFeatureId = String.format(SpaceConstants.UNCONDITIONAL_FEATURE_FORMAT, buildType.getInternalId(), vcsRoot.getId());
 
     return new SpacePublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, spaceConnection, myStatusesCache, false);
   }
@@ -159,19 +158,19 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   @Override
   public String describeParameters(@NotNull Map<String, String> params) {
     StringBuilder sb = new StringBuilder(super.describeParameters(params));
-    String credentialsType = params.get(Constants.SPACE_CREDENTIALS_TYPE);
+    String credentialsType = params.get(SpaceConstants.CREDENTIALS_TYPE);
 
     if (credentialsType == null)
       sb.append(" with no credentials type provided!");
     else {
       switch (credentialsType) {
-        case Constants.SPACE_CREDENTIALS_CONNECTION:
+        case SpaceConstants.CREDENTIALS_CONNECTION:
           sb.append(" using JetBrains Space connection");
           break;
       }
     }
 
-    String projectKey = params.get(Constants.SPACE_PROJECT_KEY);
+    String projectKey = params.get(SpaceConstants.PROJECT_KEY);
     String publisherDisplayName = getDisplayName(params);
     if (!StringUtil.isEmpty(projectKey)) {
       sb.append("\nProject key: ");
@@ -188,11 +187,11 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     return params -> {
       List<InvalidProperty> errors = new ArrayList<>();
 
-      checkContains(params, Constants.SPACE_CREDENTIALS_TYPE, "JetBrains Space credentials type", errors);
+      checkContains(params, SpaceConstants.CREDENTIALS_TYPE, "JetBrains Space credentials type", errors);
 
-      String credentialsType = params.get(Constants.SPACE_CREDENTIALS_TYPE);
-      if (StringUtil.areEqual(credentialsType, Constants.SPACE_CREDENTIALS_CONNECTION)) {
-        checkContains(params, Constants.SPACE_CONNECTION_ID, "JetBrains Space connection", errors);
+      String credentialsType = params.get(SpaceConstants.CREDENTIALS_TYPE);
+      if (StringUtil.areEqual(credentialsType, SpaceConstants.CREDENTIALS_CONNECTION)) {
+        checkContains(params, SpaceConstants.CONNECTION_ID, "JetBrains Space connection", errors);
       }
       return errors;
     };
@@ -227,7 +226,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     String serviceId = connector.getServiceId();
     String serviceSecret = connector.getServiceSecret();
 
-    Repository repository = SpaceUtils.getRepositoryInfo(root, params.get(Constants.SPACE_PROJECT_KEY));
+    Repository repository = SpaceUtils.getRepositoryInfo(root, params.get(SpaceConstants.PROJECT_KEY));
 
     try {
       SpaceToken token = SpaceToken.requestToken(serviceId, serviceSecret, serverUrl, DEFAULT_CONNECTION_TIMEOUT, myGson, trustStore());
@@ -252,7 +251,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   @Nullable
   @Override
   public Map<String, Object> checkHealth(@NotNull SBuildType buildType, @NotNull Map<String, String> params) {
-    String connectionId = params.get(Constants.SPACE_CONNECTION_ID);
+    String connectionId = params.get(SpaceConstants.CONNECTION_ID);
     if (connectionId == null)
       return null;
     OAuthConnectionDescriptor connectionDescriptor = myOAuthConnectionManager.findConnectionById(buildType.getProject(), connectionId);
@@ -285,8 +284,8 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
 
   @NotNull
   static String getDisplayName(@NotNull Map<String, String> params) {
-    String displayName = params.get(Constants.SPACE_COMMIT_STATUS_PUBLISHER_DISPLAY_NAME);
-    return displayName == null ? Constants.SPACE_DEFAULT_DISPLAY_NAME : displayName;
+    String displayName = params.get(SpaceConstants.COMMIT_STATUS_PUBLISHER_DISPLAY_NAME);
+    return displayName == null ? SpaceConstants.DEFAULT_DISPLAY_NAME : displayName;
   }
 
   @NotNull
@@ -295,7 +294,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
     return ImmutableMap.of(
       "canEditProject", AuthUtil.hasPermissionToManageProject(mySecurityContext.getAuthorityHolder(), project.getProjectId()),
       "spaceFeatures", SpaceFeatures.forScope(project),
-      "rightsInfo", SpaceConstants.RIGHTS_INFO_COMMIT_STATUS
+      "rightsInfo", jetbrains.buildServer.serverSide.oauth.space.SpaceConstants.RIGHTS_INFO_COMMIT_STATUS
     );
   }
 
@@ -383,14 +382,14 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
                                          @NotNull OAuthConnectionDescriptor connection,
                                          @NotNull SpaceApplicationInformation applicationInformation,
                                          @NotNull String projectKey) {
-    final String contextIdentifierProject = SpaceConstants.CONTEXT_IDENTIFIER_PROJECT_KEY + projectKey;
-    if (applicationInformation.getContextRights(contextIdentifierProject).areGranted(SpaceConstants.RIGHTS_COMMIT_STATUS)) {
+    final String contextIdentifierProject = jetbrains.buildServer.serverSide.oauth.space.SpaceConstants.CONTEXT_IDENTIFIER_PROJECT_KEY + projectKey;
+    if (applicationInformation.getContextRights(contextIdentifierProject).areGranted(jetbrains.buildServer.serverSide.oauth.space.SpaceConstants.RIGHTS_COMMIT_STATUS)) {
       debugLogUnconditionalPublishingInfo(buildType, () -> "Space connection " + LogUtil.describe(connection) +
                                                            " will be used: sufficient rights to publish statuses are granted for the project " + projectKey);
       return true;
     }
 
-    if (applicationInformation.getGlobalRights().areGranted(SpaceConstants.RIGHTS_COMMIT_STATUS)) {
+    if (applicationInformation.getGlobalRights().areGranted(jetbrains.buildServer.serverSide.oauth.space.SpaceConstants.RIGHTS_COMMIT_STATUS)) {
       debugLogUnconditionalPublishingInfo(buildType,
                                           () -> "Space connection " + LogUtil.describe(connection) + " will be used: sufficient rights to publish statuses are granted globally.");
       return true;
@@ -460,7 +459,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
       return new TokenizedFetchUrl(host, null, null);
     }
     final String projectKey = pathFragments.get(size - 2);
-    final String organization = (host.endsWith(Constants.DOMAIN_SPACE_CLOUD) && size >= 3) ? pathFragments.get(size - 3) : null;
+    final String organization = (host.endsWith(SpaceConstants.DOMAIN_SPACE_CLOUD) && size >= 3) ? pathFragments.get(size - 3) : null;
 
     return new TokenizedFetchUrl(host, organization, projectKey);
   }
@@ -469,7 +468,7 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   private static TokenizedServiceUrl tokenizeServiceUrl(@NotNull String serviceUrl) {
     final URI uri = URI.create(serviceUrl);
     final String host = uri.getHost();
-    final String organization = host.endsWith(Constants.DOMAIN_SPACE_CLOUD) ? host.split("\\.")[0] : null;
+    final String organization = host.endsWith(SpaceConstants.DOMAIN_SPACE_CLOUD) ? host.split("\\.")[0] : null;
     return new TokenizedServiceUrl(host, organization);
   }
 

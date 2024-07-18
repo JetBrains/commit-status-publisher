@@ -59,7 +59,7 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
 
   @NotNull
   public String getId() {
-    return UpsourceConstants.UPSOURCE_PUBLISHER_ID;
+    return UpsourceConstants.PUBLISHER_ID;
   }
 
   @NotNull
@@ -79,8 +79,8 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
 
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
-    String serverUrl = params.get(UpsourceConstants.UPSOURCE_SERVER_URL);
-    String projectId = params.get(UpsourceConstants.UPSOURCE_PROJECT_ID);
+    String serverUrl = params.get(UpsourceConstants.SERVER_URL);
+    String projectId = params.get(UpsourceConstants.PROJECT_ID);
     String result = super.describeParameters(params);
     if (serverUrl != null && projectId != null)
       result += ": " + WebUtil.escapeXml(serverUrl) + ", Project ID: " + WebUtil.escapeXml(projectId);
@@ -92,10 +92,10 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {
         List<InvalidProperty> errors = new ArrayList<InvalidProperty>();
-        checkContains(params, UpsourceConstants.UPSOURCE_SERVER_URL, "Server URL", errors);
-        checkContains(params, UpsourceConstants.UPSOURCE_PROJECT_ID, "Project id", errors);
-        checkContains(params, UpsourceConstants.UPSOURCE_USERNAME, "Username", errors);
-        checkContains(params, UpsourceConstants.UPSOURCE_PASSWORD, "Password", errors);
+        checkContains(params, UpsourceConstants.SERVER_URL, "Server URL", errors);
+        checkContains(params, UpsourceConstants.PROJECT_ID, "Project id", errors);
+        checkContains(params, UpsourceConstants.USERNAME, "Username", errors);
+        checkContains(params, UpsourceConstants.PASSWORD, "Password", errors);
         return errors;
       }
     };
@@ -117,15 +117,15 @@ public class UpsourceSettings extends BasePublisherSettings implements CommitSta
 
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    String apiUrl = HttpHelper.stripTrailingSlash(params.get(UpsourceConstants.UPSOURCE_SERVER_URL));
+    String apiUrl = HttpHelper.stripTrailingSlash(params.get(UpsourceConstants.SERVER_URL));
     if (null == apiUrl || apiUrl.length() == 0)
       throw new PublisherException("Missing Upsource Server URL parameter");
-    String username = params.get(UpsourceConstants.UPSOURCE_USERNAME);
-    String password = params.get(UpsourceConstants.UPSOURCE_PASSWORD);
+    String username = params.get(UpsourceConstants.USERNAME);
+    String password = params.get(UpsourceConstants.PASSWORD);
     if (null == username || null == password)
       throw new PublisherException("Missing Upsource credentials");
     final HttpCredentials credentials = new UsernamePasswordCredentials(username, password);
-    final String projectId = params.get(UpsourceConstants.UPSOURCE_PROJECT_ID);
+    final String projectId = params.get(UpsourceConstants.PROJECT_ID);
     String urlPost = apiUrl + "/" + ENDPOINT_TEST_CONNECTION;
     String urlGet = apiUrl + "/" + ENDPOINT_RPC + "/" + QUERY_GET_CURRENT_USER;
     try {

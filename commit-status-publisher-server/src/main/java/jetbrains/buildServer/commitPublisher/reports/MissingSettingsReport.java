@@ -8,15 +8,12 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.PublisherManager;
+import jetbrains.buildServer.commitPublisher.github.GithubConstants;
+import jetbrains.buildServer.commitPublisher.stash.StashConstants;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.healthStatus.*;
 import org.jetbrains.annotations.NotNull;
-
-import static jetbrains.buildServer.commitPublisher.github.GithubConstants.GITHUB_PUBLISHER_ID;
-import static jetbrains.buildServer.commitPublisher.space.Constants.SPACE_PUBLISHER_ID;
-import static jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudConstants.BITBUCKET_PUBLISHER_ID;
-import static jetbrains.buildServer.commitPublisher.stash.StashConstants.STASH_PUBLISHER_ID;
 
 public class MissingSettingsReport extends HealthStatusReport {
 
@@ -25,7 +22,7 @@ public class MissingSettingsReport extends HealthStatusReport {
           = "Commit Status Publisher build feature refers to a missing settings";
   private static final ItemCategory CATEGORY
           = new ItemCategory(REPORT_TYPE + "Category", DISPLAY_NAME, ItemSeverity.WARN);
-  private static final Set<String> SUPPORTED_PUBLISHER_IDS = ImmutableSet.of(SPACE_PUBLISHER_ID, BITBUCKET_PUBLISHER_ID, STASH_PUBLISHER_ID, GITHUB_PUBLISHER_ID);
+  private static final Set<String> SUPPORTED_PUBLISHER_IDS = ImmutableSet.of(PUBLISHER_ID, PUBLISHER_ID, StashConstants.PUBLISHER_ID, GithubConstants.PUBLISHER_ID);
 
   private final PublisherManager myPublisherManager;
 

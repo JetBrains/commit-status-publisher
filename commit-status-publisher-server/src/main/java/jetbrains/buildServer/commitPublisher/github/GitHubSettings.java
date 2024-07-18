@@ -78,7 +78,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
 
   @NotNull
   public String getId() {
-    return GithubConstants.GITHUB_PUBLISHER_ID;
+    return GithubConstants.PUBLISHER_ID;
   }
 
   @NotNull
@@ -102,12 +102,12 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
   @Nullable
   @Override
   public Map<String, String> transformParameters(@NotNull Map<String, String> params) {
-    String securePwd = params.get(GithubConstants.GITHUB_PASSWORD);
-    String deprecatedPwd = params.get(GithubConstants.GITHUB_PASSWORD_DEPRECATED);
+    String securePwd = params.get(GithubConstants.PASSWORD);
+    String deprecatedPwd = params.get(GithubConstants.PASSWORD_DEPRECATED);
     if (securePwd == null && deprecatedPwd != null) {
       Map<String, String> result = new HashMap<String, String>(params);
-      result.remove(GithubConstants.GITHUB_PASSWORD_DEPRECATED);
-      result.put(GithubConstants.GITHUB_PASSWORD, deprecatedPwd);
+      result.remove(GithubConstants.PASSWORD_DEPRECATED);
+      result.put(GithubConstants.PASSWORD, deprecatedPwd);
       return result;
     }
     return null;
@@ -145,7 +145,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
     String result = super.describeParameters(params);
-    String url = params.get(GithubConstants.GITHUB_SERVER);
+    String url = params.get(GithubConstants.SERVER);
     if (null != url && !url.equals(GitHubApiFactory.DEFAULT_URL)) {
       result += ": " + WebUtil.escapeXml(url);
     }
@@ -315,7 +315,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
   @Nullable
   @Override
   public Map<String, Object> checkHealth(@NotNull SBuildType buildType, @NotNull Map<String, String> params) {
-    final GitHubApiAuthenticationType authenticationType = GitHubApiAuthenticationType.parse(params.get(GithubConstants.GITHUB_AUTH_TYPE));
+    final GitHubApiAuthenticationType authenticationType = GitHubApiAuthenticationType.parse(params.get(GithubConstants.AUTH_TYPE));
     if (authenticationType == GitHubApiAuthenticationType.STORED_TOKEN) {
       final String tokenId = params.get(Constants.TOKEN_ID);
       if (StringUtil.isEmptyOrSpaces(tokenId)) {

@@ -18,18 +18,18 @@
 
   <props:selectSectionPropertyContent value="${keys.authTypePassword}" caption="Username / App Password">
     <tr>
-      <th><label for="${keys.bitbucketCloudUsername}">Bitbucket Username:<l:star/></label></th>
+      <th><label for="${keys.cloudUsername}">Bitbucket Username:<l:star/></label></th>
       <td>
-        <props:textProperty name="${keys.bitbucketCloudUsername}" className="longField"/>
-        <span class="error" id="error_${keys.bitbucketCloudUsername}"></span>
+        <props:textProperty name="${keys.cloudUsername}" className="longField"/>
+        <span class="error" id="error_${keys.cloudUsername}"></span>
       </td>
     </tr>
 
     <tr>
-      <th><label for="${keys.bitbucketCloudPassword}">Bitbucket App Password:<l:star/></label></th>
+      <th><label for="${keys.cloudPassword}">Bitbucket App Password:<l:star/></label></th>
       <td>
-        <props:passwordProperty name="${keys.bitbucketCloudPassword}" className="longField"/>
-        <span class="error" id="error_${keys.bitbucketCloudPassword}"></span>
+        <props:passwordProperty name="${keys.cloudPassword}" className="longField"/>
+        <span class="error" id="error_${keys.cloudPassword}"></span>
       </td>
     </tr>
   </props:selectSectionPropertyContent>

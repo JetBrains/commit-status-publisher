@@ -72,7 +72,7 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
   @NotNull
   @Override
   public String getId() {
-    return GitlabConstants.GITLAB_PUBLISHER_ID;
+    return GitlabConstants.PUBLISHER_ID;
   }
 
   @NotNull
@@ -100,7 +100,7 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
 
   @Override
   public void testConnection(@NotNull BuildTypeIdentity buildTypeOrTemplate, @NotNull VcsRoot root, @NotNull Map<String, String> params) throws PublisherException {
-    String apiUrl = params.getOrDefault(GitlabConstants.GITLAB_API_URL, guessApiURL(root.getProperty("url")));
+    String apiUrl = params.getOrDefault(GitlabConstants.API_URL, guessApiURL(root.getProperty("url")));
     if (StringUtil.isEmptyOrSpaces(apiUrl))
       throw new PublisherException("Missing GitLab API URL parameter");
     String pathPrefix = getPathPrefix(apiUrl);
@@ -165,7 +165,7 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
   @NotNull
   @Override
   protected HttpCredentials getAccessTokenCredentials(@NotNull Map<String, String> params) throws PublisherException {
-    final String token = params.get(GitlabConstants.GITLAB_TOKEN);
+    final String token = params.get(GitlabConstants.TOKEN);
     if (token == null) {
       throw new PublisherException("GitLab Access token is not defined");
     }
@@ -206,7 +206,7 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
   @Override
   public String describeParameters(@NotNull Map<String, String> params) {
     String result = super.describeParameters(params);
-    String url = params.get(GitlabConstants.GITLAB_API_URL);
+    String url = params.get(GitlabConstants.API_URL);
     if (url != null)
       result += " " + WebUtil.escapeXml(url);
     return result;
@@ -229,11 +229,11 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
         }
 
         if (Constants.AUTH_TYPE_ACCESS_TOKEN.equalsIgnoreCase(authenticationType)) {
-          if (StringUtil.isEmptyOrSpaces(params.get(GitlabConstants.GITLAB_TOKEN)))
-            errors.add(new InvalidProperty(GitlabConstants.GITLAB_TOKEN, "Access token must be specified"));
+          if (StringUtil.isEmptyOrSpaces(params.get(GitlabConstants.TOKEN)))
+            errors.add(new InvalidProperty(GitlabConstants.TOKEN, "Access token must be specified"));
         }
         else {
-          params.remove(GitlabConstants.GITLAB_TOKEN);
+          params.remove(GitlabConstants.TOKEN);
         }
 
         return errors;

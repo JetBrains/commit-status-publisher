@@ -32,7 +32,7 @@ class GerritPublisher extends BaseCommitStatusPublisher {
   @NotNull
   @Override
   public String getId() {
-    return GerritConstants.GERRIT_PUBLISHER_ID;
+    return GerritConstants.STATUS_PUBLISHER;
   }
 
   @Override
@@ -69,26 +69,26 @@ class GerritPublisher extends BaseCommitStatusPublisher {
   }
 
   private String getGerritServer() {
-    return myParams.get(GerritConstants.GERRIT_SERVER);
+    return myParams.get(GerritConstants.SERVER);
   }
 
   private String getGerritProject() {
-    return myParams.get(GerritConstants.GERRIT_PROJECT);
+    return myParams.get(GerritConstants.PROJECT);
   }
 
   private String getGerritLabel() {
-    return myParams.get(GerritConstants.GERRIT_LABEL);
+    return myParams.get(GerritConstants.LABEL);
   }
 
   private String getUsername() {
-    return myParams.get(GerritConstants.GERRIT_USERNAME);
+    return myParams.get(GerritConstants.USERNAME);
   }
 
   private String getSuccessVote() {
-    return myParams.get(GerritConstants.GERRIT_SUCCESS_VOTE);
+    return myParams.get(GerritConstants.SUCCESS_VOTE);
   }
 
   private String getFailureVote() {
-    return myParams.get(GerritConstants.GERRIT_FAILURE_VOTE);
+    return myParams.get(GerritConstants.FAILURE_VOTE);
   }
 }

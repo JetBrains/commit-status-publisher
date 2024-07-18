@@ -11,13 +11,13 @@ import jetbrains.buildServer.commitPublisher.github.api.GitHubApiAuthenticationT
  * Date: 05.09.12 23:26
  */
 public class UpdateChangesConstants {
-  public String getServerKey() { return GithubConstants.GITHUB_SERVER; }
-  public String getUserNameKey() { return GithubConstants.GITHUB_USERNAME; }
-  public String getPasswordKey() { return GithubConstants.GITHUB_PASSWORD; }
-  public String getAccessTokenKey() { return GithubConstants.GITHUB_TOKEN; }
-  public String getOAuthUserKey() { return GithubConstants.GITHUB_OAUTH_USER; }
-  public String getOAuthProviderIdKey() { return GithubConstants.GITHUB_OAUTH_PROVIDER_ID; }
-  public String getAuthenticationTypeKey() { return GithubConstants.GITHUB_AUTH_TYPE;}
+  public String getServerKey() { return GithubConstants.SERVER; }
+  public String getUserNameKey() { return GithubConstants.USERNAME; }
+  public String getPasswordKey() { return GithubConstants.PASSWORD; }
+  public String getAccessTokenKey() { return GithubConstants.TOKEN; }
+  public String getOAuthUserKey() { return GithubConstants.OAUTH_USER; }
+  public String getOAuthProviderIdKey() { return GithubConstants.OAUTH_PROVIDER_ID; }
+  public String getAuthenticationTypeKey() { return GithubConstants.AUTH_TYPE;}
   public String getAuthenticationTypePasswordValue() { return GitHubApiAuthenticationType.PASSWORD_AUTH.getValue();}
   public String getAuthenticationTypeTokenValue() { return GitHubApiAuthenticationType.TOKEN_AUTH.getValue();}
   public String getAuthentificationTypeGitHubAppTokenValue() {

@@ -94,7 +94,7 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
     final CommitStatusPublisher publisher = mySettings.createFeaturelessPublisher(buildType, vcsRoot);
 
     then(publisher).isNotNull();
-    then(publisher.getId()).isEqualTo(Constants.SPACE_PUBLISHER_ID);
+    then(publisher.getId()).isEqualTo(SpaceConstants.PUBLISHER_ID);
     then(publisher.getBuildFeatureId()).isNotNull();
     then(publisher.getBuildType()).isEqualTo(buildType);
     then(publisher.getVcsRootId()).isEqualTo(String.valueOf(vcsRoot.getId()));
@@ -173,14 +173,14 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
     final ProjectEx project = createProject("testproject");
     enableUnconditionalStatusPublishing(project);
     addSpaceConnection(project, serviceUrl);
-    mockApplicationInfoWithPublishingRights(SpaceConstants.CONTEXT_IDENTIFIER_PROJECT_KEY + "TEST-PROJECT");
+    mockApplicationInfoWithPublishingRights(jetbrains.buildServer.serverSide.oauth.space.SpaceConstants.CONTEXT_IDENTIFIER_PROJECT_KEY + "TEST-PROJECT");
     final BuildTypeEx buildType = project.createBuildType("testbuild");
     final SVcsRoot vcsRoot = addVcsRoot(buildType, fetchUrl);
 
     final CommitStatusPublisher publisher = mySettings.createFeaturelessPublisher(buildType, vcsRoot);
 
     then(publisher).isNotNull();
-    then(publisher.getId()).isEqualTo(Constants.SPACE_PUBLISHER_ID);
+    then(publisher.getId()).isEqualTo(SpaceConstants.PUBLISHER_ID);
     then(publisher.getBuildFeatureId()).isNotNull();
     then(publisher.getBuildType()).isEqualTo(buildType);
     then(publisher.getVcsRootId()).isEqualTo(String.valueOf(vcsRoot.getId()));
@@ -191,14 +191,14 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
     final ProjectEx project = createProject("testproject");
     enableUnconditionalStatusPublishing(project);
     addSpaceConnection(project, "https://test-org.jetbrains.space");
-    mockApplicationInfoWithPublishingRights(SpaceConstants.CONTEXT_IDENTIFIER_GLOBAL);
+    mockApplicationInfoWithPublishingRights(jetbrains.buildServer.serverSide.oauth.space.SpaceConstants.CONTEXT_IDENTIFIER_GLOBAL);
     final BuildTypeEx buildType = project.createBuildType("testbuild");
     final SVcsRoot vcsRoot = addVcsRoot(buildType, "ssh://git@git.jetbrains.space/test-org/test-project/testrepo.git");
 
     final CommitStatusPublisher publisher = mySettings.createFeaturelessPublisher(buildType, vcsRoot);
 
     then(publisher).isNotNull();
-    then(publisher.getId()).isEqualTo(Constants.SPACE_PUBLISHER_ID);
+    then(publisher.getId()).isEqualTo(SpaceConstants.PUBLISHER_ID);
     then(publisher.getBuildFeatureId()).isNotNull();
     then(publisher.getBuildType()).isEqualTo(buildType);
     then(publisher.getVcsRootId()).isEqualTo(String.valueOf(vcsRoot.getId()));
@@ -220,7 +220,7 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
     final ProjectEx project = createProject("testproject");
     enableUnconditionalStatusPublishing(project);
     addSpaceConnection(project, serviceUrl);
-    mockApplicationInfoWithPublishingRights(SpaceConstants.CONTEXT_IDENTIFIER_PROJECT_KEY + "TEST-PROJECT");
+    mockApplicationInfoWithPublishingRights(jetbrains.buildServer.serverSide.oauth.space.SpaceConstants.CONTEXT_IDENTIFIER_PROJECT_KEY + "TEST-PROJECT");
     final BuildTypeEx buildType = project.createBuildType("testbuild");
     final SVcsRoot vcsRoot = addVcsRoot(buildType, notMatchingUrl);
 
@@ -234,7 +234,7 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
     final ProjectEx project = createProject("testproject");
     enableUnconditionalStatusPublishing(project);
     addSpaceConnection(project, "https://test-org.jetbrains.space");
-    mockApplicationInfoWithPublishingRights(SpaceConstants.CONTEXT_IDENTIFIER_PROJECT_KEY + "OTHER-PROJECT");
+    mockApplicationInfoWithPublishingRights(jetbrains.buildServer.serverSide.oauth.space.SpaceConstants.CONTEXT_IDENTIFIER_PROJECT_KEY + "OTHER-PROJECT");
     final BuildTypeEx buildType = project.createBuildType("testbuild");
     final SVcsRoot vcsRoot = addVcsRoot(buildType, "ssh://git@git.jetbrains.space/test-org/test-project/testrepo.git");
 
@@ -314,7 +314,7 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
   }
 
   private void enableUnconditionalStatusPublishing(@NotNull ProjectEx project) {
-    project.addParameter(getParameterFactory().createSimpleParameter(SpaceConstants.FEATURE_TOGGLE_UNCONDITIONAL_COMMIT_STATUS, "true"));
+    project.addParameter(getParameterFactory().createSimpleParameter(jetbrains.buildServer.serverSide.oauth.space.SpaceConstants.FEATURE_TOGGLE_UNCONDITIONAL_COMMIT_STATUS, "true"));
   }
 
   @NotNull
@@ -347,8 +347,8 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
 
   private void mockApplicationInfoWithPublishingRights(@NotNull String contextIdentifier) {
     final Map<SpaceRight, SpaceRightStatus> rights =
-      SpaceConstants.RIGHTS_COMMIT_STATUS.stream()
-                                         .collect(Collectors.toMap(Function.identity(),
+      jetbrains.buildServer.serverSide.oauth.space.SpaceConstants.RIGHTS_COMMIT_STATUS.stream()
+                                                                                      .collect(Collectors.toMap(Function.identity(),
                                                                    right -> SpaceRightStatus.GRANTED,
                                                                    (a, b) -> b,
                                                                    () -> new EnumMap<>(SpaceRight.class)));

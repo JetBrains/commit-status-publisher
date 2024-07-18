@@ -206,8 +206,8 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
   @Override
   protected Map<String, String> getPublisherParams() {
     return new HashMap<String, String>() {{
-      put(BitbucketCloudConstants.BITBUCKET_CLOUD_USERNAME, "user");
-      put(BitbucketCloudConstants.BITBUCKET_CLOUD_PASSWORD, "pwd");
+      put(BitbucketCloudConstants.CLOUD_USERNAME, "user");
+      put(BitbucketCloudConstants.CLOUD_PASSWORD, "pwd");
     }};
   }
 
