@@ -8,7 +8,9 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.PublisherManager;
+import jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudConstants;
 import jetbrains.buildServer.commitPublisher.github.GithubConstants;
+import jetbrains.buildServer.commitPublisher.space.SpaceConstants;
 import jetbrains.buildServer.commitPublisher.stash.StashConstants;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.SBuildType;
@@ -22,7 +24,7 @@ public class MissingSettingsReport extends HealthStatusReport {
           = "Commit Status Publisher build feature refers to a missing settings";
   private static final ItemCategory CATEGORY
           = new ItemCategory(REPORT_TYPE + "Category", DISPLAY_NAME, ItemSeverity.WARN);
-  private static final Set<String> SUPPORTED_PUBLISHER_IDS = ImmutableSet.of(PUBLISHER_ID, PUBLISHER_ID, StashConstants.PUBLISHER_ID, GithubConstants.PUBLISHER_ID);
+  private static final Set<String> SUPPORTED_PUBLISHER_IDS = ImmutableSet.of(SpaceConstants.PUBLISHER_ID, BitbucketCloudConstants.PUBLISHER_ID, StashConstants.PUBLISHER_ID, GithubConstants.PUBLISHER_ID);
 
   private final PublisherManager myPublisherManager;
 
