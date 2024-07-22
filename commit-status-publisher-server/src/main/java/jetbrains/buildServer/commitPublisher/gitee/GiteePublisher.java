@@ -46,12 +46,12 @@ class GiteePublisher extends HttpBasedCommitStatusPublisher<GiteeBuildStatus> {
   @Override
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion,
                              @NotNull BuildRevision revision,
-                             @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+                             @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     return publishCommentIfNeeded(buildPromotion, revision, "build is queued", Event.QUEUED);
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     String comment = additionalTaskInfo.getComment();
     String commentTemplate = "build %s was removed from queue" + (StringUtil.isNotEmpty(comment) ? ": " + comment : "");
     if (additionalTaskInfo.getCommentAuthor() != null) {

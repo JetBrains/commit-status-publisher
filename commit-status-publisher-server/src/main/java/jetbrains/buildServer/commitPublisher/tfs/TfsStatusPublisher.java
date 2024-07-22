@@ -82,14 +82,14 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   @Override
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion,
                              @NotNull BuildRevision revision,
-                             @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+                             @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     return updateQueuedBuildStatus(buildPromotion, revision, additionalTaskInfo, false);
   }
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
                                        @NotNull BuildRevision revision,
-                                       @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+                                       @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     return updateQueuedBuildStatus(buildPromotion, revision, additionalTaskInfo, true);
   }
 
@@ -466,7 +466,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
 
   private boolean updateQueuedBuildStatus(@NotNull BuildPromotion buildPromotion,
                                           @NotNull BuildRevision revision,
-                                          @NotNull AdditionalTaskInfo additionalTaskInfo,
+                                          @NotNull BaseAdditionalTaskInfo additionalTaskInfo,
                                           boolean removedFromQueue) throws PublisherException {
     final TfsRepositoryInfo info = getReposioryInfo(revision);
     if (info == null) {
@@ -608,7 +608,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   }
 
   @NotNull
-  private CommitStatus getQueuedCommitStatus(@NotNull BuildPromotion buildPromotion, @NotNull AdditionalTaskInfo additionalTaskInfo, boolean removedFromQueue) {
+  private CommitStatus getQueuedCommitStatus(@NotNull BuildPromotion buildPromotion, @NotNull BaseAdditionalTaskInfo additionalTaskInfo, boolean removedFromQueue) {
     final StatusContext context = new StatusContext(getBuildName(buildPromotion), "TeamCity");
 
     String targetStatus = removedFromQueue ? StatusState.Failed.getName() : StatusState.Pending.getName();

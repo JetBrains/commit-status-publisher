@@ -63,14 +63,14 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
   @Override
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion,
                              @NotNull BuildRevision revision,
-                             @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+                             @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     return publishQueued(buildPromotion, revision, SpaceBuildStatus.SCHEDULED, additionalTaskInfo);
   }
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
                                        @NotNull BuildRevision revision,
-                                       @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+                                       @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     if (additionalTaskInfo.commentContains(DefaultStatusMessages.BUILD_STARTED)) {
       return false;
     }
@@ -223,7 +223,7 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
   private boolean publishQueued(@NotNull BuildPromotion buildPromotion,
                                 @NotNull BuildRevision revision,
                                 @NotNull SpaceBuildStatus status,
-                                @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+                                @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     List<String> changes = buildPromotion.getContainingChanges().stream()
       .limit(200)
       .map(VcsModification::getVersion)

@@ -146,13 +146,13 @@ public class ChangeStatusUpdater {
 
       @Override
       public boolean changeQueued(@NotNull BuildRevision revision, @NotNull BuildPromotion buildPromotion,
-                                  @NotNull AdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException {
+                                  @NotNull BaseAdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException {
         return doQueuedChangeUpdate(revision, buildPromotion, additionalTaskInfo, viewUrl, false);
       }
 
       @Override
       public boolean changeRemovedFromQueue(@NotNull BuildRevision revision, @NotNull BuildPromotion buildPromotion,
-                                            @NotNull AdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException {
+                                            @NotNull BaseAdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException {
         return doQueuedChangeUpdate(revision, buildPromotion, additionalTaskInfo, viewUrl, true);
       }
 
@@ -258,7 +258,7 @@ public class ChangeStatusUpdater {
 
       private boolean doQueuedChangeUpdate(@NotNull BuildRevision revision,
                                            @NotNull BuildPromotion buildPromotion,
-                                           @NotNull AdditionalTaskInfo additionalTaskInfo,
+                                           @NotNull BaseAdditionalTaskInfo additionalTaskInfo,
                                            @NotNull String viewUrl,
                                            boolean deletedFromQueue) throws PublisherException {
         final RepositoryVersion version = revision.getRepositoryVersion();
@@ -404,7 +404,7 @@ public class ChangeStatusUpdater {
                           @NotNull BuildPromotion buildPromotion,
                           @NotNull GitHubChangeState targetStatus,
                           @NotNull Repository repo,
-                          @NotNull AdditionalTaskInfo additionalTaskInfo,
+                          @NotNull BaseAdditionalTaskInfo additionalTaskInfo,
                           @NotNull String viewUrl) throws PublisherException {
       final RepositoryVersion version = revision.getRepositoryVersion();
       SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
@@ -565,8 +565,8 @@ public class ChangeStatusUpdater {
   interface Handler {
     void changeStarted(@NotNull final BuildRevision revision, @NotNull final SBuild build, @NotNull String viewUrl) throws PublisherException;
     void changeCompleted(@NotNull final BuildRevision revision, @NotNull final SBuild build, @NotNull String viewUrl) throws PublisherException;
-    boolean changeQueued(@NotNull final BuildRevision revision, @NotNull final BuildPromotion build, @NotNull AdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException;
-    boolean changeRemovedFromQueue(@NotNull final BuildRevision revision, @NotNull final BuildPromotion build, @NotNull AdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException;
+    boolean changeQueued(@NotNull final BuildRevision revision, @NotNull final BuildPromotion build, @NotNull BaseAdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException;
+    boolean changeRemovedFromQueue(@NotNull final BuildRevision revision, @NotNull final BuildPromotion build, @NotNull BaseAdditionalTaskInfo additionalTaskInfo, @NotNull String viewUrl) throws PublisherException;
     CommitStatus getStatus(@NotNull final BuildRevision revision) throws PublisherException;
     Collection<CommitStatus> getStatuses(@NotNull final  BuildRevision revision) throws PublisherException;
   }

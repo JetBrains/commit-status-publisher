@@ -14,10 +14,8 @@
 
   <bean id="problems" class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems"/>
   <bean id="voterBuildFeature" class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature"/>
-  <bean id="voterBuildListener" class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherListener"/>
   <bean id="voterSettingsController" class="jetbrains.buildServer.commitPublisher.PublisherSettingsController"/>
   <bean class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeatureController"/>
-  <bean class="jetbrains.buildServer.commitPublisher.PublisherManager"/>
 
   <bean class="jetbrains.buildServer.commitPublisher.stash.StashSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudSettings"/>
@@ -62,9 +60,5 @@
   <bean class="jetbrains.buildServer.swarm.web.SwarmBuildPageExtension"/>
   <bean class="jetbrains.buildServer.swarm.web.SwarmChangeLinkExtension"/>
   <bean class="jetbrains.buildServer.swarm.web.SwarmController"/>
-
-  <bean class="jetbrains.buildServer.commitPublisher.ServerListener">
-    <constructor-arg index="0" ref="configActionsDispatcher"/>
-  </bean>
 
 </beans>

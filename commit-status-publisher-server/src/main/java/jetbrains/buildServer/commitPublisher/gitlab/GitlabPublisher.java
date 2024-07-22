@@ -64,13 +64,13 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
   }
 
   @Override
-  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     publish(buildPromotion, revision, GitlabBuildStatus.PENDING, additionalTaskInfo);
     return true;
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     publish(buildPromotion, revision, GitlabBuildStatus.CANCELED , additionalTaskInfo);
     return true;
   }
@@ -235,7 +235,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
   private void publish(@NotNull BuildPromotion buildPromotion,
                        @NotNull BuildRevision revision,
                        @NotNull GitlabBuildStatus status,
-                       @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+                       @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     String url = getViewUrl(buildPromotion);
     if (url == null) {
       LOG.debug(String.format("Can not build view URL for the build #%d. Probadly build configuration was removed. Status \"%s\" won't be published",

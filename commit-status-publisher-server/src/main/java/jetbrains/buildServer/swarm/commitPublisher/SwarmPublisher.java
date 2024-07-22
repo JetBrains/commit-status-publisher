@@ -71,13 +71,13 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
   }
 
   @Override
-  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     publishCommentIfNeeded(buildPromotion, revision, "build is queued", Event.QUEUED);
     return true;
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     String comment = getComment(additionalTaskInfo);
     String commentTemplate = "build %s was removed from queue" + (StringUtil.isNotEmpty(comment) ? ": " + comment : "");
     if (additionalTaskInfo.getCommentAuthor() != null) {
@@ -96,7 +96,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
   }
 
   @NotNull
-  private static String getComment(@NotNull AdditionalTaskInfo additionalTaskInfo) {
+  private static String getComment(@NotNull BaseAdditionalTaskInfo additionalTaskInfo) {
     String res = additionalTaskInfo.getComment();
     if (DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE.equals(res)) {
       return "";
@@ -104,7 +104,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
     return res;
   }
 
-  private boolean isCancelledByFailingDependency(@NotNull AdditionalTaskInfo additionalTaskInfo) {
+  private boolean isCancelledByFailingDependency(@NotNull BaseAdditionalTaskInfo additionalTaskInfo) {
     return DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED.equals(additionalTaskInfo.getComment());
   }
 

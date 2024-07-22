@@ -48,12 +48,12 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+  public boolean buildQueued(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     return updateQueuedBuildStatus(buildPromotion, revision, additionalTaskInfo, true);
   }
 
   @Override
-  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+  public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision, @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     return updateQueuedBuildStatus(buildPromotion, revision, additionalTaskInfo, false);
   }
 
@@ -246,7 +246,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   private boolean updateQueuedBuildStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision,
-                                          @NotNull AdditionalTaskInfo additionalTaskInfo, boolean addingToQueue) throws PublisherException {
+                                          @NotNull BaseAdditionalTaskInfo additionalTaskInfo, boolean addingToQueue) throws PublisherException {
     Map<String, String> params;
     try {
       params = getParams(buildPromotion);

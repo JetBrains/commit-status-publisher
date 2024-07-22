@@ -54,14 +54,14 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
   @Override
   public boolean buildQueued(@NotNull BuildPromotion buildPromotion,
                              @NotNull BuildRevision revision,
-                             @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+                             @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     return publish(buildPromotion, revision, GiteaBuildStatus.PENDING, additionalTaskInfo.getComment());
   }
 
   @Override
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
                                        @NotNull BuildRevision revision,
-                                       @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
+                                       @NotNull BaseAdditionalTaskInfo additionalTaskInfo) throws PublisherException {
     return publish(buildPromotion, revision, GiteaBuildStatus.FAILURE, additionalTaskInfo.getComment());
   }
 
