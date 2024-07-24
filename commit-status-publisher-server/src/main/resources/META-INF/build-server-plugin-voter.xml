@@ -12,10 +12,6 @@
 
   <mvc:annotation-driven/>
 
-  <bean id="problems" class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems"/>
-  <bean id="voterBuildFeature" class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature"/>
-  <bean id="voterSettingsController" class="jetbrains.buildServer.commitPublisher.PublisherSettingsController"/>
-  <bean class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeatureController"/>
 
   <bean class="jetbrains.buildServer.commitPublisher.stash.StashSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudSettings"/>
