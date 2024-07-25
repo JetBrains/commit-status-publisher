@@ -28,18 +28,10 @@
   <bean class="jetbrains.buildServer.commitPublisher.github.GitHubSettings"/>
 
   <!-- reports -->
-  <bean class="jetbrains.buildServer.commitPublisher.github.reports.SecurityParametersReport"/>
-  <bean class="jetbrains.buildServer.commitPublisher.github.reports.SecurityParametersReportPageExtension"/>
-  <bean class="jetbrains.buildServer.commitPublisher.reports.MissingVcsRootsReport"/>
-  <bean class="jetbrains.buildServer.commitPublisher.reports.MissingVcsRootsReportPageExtension"/>
-  <bean class="jetbrains.buildServer.commitPublisher.reports.NoFQDNServerUrlReport"/>
-  <bean class="jetbrains.buildServer.commitPublisher.reports.NoFQDNServerUrlReportPageExtension"/>
   <bean class="jetbrains.buildServer.commitPublisher.reports.DeprecatedAuthReport"/>
   <bean class="jetbrains.buildServer.commitPublisher.reports.DeprecatedAuthReportPageExtension"/>
   <bean class="jetbrains.buildServer.commitPublisher.reports.MissingSettingsReport"/>
   <bean class="jetbrains.buildServer.commitPublisher.reports.MissingSettingsReportPageExtension"/>
-  <bean class="jetbrains.buildServer.commitPublisher.reports.UnconditionalPublishingReport"/>
-  <bean class="jetbrains.buildServer.commitPublisher.reports.UnconditionalPublishingReportPageExtension"/>
 
   <!-- upsource -->
   <bean class="jetbrains.buildServer.commitPublisher.upsource.UpsourceSettings"/>
