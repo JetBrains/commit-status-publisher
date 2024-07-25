@@ -32,7 +32,7 @@
   <bean class="jetbrains.buildServer.commitPublisher.reports.DeprecatedAuthReportPageExtension"/>
   <bean class="jetbrains.buildServer.commitPublisher.reports.MissingSettingsReport"/>
   <bean class="jetbrains.buildServer.commitPublisher.reports.MissingSettingsReportPageExtension"/>
-  <bean class="jetbrains.buildServer.commitPublisher.github.reports.SecurityParametersReport/>
+  <bean class="jetbrains.buildServer.commitPublisher.github.reports.SecurityParametersReport"/>
 
   <!-- upsource -->
   <bean class="jetbrains.buildServer.commitPublisher.upsource.UpsourceSettings"/>
