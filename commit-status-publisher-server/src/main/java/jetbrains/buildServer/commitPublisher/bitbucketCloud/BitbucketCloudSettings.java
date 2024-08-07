@@ -3,6 +3,8 @@
 package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.commitPublisher.*;
@@ -25,6 +27,7 @@ import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.HttpResponseProcessor;
 import jetbrains.buildServer.vcshostings.http.credentials.BearerTokenCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
+import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -282,6 +285,18 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
         throw new PublisherException("Unable to get Access Token credentials from VCS Root \" + root.getVcsName()");
       return new BearerTokenCredentials(password);
     }
+
+    // TW-88869: try extract username from url if not provided explicitly
+    if (StringUtil.isEmpty(username) && !StringUtil.isEmpty(password)) {
+      try {
+        URI uri = new URI(vcsProperties.get(Constants.GIT_URL_PARAMETER));
+        String usernameFromUri = uri.getUserInfo();
+        if (!StringUtil.isEmpty(usernameFromUri)) {
+          return new UsernamePasswordCredentials(usernameFromUri, password);
+        }
+      } catch (URISyntaxException ignored) {}
+    }
+
     return super.getVcsRootPasswordCredentials(root, vcsProperties);
   }
 }
