@@ -1,4 +1,6 @@
+import org.gradle.api.publish.maven.MavenPublication
 
+apply plugin: 'maven-publish'
 
 /*
  * Copyright 2000-2024 JetBrains s.r.o.
@@ -17,20 +19,25 @@
  */
 
 dependencies {
-    compile 'org.apache.httpcomponents:httpclient:4.5.14'
-    compile "org.apache.tomcat:tomcat-servlet-api:8.5.32"
-    compile 'com.github.mwiede:jsch:0.1.67'
-    compile "org.jetbrains.teamcity:web-core:$teamcityVersion"
-    testCompile "org.jetbrains.teamcity:tests-support:$teamcityVersion"
-    testCompile "org.jetbrains.teamcity:server-test-core:$teamcityVersion"
-    testCompile "org.jetbrains.teamcity:web-test-core:$teamcityVersion"
-    testCompile "jmock:jmock:1.2.0"
-    testCompile 'org.assertj:assertj-core:1.7.1'
-    testCompile 'org.testng:testng:6.8'
-    testCompile "org.mockito:mockito-core:3.9.0"
+    compileOnly 'org.apache.httpcomponents:httpclient:4.5.14'
+    compileOnly "org.apache.tomcat:tomcat-servlet-api:8.5.32"
+    compileOnly 'com.github.mwiede:jsch:0.1.67'
+    compileOnly "org.jetbrains.teamcity:web-core:$teamcityVersion"
+    testCompileOnly "org.jetbrains.teamcity:tests-support:$teamcityVersion"
+    testCompileOnly "org.jetbrains.teamcity:server-test-core:$teamcityVersion"
+    testCompileOnly "org.jetbrains.teamcity:web-test-core:$teamcityVersion"
+    testCompileOnly "jmock:jmock:1.2.0"
+    testCompileOnly 'org.assertj:assertj-core:1.7.1'
+    testCompileOnly 'org.testng:testng:6.8'
+    testCompileOnly "org.mockito:mockito-core:3.9.0"
 }
 
 sourceSets {
+  main {
+    resources {
+      srcDirs = ['src/main/java']
+    }
+  }
   test {
     resources {
       srcDirs = ['src/test/testData']
@@ -48,4 +55,24 @@ test {
 jar {
   baseName = 'commit-status-publisher'
   version =  "$teamcityVersion"
+}
+
+publishing {
+  publications {
+    maven(MavenPublication) {
+      groupId = "org.jetbrains.teamcity.plugins"
+      artifactId = "commit-status-publisher-server"
+      version = teamcityVersion
+      from components.java
+    }
+  }
+  repositories {
+    maven {
+      url "https://packages.jetbrains.team/maven/p/teamcity-vcs/maven"
+      credentials {
+        username = spaceUsername
+        password = spacePassword
+      }
+    }
+  }
 }

@@ -21,6 +21,8 @@ initializeWorkspace()
 def localRepo = anyParamPath('TC_LOCAL_REPO')
 def pluginVersion = anyParam('PluginVersion')
 
+apply plugin: 'maven-publish'
+
 ext {
   teamcityVersion = anyParam('teamcityVersion') ?: 'LOCAL-SNAPSHOT'
 }
