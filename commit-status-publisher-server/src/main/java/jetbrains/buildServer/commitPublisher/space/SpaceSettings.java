@@ -106,13 +106,11 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   @Override
   public boolean isFeatureLessPublishingSupported(@NotNull SBuildType buildType) {
     if (!SpaceFeatures.forScope(buildType).publishCommitStatusUnconditionally()) {
-      LOG.debug(() -> "Unconditional commit status publishing is not supported for " + LogUtil.describe(buildType) + ": the feature toggle is disabled");
       return false;
     }
 
     final List<OAuthConnectionDescriptor> spaceConnections = myOAuthConnectionManager.getAvailableConnectionsOfType(buildType.getProject(), SpaceOAuthProvider.TYPE);
     if (spaceConnections.isEmpty()) {
-      LOG.debug(() -> "Unconditional commit status publishing is not supported for " + LogUtil.describe(buildType) + ": there are no Space connections available to the project");
       return false;
     }
 
@@ -138,7 +136,6 @@ public class SpaceSettings extends BasePublisherSettings implements CommitStatus
   @Override
   public CommitStatusPublisher createFeaturelessPublisher(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot) {
     if (!SpaceFeatures.forScope(buildType).publishCommitStatusUnconditionally()) {
-      LOG.debug(() -> "unconditional commit status publishing is not supported for " + LogUtil.describe(buildType) + ": the feature toggle is disabled");
       return null;
     }
 
