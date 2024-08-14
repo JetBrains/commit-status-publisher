@@ -28,7 +28,6 @@ import java.util.regex.Pattern;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.version.ServerVersionHolder;
 import org.apache.http.*;
 import org.apache.http.config.SocketConfig;
@@ -36,6 +35,7 @@ import org.apache.http.impl.bootstrap.HttpServer;
 import org.apache.http.impl.bootstrap.ServerBootstrap;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
+import org.assertj.core.api.BDDAssertions;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
@@ -95,7 +95,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
     try {
       myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
     } catch (PublisherException e) {
-      then(e.toString()).contains("timed out");
+      BDDAssertions.then(e.toString()).contains("timed out");
     }
     then(getRequestAsString()).isNull();
   }
@@ -108,7 +108,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
       myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
       fail("PublisherException wasn't thrown");
     } catch (PublisherException ex) {
-      then(ex.shouldRetry()).isEqualTo(true);
+      BDDAssertions.then(ex.shouldRetry()).isEqualTo(true);
     }
   }
 
@@ -119,7 +119,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
       myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
       fail("PublisherException wasn't thrown");
     } catch (PublisherException ex) {
-      then(ex.shouldRetry()).isEqualTo(true);
+      BDDAssertions.then(ex.shouldRetry()).isEqualTo(true);
     }
   }
 
@@ -130,7 +130,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
       myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
       fail("PublisherException wasn't thrown");
     } catch (PublisherException ex) {
-      then(ex.shouldRetry()).isEqualTo(true);
+      BDDAssertions.then(ex.shouldRetry()).isEqualTo(true);
     }
   }
 
@@ -140,7 +140,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
     try {
       myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
     } catch (PublisherException ex) {
-      then(ex.shouldRetry()).isEqualTo(false);
+      BDDAssertions.then(ex.shouldRetry()).isEqualTo(false);
     }
   }
 
@@ -152,7 +152,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
       myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
       fail("PublisherException wasn't thrown");
     } catch (PublisherException ex) {
-      then(ex.shouldRetry()).isEqualTo(true);
+      BDDAssertions.then(ex.shouldRetry()).isEqualTo(true);
     }
 
     myResponseStatusCode = 501;
@@ -160,14 +160,14 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
       myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
       fail("PublisherException wasn't thrown");
     } catch (PublisherException ex) {
-      then(ex.shouldRetry()).isEqualTo(true);
+      BDDAssertions.then(ex.shouldRetry()).isEqualTo(true);
     }
 
     myResponseStatusCode = 429;
     try {
       myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
     } catch (PublisherException ex) {
-      then(ex.shouldRetry()).isEqualTo(false);
+      BDDAssertions.then(ex.shouldRetry()).isEqualTo(false);
     }
   }
 
@@ -367,7 +367,7 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
 
   @AfterMethod(alwaysRun = true)
   @Override
-  protected void tearDown() throws Exception {
+  public void tearDown() throws Exception {
     if (myHttpServer != null) {
       myHttpServer.shutdown(GRACEFUL_SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
     }

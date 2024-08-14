@@ -26,6 +26,11 @@
       <class name="jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblemsTest" />
       <class name="jetbrains.buildServer.commitPublisher.CommitStatusPublisherListenerTest" />
       <class name="jetbrains.buildServer.commitPublisher.ConstantsTest" />
+      <class name="jetbrains.buildServer.commitPublisher.CommitStatusesCacheTest" />
+
+      <class name="jetbrains.buildServer.commitPublisher.reports.MissingVcsRootReportTest" />
+      <class name="jetbrains.buildServer.commitPublisher.PublisherManagerTest" />
+
       <class name="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudRepositoryParserTest" />
       <class name="jetbrains.buildServer.commitPublisher.gerrit.GerritPublisherTest" />
@@ -39,7 +44,6 @@
       <class name="jetbrains.buildServer.commitPublisher.space.SpacePublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.space.SpaceFeatureLessPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.space.SpaceSettingsTest" />
-      <class name="jetbrains.buildServer.commitPublisher.CommitStatusesCacheTest" />
 
       <class name="jetbrains.buildServer.swarm.SwarmClientManagerTest" />
       <class name="jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherTest" />
@@ -47,9 +51,6 @@
       <class name="jetbrains.buildServer.swarm.web.SwarmBuildPageExtensionTest" />
       <class name="jetbrains.buildServer.swarm.web.SwarmChangeLinkExtensionTest" />
       <class name="jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettingsTest" />
-
-      <class name="jetbrains.buildServer.commitPublisher.reports.MissingVcsRootReportTest" />
-      <class name="jetbrains.buildServer.commitPublisher.PublisherManagerTest" />
     </classes>
   </test>
 </suite>

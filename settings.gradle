@@ -23,3 +23,5 @@
 rootProject.name = 'commit-status-publisher'
 include(':commit-status-publisher-server')
 include(':build')
+include(':commit-status-publisher-test')
+

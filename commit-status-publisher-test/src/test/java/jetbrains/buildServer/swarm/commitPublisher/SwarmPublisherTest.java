@@ -26,6 +26,8 @@ import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.swarm.SwarmClientManager;
+import jetbrains.buildServer.swarm.commitPublisher.SwarmPublisher;
+import jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings;
 import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.util.cache.ResetCacheRegisterImpl;
 import org.apache.http.HttpRequest;

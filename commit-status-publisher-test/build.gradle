@@ -1,0 +1,70 @@
+import org.gradle.api.publish.maven.MavenPublication
+
+apply plugin: 'maven-publish'
+
+dependencies {
+  testCompile project(":commit-status-publisher-server")
+  testCompile "org.jetbrains.teamcity:tests-support:$teamcityVersion"
+  testCompile "org.jetbrains.teamcity:server-test-core:$teamcityVersion"
+  testCompile "org.jetbrains.teamcity:web-test-core:$teamcityVersion"
+  testCompile "jmock:jmock:1.2.0"
+  testCompile 'org.assertj:assertj-core:1.7.1'
+  testCompile 'org.testng:testng:6.8'
+  testCompile "org.mockito:mockito-core:3.9.0"
+}
+
+sourceSets {
+  test {
+    resources {
+      srcDirs = ['src/test/testData']
+    }
+  }
+}
+
+test {
+  useTestNG() {
+    useDefaultListeners = true
+    suites 'src/test/testng-commit-status-publisher.xml'
+  }
+}
+
+jar {
+  baseName = 'commit-status-publisher-test'
+  version =  "$teamcityVersion"
+  from sourceSets.test.output
+}
+
+publishing {
+  publications {
+    maven(MavenPublication) {
+      groupId = "jetbrains.buildServer.commitPublisher"
+      artifactId = "commit-status-publisher-test"
+      version = teamcityVersion
+      artifact jar
+
+      pom.withXml {
+        def dependenciesNode = asNode().appendNode('dependencies')
+
+        configurations.testCompileClasspath.allDependencies.each { dependency ->
+          if (dependency.group != null) {  // Filter out local project dependencies if necessary
+            def dependencyNode = dependenciesNode.appendNode('dependency')
+            dependencyNode.appendNode('artifactId', dependency.name)
+            if (dependency.name.contains("commit-status-publisher-server")) {
+              dependencyNode.appendNode('version', "$teamcityVersion")
+              dependencyNode.appendNode('groupId', "org.jetbrains.teamcity.plugins")
+            } else {
+              dependencyNode.appendNode('version', dependency.version)
+              dependencyNode.appendNode('groupId', dependency.group)
+            }
+            dependencyNode.appendNode('scope', 'compile')
+          }
+        }
+      }
+    }
+  }
+  repositories {
+    maven {
+      url uri("../../../local-repo/")
+    }
+  }
+}

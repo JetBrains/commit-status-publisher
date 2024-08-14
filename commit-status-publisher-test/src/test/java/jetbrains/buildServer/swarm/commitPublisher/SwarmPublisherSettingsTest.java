@@ -23,6 +23,8 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherTestBase;
 import jetbrains.buildServer.serverSide.MockServerPluginDescriptior;
 import jetbrains.buildServer.swarm.SwarmClientManager;
+import jetbrains.buildServer.swarm.commitPublisher.SwarmPublisher;
+import jetbrains.buildServer.swarm.commitPublisher.SwarmPublisherSettings;
 import jetbrains.buildServer.util.cache.ResetCacheRegisterImpl;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import org.jetbrains.annotations.NotNull;

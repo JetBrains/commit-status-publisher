@@ -28,10 +28,12 @@ import jetbrains.buildServer.controllers.MockRequest;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.swarm.*;
+import jetbrains.buildServer.swarm.SwarmTestUtil;
 import jetbrains.buildServer.util.ThreadUtil;
 import jetbrains.buildServer.util.cache.ResetCacheRegisterImpl;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
+import org.assertj.core.api.BDDAssertions;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -88,7 +90,7 @@ public class SwarmBuildPageExtensionTest extends BaseWebTestCase {
     HashMap<String, Object> model = new HashMap<>();
     extension.fillModel(model, buildRequest, build);
     
-    then(((SwarmBuildDataBean)model.get(SWARM_BEAN)).isReviewsPresent()).isFalse();
+    BDDAssertions.then(((SwarmBuildDataBean)model.get(SWARM_BEAN)).isReviewsPresent()).isFalse();
     then(((SwarmBuildDataBean)model.get(SWARM_BEAN)).isHasData()).isFalse();
   }
   

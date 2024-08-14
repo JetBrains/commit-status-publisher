@@ -46,13 +46,13 @@ import jetbrains.buildServer.util.*;
 import jetbrains.buildServer.util.http.HttpMethod;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.VcsRootInstanceImpl;
+import org.assertj.core.api.BDDAssertions;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import static jetbrains.buildServer.commitPublisher.CommitStatusPublisherListener.*;
 import static jetbrains.buildServer.serverSide.impl.MultiNodeTasksDbImpl.PROCESS_TASKS_DELAY_MILLIS;
 import static org.assertj.core.api.BDDAssertions.then;
 
@@ -114,7 +114,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.QUEUED);
     myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
   }
 
   public void should_not_publish_remove_from_queue_before_start() {
@@ -161,9 +161,9 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
     List<Event> eventsAfterFinished = myPublisher.getEventsReceived();
-    then(eventsAfterFinished).contains(Event.FINISHED);
+    BDDAssertions.then(eventsAfterFinished).contains(Event.FINISHED);
     myListener.changesLoaded(runningBuild.getBuildPromotion()); // won't execute at all, because build should be running to be processed
-    then(myPublisher.getEventsReceived()).isEqualTo(eventsAfterFinished);  // no more events must arrive at the publisher
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(eventsAfterFinished);  // no more events must arrive at the publisher
   }
 
   public void should_accept_pending_after_build_triggered_with_comment() {
@@ -177,7 +177,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.QUEUED);
     myFixture.waitForQueuedBuildToStart(queuedBuild);
     waitForTasksToFinish(Event.STARTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.COMMENTED, Event.STARTED));
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.COMMENTED, Event.STARTED));
   }
 
   public void should_publish_commented() {
@@ -188,7 +188,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.STARTED);
     runningBuild.setBuildComment(myUser , "My test comment");
     waitForTasksToFinish(Event.COMMENTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.COMMENTED));
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.COMMENTED));
     then(myPublisher.getLastComment()).isEqualTo("My test comment");
   }
 
@@ -200,7 +200,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.STARTED);
     myListener.buildChangedStatus(runningBuild, Status.NORMAL, Status.FAILURE);
     waitForTasksToFinish(Event.FAILURE_DETECTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FAILURE_DETECTED));
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FAILURE_DETECTED));
     then(myPublisher.isFailureReceived()).isTrue();
   }
 
@@ -209,7 +209,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     addBuildToQueue();
     waitForTasksToFinish(Event.QUEUED);
     waitForAssert(() -> !myPublisher.getEventsReceived().isEmpty(), TASK_COMPLETION_TIMEOUT_MS);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED));
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED));
   }
 
   public void should_publish_interrupted() {
@@ -221,7 +221,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     runningBuild.setInterrupted(RunningBuildState.INTERRUPTED_BY_USER, myUser, "My reason");
     finishBuild(false);
     waitForTasksToFinish(Event.INTERRUPTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.INTERRUPTED));
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.INTERRUPTED));
   }
 
   public void should_publish_removed_from_queue() {
@@ -242,7 +242,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.STARTED);
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
     then(myPublisher.isSuccessReceived()).isTrue();
   }
 
@@ -252,7 +252,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
   }
 
   public void should_obey_publishing_disabled_parameter() {
@@ -261,7 +261,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     SRunningBuild runningBuild = myFixture.startBuild(myBuildType);
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
   }
 
   public void should_give_a_priority_to_publishing_enabled_parameter() {
@@ -274,7 +274,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.STARTED);
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
   }
 
   public void should_give_a_priority_to_publishing_disabled_parameter() {
@@ -285,7 +285,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myFixture.finishBuild(runningBuild, false);
     myListener.buildFinished(runningBuild);
     waitForTasksToFinish(Event.FINISHED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
   }
 
   public void should_publish_for_multiple_roots() {
@@ -299,9 +299,9 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.STARTED);
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.QUEUED, Event.QUEUED,
-                                                                  Event.STARTED, Event.STARTED, Event.STARTED,
-                                                                  Event.FINISHED, Event.FINISHED, Event.FINISHED));
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.QUEUED, Event.QUEUED,
+                                                                                Event.STARTED, Event.STARTED, Event.STARTED,
+                                                                                Event.FINISHED, Event.FINISHED, Event.FINISHED));
     then(myPublisher.successReceived()).isEqualTo(3);
   }
 
@@ -315,7 +315,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.STARTED);
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
     then(myPublisher.successReceived()).isEqualTo(1);
   }
 
@@ -372,7 +372,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.STARTED);
     myListener.buildChangedStatus(runningBuild, Status.FAILURE, Status.NORMAL);
     assertIfNoTasks(Event.FAILURE_DETECTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
     then(myPublisher.isFailureReceived()).isFalse();
   }
 
@@ -383,7 +383,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     SRunningBuild runningBuild = myFixture.startPersonalBuild(myUser, myBuildType);
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
     then(myPublisher.isSuccessReceived()).isFalse();
   }
 
@@ -547,7 +547,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myFixture.finishBuild(runningBuild, false);
     waitForTasksToFinish(Event.FINISHED);
 
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
   }
 
   public void should_publish_queued_on_passed_revision() throws PublisherException {
@@ -608,7 +608,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_be_sent_excepted_number_of_requests_for_build_chain_toggle_off() {
     prepareVcs();
-    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "false");
+    setInternalProperty(CommitStatusPublisherListener.CHECK_STATUS_BEFORE_PUBLISHING, "false");
     String projectName = myProject.getName();
     SBuildFeatureDescriptor myBuildFeature = myBuildType.getBuildFeatures().iterator().next();
     SVcsRoot commonVcsRoot = myBuildType.getVcsRoots().iterator().next();
@@ -662,7 +662,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
 
   public void should_be_sent_excepted_number_of_requests_for_single_build_toggle_on() {
     prepareVcs();
-    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "true");
+    setInternalProperty(CommitStatusPublisherListener.CHECK_STATUS_BEFORE_PUBLISHING, "true");
     addBuildToQueue();
     waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 1, TASK_COMPLETION_TIMEOUT_MS);
     waitFor(() -> myPublisher.getSentRequests().size() == 2, TASK_COMPLETION_TIMEOUT_MS);
@@ -677,11 +677,11 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   @TestFor(issues = "TW-34249")
   public void should_retry_on_failure() {
     prepareVcs();
-    setInternalProperty(RETRY_ENABLED_PROPERTY_NAME, true);
-    setInternalProperty(RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
-    setInternalProperty(RETRY_MAX_DELAY_PROPERTY_NAME, 10);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_ENABLED_PROPERTY_NAME, true);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_MAX_DELAY_PROPERTY_NAME, 10);
     setInternalProperty(PROCESS_TASKS_DELAY_MILLIS, 1);
-    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "false");
+    setInternalProperty(CommitStatusPublisherListener.CHECK_STATUS_BEFORE_PUBLISHING, "false");
     myPublisher.shouldFailToPublish(3);
     addBuildToQueue();
     waitFor(() -> myFixture.getBuildQueue().getNumberOfItems() == 1, TASK_COMPLETION_TIMEOUT_MS);
@@ -693,11 +693,11 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   @TestFor(issues = "TW-34249")
   public void should_retry_on_get_revision_status_failure() {
     prepareVcs();
-    setInternalProperty(RETRY_ENABLED_PROPERTY_NAME, true);
-    setInternalProperty(RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
-    setInternalProperty(RETRY_MAX_DELAY_PROPERTY_NAME, 2);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_ENABLED_PROPERTY_NAME, true);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_MAX_DELAY_PROPERTY_NAME, 2);
     setInternalProperty(PROCESS_TASKS_DELAY_MILLIS, 1);
-    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "true");
+    setInternalProperty(CommitStatusPublisherListener.CHECK_STATUS_BEFORE_PUBLISHING, "true");
 
     myPublisher.shouldFailToPublish(1000);
     addBuildToQueue();
@@ -708,10 +708,10 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   @TestFor(issues = "TW-34249")
   public void should_retry_on_failure_no_more_than_1_time() {
     prepareVcs();
-    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "false");
-    setInternalProperty(RETRY_ENABLED_PROPERTY_NAME, true);
-    setInternalProperty(RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
-    setInternalProperty(RETRY_MAX_DELAY_PROPERTY_NAME, 1);
+    setInternalProperty(CommitStatusPublisherListener.CHECK_STATUS_BEFORE_PUBLISHING, "false");
+    setInternalProperty(CommitStatusPublisherListener.RETRY_ENABLED_PROPERTY_NAME, true);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_MAX_DELAY_PROPERTY_NAME, 1);
     setInternalProperty(PROCESS_TASKS_DELAY_MILLIS, 1);
     myPublisher.shouldFailToPublish(1000);
     addBuildToQueue();
@@ -728,10 +728,10 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   @TestFor(issues = "TW-34249")
   public void should_retry_on_all_possible_event_types() {
     prepareVcs();
-    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "false");
-    setInternalProperty(RETRY_ENABLED_PROPERTY_NAME, true);
-    setInternalProperty(RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
-    setInternalProperty(RETRY_MAX_DELAY_PROPERTY_NAME, 10);
+    setInternalProperty(CommitStatusPublisherListener.CHECK_STATUS_BEFORE_PUBLISHING, "false");
+    setInternalProperty(CommitStatusPublisherListener.RETRY_ENABLED_PROPERTY_NAME, true);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_MAX_DELAY_PROPERTY_NAME, 10);
     setInternalProperty(PROCESS_TASKS_DELAY_MILLIS, 1);
 
     myPublisher.shouldFailToPublish(1);
@@ -769,12 +769,12 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   @TestFor(issues = "TW-34249")
   public void should_stop_retrying_if_service_is_not_available_for_long_time() {
     prepareVcs();
-    setInternalProperty(RETRY_ENABLED_PROPERTY_NAME, true);
-    setInternalProperty(RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
-    setInternalProperty(RETRY_MAX_DELAY_PROPERTY_NAME, 1);
-    setInternalProperty(RETRY_MAX_TIME_BEFORE_DISABLING, 5);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_ENABLED_PROPERTY_NAME, true);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_MAX_DELAY_PROPERTY_NAME, 1);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_MAX_TIME_BEFORE_DISABLING, 5);
     setInternalProperty(PROCESS_TASKS_DELAY_MILLIS, 1);
-    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "false");
+    setInternalProperty(CommitStatusPublisherListener.CHECK_STATUS_BEFORE_PUBLISHING, "false");
 
 
     myPublisher.shouldFailToPublish(100);
@@ -802,12 +802,12 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   @TestFor(issues = "TW-34249")
   public void should_enable_retrying_if_successfully_published_status () {
     prepareVcs();
-    setInternalProperty(RETRY_ENABLED_PROPERTY_NAME, true);
-    setInternalProperty(RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
-    setInternalProperty(RETRY_MAX_DELAY_PROPERTY_NAME, 1);
-    setInternalProperty(RETRY_MAX_TIME_BEFORE_DISABLING, 5);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_ENABLED_PROPERTY_NAME, true);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_INITAL_DELAY_PROPERTY_NAME, 1);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_MAX_DELAY_PROPERTY_NAME, 1);
+    setInternalProperty(CommitStatusPublisherListener.RETRY_MAX_TIME_BEFORE_DISABLING, 5);
     setInternalProperty(PROCESS_TASKS_DELAY_MILLIS, 1);
-    setInternalProperty(CHECK_STATUS_BEFORE_PUBLISHING, "false");
+    setInternalProperty(CommitStatusPublisherListener.CHECK_STATUS_BEFORE_PUBLISHING, "false");
 
     myPublisher.shouldFailToPublish(3);
     addBuildToQueue();
@@ -900,7 +900,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myFixture.flushQueue();
     waitForNRequestsToBeSent(5);
 
-    then(myPublisher.getEventsReceived()).doesNotContain(Event.QUEUED);
+    BDDAssertions.then(myPublisher.getEventsReceived()).doesNotContain(Event.QUEUED);
   }
 
   @Test
@@ -917,7 +917,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myFixture.flushQueueAndWait();
     waitForTasksToFinish(Event.STARTED);
 
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED));
   }
 
   @Test
@@ -934,7 +934,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     addBuildToQueue(triggeredByBuilder.toString());
     myFixture.flushQueueAndWait();
 
-    then(myPublisher.getEventsReceived()).isEmpty();
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEmpty();
   }
 
   @TestFor(issues = "TW-84882")
@@ -950,7 +950,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     });
 
     waitForTasksToFinish(Event.FINISHED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Collections.emptyList());
   }
 
   @TestFor(issues = "TW-84882")
@@ -969,7 +969,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     });
 
     waitForTasksToFinish(Event.FINISHED);
-    then(myPublisher.getEventsReceived()).containsExactly(Event.STARTED, Event.FAILURE_DETECTED, Event.FINISHED);
+    BDDAssertions.then(myPublisher.getEventsReceived()).containsExactly(Event.STARTED, Event.FAILURE_DETECTED, Event.FINISHED);
   }
 
   @Test
@@ -1059,7 +1059,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.FINISHED);
     myListener.buildChangedStatus(runningBuild, Status.NORMAL, Status.FAILURE);
     waitForTasksToFinish(Event.FAILURE_DETECTED);
-    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED, Event.FAILURE_DETECTED));
+    BDDAssertions.then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED, Event.FAILURE_DETECTED));
     then(myPublisher.isFailureReceived()).isTrue();
   }
 

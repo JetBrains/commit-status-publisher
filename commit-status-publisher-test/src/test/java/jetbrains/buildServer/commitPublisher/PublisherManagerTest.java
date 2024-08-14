@@ -25,6 +25,7 @@ import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.SVcsRootEx;
+import org.assertj.core.api.BDDAssertions;
 import org.assertj.core.api.Condition;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -55,7 +56,7 @@ public class PublisherManagerTest extends CommitStatusPublisherTestBase {
   public void createSupplementaryPublishers_noVcsRoots() {
     final Map<String, CommitStatusPublisher> supplementaryPublishers = myPublisherManager.createSupplementaryPublishers(myBuildType, Collections.emptyMap());
 
-    then(supplementaryPublishers).isEmpty();
+    BDDAssertions.then(supplementaryPublishers).isEmpty();
   }
 
   @Test
@@ -65,7 +66,7 @@ public class PublisherManagerTest extends CommitStatusPublisherTestBase {
 
     final Map<String, CommitStatusPublisher> supplementaryPublishers = myPublisherManager.createSupplementaryPublishers(myBuildType, publisherMap(publisher));
 
-    then(supplementaryPublishers).isEmpty();
+    BDDAssertions.then(supplementaryPublishers).isEmpty();
   }
 
   @Test
@@ -75,7 +76,7 @@ public class PublisherManagerTest extends CommitStatusPublisherTestBase {
 
     final Map<String, CommitStatusPublisher> supplementaryPublishers = myPublisherManager.createSupplementaryPublishers(myBuildType, publisherMap(publisher));
 
-    then(supplementaryPublishers).isEmpty();
+    BDDAssertions.then(supplementaryPublishers).isEmpty();
   }
 
   @Test
@@ -87,7 +88,7 @@ public class PublisherManagerTest extends CommitStatusPublisherTestBase {
 
     final Map<String, CommitStatusPublisher> supplementaryPublishers = myPublisherManager.createSupplementaryPublishers(myBuildType, publisherMap(publisher));
 
-    then(supplementaryPublishers).isEmpty();
+    BDDAssertions.then(supplementaryPublishers).isEmpty();
   }
 
   @Test
@@ -99,7 +100,7 @@ public class PublisherManagerTest extends CommitStatusPublisherTestBase {
 
     final Map<String, CommitStatusPublisher> supplementaryPublishers = myPublisherManager.createSupplementaryPublishers(myBuildType, publisherMap(publisher));
 
-    then(supplementaryPublishers).isEmpty();
+    BDDAssertions.then(supplementaryPublishers).isEmpty();
   }
 
   @Test
@@ -112,7 +113,7 @@ public class PublisherManagerTest extends CommitStatusPublisherTestBase {
 
     final Map<String, CommitStatusPublisher> supplementaryPublishers = myPublisherManager.createSupplementaryPublishers(myBuildType, publisherMap(firstPublisher, secondPublisher));
 
-    then(supplementaryPublishers).hasSize(1);
+    BDDAssertions.then(supplementaryPublishers).hasSize(1);
     then(supplementaryPublishers.entrySet()).have(publisherEntry(notEmpty(), forVcsRootId(uncoveredRoot.getId())));
   }
 
@@ -122,7 +123,7 @@ public class PublisherManagerTest extends CommitStatusPublisherTestBase {
 
     final Map<String, CommitStatusPublisher> supplementaryPublishers = myPublisherManager.createSupplementaryPublishers(myBuildType, Collections.emptyMap());
 
-    then(supplementaryPublishers).hasSize(1);
+    BDDAssertions.then(supplementaryPublishers).hasSize(1);
     then(supplementaryPublishers.entrySet()).have(publisherEntry(notEmpty(), forVcsRootId(vcsRoot.getId())));
   }
 

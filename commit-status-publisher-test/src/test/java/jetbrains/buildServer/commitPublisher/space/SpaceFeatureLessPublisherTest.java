@@ -17,7 +17,6 @@
 package jetbrains.buildServer.commitPublisher.space;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +32,6 @@ import jetbrains.buildServer.serverSide.oauth.space.SpaceConstants;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthKeys;
 import jetbrains.buildServer.serverSide.oauth.space.SpaceOAuthProvider;
 import jetbrains.buildServer.serverSide.oauth.space.application.ApplicationInformationCapabilityResolver;
-import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import org.jetbrains.annotations.NotNull;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;

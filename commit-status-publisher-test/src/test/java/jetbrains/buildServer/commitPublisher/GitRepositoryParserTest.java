@@ -21,6 +21,7 @@ package jetbrains.buildServer.commitPublisher;
 import java.util.HashMap;
 import java.util.Map;
 import jetbrains.buildServer.util.TestFor;
+import org.assertj.core.api.BDDAssertions;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -80,10 +81,10 @@ public class GitRepositoryParserTest {
       String urlWithOwner = String.format(url, null == vcsRootPath ? "" : vcsRootPath, owner);
       Repository repo = null == vcsRootPath ? myGitRepositoryParser.parseRepositoryUrl(urlWithOwner)
                                             : myGitRepositoryParser.parseRepositoryUrl(urlWithOwner, vcsRootPath);
-      then(repo).overridingErrorMessage("Failed to parse url " + urlWithOwner).isNotNull();
-      then(repo.owner()).as("Must parse owner from URL " + urlWithOwner).isEqualTo(owner);
-      then(repo.repositoryName()).isEqualTo("repository");
-      then(repo.url()).isEqualTo(urlWithOwner);
+      BDDAssertions.then(repo).overridingErrorMessage("Failed to parse url " + urlWithOwner).isNotNull();
+      BDDAssertions.then(repo.owner()).as("Must parse owner from URL " + urlWithOwner).isEqualTo(owner);
+      BDDAssertions.then(repo.repositoryName()).isEqualTo("repository");
+      BDDAssertions.then(repo.url()).isEqualTo(urlWithOwner);
     }
   }
 
@@ -97,7 +98,7 @@ public class GitRepositoryParserTest {
             "ssh://git@bitbucket.org::owner/repository.git");
 
     for(String url : urls) {
-      then(myGitRepositoryParser.parseRepositoryUrl(url)).isNull();
+      BDDAssertions.then(myGitRepositoryParser.parseRepositoryUrl(url)).isNull();
     }
   }
 
@@ -105,9 +106,9 @@ public class GitRepositoryParserTest {
   public void parse_git_like_urls() {
     final String url = "git://github.com/owner/repository.git";
     Repository repo = myGitRepositoryParser.parseRepositoryUrl(url);
-    then(repo.owner()).isEqualTo("owner");
-    then(repo.repositoryName()).isEqualTo("repository");
-    then(repo.url()).isEqualTo(url);
+    BDDAssertions.then(repo.owner()).isEqualTo("owner");
+    BDDAssertions.then(repo.repositoryName()).isEqualTo("repository");
+    BDDAssertions.then(repo.url()).isEqualTo(url);
   }
 
 
@@ -115,9 +116,9 @@ public class GitRepositoryParserTest {
   public void parse_scp_like_urls_ghe() {
     final String url = "git@ghe.server:owner/repository.git";
     Repository repo = myGitRepositoryParser.parseRepositoryUrl(url);
-    then(repo.owner()).isEqualTo("owner");
-    then(repo.repositoryName()).isEqualTo("repository");
-    then(repo.url()).isEqualTo(url);
+    BDDAssertions.then(repo.owner()).isEqualTo("owner");
+    BDDAssertions.then(repo.repositoryName()).isEqualTo("repository");
+    BDDAssertions.then(repo.url()).isEqualTo(url);
   }
 
   public void parse_http_urls_with_slashes() {
@@ -138,9 +139,9 @@ public class GitRepositoryParserTest {
       String prefix = urlEntry.getValue();
       String urlWithOwner = String.format(url, "group/subgroup/owner");
       Repository repo = myGitRepositoryParser.parseRepositoryUrl(urlWithOwner, prefix);
-      then(repo.owner()).as(String.format("Must parse owner in URL %s", urlWithOwner)).isEqualTo("group/subgroup/owner");
-      then(repo.repositoryName()).isEqualTo("repository");
-      then(repo.url()).isEqualTo(urlWithOwner);
+      BDDAssertions.then(repo.owner()).as(String.format("Must parse owner in URL %s", urlWithOwner)).isEqualTo("group/subgroup/owner");
+      BDDAssertions.then(repo.repositoryName()).isEqualTo("repository");
+      BDDAssertions.then(repo.url()).isEqualTo(urlWithOwner);
     }
   }
   
@@ -159,9 +160,9 @@ public class GitRepositoryParserTest {
     for(String url : urls) {
       String urlWithOwner = String.format(url, "owner");
       Repository repo = myGitRepositoryParser.parseRepositoryUrl(urlWithOwner);
-      then(repo.owner()).as(String.format("Must parse owner in URL %s", urlWithOwner)).isEqualTo("owner");
-      then(repo.repositoryName()).isEqualTo("repository");
-      then(repo.url()).isEqualTo(urlWithOwner);
+      BDDAssertions.then(repo.owner()).as(String.format("Must parse owner in URL %s", urlWithOwner)).isEqualTo("owner");
+      BDDAssertions.then(repo.repositoryName()).isEqualTo("repository");
+      BDDAssertions.then(repo.url()).isEqualTo(urlWithOwner);
     }
   }
 }

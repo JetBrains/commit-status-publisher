@@ -38,7 +38,6 @@ import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCreden
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
-import org.jetbrains.annotations.Nullable;
 import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;

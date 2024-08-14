@@ -18,7 +18,6 @@
 
 package jetbrains.buildServer.commitPublisher.github;
 
-import com.google.common.collect.Lists;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import jetbrains.buildServer.MockBuildPromotion;
