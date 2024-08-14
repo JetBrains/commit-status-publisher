@@ -10,12 +10,15 @@ import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudB
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudCommitBuildStatus;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudRepoInfo;
 import jetbrains.buildServer.messages.Status;
+import jetbrains.buildServer.pullRequests.VcsAuthType;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.BuildRevision;
 import jetbrains.buildServer.serverSide.SQueuedBuild;
 import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
+import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
+import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
@@ -51,6 +54,20 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     if (!myPublisherSettings.isTestConnectionSupported()) return;
     myPublisherSettings.testConnection(myBuildType, vcsRoot, getPublisherParams());
     then(getRequestAsString()).isNotNull().matches(myExpectedRegExps.get(EventToTest.TEST_CONNECTION));
+  }
+
+  public void test_vcs_root_auth_with_username_only_in_url_provides_correct_credentials() throws Exception {
+    SVcsRoot vcsRoot = myFixture.addVcsRoot("jetbrains.git", "", myBuildType);
+    vcsRoot.setProperties(new HashMap<String, String>() {{
+        put(Constants.GIT_URL_PARAMETER, "http://user@localhost/" + OWNER + "/" + CORRECT_REPO);
+        put(Constants.VCS_AUTH_METHOD, VcsAuthType.PASSWORD.toString());
+        put("secure:password", "pwd");
+      }});
+    HttpCredentials credentials = myPublisherSettings.getCredentials(myBuildType.getProject(), vcsRoot, new HashMap<String, String>() {{
+      put(Constants.AUTH_TYPE, Constants.AUTH_TYPE_VCS);
+    }});
+    then(credentials).isExactlyInstanceOf(UsernamePasswordCredentials.class)
+                     .isEqualTo(new UsernamePasswordCredentials("user", "pwd"));
   }
 
   public void should_fail_with_error_on_wrong_vcs_url() throws InterruptedException {
