@@ -128,6 +128,10 @@ public class GiteaSettings extends BasePublisherSettings implements CommitStatus
         if (Objects.equals(statusCode, 404)) {
           throw new PublisherException(String.format("Repository \"%s\" can not be found. Please check if it was renamed or moved to another namespace", repository.repositoryName()));
         }
+        if (Objects.equals(statusCode, 401) || Objects.equals(statusCode, 403)) {
+          throw new PublisherException(String.format("Cannot access the \"%s\" repository. Ensure you are using a valid access token instead of a password (authentication via password is no longer available)", repository.repositoryName()));
+        }
+        throw new PublisherException("Request was failed with error", pe);
       } catch (Exception ex) {
         throw new PublisherException(String.format("Gitea publisher has failed to connect to \"%s\" repository", repository.url()), ex);
       }
