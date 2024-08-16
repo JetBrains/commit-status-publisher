@@ -275,7 +275,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
     try {
       publish(revision.getRevision(), message, repository, buildDescription);
     } catch (Exception e) {
-      throw new PublisherException("Cannot publish status to Gitea for VCS root " +
+      throw new PublisherException("Cannot publish status to Gitea(" + apiUrl + ") for VCS root " +
                                    revision.getRoot().getName() + ": " + e.toString(), e);
     }
   }
