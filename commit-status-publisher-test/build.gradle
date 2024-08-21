@@ -37,7 +37,7 @@ jar {
 publishing {
   publications {
     maven(MavenPublication) {
-      groupId = "jetbrains.buildServer.commitPublisher"
+      groupId = "org.jetbrains.teamcity.plugins"
       artifactId = "commit-status-publisher-test"
       version = teamcityVersion
       artifact jar
