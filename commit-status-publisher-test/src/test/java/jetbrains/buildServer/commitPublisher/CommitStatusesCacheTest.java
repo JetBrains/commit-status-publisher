@@ -54,7 +54,7 @@ public class CommitStatusesCacheTest extends BaseTestCase {
 
   @AfterMethod
   @Override
-  public void tearDown() throws Exception {
+  protected void tearDown() throws Exception {
     super.tearDown();
     setInternalProperty(CommitStatusesCache.CACHE_MAX_SIZE_PARAMETER, CommitStatusesCache.CACHE_MAX_SIZE_DEFAULT_VALUE);
     setInternalProperty(CommitStatusesCache.CACHE_VALUE_TTL_PARAMETER, String.valueOf(CommitStatusesCache.CACHE_VALUE_TTL_DEFAULT_VALUE_MS));
