@@ -37,6 +37,10 @@ import static org.assertj.core.api.BDDAssertions.then;
 public class GitlabPublisherTest extends HttpPublisherTest {
 
   private static final String GROUP_REPO = "group_repo";
+  private static final String TRANSITIVE_REPO = "transitive_repo";
+  protected final static String TRANSITIVE_REPO_DUPLICATE = TRANSITIVE_REPO + "_duplicate";
+  protected final static String TRANSITIVE_REPO_CORRECT = TRANSITIVE_REPO + "_correct";
+  protected final static String TRANSITIVE_REPO_EMPTY = TRANSITIVE_REPO + "_empty";
   private static final String MERGE_RESULT_COMMIT = "31337";
   private final Map<String, List<GitLabPublishCommitStatus>> myRevisionToStatuses = new HashMap<>();
 
@@ -124,7 +128,39 @@ public class GitlabPublisherTest extends HttpPublisherTest {
                           .matches(".*/projects/owner%2Fgroup_repo .*");
   }
 
-  public void shoudld_calculate_correct_revision_status() {
+  public void test_testConnection_transitive_rights_empty() throws Exception {
+    if (!myPublisherSettings.isTestConnectionSupported()) return;
+    Map<String, String> params = getPublisherParams();
+    myVcsRoot.setProperties(Collections.singletonMap("url", getServerUrl()  + "/" + OWNER + "/" + TRANSITIVE_REPO_EMPTY));
+    try {
+      myPublisherSettings.testConnection(myBuildType, myVcsRoot, params);
+      fail("PublishError exception expected");
+    } catch(PublisherException ex) {
+      then(ex.getCause().getMessage()).matches("GitLab does not grant enough permissions to publish a commit status");
+    }
+  }
+
+  public void test_testConnection_transitive_rights_correct() throws Exception {
+    if (!myPublisherSettings.isTestConnectionSupported()) return;
+    Map<String, String> params = getPublisherParams();
+    myVcsRoot.setProperties(Collections.singletonMap("url", getServerUrl()  + "/" + OWNER + "/" + TRANSITIVE_REPO_CORRECT));
+    myPublisherSettings.testConnection(myBuildType, myVcsRoot, params);
+    then(getRequestAsString()).isNotNull()
+                              .doesNotMatch(".*error.*")
+                              .matches(".*/projects\\?min_access_level=30&search=transitive_repo_correct .*");
+  }
+
+  public void test_testConnection_transitive_rights_duplicate() throws Exception {
+    if (!myPublisherSettings.isTestConnectionSupported()) return;
+    Map<String, String> params = getPublisherParams();
+    myVcsRoot.setProperties(Collections.singletonMap("url", getServerUrl()  + "/" + OWNER + "/" + TRANSITIVE_REPO_DUPLICATE));
+    myPublisherSettings.testConnection(myBuildType, myVcsRoot, params);
+    then(getRequestAsString()).isNotNull()
+                              .doesNotMatch(".*error.*")
+                              .matches(".*/projects\\?min_access_level=30&search=transitive_repo_duplicate .*");
+  }
+
+    public void shoudld_calculate_correct_revision_status() {
     BuildPromotion promotion = new MockBuildPromotion();
     GitlabPublisher publisher = (GitlabPublisher)myPublisher;
     assertNull(publisher.getRevisionStatus(promotion, (GitLabReceiveCommitStatus)null));
@@ -261,11 +297,19 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     } else if (url.contains("/projects/" + OWNER + "%2F" + CORRECT_REPO + "/merge_requests")) {
       respondWithMergeRequest(httpResponse);
     } else if (url.contains("/projects" +  "/" + OWNER + "%2F" + CORRECT_REPO)) {
-      respondWithRepoInfo(httpResponse, CORRECT_REPO, false, true);
+      respondWithRepoInfo(httpResponse, CORRECT_REPO, false, true, false);
     } else if (url.contains("/projects"  + "/" + OWNER + "%2F" +  GROUP_REPO)) {
-      respondWithRepoInfo(httpResponse, GROUP_REPO, true, true);
+      respondWithRepoInfo(httpResponse, GROUP_REPO, true, true, false);
     } else if (url.contains("/projects"  + "/" + OWNER + "%2F" +  READ_ONLY_REPO)) {
-      respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false, false);
+      respondWithRepoInfo(httpResponse, READ_ONLY_REPO, false, false, false);
+    } else if (url.contains("/projects"  + "/" + OWNER + "%2F" +  TRANSITIVE_REPO)) {
+      respondWithRepoInfo(httpResponse, TRANSITIVE_REPO, false, false, true);
+    } else if (url.contains("/projects"  + "?min_access_level=30&search=" + TRANSITIVE_REPO_CORRECT)) {
+      respondWithMultipleReposInfo(httpResponse, false);
+    } else if (url.contains("/projects"  + "?min_access_level=30&search=" + TRANSITIVE_REPO_DUPLICATE)) {
+      respondWithMultipleReposInfo(httpResponse, true);
+    } else if (url.contains("/projects"  + "?min_access_level=30&search=" + TRANSITIVE_REPO_EMPTY)) {
+      respondWithEmptyReposInfo(httpResponse);
     } else {
       respondWithError(httpResponse, 404, String.format("Unexpected URL: %s", url));
       return false;
@@ -310,21 +354,32 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   }
 
 
-  private void respondWithRepoInfo(HttpResponse httpResponse, String repoName, boolean isGroupRepo, boolean isPushPermitted) {
-    GitLabRepoInfo repoInfo = new GitLabRepoInfo();
-    repoInfo.id = "111";
-    repoInfo.permissions = new GitLabPermissions();
+  private void respondWithRepoInfo(HttpResponse httpResponse, String repoName, boolean isGroupRepo, boolean isPushPermitted, boolean hasTransitiveRights) {
+    GitLabRepoInfo repoInfo = new GitLabRepoInfo("111", new GitLabPermissions());
     GitLabAccessLevel accessLevel = new GitLabAccessLevel();
     accessLevel.access_level = isPushPermitted ? 30 : 20;
     if (isGroupRepo) {
       repoInfo.permissions.group_access = accessLevel;
-    } else {
+    } else if (!hasTransitiveRights) {
       repoInfo.permissions.project_access = accessLevel;
     }
     String jsonResponse = gson.toJson(repoInfo);
     httpResponse.setEntity(new StringEntity(jsonResponse, "UTF-8"));
   }
 
+  private void respondWithMultipleReposInfo(HttpResponse httpResponse, boolean twoRepos) {
+    GitLabRepoInfo repoInfo = new GitLabRepoInfo("111", null);
+    String jsonResponse = gson.toJson(Arrays.asList((repoInfo)));
+    if (twoRepos) {
+      GitLabRepoInfo repoInfoWrongId = new GitLabRepoInfo("222", null);
+      jsonResponse = gson.toJson(Arrays.asList(repoInfo, repoInfoWrongId));
+    }
+    httpResponse.setEntity(new StringEntity(jsonResponse, "UTF-8"));
+  }
+
+  private void respondWithEmptyReposInfo(HttpResponse httpResponse) {
+    httpResponse.setEntity(new StringEntity("[]", "UTF-8"));
+  }
 
   @Override
   protected boolean checkEventFinished(@NotNull String requestString, boolean isSuccessful) {

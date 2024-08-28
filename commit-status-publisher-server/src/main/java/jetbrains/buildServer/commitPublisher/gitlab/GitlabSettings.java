@@ -2,7 +2,9 @@
 
 package jetbrains.buildServer.commitPublisher.gitlab;
 
+import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -115,13 +117,22 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
         HttpHelper.get(getProjectsUrl(apiUrl, repository.owner(), repository.repositoryName()),
                        credentials, Collections.emptyMap(),
                        BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorPrj);
-        if (processorPrj.getAccessLevel() < 30) {
+        boolean tokenHasEnoughRights = true;
+        if (processorPrj.isEmptyPermissions()) {
+          MultipleProjectsInfoResponseProcessor mulProjectProcessorPrj = new MultipleProjectsInfoResponseProcessor();
+          HttpHelper.get(getAuthorizedProjectsUrl(apiUrl, repository.repositoryName()),
+                         credentials, Collections.emptyMap(),
+                         BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), mulProjectProcessorPrj);
+          tokenHasEnoughRights = mulProjectProcessorPrj.getInfo().contains(processorPrj.getInfo());
+        }
+        else if (processorPrj.getAccessLevel() < 30) {
           UserInfoResponseProcessor processorUser = new UserInfoResponseProcessor();
           HttpHelper.get(getUserUrl(apiUrl), credentials, Collections.emptyMap(),
                          BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT, trustStore(), processorUser);
-          if (!processorUser.isAdmin()) {
-            throw new HttpPublisherException("GitLab does not grant enough permissions to publish a commit status");
-          }
+          tokenHasEnoughRights = processorUser.isAdmin();
+        }
+        if (!tokenHasEnoughRights) {
+          throw new HttpPublisherException("GitLab does not grant enough permissions to publish a commit status");
         }
       });
     } catch (HttpPublisherException pe) {
@@ -257,6 +268,11 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
   }
 
   @NotNull
+  public static String getAuthorizedProjectsUrl(@NotNull String apiUrl, @NotNull String repo) {
+    return apiUrl + "/projects" + "?min_access_level=30&search=" + repo;
+  }
+
+  @NotNull
   public static String getUserUrl(@NotNull String apiUrl) {
     return apiUrl + "/user";
   }
@@ -297,9 +313,36 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
     }
   }
 
+  private abstract class JsonListResponseProcessor<T> extends DefaultHttpResponseProcessor {
+
+    private final Type myInfoType;
+    private List<T> myInfo;
+
+    JsonListResponseProcessor(Class<T> infoClass) {
+      myInfoType = TypeToken.getParameterized(List.class, infoClass).getType();
+    }
+
+    List<T> getInfo() {
+      return myInfo;
+    }
+
+    @Override
+    public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+
+      super.processResponse(response);
+
+      final String json = response.getContent();
+      if (null == json) {
+        throw new HttpPublisherException("GitLab publisher has received no response");
+      }
+      myInfo = myGson.fromJson(json, myInfoType);
+    }
+  }
+
   private class ProjectInfoResponseProcessor extends JsonResponseProcessor<GitLabRepoInfo> {
 
     private int myAccessLevel;
+    private boolean emptyPermissions;
 
     ProjectInfoResponseProcessor() {
       super(GitLabRepoInfo.class);
@@ -309,9 +352,14 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
       return myAccessLevel;
     }
 
+    boolean isEmptyPermissions() {
+      return emptyPermissions;
+    }
+
     @Override
     public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
       myAccessLevel = 0;
+      emptyPermissions = false;
       super.processResponse(response);
       GitLabRepoInfo repoInfo = getInfo();
       if (null == repoInfo || null == repoInfo.id || null == repoInfo.permissions) {
@@ -321,6 +369,17 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
         myAccessLevel = repoInfo.permissions.project_access.access_level;
       if (null != repoInfo.permissions.group_access && myAccessLevel < repoInfo.permissions.group_access.access_level)
         myAccessLevel = repoInfo.permissions.group_access.access_level;
+      if(null == repoInfo.permissions.project_access && null == repoInfo.permissions.group_access) {
+        emptyPermissions = true;
+      }
+    }
+
+  }
+
+  private class MultipleProjectsInfoResponseProcessor extends JsonListResponseProcessor<GitLabRepoInfo> {
+
+    MultipleProjectsInfoResponseProcessor() {
+      super(GitLabRepoInfo.class);
     }
   }
 
