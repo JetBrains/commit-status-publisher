@@ -34,6 +34,7 @@ public class SwarmClient {
   private final static String SWARM_API =
     TeamCityProperties.getProperty("teamcity.swarm.api-version","v11");
   public static final String SWARM_UPDATE_URL = "swarmUpdateUrl";
+  public static final String SWARM_UPDATE_URL_PARAM = "teamcity.perforce.build.swarmUpdateUrl";
   public static final String SWARM_UPDATE_UUID = "swarmUpdateUuid_";
 
   private final String mySwarmUrl;
@@ -242,7 +243,7 @@ public class SwarmClient {
   }
 
   public void updateSwarmTestRuns(long reviewId, @NotNull SBuild build, @NotNull String debugBuildInfo) throws PublisherException {
-    String swarmUpdateUrl = getSwarmUpdateUrlFromTriggeringAttr(build);
+    String swarmUpdateUrl = getSwarmUpdateUrl(build);
     if (swarmUpdateUrl != null) {
       int pathIdx = swarmUpdateUrl.indexOf("/api/");
       String fixedUrl = mySwarmUrl + swarmUpdateUrl.substring(pathIdx);
@@ -294,7 +295,13 @@ public class SwarmClient {
   }
 
   @Nullable
-  public String getSwarmUpdateUrlFromTriggeringAttr(@NotNull SBuild build) {
+  public String getSwarmUpdateUrl(@NotNull SBuild build) {
+    // Manually provided update URL by the triggering user
+    final String swarmUpdateUrl = build.getBuildOwnParameters().get(SWARM_UPDATE_URL_PARAM);
+    if (swarmUpdateUrl != null) {
+      return swarmUpdateUrl;
+    }
+
     // Provided by TeamCity Perforce plugin for builds triggered from Swarm REST endpoint
     return build.getTriggeredBy().getParameters().get(SWARM_UPDATE_URL);
   }

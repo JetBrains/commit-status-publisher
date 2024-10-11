@@ -112,7 +112,7 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
   public boolean buildStarted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     publishCommentIfNeeded(build.getBuildPromotion(), revision, "build %s **has started**", Event.STARTED);
 
-    if (myShouldCreateTestRuns && null == mySwarmClient.getSwarmUpdateUrlFromTriggeringAttr(build)) {
+    if (myShouldCreateTestRuns && null == mySwarmClient.getSwarmUpdateUrl(build)) {
       createTestRunsForReviewsOnSwarm(build, revision);
     }
     else {
