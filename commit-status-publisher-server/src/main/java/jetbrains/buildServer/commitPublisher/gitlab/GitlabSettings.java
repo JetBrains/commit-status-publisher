@@ -9,11 +9,13 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.regex.Pattern;
+import jetbrains.buildServer.ServiceLocator;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabReceiveCommitStatus;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabRepoInfo;
 import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabUserInfo;
+import jetbrains.buildServer.pullRequests.PullRequestManager;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
@@ -56,6 +58,7 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
 
   @NotNull private final CommitStatusesCache<GitLabReceiveCommitStatus> myStatusesCache;
   @NotNull private final VcsModificationHistoryEx myVcsModificationHistory;
+  @NotNull private final ServiceLocator myServiceLocator;
 
   public GitlabSettings(@NotNull PluginDescriptor descriptor,
                         @NotNull WebLinks links,
@@ -65,10 +68,12 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
                         @NotNull OAuthConnectionsManager oAuthConnectionsManager,
                         @NotNull OAuthTokensStorage oAuthTokensStorage,
                         @NotNull UserModel userModel,
-                        @NotNull SecurityContext securityContext) {
+                        @NotNull SecurityContext securityContext,
+                        @NotNull ServiceLocator serviceLocator) {
     super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, oAuthConnectionsManager, securityContext);
     myVcsModificationHistory = vcsModificationHistory;
     myStatusesCache = new CommitStatusesCache<>();
+    myServiceLocator = serviceLocator;
   }
 
   @NotNull
@@ -92,7 +97,7 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
   @NotNull
   @Override
   public GitlabPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new GitlabPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache, myVcsModificationHistory);
+    return new GitlabPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache, myVcsModificationHistory, myServiceLocator.findSingletonService(PullRequestManager.class));
   }
 
   @Override
