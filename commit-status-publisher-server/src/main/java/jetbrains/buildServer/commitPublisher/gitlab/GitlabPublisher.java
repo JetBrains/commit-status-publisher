@@ -28,6 +28,8 @@ import java.util.regex.Pattern;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.gitlab.data.*;
+import jetbrains.buildServer.pullRequests.PullRequest;
+import jetbrains.buildServer.pullRequests.PullRequestManager;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.StringUtil;
@@ -43,6 +45,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
 
   private static final String REFS_HEADS = "refs/heads/";
   private static final String REFS_TAGS = "refs/tags/";
+  private static final String REFS_MERGE_REQUESTS = "refs/merge-requests/";
   private static final String MERGE_REQUEST_GROUP_NO = "mrNo";
   private static final Pattern PATTERN_REF_MERGE_RESULT = Pattern.compile("^refs/merge-requests/(?<" + MERGE_REQUEST_GROUP_NO + ">\\d+)/merge$");
   private static final String REF_TYPE_BRANCH = "branch";
@@ -51,6 +54,9 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
 
   @NotNull private final CommitStatusesCache<GitLabReceiveCommitStatus> myStatusesCache;
   @NotNull private final VcsModificationHistoryEx myVcsModificationHistory;
+  @Nullable private final PullRequestManager myPullRequestManager;
+
+  private static final String USE_REF_WHEN_PUBLISHING_STATUS_ON_MERGE_COMMITS_INTERNAL_PROP = "teamcity.pullRequests.publishRefForMergeCommits";
 
   GitlabPublisher(@NotNull CommitStatusPublisherSettings settings,
                   @NotNull SBuildType buildType,
@@ -59,10 +65,12 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
                   @NotNull Map<String, String> params,
                   @NotNull CommitStatusPublisherProblems problems,
                   @NotNull CommitStatusesCache<GitLabReceiveCommitStatus> statusesCache,
-                  @NotNull VcsModificationHistoryEx vcsModificationHistory) {
+                  @NotNull VcsModificationHistoryEx vcsModificationHistory,
+                  @Nullable PullRequestManager pullRequestManager) {
     super(settings, buildType, buildFeatureId, params, problems, links);
     myStatusesCache = statusesCache;
     myVcsModificationHistory = vcsModificationHistory;
+    myPullRequestManager = pullRequestManager;
   }
 
 
@@ -243,7 +251,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
                        @NotNull GitlabBuildStatus status,
                        @NotNull String description) throws PublisherException {
     String buildName = getBuildName(build.getBuildPromotion());
-    String message = createMessage(status, buildName, revision, getViewUrl(build), description);
+    String message = createMessage(status, buildName, build.getBuildType(), revision, getViewUrl(build), description);
     publish(message, revision, LogUtil.describe(build));
     myStatusesCache.removeStatusFromCache(revision, buildName);
   }
@@ -260,7 +268,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
     }
     String description = additionalTaskInfo.getComment();
     String buildName = getBuildName(buildPromotion);
-    String message = createMessage(status, buildName, revision, url, description);
+    String message = createMessage(status, buildName, buildPromotion.getBuildType(), revision, url, description);
     publish(message, revision, LogUtil.describe(buildPromotion));
     myStatusesCache.removeStatusFromCache(revision, buildName);
   }
@@ -321,24 +329,44 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
   @NotNull
   private String createMessage(@NotNull GitlabBuildStatus status,
                                @NotNull String name,
+                               @Nullable SBuildType buildType,
                                @NotNull BuildRevision revision,
                                @NotNull String url,
                                @NotNull String description) {
 
     RepositoryVersion repositoryVersion = revision.getRepositoryVersion();
-    String ref = repositoryVersion.getVcsBranch();
-    if (ref != null) {
-      if (ref.startsWith(REFS_HEADS)) {
-        ref = ref.substring(REFS_HEADS.length());
-      } else if (ref.startsWith(REFS_TAGS)) {
-        ref = ref.substring(REFS_TAGS.length());
-      } else {
-        ref = null;
-      }
-    }
+    String originalRef = repositoryVersion.getVcsBranch();
+    String ref = getBranchRefForApi(originalRef, revision, buildType);
 
     GitLabPublishCommitStatus data = new GitLabPublishCommitStatus(status.getName(), description, name, url, ref);
     return myGson.toJson(data);
+  }
+
+  @Nullable
+  private String getBranchRefForApi(@Nullable String originalRef, @NotNull BuildRevision revision, @Nullable SBuildType buildType) {
+    if (originalRef == null) {
+      return null;
+    }
+
+    if (originalRef.startsWith(REFS_HEADS)) {
+      return originalRef.substring(REFS_HEADS.length());
+    }
+    if (originalRef.startsWith(REFS_TAGS)) {
+      return originalRef.substring(REFS_TAGS.length());
+    }
+    if (TeamCityProperties.getBooleanOrTrue(USE_REF_WHEN_PUBLISHING_STATUS_ON_MERGE_COMMITS_INTERNAL_PROP) &&
+               myPullRequestManager != null && buildType != null && originalRef.startsWith(REFS_MERGE_REQUESTS)) {
+      // this is a merge request branch, we need to find the corresponding source branch
+      List<PullRequest> pullRequests = myPullRequestManager.getCachedPullRequests(revision.getRoot(), buildType, originalRef);
+      if (!pullRequests.isEmpty()) {
+        String sourceBranchRef = pullRequests.get(0).getSourceBranchRef();
+        if (sourceBranchRef != null && sourceBranchRef.startsWith(REFS_HEADS)) {
+          return sourceBranchRef.substring(REFS_HEADS.length());
+        }
+      }
+    }
+
+    return null;
   }
 
   @Nullable
