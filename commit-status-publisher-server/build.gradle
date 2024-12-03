@@ -1,4 +1,4 @@
-
+apply plugin: 'maven-publish'
 
 /*
  * Copyright 2000-2024 JetBrains s.r.o.
@@ -48,4 +48,24 @@ test {
 jar {
   baseName = 'commit-status-publisher'
   version =  "$teamcityVersion"
+}
+
+publishing {
+  publications {
+    maven(MavenPublication) {
+      groupId = "org.jetbrains.teamcity.plugins"
+      artifactId = "commit-status-publisher"
+      version = teamcityVersion
+      from components.java
+    }
+  }
+  repositories {
+    maven {
+      url "https://maven.pkg.jetbrains.space/khutorov-sb/p/sanbox/maven"
+      credentials {
+        username = mySpaceUsername
+        password = mySpacePassword
+      }
+    }
+  }
 }
