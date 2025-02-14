@@ -135,21 +135,6 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
   }
 
   @Override
-  public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
-    BitbucketCloudCommitBuildStatus buildStatus = getCommitStatus(revision, removedBuild.getBuildPromotion());
-    return getRevisionStatusForRemovedBuild(removedBuild, buildStatus);
-  }
-
-  RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, BitbucketCloudCommitBuildStatus buildStatus) {
-    if (buildStatus == null) {
-      return null;
-    }
-    Event event = getTriggeredEvent(buildStatus);
-    boolean isSameBuildType = StringUtil.areEqual(removedBuild.getBuildTypeId(), buildStatus.key);
-    return new RevisionStatus(event, buildStatus.description, isSameBuildType, getBuildIdFromViewUrl(buildStatus.url));
-  }
-
-  @Override
   public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
       BitbucketCloudCommitBuildStatus buildStatus = getCommitStatus(revision, buildPromotion);
       return getRevisionStatus(buildPromotion, buildStatus);

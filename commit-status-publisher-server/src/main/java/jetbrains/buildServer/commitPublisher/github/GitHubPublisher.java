@@ -131,23 +131,8 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   @Override
-  public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
-    CommitStatus commitStatus = getCommitStatus(revision, removedBuild.getBuildPromotion());
-    return getRevisionStatusForRemovedBuild(removedBuild, commitStatus);
-  }
-
-  @Override
   protected WebLinks getLinks() {
     return myWebLinks;
-  }
-
-  RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @Nullable CommitStatus commitStatus) {
-    if (commitStatus == null) {
-      return null;
-    }
-    Event triggeredEvent = getTriggeredEvent(commitStatus);
-    boolean isSameBuildType = isSameBuildType(removedBuild.getBuildPromotion(), commitStatus);
-    return new RevisionStatus(triggeredEvent, commitStatus.description, isSameBuildType, getBuildIdFromViewUrl(commitStatus.target_url));
   }
 
   @Nullable

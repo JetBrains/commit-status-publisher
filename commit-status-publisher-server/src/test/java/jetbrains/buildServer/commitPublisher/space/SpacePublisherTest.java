@@ -203,17 +203,13 @@ public class SpacePublisherTest extends HttpPublisherTest {
   }
 
   public void should_allow_queued_depending_on_build_type() {
-    Mock removedBuildMock = new Mock(SQueuedBuild.class);
-    removedBuildMock.stubs().method("getBuildTypeId").withNoArguments().will(returnValue("buildType"));
-    removedBuildMock.stubs().method("getItemId").withNoArguments().will(returnValue("123"));
     Mock buildPromotionMock = new Mock(BuildPromotion.class);
     buildPromotionMock.stubs().method("getBuildTypeExternalId").withNoArguments().will(returnValue("buildTypeExtenalId"));
-    removedBuildMock.stubs().method("getBuildPromotion").withNoArguments().will(returnValue(buildPromotionMock.proxy()));
-    SQueuedBuild removedBuild = (SQueuedBuild)removedBuildMock.proxy();
+    BuildPromotion removedBuild = (BuildPromotion)buildPromotionMock.proxy();
 
     SpacePublisher publisher = (SpacePublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=123", "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321", "anotherBuildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertTrue(publisher.getRevisionStatus(removedBuild, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=123", "buildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertFalse(publisher.getRevisionStatus(removedBuild, new SpaceBuildStatusInfo(SpaceBuildStatus.SCHEDULED.getName(), null, null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321", "anotherBuildTypeExtenalId", Constants.SPACE_DEFAULT_DISPLAY_NAME, "buildPromotionId")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
   }
 
   @Override

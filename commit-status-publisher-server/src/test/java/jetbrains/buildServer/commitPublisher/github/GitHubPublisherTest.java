@@ -140,9 +140,6 @@ public class GitHubPublisherTest extends HttpPublisherTest {
   }
 
   public void should_allow_queued_depending_on_build_type() {
-    Mock removedBuildMock = new Mock(SQueuedBuild.class);
-    removedBuildMock.stubs().method("getBuildTypeId").withNoArguments().will(returnValue("buildType"));
-    removedBuildMock.stubs().method("getItemId").withNoArguments().will(returnValue("123"));
     Mock buildPromotionMock = new Mock(BuildPromotion.class);
     buildPromotionMock.stubs().method("getBuildTypeExternalId").withNoArguments().will(returnValue("buildTypeExtenalId"));
     buildPromotionMock.stubs().method("getAssociatedBuild").withNoArguments().will(returnValue(null));
@@ -152,12 +149,11 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     projectMock.stubs().method("getName").withNoArguments().will(returnValue("projectName"));
     buildTypeMock.stubs().method("getProject").withNoArguments().will(returnValue(projectMock.proxy()));
     buildPromotionMock.stubs().method("getBuildType").withNoArguments().will(returnValue(buildTypeMock.proxy()));
-    removedBuildMock.stubs().method("getBuildPromotion").withNoArguments().will(returnValue(buildPromotionMock.proxy()));
-    SQueuedBuild removedBuild = (SQueuedBuild)removedBuildMock.proxy();
+    BuildPromotion removedBuild = (BuildPromotion)buildPromotionMock.proxy();
 
     GitHubPublisher publisher = (GitHubPublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost:8111/viewQueued.html?itemId=123", DefaultStatusMessages.BUILD_QUEUED, "buildName (projectName)")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost:8111/viewQueued.html?itemId=321", DefaultStatusMessages.BUILD_QUEUED, "custom context")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertTrue(publisher.getRevisionStatus(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost:8111/viewQueued.html?itemId=123", DefaultStatusMessages.BUILD_QUEUED, "buildName (projectName)")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertFalse(publisher.getRevisionStatus(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost:8111/viewQueued.html?itemId=321", DefaultStatusMessages.BUILD_QUEUED, "custom context")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
   }
 
   public void should_use_build_name_as_context() throws Exception {

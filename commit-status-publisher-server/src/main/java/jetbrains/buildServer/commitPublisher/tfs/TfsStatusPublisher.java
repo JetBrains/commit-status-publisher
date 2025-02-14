@@ -140,19 +140,6 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     }
   }
 
-  @Override
-  public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
-    CommitStatus commitStatus = getCommitStatus(revision, removedBuild.getBuildType());
-    return getRevisionStatusForRemovedBuild(removedBuild, commitStatus);
-  }
-
-  RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @Nullable CommitStatus commitStatus) {
-    if (commitStatus == null) return null;
-    Event event = getTriggeredEvent(commitStatus);
-    boolean isSameBuildType = StringUtil.areEqual(getBuildName(removedBuild.getBuildPromotion()), commitStatus.context.name);
-    return new RevisionStatus(event, commitStatus.description, isSameBuildType, getBuildIdFromViewUrl(commitStatus.targetUrl));
-  }
-
   private String getBuildName(BuildPromotion buildPromotion) {
     return buildPromotion.getBuildTypeExternalId();
   }

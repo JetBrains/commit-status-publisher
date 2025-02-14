@@ -138,23 +138,6 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     return true;
   }
 
-  @Override
-  public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
-    BuildPromotion buildPromotion = removedBuild.getBuildPromotion();
-    JsonStashBuildStatus buildStatus = getBuildStatus(revision, buildPromotion);
-    return getRevisionStatusForRemovedBuild(removedBuild, buildStatus);
-  }
-
-  RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @Nullable JsonStashBuildStatus buildStatus) {
-    if (buildStatus == null) {
-      return null;
-    }
-    Event event = getTriggeredEvent(buildStatus);
-    boolean isSameBuildType = StringUtil.areEqual(getBuildKey(removedBuild.getBuildPromotion()), buildStatus.key);
-    return new RevisionStatus(event, buildStatus.description, isSameBuildType, getBuildId(buildStatus));
-  }
-
-
   @Nullable
   private Long getBuildId(@NotNull JsonStashBuildStatus buildStatus) {
     Long buildId = NumberUtils.toLong(buildStatus.buildNumber, -1);

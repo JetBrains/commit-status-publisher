@@ -167,11 +167,6 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     return null;
   }
 
-  @Override
-  public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
-    return null;
-  }
-
   @Nullable
   protected String getViewUrl(@NotNull BuildPromotion buildPromotion) {
     SBuild build = buildPromotion.getAssociatedBuild();

@@ -27,10 +27,7 @@ import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudC
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudRepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.pullRequests.VcsAuthType;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.BuildRevision;
-import jetbrains.buildServer.serverSide.SQueuedBuild;
-import jetbrains.buildServer.serverSide.SimpleParameter;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
@@ -120,13 +117,12 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
   }
 
   public void should_allow_queued_depending_on_build_type() {
-    Mock removedBuildMock = new Mock(SQueuedBuild.class);
+    Mock removedBuildMock = new Mock(BuildPromotionEx.class);
     removedBuildMock.stubs().method("getBuildTypeId").withNoArguments().will(returnValue("buildType"));
-    removedBuildMock.stubs().method("getItemId").withNoArguments().will(returnValue("123"));
-    SQueuedBuild removedBuild = (SQueuedBuild)removedBuildMock.proxy();
+    BuildPromotion removedBuild = (BuildPromotion)removedBuildMock.proxy();
     BitbucketCloudPublisher publisher = (BitbucketCloudPublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new BitbucketCloudCommitBuildStatus("buildType", BitbucketCloudBuildStatus.INPROGRESS.name(), null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=123")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new BitbucketCloudCommitBuildStatus("anotherBuildType", BitbucketCloudBuildStatus.INPROGRESS.name(), null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertTrue(publisher.getRevisionStatus(removedBuild, new BitbucketCloudCommitBuildStatus("buildType", BitbucketCloudBuildStatus.INPROGRESS.name(), null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=123")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertFalse(publisher.getRevisionStatus(removedBuild, new BitbucketCloudCommitBuildStatus("anotherBuildType", BitbucketCloudBuildStatus.INPROGRESS.name(), null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
   }
 
   @Override

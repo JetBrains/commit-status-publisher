@@ -196,19 +196,15 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   }
 
   public void should_allow_queued_depending_on_build_type() {
-    Mock removedBuildMock = new Mock(SQueuedBuild.class);
-    removedBuildMock.stubs().method("getBuildTypeId").withNoArguments().will(returnValue("buildType"));
-    removedBuildMock.stubs().method("getItemId").withNoArguments().will(returnValue("123"));
     Mock buildPromotionMock = new Mock(BuildPromotion.class);
     Mock buildTypeMock = new Mock(SBuildType.class);
     buildTypeMock.stubs().method("getFullName").withNoArguments().will(returnValue("typeFullName"));
     buildPromotionMock.stubs().method("getBuildType").withNoArguments().will(returnValue(buildTypeMock.proxy()));
-    removedBuildMock.stubs().method("getBuildPromotion").withNoArguments().will(returnValue(buildPromotionMock.proxy()));
-    SQueuedBuild removedBuild = (SQueuedBuild)removedBuildMock.proxy();
+    BuildPromotion removedBuild = (BuildPromotion)buildPromotionMock.proxy();
 
     GitlabPublisher publisher = (GitlabPublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, "typeFullName", "http://localhost:8111/viewQueued.html?itemId=123")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, "anotherTypeFullName", "http://localhost:8111/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertTrue(publisher.getRevisionStatus(removedBuild, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, "typeFullName", "http://localhost:8111/viewQueued.html?itemId=123")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertFalse(publisher.getRevisionStatus(removedBuild, new GitLabReceiveCommitStatus(null, GitlabBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, "anotherTypeFullName", "http://localhost:8111/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
   }
 
   public void buildFinishedSuccessfully_on_merge_result_ref() throws Exception {

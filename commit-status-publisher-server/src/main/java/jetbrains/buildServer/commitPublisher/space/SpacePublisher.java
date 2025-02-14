@@ -124,21 +124,6 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
     return true;
   }
 
-  @Override
-  public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
-    SpaceBuildStatusInfo buildStatus = getExternalCheckStatus(revision, removedBuild.getBuildType());
-    return getRevisionStatusForRemovedBuild(removedBuild, buildStatus);
-  }
-
-  RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @Nullable SpaceBuildStatusInfo buildStatus) {
-    if (buildStatus == null) {
-      return null;
-    }
-    Event event = getTriggeredEvent(buildStatus);
-    boolean isSameBuildType = StringUtil.areEqual(getTaskId(removedBuild.getBuildPromotion()), buildStatus.taskId);
-    return new RevisionStatus(event, buildStatus.description, isSameBuildType, getBuildId(buildStatus));
-  }
-
   @Nullable
   private Long getBuildId(@NotNull SpaceBuildStatusInfo buildStatus) {
     Long buildId = NumberUtils.toLong(buildStatus.taskBuildId, -1);

@@ -48,8 +48,6 @@ public interface CommitStatusPublisher {
 
   RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException;
 
-  RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException;
-
   @NotNull
   String getBuildFeatureId();
 

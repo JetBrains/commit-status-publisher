@@ -283,12 +283,6 @@ class MockPublisher extends BaseCommitStatusPublisher implements CommitStatusPub
     return new RevisionStatus(lastStatus.myStatus.myEvent, lastStatus.myStatus.myComment, isSameBuildType, lastStatus.myStatus.myBuildId);
   }
 
-  @Override
-  public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild,
-                                                         @NotNull BuildRevision revision) throws PublisherException {
-    return getRevisionStatus(removedBuild.getBuildPromotion(), revision);
-  }
-  
   private void saveStatus(BuildRevision revision, BuildType buildType, MockStatus status) {
     myMockState.computeIfAbsent(revision.getRevision(), k -> new HashMap<>())
                .computeIfAbsent(buildType != null ? buildType.getBuildTypeId() : "unknown", k -> new LinkedBlockingDeque<>())
