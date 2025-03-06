@@ -102,6 +102,8 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     super.setUp();
     myVcsRoot = myFixture.addVcsRoot("jetbrains.git", "", myBuildType);
     myVcsRoot.setProperties(Collections.singletonMap("url", myVcsURL));
+    myVcsRoot.schedulePersisting("test");
+
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     myUser = myFixture.createUserAccount(USER);
