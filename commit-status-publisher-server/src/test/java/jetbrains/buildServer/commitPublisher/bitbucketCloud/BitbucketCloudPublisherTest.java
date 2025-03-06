@@ -18,6 +18,12 @@
 
 package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
+import static org.assertj.core.api.BDDAssertions.then;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import jetbrains.buildServer.MockBuildPromotion;
@@ -27,7 +33,10 @@ import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudC
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudRepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.pullRequests.VcsAuthType;
-import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.BuildPromotionEx;
+import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
@@ -35,16 +44,9 @@ import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCreden
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
-import org.jetbrains.annotations.Nullable;
 import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import static org.assertj.core.api.BDDAssertions.then;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
 
 /**
  * @author anton.zamolotskikh, 05/10/16.
@@ -62,6 +64,8 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
   public void test_testConnection_with_mercurial() throws Exception {
     SVcsRoot vcsRoot = myFixture.addVcsRoot("mercurial", "", myBuildType);
     vcsRoot.setProperties(Collections.singletonMap("repositoryPath", "http://owner@localhost/" + OWNER + "/" + CORRECT_REPO));
+    vcsRoot.schedulePersisting("test");
+
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(vcsRoot);
     BuildRevision revision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     if (!myPublisherSettings.isTestConnectionSupported()) return;
@@ -76,6 +80,8 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
         put(Constants.VCS_AUTH_METHOD, VcsAuthType.PASSWORD.toString());
         put("secure:password", "pwd");
       }});
+    vcsRoot.schedulePersisting("test");
+
     HttpCredentials credentials = myPublisherSettings.getCredentials(myBuildType.getProject(), vcsRoot, new HashMap<String, String>() {{
       put(Constants.AUTH_TYPE, Constants.AUTH_TYPE_VCS);
     }});
@@ -85,6 +91,8 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
 
   public void should_fail_with_error_on_wrong_vcs_url() throws InterruptedException {
     myVcsRoot.setProperties(Collections.singletonMap("url", "wrong://url.com"));
+    myVcsRoot.schedulePersisting("test");
+
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     BuildRevision revision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     try {

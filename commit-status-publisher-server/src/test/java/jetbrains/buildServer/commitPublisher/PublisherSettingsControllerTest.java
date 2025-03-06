@@ -18,6 +18,8 @@
 
 package jetbrains.buildServer.commitPublisher;
 
+import static org.assertj.core.api.BDDAssertions.then;
+
 import java.util.Arrays;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -30,8 +32,6 @@ import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.web.util.SessionUser;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import static org.assertj.core.api.BDDAssertions.then;
 
 @Test
 public class PublisherSettingsControllerTest extends CommitStatusPublisherTestBase {
@@ -100,6 +100,10 @@ public class PublisherSettingsControllerTest extends CommitStatusPublisherTestBa
     vcs1.setName("VCS Root 1");
     SVcsRoot vcs2 = myFixture.addVcsRoot("jetbrains.git", "two");
     vcs2.setName("VCS Root 2");
+
+    vcs1.schedulePersisting("test");
+    vcs2.schedulePersisting("test");
+
     myBuildType.addVcsRoot(vcs1);
     myBuildType.addVcsRoot(vcs2);
 
@@ -129,6 +133,10 @@ public class PublisherSettingsControllerTest extends CommitStatusPublisherTestBa
     vcs1.setName("VCS Root 1");
     SVcsRoot vcs2 = myFixture.addVcsRoot("svn", "two");
     vcs2.setName("VCS Root 2");
+
+    vcs1.schedulePersisting("test");
+    vcs2.schedulePersisting("test");
+
     myBuildType.addVcsRoot(vcs1);
     myBuildType.addVcsRoot(vcs2);
 
@@ -158,6 +166,10 @@ public class PublisherSettingsControllerTest extends CommitStatusPublisherTestBa
     vcs1.setName("VCS Root 1");
     SVcsRoot vcs2 = myFixture.addVcsRoot("svn", "two");
     vcs2.setName("VCS Root 2");
+
+    vcs1.schedulePersisting("test");
+    vcs2.schedulePersisting("test");
+
     myBuildType.addVcsRoot(vcs1);
     myBuildType.addVcsRoot(vcs2);
 
