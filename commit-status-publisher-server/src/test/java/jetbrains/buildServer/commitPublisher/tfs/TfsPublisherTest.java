@@ -76,6 +76,8 @@ public class TfsPublisherTest extends HttpPublisherTest {
     myVcsURL = getServerUrl() + "/_git/" + CORRECT_REPO;
     myReadOnlyVcsURL = getServerUrl()  + "/_git/" + READ_ONLY_REPO;
     myVcsRoot.setProperties(Collections.singletonMap("url", myVcsURL));
+    myVcsRoot.schedulePersisting("test");
+
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
@@ -83,6 +85,8 @@ public class TfsPublisherTest extends HttpPublisherTest {
 
   public void should_fail_with_error_on_wrong_vcs_url() {
     myVcsRoot.setProperties(Collections.singletonMap("url", "wrong://url.com"));
+    myVcsRoot.schedulePersisting("test");
+
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     BuildRevision revision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     try {

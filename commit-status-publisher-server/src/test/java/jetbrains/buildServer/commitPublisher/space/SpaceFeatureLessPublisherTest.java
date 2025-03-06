@@ -109,5 +109,6 @@ public class SpaceFeatureLessPublisherTest extends SpacePublisherTest {
     final Map<String, String> newProperties = new HashMap<>(myVcsRoot.getProperties());
     newProperties.put("tokenId", connection.buildFullTokenId(token.getId()));
     myVcsRoot.setProperties(newProperties);
+    myVcsRoot.schedulePersisting("test");
   }
 }

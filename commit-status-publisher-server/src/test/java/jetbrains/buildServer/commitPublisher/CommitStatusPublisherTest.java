@@ -142,6 +142,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   protected void test_testConnection_failure(String repoURL, Map <String, String> params) throws InterruptedException {
     if (!myPublisherSettings.isTestConnectionSupported()) return;
     myVcsRoot.setProperties(Collections.singletonMap("url", repoURL));
+    myVcsRoot.schedulePersisting("test");
     try {
       myPublisherSettings.testConnection(myBuildType, myVcsRoot, params);
       fail("Connection testing failure must throw PublishError exception");

@@ -67,6 +67,8 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
     setExpectedApiPath("/subdir/rest");
     params.put(Constants.STASH_BASE_URL, getServerUrl() + "/subdir");
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
+    myVcsRoot.schedulePersisting("test");
+
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
@@ -78,6 +80,8 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
     setExpectedApiPath("/subdir/rest");
     params.put(Constants.STASH_BASE_URL, getServerUrl() + "/subdir/");
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
+    myVcsRoot.schedulePersisting("test");
+
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());

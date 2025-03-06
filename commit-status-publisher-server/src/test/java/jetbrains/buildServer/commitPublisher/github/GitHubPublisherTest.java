@@ -92,6 +92,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     setExpectedApiPath("/subdir/api/v3");
     params.put(Constants.GITHUB_SERVER, getServerUrl() + "/subdir/api/v3");
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
+    myVcsRoot.schedulePersisting("test");
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks, new CommitStatusesCache<>());
@@ -103,6 +104,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     setExpectedApiPath("/subdir/api/v3");
     params.put(Constants.GITHUB_SERVER, getServerUrl() + "/subdir/api/v3/");
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
+    myVcsRoot.schedulePersisting("test");
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks, new CommitStatusesCache<>());
@@ -112,6 +114,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
 
   public void should_fail_with_error_on_wrong_vcs_url() {
     myVcsRoot.setProperties(Collections.singletonMap("url", "wrong://url.com"));
+    myVcsRoot.schedulePersisting("test");
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     BuildRevision revision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     try {

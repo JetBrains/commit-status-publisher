@@ -408,6 +408,7 @@ public class SpaceSettingsTest extends CommitStatusPublisherTestBase {
     }
     if (!properties.isEmpty()) {
       vcsRoot.setProperties(properties);
+      vcsRoot.schedulePersisting("test");
     }
     return vcsRoot;
   }

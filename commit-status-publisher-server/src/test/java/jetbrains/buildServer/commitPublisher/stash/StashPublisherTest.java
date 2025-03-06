@@ -94,6 +94,8 @@ public class StashPublisherTest extends BaseStashPublisherTest {
   public void url_guessing_test_git() {
     Map<String, String> params = getPublisherParams();
     myVcsRoot.setProperties(Collections.singletonMap("url", "git@url.com:owner/some_/path/project.git"));
+    myVcsRoot.schedulePersisting("test");
+
     myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
     assertEquals("https://url.com", myPublisherSettings.guessApiURL(myVcsRoot.getProperty("url")));
   }
@@ -102,6 +104,8 @@ public class StashPublisherTest extends BaseStashPublisherTest {
     Map<String, String> params = getPublisherParams();
     params.remove(Constants.STASH_BASE_URL);
     myVcsRoot.setProperties(Collections.singletonMap("url", "git@url.com:owner/some_/path/project.git"));
+    myVcsRoot.schedulePersisting("test");
+
     myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
     assertEquals("https://url.com", ((StashPublisher)myPublisher).getBaseUrl(myVcsRoot.getProperty("url")));
   }
