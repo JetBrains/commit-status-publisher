@@ -68,6 +68,11 @@ public class PublisherSettingsControllerTest extends CommitStatusPublisherTestBa
     vcs3.setName("VCS Root 3");
     SVcsRoot vcs4 = myFixture.addVcsRoot("svn", "four"); // MockPublisherSettings ignore svn roots
     vcs4.setName("VCS Root 4");
+
+    for (SVcsRoot root: Arrays.asList(vcs1, vcs2, vcs3, vcs4)) {
+      root.schedulePersisting("test");
+    }
+
     myBuildType.addVcsRoot(vcs1);
     myBuildType.addVcsRoot(vcs2);
     myBuildType.addVcsRoot(vcs3);
