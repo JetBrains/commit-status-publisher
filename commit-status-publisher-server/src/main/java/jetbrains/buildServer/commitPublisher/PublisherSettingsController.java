@@ -106,8 +106,10 @@ public class PublisherSettingsController extends BaseController {
 
     String projectId = request.getParameter("projectId");
     SProject project = myProjectManager.findProjectByExternalId(projectId);
-    request.setAttribute("projectId", projectId);
-    request.setAttribute("project", project);
+    if (project != null) {
+      request.setAttribute("projectId", project.getExternalId());
+      request.setAttribute("project", project);
+    }
 
     CommitStatusPublisherSettings settings = myPublisherManager.findSettings(publisherId);
     if (settings == null)
