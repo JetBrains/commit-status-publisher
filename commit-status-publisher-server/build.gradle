@@ -20,7 +20,10 @@ dependencies {
     compile 'org.apache.httpcomponents:httpclient:4.5.14'
     compile "org.apache.tomcat:tomcat-servlet-api:8.5.32"
     compile 'com.github.mwiede:jsch:0.1.67'
-    compile "org.jetbrains.teamcity:web-core:$teamcityVersion"
+    compile("org.jetbrains.teamcity:web-core:$teamcityVersion") {
+      exclude group: 'com.google.guava', module: 'guava'
+    }
+    compile "com.google.guava:guava:31.1-android"
     testCompile "org.jetbrains.teamcity:tests-support:$teamcityVersion"
     testCompile "org.jetbrains.teamcity:server-test-core:$teamcityVersion"
     testCompile "org.jetbrains.teamcity:web-test-core:$teamcityVersion"
