@@ -57,6 +57,7 @@ public class PublisherSettingsController extends BaseController {
   private final SecurityContext mySecurityContext;
 
   private static final String ILLEGAL_ACCESS_WARNING = "User %s is not allowed to edit the build configuration %s";
+  private static final String ILLEGAL_PROJECT_ACCESS_WARNING = "User %s is not allowed to view the project %s";
 
 
   public PublisherSettingsController(@NotNull WebControllerManager controllerManager,
@@ -107,6 +108,11 @@ public class PublisherSettingsController extends BaseController {
     String projectId = request.getParameter("projectId");
     SProject project = myProjectManager.findProjectByExternalId(projectId);
     if (project != null) {
+      if (!user.isPermissionGrantedForProject(project.getProjectId(), Permission.VIEW_PROJECT)) {
+        LOG.warn(String.format(ILLEGAL_PROJECT_ACCESS_WARNING, user.getUsername(), buildTypeId));
+        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        return null;
+      }
       request.setAttribute("projectId", project.getExternalId());
       request.setAttribute("project", project);
     }
