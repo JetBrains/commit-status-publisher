@@ -24,9 +24,15 @@ dependencies {
       exclude group: 'com.google.guava', module: 'guava'
     }
     compile "com.google.guava:guava:31.1-android"
-    testCompile "org.jetbrains.teamcity:tests-support:$teamcityVersion"
-    testCompile "org.jetbrains.teamcity:server-test-core:$teamcityVersion"
-    testCompile "org.jetbrains.teamcity:web-test-core:$teamcityVersion"
+    testCompile("org.jetbrains.teamcity:tests-support:$teamcityVersion") {
+      exclude group: 'com.google.guava', module: 'guava'
+    }
+    testCompile("org.jetbrains.teamcity:server-test-core:$teamcityVersion") {
+      exclude group: 'com.google.guava', module: 'guava'
+    }
+    testCompile("org.jetbrains.teamcity:web-test-core:$teamcityVersion") {
+      exclude group: 'com.google.guava', module: 'guava'
+    }
     testCompile "jmock:jmock:1.2.0"
     testCompile 'org.assertj:assertj-core:1.7.1'
     testCompile 'org.testng:testng:6.8'
