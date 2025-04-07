@@ -176,6 +176,21 @@
           </description>
         </param>
       </option>
+      <option name="gitea" value="giteaStatusPublisher">
+        <description>
+          Publish status to Gitea
+        </description>
+	<param name="giteaApiUrl" mandatory="true">
+          <description>
+            Gitea  URL in the format http[s]://&lt;hostname&gt;[:&lt;port&gt;]/api/v1
+          </description>
+        </param>
+        <param name="secure:giteaAccessToken" dslName="accessToken" mandatory="true">
+          <description>
+            Access token to use for Gitea connection. Can be found at /user/settings/applications in Gitea.
+          </description>
+        </param>
+      </option>
       <option name="github" value="githubStatusPublisher">
         <description>
           Publish status to GitHub
