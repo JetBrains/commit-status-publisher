@@ -22,7 +22,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.ExtensionsCollection;
+import jetbrains.buildServer.pipeline.CommitStatusPublisherConstants;
 import jetbrains.buildServer.serverSide.BuildFeature;
+import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.vcs.SVcsRoot;
@@ -56,6 +58,25 @@ public class PublisherManager {
       final BuildFeature buildFeature = buildFeatureDescriptor.getBuildFeature();
       if (buildFeature instanceof CommitStatusPublisherFeature) {
         final String featureId = buildFeatureDescriptor.getId();
+        final CommitStatusPublisher publisher = createPublisher(buildType, featureId, buildFeatureDescriptor.getParameters());
+        if (publisher != null) {
+          publishers.put(featureId, publisher);
+        }
+      }
+    }
+
+    return publishers;
+  }
+
+  @NotNull
+  public Map<String, CommitStatusPublisher> createConfiguredPublishers(@NotNull BuildPromotion buildPromotion) {
+    final Map<String, CommitStatusPublisher> publishers = new LinkedHashMap<>();
+    for (SBuildFeatureDescriptor buildFeatureDescriptor : buildPromotion.getBuildFeaturesOfType(CommitStatusPublisherConstants.CSP_BUILD_FEATURE_TYPE)) {
+      final BuildFeature buildFeature = buildFeatureDescriptor.getBuildFeature();
+      if (buildFeature instanceof CommitStatusPublisherFeature) {
+        final String featureId = buildFeatureDescriptor.getId();
+        SBuildType buildType = buildPromotion.getBuildType();
+        if (buildType == null) continue;
         final CommitStatusPublisher publisher = createPublisher(buildType, featureId, buildFeatureDescriptor.getParameters());
         if (publisher != null) {
           publishers.put(featureId, publisher);

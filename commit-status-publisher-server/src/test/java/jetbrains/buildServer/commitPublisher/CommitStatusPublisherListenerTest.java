@@ -42,7 +42,10 @@ import jetbrains.buildServer.serverSide.systemProblems.SystemProblem;
 import jetbrains.buildServer.serverSide.systemProblems.SystemProblemEntry;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
-import jetbrains.buildServer.util.*;
+import jetbrains.buildServer.util.Dates;
+import jetbrains.buildServer.util.DependencyOptionSupportImpl;
+import jetbrains.buildServer.util.FileUtil;
+import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.util.http.HttpMethod;
 import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.VcsRootInstanceImpl;
@@ -59,7 +62,7 @@ import static org.assertj.core.api.BDDAssertions.then;
 @Test
 public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTestBase {
 
-  private final long TASK_COMPLETION_TIMEOUT_MS = 3000;
+  private final long TASK_COMPLETION_TIMEOUT_MS = 300;
 
   private CommitStatusPublisherListener myListener;
   private MockPublisher myPublisher;
