@@ -409,6 +409,12 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   private boolean shouldPublishQueuedEvent(@NotNull SQueuedBuild queuedBuild) {
     final BuildPromotion buildPromotion = queuedBuild.getBuildPromotion();
+
+    // We don't publish status for builds with no changes, as a result we might not publish 'queued' event sometimes(for example if there are no changes but different params are used)
+    // but it's not that important to publish status in that case.
+    // If there are some changes but build will be optimized, then it means the other build(with which we will replace this one) will be finished after we publish this queued event,
+    // and so it will override this queued event anyway
+    // And if there is no changes, it means that the build can be replaced with some already finished build, so we don't publish the status in this case
     if (buildPromotion.isPartOfBuildChain() && buildPromotion.getContainingChanges().isEmpty() && buildPromotion.getNumberOfDependedOnMe() != 0) {
       LOG.debug(() -> String.format("The build #%s is part of a build chain and has no new changes in it. Queued build status will not be published as Commit Status Publisher suspects that the build can be optimized away.", queuedBuild.getItemId()));
       return false;
