@@ -39,7 +39,7 @@ public class MissingSettingsReport extends HealthStatusReport {
           = "Commit Status Publisher build feature refers to a missing settings";
   private static final ItemCategory CATEGORY
           = new ItemCategory(REPORT_TYPE + "Category", DISPLAY_NAME, ItemSeverity.WARN);
-  private static final Set<String> SUPPORTED_PUBLISHER_IDS = ImmutableSet.of(SPACE_PUBLISHER_ID, BITBUCKET_PUBLISHER_ID, STASH_PUBLISHER_ID, GITHUB_PUBLISHER_ID);
+  private static final Set<String> SUPPORTED_PUBLISHER_IDS = ImmutableSet.of(SPACE_PUBLISHER_ID);
 
   private final PublisherManager myPublisherManager;
 

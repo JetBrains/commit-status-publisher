@@ -58,6 +58,7 @@
   <bean class="jetbrains.buildServer.commitPublisher.reports.MissingSettingsReportPageExtension"/>
   <bean class="jetbrains.buildServer.commitPublisher.reports.UnconditionalPublishingReport"/>
   <bean class="jetbrains.buildServer.commitPublisher.reports.UnconditionalPublishingReportPageExtension"/>
+  <bean class="jetbrains.buildServer.commitPublisher.reports.CommitStatusPublisherInvalidTokenHealthReportProvider"/>
 
   <!-- upsource -->
   <bean class="jetbrains.buildServer.commitPublisher.upsource.UpsourceSettings"/>
