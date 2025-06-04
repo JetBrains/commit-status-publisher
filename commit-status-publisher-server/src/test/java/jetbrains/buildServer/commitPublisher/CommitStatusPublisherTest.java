@@ -20,15 +20,19 @@ package jetbrains.buildServer.commitPublisher;
 
 import java.security.KeyStore;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
+import jetbrains.buildServer.BuildAgent;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
+import jetbrains.buildServer.serverSide.buildDistribution.*;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
+import jetbrains.buildServer.serverSide.impl.build.BuildSettingsOptionsImpl;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.serverSide.systemProblems.BuildProblemsTicketManager;
@@ -60,6 +64,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   protected static final String BT_NAME_2BE_ESCAPED = "Name with \\ and \"";
   protected static final String BT_NAME_ESCAPED_REGEXP = BT_NAME_2BE_ESCAPED.replace("\\", "\\\\\\\\").replace("\"", "\\\\\\\"");
   private static final BuildProblemData INTERNAL_ERROR = BuildProblemData.createBuildProblem("identity", ErrorData.PREPARATION_FAILURE_TYPE, "description");
+  private final AtomicBoolean myCanStartBuilds = new AtomicBoolean(true);
 
   protected CommitStatusPublisher myPublisher;
   protected CommitStatusPublisherSettings myPublisherSettings;
@@ -117,6 +122,20 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
         return null;
       }
     };
+    setInternalProperty(BuildSettingsOptionsImpl.FREEZE_CURRENT_SETTINGS, true);
+    StartBuildPrecondition startBuildPrecondition = new StartBuildPrecondition() {
+
+      @Nullable
+      @Override
+      public WaitReason canStart(@NotNull QueuedBuildInfo queuedBuild,
+                                 @NotNull Map<QueuedBuildInfo, BuildAgent> canBeStarted,
+                                 @NotNull BuildDistributorInput buildDistributorInput,
+                                 boolean emulationMode) {
+        return myCanStartBuilds.get() ? null : new SimpleWaitReason("Build start is blocked");
+      }
+    };
+    myServer.registerExtension(StartBuildPrecondition.class, "commitStatusPublisherTest", startBuildPrecondition);
+    myCanStartBuilds.set(true);
   }
 
   public void test_testConnection() throws Exception {
@@ -305,6 +324,10 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     QueuedBuildEx build = (QueuedBuildEx)addBuildToQueue();
     build.getBuildPromotion().setBuildRevisions(Collections.singletonList(new BuildRevisionEx(rootInstance, revision, "", revision)), 1, 1);
     myServer.getMulticaster().changesLoaded(build.getBuildPromotion());
+    myCanStartBuilds.set(false);
+    // flush queue to send buildPromotionSettingsFinalized event
+    myFixture.flushQueue();
+    myCanStartBuilds.set(true);
     return build;
   }
 

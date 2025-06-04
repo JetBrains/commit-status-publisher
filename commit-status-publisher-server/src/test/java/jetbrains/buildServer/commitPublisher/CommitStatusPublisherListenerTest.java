@@ -21,12 +21,15 @@ package jetbrains.buildServer.commitPublisher;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import jetbrains.buildServer.BuildAgent;
 import jetbrains.buildServer.QueuedBuild;
 import jetbrains.buildServer.buildTriggers.vcs.ModificationDataBuilder;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.buildDistribution.*;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
 import jetbrains.buildServer.serverSide.dependency.DependencyOptions;
 import jetbrains.buildServer.serverSide.executors.ExecutorServices;
@@ -35,6 +38,7 @@ import jetbrains.buildServer.serverSide.impl.CancelableTaskHolder;
 import jetbrains.buildServer.serverSide.impl.MockVcsSupport;
 import jetbrains.buildServer.serverSide.impl.RunningBuildState;
 import jetbrains.buildServer.serverSide.impl.beans.VcsRootInstanceContext;
+import jetbrains.buildServer.serverSide.impl.build.BuildSettingsOptionsImpl;
 import jetbrains.buildServer.serverSide.impl.projects.ProjectsWatcher;
 import jetbrains.buildServer.serverSide.impl.xml.XmlConstants;
 import jetbrains.buildServer.serverSide.systemProblems.BuildProblemsTicketManagerImpl;
@@ -51,6 +55,7 @@ import jetbrains.buildServer.vcs.*;
 import jetbrains.buildServer.vcs.impl.VcsRootInstanceImpl;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -72,6 +77,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   private Event myLastEventProcessed;
   private final Consumer<Event> myEventProcessedCallback = event -> myLastEventProcessed = event;
   private Map<String, SVcsRoot> myRoots;
+  private AtomicBoolean myCanStartBuilds = new AtomicBoolean(false);
 
   @BeforeMethod
   public void setUp() throws Exception {
@@ -90,24 +96,49 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     myPublisherSettings.setLinks(myWebLinks);
     myTicketManager = myFixture.findSingletonService(BuildProblemsTicketManagerImpl.class);
     myRoots = new HashMap<>();
+
+    setInternalProperty(BuildSettingsOptionsImpl.FREEZE_CURRENT_SETTINGS, true);
+    StartBuildPrecondition startBuildPrecondition = new StartBuildPrecondition() {
+
+      @Nullable
+      @Override
+      public WaitReason canStart(@NotNull QueuedBuildInfo queuedBuild,
+                                 @NotNull Map<QueuedBuildInfo, BuildAgent> canBeStarted,
+                                 @NotNull BuildDistributorInput buildDistributorInput,
+                                 boolean emulationMode) {
+        return myCanStartBuilds.get() ? null : new SimpleWaitReason("Build start is blocked");
+      }
+    };
+    myServer.registerExtension(StartBuildPrecondition.class, "commitStatusPublisherTest", startBuildPrecondition);
   }
   
   private QueuedBuild addBuildToQueue(BuildPromotionEx buildPromotion) {
     QueuedBuildEx queuedBuild = (QueuedBuildEx)buildPromotion.getBuildType().addToQueue(buildPromotion, "");
+    myFixture.flushQueue();
     assertNotNull(queuedBuild);
     myListener.changesLoaded(queuedBuild.getBuildPromotion());
+    allowStartingBuilds();
     return queuedBuild;
   }
 
-  private QueuedBuild addBuildToQueue() {
+  private void allowStartingBuilds() {
+    myCanStartBuilds.set(true);
+  }
+
+  private QueuedBuildEx addBuildToQueue() {
     return addBuildToQueue("");
   }
 
-  private QueuedBuild addBuildToQueue(@NotNull String triggeredBy) {
+  private QueuedBuildEx addBuildToQueue(@NotNull String triggeredBy) {
     QueuedBuildEx queuedBuild = (QueuedBuildEx)myBuildType.addToQueue(triggeredBy);
     assertNotNull(queuedBuild);
     queuedBuild.getBuildPromotion().getTopDependencyGraph().collectChangesForGraph(new CancelableTaskHolder());
     myListener.changesLoaded(queuedBuild.getBuildPromotion());
+
+    // flush queue for settings finalization, that's the only way to trigger the buildPromotionSettingsFinalized
+    myFixture.flushQueue();
+    // allow starting builds only now, to avoid triggering builds on flushQueue
+    allowStartingBuilds();
     return queuedBuild;
   }
 
@@ -553,7 +584,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
   }
 
-  public void should_publish_queued_on_passed_revision() throws PublisherException {
+  public void should_publish_queued_on_passed_revision() {
     prepareVcs();
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
     SVcsModification modififcation1 = myFixture.addModification(new ModificationData(new Date(),
@@ -943,7 +974,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   @TestFor(issues = "TW-84882")
   public void should_not_publish_when_collecting_changes_fails() {
     addBadVcsRootTo(myBuildType);
-    final SQueuedBuild queuedBuild = myBuildType.addToQueue("");
+    final SQueuedBuild queuedBuild = addBuildToQueue();
     assertNotNull(queuedBuild);
     myServer.flushQueue();
 
@@ -962,7 +993,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     final VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().iterator().next();
     final BuildRevision fallback = new BuildRevision(vcsRootInstance, "000", "", "000");
     myPublisher.setFallbackRevisions(Collections.singletonList(fallback));
-    final SQueuedBuild queuedBuild = myBuildType.addToQueue("");
+    final SQueuedBuild queuedBuild = addBuildToQueue();
     assertNotNull(queuedBuild);
     myServer.flushQueue();
 
@@ -972,7 +1003,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     });
 
     waitForTasksToFinish(Event.FINISHED);
-    then(myPublisher.getEventsReceived()).containsExactly(Event.STARTED, Event.FAILURE_DETECTED, Event.FINISHED);
+    then(myPublisher.getEventsReceived()).containsExactly(Event.QUEUED, Event.FAILURE_DETECTED, Event.FINISHED);
   }
 
   @Test

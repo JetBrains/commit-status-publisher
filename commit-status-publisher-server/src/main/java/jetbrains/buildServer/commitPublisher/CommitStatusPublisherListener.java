@@ -19,13 +19,12 @@
 package jetbrains.buildServer.commitPublisher;
 
 import com.google.common.util.concurrent.Striped;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.Cache;
 import com.intellij.openapi.util.Pair;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -71,6 +70,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   private final static long DEFAULT_MAX_RETRY_DELAY_MS = 60 * 60 * 1000; // 30 minutes
   private final static long DEFAULT_MAX_TIME_BEFORE_DISABLING_RETRY = 24 * 60 * 60 * 1000; // 24 hours
 
+  final static String FINALIZED_SETTINGS_EVENT_ENABLED = "teamcity.commitStatusPublisher.finalizedSettingsEvent";
+  private final static String FINALIZED_EVENT_CACHE_TTL_PROPERTY = "teamcity.commitStatusPublisher.finalizedEventCacheTtlSeconds";
+  private final static int DEFAULT_FINALIZED_EVENTS_CACHE_TTL = 60 * 60; // 1 hour
+
+
   private final PublisherManager myPublisherManager;
   private final BuildHistory myBuildHistory;
   private final BuildsManager myBuildsManager;
@@ -94,6 +98,8 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     };
   private final ConcurrentMap<String, ValueWithTTL<Boolean>> myBuildTypeCommitStatusPublisherConfiguredCache = new ConcurrentHashMap<>();
   private final ConcurrentMap<String, Long> myBuildTypeToFirstPublishFailure = new ConcurrentHashMap<>();
+  private final Cache<Long, Boolean> myFinalizedEventReceived; // builds for which finalized event was received before changes collection
+  private final Striped<Lock> myFinalizedEventLocks = Striped.lock(256);
 
   private Consumer<Event> myEventProcessedCallback = null;
 
@@ -122,6 +128,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     myUserModel = userModel;
     myEventTypes.putAll(Arrays.stream(Event.values()).collect(Collectors.toMap(Event::getName, et -> et)));
     myPublishingLocks = Striped.lazyWeakLock(TeamCityProperties.getInteger(LOCKS_STRIPES, LOCKS_STRIPES_DEFAULT));
+
+    myFinalizedEventReceived = CacheBuilder.newBuilder()
+                                           .expireAfterWrite(TeamCityProperties.getInteger(FINALIZED_EVENT_CACHE_TTL_PROPERTY, DEFAULT_FINALIZED_EVENTS_CACHE_TTL), TimeUnit.SECONDS)
+                                           .build();
 
     events.addListener(this);
 
@@ -215,6 +225,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   @Override
   public void buildTypeAddedToQueue(@NotNull SQueuedBuild queuedBuild) {  // required only in case of starting build for exact commit
+    if (isFinalizedEventEnabled()) {
+      return;
+    }
     BuildPromotionEx promotion = (BuildPromotionEx)queuedBuild.getBuildPromotion();
 
     if (shouldNotPublish(promotion, buildReason(queuedBuild.getTriggeredBy())) || promotion.isChangeCollectingNeeded(true)) return;
@@ -224,8 +237,52 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   @Override
   public void changesLoaded(@NotNull BuildPromotion buildPromotion) {
+    if (isFinalizedEventEnabled()) {
+      // check if we already recevied buildPromotionSettingsFinalized event, in this case we can publish the status
+      Lock lock = myFinalizedEventLocks.get(buildPromotion.getId());
+      lock.lock();
+      try {
+        if (myFinalizedEventReceived.getIfPresent(buildPromotion.getId()) == null) {
+          // we've already published the event for this build
+          return;
+        } else {
+          myFinalizedEventReceived.invalidate(buildPromotion.getId());
+        }
+      } finally {
+        lock.unlock();
+      }
+    }
     if (shouldNotPublish(buildPromotion, buildReason(buildPromotion))) return;
 
+    buildWasAddedToQueue(buildPromotion);
+  }
+
+  private boolean isFinalizedEventEnabled() {
+    return TeamCityProperties.getBooleanOrTrue(FINALIZED_SETTINGS_EVENT_ENABLED);
+  }
+
+  @Override
+  public void buildPromotionSettingsFinalized(@NotNull BuildPromotion buildPromotion) {
+    if (!isFinalizedEventEnabled()) return;
+    if (shouldNotPublish(buildPromotion, buildReason(buildPromotion))) return;
+    BuildPromotionEx promotion = (BuildPromotionEx)buildPromotion;
+
+    // if we didn't collect changes yet, we will need to publish status only after receiving changesLoaded event for the build
+    Lock lock = myFinalizedEventLocks.get(buildPromotion.getId());
+    lock.lock();
+    try {
+      if (promotion.isChangeCollectingNeeded(false)) {
+        myFinalizedEventReceived.put(promotion.getId(), true);
+        return;
+      }
+    } finally {
+      lock.unlock();
+    }
+
+    buildWasAddedToQueue(buildPromotion);
+  }
+
+  private void buildWasAddedToQueue(@NotNull BuildPromotion buildPromotion) {
     SQueuedBuild queuedBuild = buildPromotion.getQueuedBuild();
     if (queuedBuild != null) {
       buildAddedToQueue(queuedBuild);
