@@ -29,6 +29,7 @@
       <class name="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudRepositoryParserTest" />
       <class name="jetbrains.buildServer.commitPublisher.gerrit.GerritPublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.gitea.GiteaPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.github.GitHubPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.gitlab.GitlabPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.stash.StashPublisherTest" />
