@@ -28,9 +28,12 @@
       <class name="jetbrains.buildServer.commitPublisher.ConstantsTest" />
       <class name="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudRepositoryParserTest" />
+      <class name="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudCommitStatusPublisherFeatureBuilderTest"/>
       <class name="jetbrains.buildServer.commitPublisher.gerrit.GerritPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.github.GitHubPublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.github.GitHubCommitStatusPublisherFeatureBuilderTest" />
       <class name="jetbrains.buildServer.commitPublisher.gitlab.GitlabPublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.gitlab.GitLabCommitStatusPublisherFeatureBuilderTest" />
       <class name="jetbrains.buildServer.commitPublisher.stash.StashPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.stash.BitbucketServer74PublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.tfs.TfsPublisherTest" />
@@ -50,6 +53,7 @@
 
       <class name="jetbrains.buildServer.commitPublisher.reports.MissingVcsRootReportTest" />
       <class name="jetbrains.buildServer.commitPublisher.PublisherManagerTest" />
+      <class name="jetbrains.buildServer.commitPublisher.configuration.CommitStatusPublisherFeatureBuilderFactoryTest" />
     </classes>
   </test>
 </suite>

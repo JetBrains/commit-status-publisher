@@ -32,6 +32,7 @@
   <bean id="voterSettingsController" class="jetbrains.buildServer.commitPublisher.PublisherSettingsController"/>
   <bean class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeatureController"/>
   <bean class="jetbrains.buildServer.commitPublisher.PublisherManager"/>
+  <bean class="jetbrains.buildServer.commitPublisher.configuration.CommitStatusPublisherFeatureBuilderFactory"/>
 
   <bean class="jetbrains.buildServer.commitPublisher.stash.StashSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudSettings"/>
