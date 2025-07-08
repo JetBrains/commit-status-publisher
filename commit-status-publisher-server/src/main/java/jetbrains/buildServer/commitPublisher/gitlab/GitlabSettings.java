@@ -75,6 +75,7 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
   @NotNull private final CommitStatusesCache<GitLabReceiveCommitStatus> myStatusesCache;
   @NotNull private final VcsModificationHistoryEx myVcsModificationHistory;
   @NotNull private final ServiceLocator myServiceLocator;
+  @NotNull private final GitLabBuildNameProvider myBuildNameProvider;
 
   public GitlabSettings(@NotNull PluginDescriptor descriptor,
                         @NotNull WebLinks links,
@@ -85,11 +86,14 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
                         @NotNull OAuthTokensStorage oAuthTokensStorage,
                         @NotNull UserModel userModel,
                         @NotNull SecurityContext securityContext,
-                        @NotNull ServiceLocator serviceLocator) {
+                        @NotNull ServiceLocator serviceLocator,
+                        @NotNull GitLabBuildNameProvider buildNameProvider
+  ) {
     super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, oAuthConnectionsManager, securityContext);
     myVcsModificationHistory = vcsModificationHistory;
     myStatusesCache = new CommitStatusesCache<>();
     myServiceLocator = serviceLocator;
+    myBuildNameProvider = buildNameProvider;
   }
 
   @NotNull
@@ -113,7 +117,8 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
   @NotNull
   @Override
   public GitlabPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new GitlabPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache, myVcsModificationHistory, myServiceLocator.findSingletonService(PullRequestManager.class));
+    return new GitlabPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache, myVcsModificationHistory,
+                               myServiceLocator.findSingletonService(PullRequestManager.class), myBuildNameProvider);
   }
 
   @Override

@@ -37,23 +37,27 @@ import org.testng.annotations.BeforeMethod;
 public abstract class BaseStashPublisherTest extends HttpPublisherTest {
 
   protected String myServerVersion;
-  private Map<String, List<DeprecatedJsonStashBuildStatuses.Status>> myRevisionToStatus = new HashMap<>();
+  protected final StashBuildNameProvider myBuildNameProvider = new StashBuildNameProvider();
+  private final Map<String, List<DeprecatedJsonStashBuildStatuses.Status>> myRevisionToStatus = new HashMap<>();
 
   @BeforeMethod
   @Override
   protected void setUp() throws Exception {
     super.setUp();
     Map<String, String> params = getPublisherParams();
-    myPublisherSettings = new StashSettings(new MockPluginDescriptor(),
-                                            myWebLinks,
-                                            myProblems,
-                                            myTrustStoreProvider,
-                                            myOAuthConnectionsManager,
-                                            myOAuthTokenStorage,
-                                            myFixture.getUserModel(),
-                                            myFixture.getSecurityContext(),
-                                            myFixture.getProjectManager());
-    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
+    myPublisherSettings = new StashSettings(
+      new MockPluginDescriptor(),
+      myWebLinks,
+      myProblems,
+      myTrustStoreProvider,
+      myOAuthConnectionsManager,
+      myOAuthTokenStorage,
+      myFixture.getUserModel(),
+      myFixture.getSecurityContext(),
+      myFixture.getProjectManager(),
+      myBuildNameProvider
+    );
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myBuildNameProvider);
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }
 
@@ -69,7 +73,7 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myBuildNameProvider);
     test_buildFinished_Successfully();
   }
 
@@ -80,7 +84,7 @@ public abstract class BaseStashPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myBuildNameProvider);
     test_buildFinished_Successfully();
   }
 

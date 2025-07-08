@@ -42,11 +42,11 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCloudBuildStatus> {
 
   private static final int DEFAULT_PAGE_SIZE = 25;
-  private static final String BUILD_NUMBER_IN_STATUS_NAME_FEATURE_TOGGLE = "commitStatusPublisher.bitbucket.buildNumberToName.enabled";
   private String myBaseUrl = BitbucketCloudSettings.DEFAULT_API_URL;
   private final Gson myGson = new Gson();
 
   private final CommitStatusesCache<BitbucketCloudCommitBuildStatus> myStatusesCache;
+  private final StatusPublisherBuildNameProvider myBuildNameProvider;
 
   private static final ResponseEntityProcessor<BitbucketCloudBuildStatuses> statusesProcessor = new BitbucketCloudResponseEntityProcessor<>(BitbucketCloudBuildStatuses.class);
 
@@ -55,9 +55,12 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
                           @NotNull WebLinks links,
                           @NotNull Map<String, String> params,
                           @NotNull CommitStatusPublisherProblems problems,
-                          @NotNull CommitStatusesCache<BitbucketCloudCommitBuildStatus> statusesCache) {
+                          @NotNull CommitStatusesCache<BitbucketCloudCommitBuildStatus> statusesCache,
+                          @NotNull StatusPublisherBuildNameProvider buildNameProvider
+  ) {
     super(settings, buildType, buildFeatureId, params, problems, links);
     myStatusesCache = statusesCache;
+    myBuildNameProvider = buildNameProvider;
   }
 
   @NotNull
@@ -238,27 +241,8 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
                                                          @NotNull BitbucketCloudBuildStatus status,
                                                          @NotNull String comment,
                                                          @NotNull String url) {
-    String buildName = getBuildName(promotion);
+    String buildName = myBuildNameProvider.getBuildName(promotion);
     return new BitbucketCloudCommitBuildStatus(buildKey(promotion), status.name(), buildName, comment, url);
-  }
-
-  @NotNull
-  private String getBuildName(@NotNull BuildPromotion buildPromotion) {
-    SBuildType buildType = buildPromotion.getBuildType();
-    if (buildType == null) return buildPromotion.getBuildTypeExternalId();
-
-    final boolean isQueuedEnabled = getSettings().isPublishingQueuedStatusEnabled(buildType);
-    if (isQueuedEnabled) {
-      return buildType.getFullName();
-    }
-
-    final boolean includeBuildNumberToName = buildType instanceof BuildTypeEx && ((BuildTypeEx)buildType).getBooleanInternalParameterOrTrue(BUILD_NUMBER_IN_STATUS_NAME_FEATURE_TOGGLE);
-    SBuild build = buildPromotion.getAssociatedBuild();
-    StringBuilder sb = new StringBuilder(buildType.getFullName());
-    if (includeBuildNumberToName && build != null) {
-      sb.append(" #").append(build.getBuildNumber());
-    }
-    return sb.toString();
   }
 
   private boolean vote(

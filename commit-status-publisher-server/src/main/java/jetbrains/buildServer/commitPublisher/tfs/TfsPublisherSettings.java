@@ -39,10 +39,10 @@ import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
+import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
@@ -64,6 +64,7 @@ public class TfsPublisherSettings extends AuthTypeAwareSettings implements Commi
   }};
 
   private final CommitStatusesCache<TfsStatusPublisher.CommitStatus> myStatusesCache;
+  private final TfsBuildNameProvider myBuildNameProvider;
 
   public TfsPublisherSettings(@NotNull PluginDescriptor descriptor,
                               @NotNull WebLinks links,
@@ -72,9 +73,12 @@ public class TfsPublisherSettings extends AuthTypeAwareSettings implements Commi
                               @NotNull OAuthTokensStorage oauthTokensStorage,
                               @NotNull SecurityContext securityContext,
                               @NotNull UserModel userModel,
-                              @NotNull SSLTrustStoreProvider trustStoreProvider) {
+                              @NotNull SSLTrustStoreProvider trustStoreProvider,
+                              @NotNull TfsBuildNameProvider buildNameProvider
+  ) {
     super(descriptor, links, problems, trustStoreProvider, oauthTokensStorage, userModel, oauthConnectionsManager, securityContext);
     myStatusesCache = new CommitStatusesCache<>();
+    myBuildNameProvider = buildNameProvider;
   }
 
   @NotNull
@@ -129,7 +133,7 @@ public class TfsPublisherSettings extends AuthTypeAwareSettings implements Commi
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new TfsStatusPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache);
+    return new TfsStatusPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache, myBuildNameProvider);
   }
 
   @NotNull

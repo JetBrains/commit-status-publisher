@@ -39,7 +39,7 @@ import org.jetbrains.annotations.Nullable;
 
 public abstract class BasePublisherSettings implements CommitStatusPublisherSettings {
 
-  private static final String PARAM_PUBLISH_BUILD_QUEUED_STATUS = "commitStatusPublisher.publishQueuedBuildStatus";
+  public static final String PARAM_PUBLISH_BUILD_QUEUED_STATUS = "commitStatusPublisher.publishQueuedBuildStatus";
 
   protected final PluginDescriptor myDescriptor;
   protected final WebLinks myLinks;

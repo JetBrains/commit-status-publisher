@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.github.api.GitHubChangeState;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.CommitStatus;
-import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -37,18 +36,23 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
 
   private final ChangeStatusUpdater myUpdater;
   private final WebLinks myWebLinks;
+  private final StatusPublisherBuildNameProvider myBuildNameProvider;
   private final CommitStatusesCache<CommitStatus> myStatusesCache;
 
   GitHubPublisher(@NotNull CommitStatusPublisherSettings settings,
-                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
+                  @NotNull SBuildType buildType,
+                  @NotNull String buildFeatureId,
                   @NotNull ChangeStatusUpdater updater,
                   @NotNull Map<String, String> params,
                   @NotNull CommitStatusPublisherProblems problems,
                   @NotNull WebLinks webLinks,
-                  @NotNull CommitStatusesCache<CommitStatus> commitStatusesCache) {
+                  @NotNull StatusPublisherBuildNameProvider buildNameProvider,
+                  @NotNull CommitStatusesCache<CommitStatus> commitStatusesCache
+  ) {
     super(settings, buildType, buildFeatureId, params, problems);
     myUpdater = updater;
     myWebLinks = webLinks;
+    myBuildNameProvider = buildNameProvider;
     myStatusesCache = commitStatusesCache;
   }
 
@@ -120,14 +124,14 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   }
 
   private boolean isSameBuildType(BuildPromotion buildPromotion, CommitStatus commitStatus) {
-    String buildContext;
+    String buildName;
     try {
-      buildContext = getBuildContext(buildPromotion);
+      buildName = myBuildNameProvider.getBuildName(buildPromotion);
     } catch (GitHubContextResolveException e) {
       LOG.debug("Context was not resolved for promotion #" + buildPromotion.getId(), e);
       return false;
     }
-    return StringUtil.areEqual(buildContext, commitStatus.context);
+    return StringUtil.areEqual(buildName, commitStatus.context);
   }
 
   @Override
@@ -285,64 +289,9 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
 
   @NotNull
   private Map<String, String> getParams(@NotNull BuildPromotion buildPromotion) throws GitHubContextResolveException {
-    String context = getBuildContext(buildPromotion);
+    String buildName = myBuildNameProvider.getBuildName(buildPromotion);
     Map<String, String> result = new HashMap<String, String>(myParams);
-    result.put(Constants.GITHUB_CONTEXT, context);
+    result.put(Constants.GITHUB_CONTEXT, buildName);
     return result;
-  }
-
-  @NotNull
-  String getBuildContext(@NotNull BuildPromotion buildPromotion) throws GitHubContextResolveException {
-    String context = getCustomContextFromParameter(buildPromotion);
-    return context != null ? context : getDefaultContext(buildPromotion);
-  }
-
-  @NotNull
-  String getDefaultContext(@NotNull BuildPromotion buildPromotion) {
-    SBuildType buildType = buildPromotion.getBuildType();
-    if (buildType != null) {
-      String btName = removeMultiCharUnicodeAndTrim(buildType.getName());
-      String prjName = removeMultiCharUnicodeAndTrim(buildType.getProject().getName());
-      return String.format("%s (%s)", btName, prjName);
-    } else {
-      return "<Removed build configuration>";
-    }
-  }
-
-  private String removeMultiCharUnicodeAndTrim(String s) {
-    StringBuilder sb = new StringBuilder();
-    for (char c: s.toCharArray()) {
-      if (c >= 0xd800L && c <= 0xdfffL || (c & 0xfff0) == 0xfe00 || c == 0x20e3 || c == 0x200d) {
-        continue;
-      }
-      sb.append(c);
-    }
-    return sb.toString().trim();
-  }
-
-  @Nullable
-  private String getCustomContextFromParameter(@NotNull BuildPromotion buildPromotion) throws GitHubContextResolveException {
-    SBuild build = buildPromotion.getAssociatedBuild();
-    if (build != null) {
-      String value = build.getParametersProvider().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM);
-      if (value == null) return null;
-
-      if (isRemovedFromQueue(build) && ReferencesResolverUtil.mayContainReference(value)) {
-        throw new GitHubContextResolveException("Variables in custom context for removed from queue build can not be resolved");
-      }
-      return build.getValueResolver().resolve(value).getResult();
-    }
-
-    String value = myBuildType.getParameters().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM);
-    if (value == null) return null;
-
-    if(ReferencesResolverUtil.mayContainReference(value)) {
-      throw new GitHubContextResolveException("Variables in custom context for build can not be resolved");
-    }
-    return value;
-  }
-
-  private boolean isRemovedFromQueue(@NotNull SBuild build) {
-    return build.isFinished() && build.getCanceledInfo() != null;
   }
 }

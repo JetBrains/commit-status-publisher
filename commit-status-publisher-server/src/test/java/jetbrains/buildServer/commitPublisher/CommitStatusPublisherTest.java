@@ -40,7 +40,7 @@ import jetbrains.buildServer.serverSide.systemProblems.SystemProblemNotification
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
-import jetbrains.buildServer.vcs.*;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcs.impl.SVcsRootImpl;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
@@ -80,7 +80,6 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
   protected OAuthConnectionsManager myOAuthConnectionsManager;
   protected OAuthTokensStorage myOAuthTokenStorage;
   protected SSLTrustStoreProvider myTrustStoreProvider;
-
 
   protected enum EventToTest {
     QUEUED(Event.QUEUED), REMOVED(Event.REMOVED_FROM_QUEUE),

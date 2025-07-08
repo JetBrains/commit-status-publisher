@@ -27,13 +27,19 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.commitPublisher.*;
-import jetbrains.buildServer.commitPublisher.gitlab.data.*;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabCommitReference;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabMergeRequest;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabPublishCommitStatus;
+import jetbrains.buildServer.commitPublisher.gitlab.data.GitLabReceiveCommitStatus;
 import jetbrains.buildServer.pullRequests.PullRequest;
 import jetbrains.buildServer.pullRequests.PullRequestManager;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.impl.LogUtil;
 import jetbrains.buildServer.util.StringUtil;
-import jetbrains.buildServer.vcs.*;
+import jetbrains.buildServer.vcs.SVcsModification;
+import jetbrains.buildServer.vcs.VcsModificationHistoryEx;
+import jetbrains.buildServer.vcs.VcsRoot;
+import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import org.jetbrains.annotations.NotNull;
@@ -55,6 +61,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
   @NotNull private final CommitStatusesCache<GitLabReceiveCommitStatus> myStatusesCache;
   @NotNull private final VcsModificationHistoryEx myVcsModificationHistory;
   @Nullable private final PullRequestManager myPullRequestManager;
+  @NotNull private final StatusPublisherBuildNameProvider myBuildNameProvider;
 
   private static final String USE_REF_WHEN_PUBLISHING_STATUS_ON_MERGE_COMMITS_INTERNAL_PROP = "teamcity.pullRequests.publishRefForMergeCommits";
 
@@ -66,11 +73,13 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
                   @NotNull CommitStatusPublisherProblems problems,
                   @NotNull CommitStatusesCache<GitLabReceiveCommitStatus> statusesCache,
                   @NotNull VcsModificationHistoryEx vcsModificationHistory,
-                  @Nullable PullRequestManager pullRequestManager) {
+                  @Nullable PullRequestManager pullRequestManager,
+                  @NotNull StatusPublisherBuildNameProvider buildNameProvider) {
     super(settings, buildType, buildFeatureId, params, problems, links);
     myStatusesCache = statusesCache;
     myVcsModificationHistory = vcsModificationHistory;
     myPullRequestManager = pullRequestManager;
+    myBuildNameProvider = buildNameProvider;
   }
 
 
@@ -133,11 +142,6 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
     return true;
   }
 
-  private String getBuildName(BuildPromotion promotion) {
-    SBuildType buildType = promotion.getBuildType();
-    return buildType != null ? buildType.getFullName() : promotion.getBuildTypeExternalId();
-  }
-
   @Override
   public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
     SBuildType buildType = buildPromotion.getBuildType();
@@ -182,7 +186,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
       return null;
     }
     Event event = getTriggeredEvent(commitStatus);
-    boolean isSameBuildType = StringUtil.areEqual(getBuildName(buildPromotion), commitStatus.name);
+    boolean isSameBuildType = StringUtil.areEqual(myBuildNameProvider.getBuildName(buildPromotion), commitStatus.name);
     return new RevisionStatus(event, commitStatus.description, isSameBuildType, getBuildIdFromViewUrl(commitStatus.target_url));
   }
 
@@ -234,7 +238,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
                        @NotNull BuildRevision revision,
                        @NotNull GitlabBuildStatus status,
                        @NotNull String description) throws PublisherException {
-    String buildName = getBuildName(build.getBuildPromotion());
+    String buildName = myBuildNameProvider.getBuildName(build.getBuildPromotion());
     String message = createMessage(status, buildName, build.getBuildType(), revision, getViewUrl(build), description);
     publish(message, revision, LogUtil.describe(build));
     myStatusesCache.removeStatusFromCache(revision, buildName);
@@ -251,7 +255,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
       return;
     }
     String description = additionalTaskInfo.getComment();
-    String buildName = getBuildName(buildPromotion);
+    String buildName = myBuildNameProvider.getBuildName(buildPromotion);
     String message = createMessage(status, buildName, buildPromotion.getBuildType(), revision, url, description);
     publish(message, revision, LogUtil.describe(buildPromotion));
     myStatusesCache.removeStatusFromCache(revision, buildName);

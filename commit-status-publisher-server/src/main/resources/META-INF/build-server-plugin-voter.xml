@@ -35,16 +35,20 @@
   <bean class="jetbrains.buildServer.commitPublisher.configuration.CommitStatusPublisherFeatureBuilderFactory"/>
 
   <bean class="jetbrains.buildServer.commitPublisher.stash.StashSettings"/>
+  <bean class="jetbrains.buildServer.commitPublisher.stash.StashBuildNameProvider"/>
   <bean class="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudSettings"/>
+  <bean class="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudBuildNameProvider"/>
   <bean class="jetbrains.buildServer.commitPublisher.gerrit.GerritSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.gerrit.GerritClientImpl"/>
   <bean class="jetbrains.buildServer.commitPublisher.gitlab.GitlabSettings"/>
+  <bean class="jetbrains.buildServer.commitPublisher.gitlab.GitLabBuildNameProvider"/>
 
   <!-- github -->
   <bean class="jetbrains.buildServer.commitPublisher.github.ChangeStatusUpdater"/>
   <bean class="jetbrains.buildServer.commitPublisher.github.api.impl.GitHubApiFactoryImpl"/>
   <bean class="jetbrains.buildServer.commitPublisher.github.api.impl.HttpClientWrapperImpl"/>
   <bean class="jetbrains.buildServer.commitPublisher.github.GitHubSettings"/>
+  <bean class="jetbrains.buildServer.commitPublisher.github.GitHubBuildContextProvider"/>
 
   <!-- reports -->
   <bean class="jetbrains.buildServer.commitPublisher.github.reports.SecurityParametersReport"/>
@@ -66,6 +70,7 @@
 
   <!-- tfs -->
   <bean class="jetbrains.buildServer.commitPublisher.tfs.TfsPublisherSettings"/>
+  <bean class="jetbrains.buildServer.commitPublisher.tfs.TfsBuildNameProvider"/>
 
   <!-- space -->
   <bean class="jetbrains.buildServer.commitPublisher.space.SpaceSettings"/>

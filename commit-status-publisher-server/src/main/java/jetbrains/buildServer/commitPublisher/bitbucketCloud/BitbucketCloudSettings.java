@@ -73,6 +73,7 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
   }};
 
   private final CommitStatusesCache<BitbucketCloudCommitBuildStatus> myStatusesCache;
+  private final BitbucketCloudBuildNameProvider myBuildNameProvider;
 
   private final ProjectManager myProjectManager;
 
@@ -84,10 +85,13 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
                                 @NotNull OAuthTokensStorage oAuthTokensStorage,
                                 @NotNull UserModel userModel,
                                 @NotNull SecurityContext securityContext,
-                                @NotNull ProjectManager projectManager) {
+                                @NotNull ProjectManager projectManager,
+                                @NotNull BitbucketCloudBuildNameProvider buildNameProvider
+  ) {
     super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, oAuthConnectionsManager, securityContext);
     myStatusesCache = new CommitStatusesCache<>();
     myProjectManager = projectManager;
+    myBuildNameProvider = buildNameProvider;
   }
 
   protected String getDefaultApiUrl() {
@@ -112,7 +116,7 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new BitbucketCloudPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache);
+    return new BitbucketCloudPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache, myBuildNameProvider);
   }
 
   @Nullable

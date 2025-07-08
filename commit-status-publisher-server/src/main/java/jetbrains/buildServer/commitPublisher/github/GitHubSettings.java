@@ -51,6 +51,8 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
   private final OAuthTokensStorage myOAuthTokensStorage;
   private final SecurityContext mySecurityContext;
   private final CommitStatusesCache<CommitStatus> myStatusesCache;
+  private final StatusPublisherBuildNameProvider myBuildNameProvider;
+
   private static final Set<Event> mySupportedEvents = new HashSet<Event>() {{
     add(Event.STARTED);
     add(Event.FINISHED);
@@ -83,12 +85,15 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
                         @NotNull OAuthConnectionsManager oauthConnectionsManager,
                         @NotNull OAuthTokensStorage oauthTokensStorage,
                         @NotNull SecurityContext securityContext,
-                        @NotNull SSLTrustStoreProvider trustStoreProvider) {
+                        @NotNull SSLTrustStoreProvider trustStoreProvider,
+                        @NotNull GitHubBuildContextProvider buildNameProvider
+  ) {
     super(descriptor, links, problems, trustStoreProvider);
     myUpdater = updater;
     myOauthConnectionsManager = oauthConnectionsManager;
     myOAuthTokensStorage = oauthTokensStorage;
     mySecurityContext = securityContext;
+    myBuildNameProvider = buildNameProvider;
     myStatusesCache = new CommitStatusesCache<>();
   }
 
@@ -155,7 +160,7 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new GitHubPublisher(this, buildType, buildFeatureId, myUpdater, params, myProblems, myLinks, myStatusesCache);
+    return new GitHubPublisher(this, buildType, buildFeatureId, myUpdater, params, myProblems, myLinks, myBuildNameProvider, myStatusesCache);
   }
 
   @NotNull

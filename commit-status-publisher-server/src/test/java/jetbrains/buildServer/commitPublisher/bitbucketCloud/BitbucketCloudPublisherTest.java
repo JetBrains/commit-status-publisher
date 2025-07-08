@@ -27,7 +27,10 @@ import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudC
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudRepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.pullRequests.VcsAuthType;
-import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.BuildPromotion;
+import jetbrains.buildServer.serverSide.BuildPromotionEx;
+import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
@@ -35,7 +38,6 @@ import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCreden
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
-import org.jetbrains.annotations.Nullable;
 import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -52,7 +54,8 @@ import static org.mockito.Mockito.spy;
 @Test
 public class BitbucketCloudPublisherTest extends HttpPublisherTest {
 
-  private Map<String, List<BitbucketCloudCommitBuildStatus>> myRevisionToStatus = new HashMap<>();
+  private final Map<String, List<BitbucketCloudCommitBuildStatus>> myRevisionToStatus = new HashMap<>();
+  private final BitbucketCloudBuildNameProvider myBuildNameProvider = new BitbucketCloudBuildNameProvider();
 
   @Override
   public void test_testConnection_fails_on_readonly() throws InterruptedException {
@@ -209,20 +212,23 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
 
     String apiUrl = getServerUrl() + "/";
     Map<String, String> params = getPublisherParams();
-    BitbucketCloudSettings publisherSettings = new BitbucketCloudSettings(new MockPluginDescriptor(),
-                                                     myWebLinks,
-                                                     myProblems,
-                                                     myTrustStoreProvider,
-                                                     myOAuthConnectionsManager,
-                                                     myOAuthTokenStorage,
-                                                     myFixture.getUserModel(),
-                                                     myFixture.getSecurityContext(),
-                                                     myFixture.getProjectManager());
+    BitbucketCloudSettings publisherSettings = new BitbucketCloudSettings(
+       new MockPluginDescriptor(),
+       myWebLinks,
+       myProblems,
+       myTrustStoreProvider,
+       myOAuthConnectionsManager,
+       myOAuthTokenStorage,
+       myFixture.getUserModel(),
+       myFixture.getSecurityContext(),
+       myFixture.getProjectManager(),
+       myBuildNameProvider
+    );
     BitbucketCloudSettings publisherSettingsSpy = spy(publisherSettings);
     doReturn(apiUrl).when(publisherSettingsSpy).getDefaultApiUrl();
     myPublisherSettings = publisherSettingsSpy;
 
-    BitbucketCloudPublisher publisher = new BitbucketCloudPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
+    BitbucketCloudPublisher publisher = new BitbucketCloudPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myBuildNameProvider);
     BitbucketCloudPublisher publisherSpy = spy(publisher);
     doReturn(apiUrl).when(publisherSpy).getBaseUrl();
     myPublisher = publisherSpy;

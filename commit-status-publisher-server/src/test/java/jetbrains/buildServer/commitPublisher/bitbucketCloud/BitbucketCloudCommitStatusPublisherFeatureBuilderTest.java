@@ -27,16 +27,18 @@ public class BitbucketCloudCommitStatusPublisherFeatureBuilderTest extends BaseS
     final CommitStatusPublisherProblems problems = new CommitStatusPublisherProblems(myFixture.getSingletonService(BuildProblemsTicketManager.class));
     final SSLTrustStoreProvider trustStoreProvider = () -> null;
 
-    @SuppressWarnings("deprecation") final CommitStatusPublisherSettings settings =
-      new BitbucketCloudSettings(new MockPluginDescriptor(),
-                                 myWebLinks,
-                                 problems,
-                                 trustStoreProvider,
-                                 myFixture.getSingletonService(OAuthConnectionsManager.class),
-                                 myFixture.getSingletonService(OAuthTokensStorage.class),
-                                 getUserModelEx(),
-                                 myFixture.getSecurityContext(),
-                                 myFixture.getProjectManager());
+    @SuppressWarnings("deprecation") final CommitStatusPublisherSettings settings = new BitbucketCloudSettings(
+       new MockPluginDescriptor(),
+       myWebLinks,
+       problems,
+       trustStoreProvider,
+       myFixture.getSingletonService(OAuthConnectionsManager.class),
+       myFixture.getSingletonService(OAuthTokensStorage.class),
+       getUserModelEx(),
+       myFixture.getSecurityContext(),
+       myFixture.getProjectManager(),
+       new BitbucketCloudBuildNameProvider()
+    );
     myBitbucketCloudFeatureBuilder = new BitbucketCloudCommitStatusPublisherFeatureBuilder(settings);
   }
 

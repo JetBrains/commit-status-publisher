@@ -41,7 +41,9 @@ public class GitLabCommitStatusPublisherFeatureBuilderTest extends BaseServerTes
                          myFixture.getSingletonService(OAuthTokensStorage.class),
                          getUserModelEx(),
                          myFixture.getSecurityContext(),
-                         myFixture);
+                         myFixture,
+                         new GitLabBuildNameProvider()
+      );
     myGitLabFeatureBuilder = new GitLabCommitStatusPublisherFeatureBuilder(settings);
   }
 

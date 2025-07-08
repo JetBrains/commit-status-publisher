@@ -20,8 +20,6 @@ package jetbrains.buildServer.commitPublisher.gitlab;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -30,6 +28,7 @@ import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.gitlab.data.*;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.impl.PipelineInfo;
 import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.VcsModificationHistoryEx;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -59,6 +58,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   protected final static String TRANSITIVE_REPO_EMPTY = TRANSITIVE_REPO + "_empty";
   private static final String MERGE_RESULT_COMMIT = "31337";
   private final Map<String, List<GitLabPublishCommitStatus>> myRevisionToStatuses = new HashMap<>();
+  private final GitLabBuildNameProvider myBuildNameProvider = new GitLabBuildNameProvider();
 
   private VcsModificationHistoryEx myVcsModificationHistory;
 
@@ -87,7 +87,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null, myBuildNameProvider);
     test_buildFinished_Successfully();
   }
 
@@ -98,7 +98,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null, myBuildNameProvider);
     test_buildFinished_Successfully();
   }
 
@@ -196,10 +196,14 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   }
 
   public void should_allow_queued_depending_on_build_type() {
-    Mock buildPromotionMock = new Mock(BuildPromotion.class);
-    Mock buildTypeMock = new Mock(SBuildType.class);
+    Mock buildPromotionMock = new Mock(BuildPromotionEx.class);
+    Mock buildTypeMock = new Mock(BuildTypeEx.class);
     buildTypeMock.stubs().method("getFullName").withNoArguments().will(returnValue("typeFullName"));
+    buildTypeMock.stubs().method("getProject").withNoArguments().will(returnValue(myBuildType.getProject()));
     buildPromotionMock.stubs().method("getBuildType").withNoArguments().will(returnValue(buildTypeMock.proxy()));
+    buildPromotionMock.stubs().method("getAttribute").withAnyArguments().will(returnValue(null));
+    PipelineInfo pipelineInfo = new PipelineInfo((BuildPromotionEx)buildPromotionMock.proxy());
+    buildPromotionMock.stubs().method("getPipelineInfo").withNoArguments().will(returnValue(pipelineInfo));
     BuildPromotion removedBuild = (BuildPromotion)buildPromotionMock.proxy();
 
     GitlabPublisher publisher = (GitlabPublisher)myPublisher;
@@ -219,7 +223,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     final VcsRootInstanceEntry rootEntry = new VcsRootInstanceEntry(vcsRootInstance, CheckoutRules.createOn(""));
     final RepositoryVersion repositoryVersion = new RepositoryVersion(mergeResultRevision, mergeResultRevision, mergeResultRef);
     myRevision = new BuildRevision(rootEntry, repositoryVersion);
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null, myBuildNameProvider);
     myFixture.addModification(modification().in(vcsRootInstance).version(mergeResultRevision).parentVersions("100000", REVISION));
 
     test_buildFinished_Successfully();
@@ -228,28 +232,28 @@ public class GitlabPublisherTest extends HttpPublisherTest {
   public void url_guessing_test() {
     Map<String, String> params = getPublisherParams();
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/owner/project"));
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null, myBuildNameProvider);
     assertEquals("https://url.com/api/v4", myPublisherSettings.guessApiURL(myVcsRoot.getProperty("url")));
   }
 
   public void url_guessing__port_test() {
     Map<String, String> params = getPublisherParams();
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com:1234/owner/project"));
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null, myBuildNameProvider);
     assertEquals("https://url.com:1234/api/v4", myPublisherSettings.guessApiURL(myVcsRoot.getProperty("url")));
   }
 
   public void url_guessing_test_http() {
     Map<String, String> params = getPublisherParams();
     myVcsRoot.setProperties(Collections.singletonMap("url", "http://url.com/owner/project"));
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null, myBuildNameProvider);
     assertEquals("http://url.com/api/v4", myPublisherSettings.guessApiURL(myVcsRoot.getProperty("url")));
   }
 
   public void url_guessing_test_git() {
     Map<String, String> params = getPublisherParams();
     myVcsRoot.setProperties(Collections.singletonMap("url", "git@url.com:owner/project.git"));
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null, myBuildNameProvider);
     assertEquals("https://url.com/api/v4", myPublisherSettings.guessApiURL(myVcsRoot.getProperty("url")));
   }
 
@@ -257,7 +261,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     Map<String, String> params = getPublisherParams();
     params.remove(Constants.GITLAB_API_URL);
     myVcsRoot.setProperties(Collections.singletonMap("url", "git@url.com:owner/some_/path/project.git"));
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null, myBuildNameProvider);
     assertEquals("https://url.com/api/v4", ((GitlabPublisher)myPublisher).getApiUrl(myVcsRoot.getProperty("url")));
   }
 
@@ -274,9 +278,9 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     super.setUp();
     myVcsModificationHistory = myFixture.getVcsHistory();
     myPublisherSettings = new GitlabSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myVcsModificationHistory, myOAuthConnectionsManager, myOAuthTokenStorage, getUserModelEx(),
-                                             myFixture.getSecurityContext(), myFixture);
+                                             myFixture.getSecurityContext(), myFixture, myBuildNameProvider);
     Map<String, String> params = getPublisherParams();
-    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null);
+    myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null, myBuildNameProvider);
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }
 

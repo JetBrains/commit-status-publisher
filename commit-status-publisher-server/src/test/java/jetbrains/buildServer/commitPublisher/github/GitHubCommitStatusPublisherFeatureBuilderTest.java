@@ -39,11 +39,14 @@ public class GitHubCommitStatusPublisherFeatureBuilderTest extends BaseServerTes
 
     final SSLTrustStoreProvider trustStoreProvider = () -> null;
 
+    final GitHubBuildContextProvider buildNameProvider = new GitHubBuildContextProvider();
+
     @SuppressWarnings("deprecation") final GitHubSettings settings = new GitHubSettings(changeStatusUpdater, new MockPluginDescriptor(), myWebLinks, problems,
                                                                                         myFixture.getSingletonService(OAuthConnectionsManager.class),
                                                                                         myFixture.getSingletonService(OAuthTokensStorage.class),
                                                                                         myFixture.getSecurityContext(),
-                                                                                        trustStoreProvider);
+                                                                                        trustStoreProvider,
+                                                                                        buildNameProvider);
 
     myGitHubFeatureBuilder = new GitHubCommitStatusPublisherFeatureBuilder(settings);
   }

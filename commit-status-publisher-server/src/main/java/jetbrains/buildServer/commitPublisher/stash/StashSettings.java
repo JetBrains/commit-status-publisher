@@ -75,8 +75,10 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
 
   @NotNull
   private final CommitStatusesCache<JsonStashBuildStatus> myStatusesCache;
-
+  @NotNull
   private final ProjectManager myProjectManager;
+  @NotNull
+  private final StatusPublisherBuildNameProvider myBuildNameProvider;
 
   public StashSettings(@NotNull PluginDescriptor descriptor,
                        @NotNull WebLinks links,
@@ -86,10 +88,13 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
                        @NotNull OAuthTokensStorage oAuthTokensStorage,
                        @NotNull UserModel userModel,
                        @NotNull SecurityContext securityContext,
-                       @NotNull ProjectManager projectManager) {
+                       @NotNull ProjectManager projectManager,
+                       @NotNull StashBuildNameProvider buildNameProvider
+  ) {
     super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, oAuthConnectionsManager, securityContext);
     myProjectManager = projectManager;
     myStatusesCache = new CommitStatusesCache<>();
+    myBuildNameProvider = buildNameProvider;
   }
 
   @NotNull
@@ -109,7 +114,7 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
 
   @Nullable
   public CommitStatusPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new StashPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache);
+    return new StashPublisher(this, buildType, buildFeatureId, myLinks, params, myProblems, myStatusesCache, myBuildNameProvider);
   }
 
   @NotNull

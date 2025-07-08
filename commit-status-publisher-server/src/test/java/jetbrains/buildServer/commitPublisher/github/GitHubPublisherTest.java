@@ -18,7 +18,6 @@
 
 package jetbrains.buildServer.commitPublisher.github;
 
-import com.google.common.collect.Lists;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import jetbrains.buildServer.MockBuildPromotion;
@@ -32,10 +31,11 @@ import jetbrains.buildServer.commitPublisher.github.api.impl.data.Permissions;
 import jetbrains.buildServer.commitPublisher.github.api.impl.data.RepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.impl.PipelineInfo;
+import jetbrains.buildServer.serverSide.impl.ProjectEx;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionsManager;
 import jetbrains.buildServer.serverSide.oauth.OAuthTokensStorage;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
-import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -55,6 +55,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
 
   private ChangeStatusUpdater myChangeStatusUpdater;
   private Map<String, List<CommitStatus>> myRevisionToCommitStatus = new HashMap<>();
+  private GitHubBuildContextProvider myBuildNameProvider = new GitHubBuildContextProvider();
 
   public GitHubPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*description\":\"%s\".*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
@@ -74,19 +75,6 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.TEST_CONNECTION, String.format(".*/repos/owner/project .*")); // not to be tested
   }
 
-  @TestFor(issues="TW-54352")
-  public void default_context_must_not_contains_long_unicodes() {
-    char[] btNameCharCodes = { 0x41, 0x200d, 0x42b, 0x20, 0x3042, 0x231a, 0xd83e, 0xdd20, 0x39, 0xfe0f, 0x20e3, 0xd83d, 0x20, 0xdee9, 0xfe0f };
-    myBuildType.setName(new String(btNameCharCodes));
-    char[] prjNameCharCodes =  { 0x45, 0x263A,  0x09, 0xd841, 0xdd20 };
-    myBuildType.getProject().setName(new String(prjNameCharCodes));
-    SBuild build = createBuildInCurrentBranch(myBuildType, Status.NORMAL);
-    String context = ((GitHubPublisher) myPublisher).getDefaultContext(build.getBuildPromotion());
-    char[] expectedBTNameCharCodes = { 0x41, 0x42b, 0x20, 0x3042, 0x231a, 0x39};
-    char[] expectedPrjNameCharCodes =  { 0x45, 0x263A };
-    then(context).isEqualTo(new String(expectedBTNameCharCodes) + " (" + new String(expectedPrjNameCharCodes) + ")");
-  }
-
   public void test_buildFinishedSuccessfully_server_url_with_subdir() throws Exception {
     Map<String, String> params = getPublisherParams();
     setExpectedApiPath("/subdir/api/v3");
@@ -94,7 +82,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks, new CommitStatusesCache<>());
+    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks, myBuildNameProvider, new CommitStatusesCache<>());
     test_buildFinished_Successfully();
   }
 
@@ -105,7 +93,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks, new CommitStatusesCache<>());
+    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks, myBuildNameProvider, new CommitStatusesCache<>());
     test_buildFinished_Successfully();
   }
 
@@ -140,12 +128,16 @@ public class GitHubPublisherTest extends HttpPublisherTest {
   }
 
   public void should_allow_queued_depending_on_build_type() {
-    Mock buildPromotionMock = new Mock(BuildPromotion.class);
+    Mock buildPromotionMock = new Mock(BuildPromotionEx.class);
     buildPromotionMock.stubs().method("getBuildTypeExternalId").withNoArguments().will(returnValue("buildTypeExtenalId"));
     buildPromotionMock.stubs().method("getAssociatedBuild").withNoArguments().will(returnValue(null));
-    Mock buildTypeMock = new Mock(SBuildType.class);
+    buildPromotionMock.stubs().method("getAttribute").withAnyArguments().will(returnValue(null));
+    PipelineInfo pipelineInfo = new PipelineInfo((BuildPromotionEx)buildPromotionMock.proxy());
+    buildPromotionMock.stubs().method("getPipelineInfo").withNoArguments().will(returnValue(pipelineInfo));
+    Mock buildTypeMock = new Mock(BuildTypeEx.class);
     buildTypeMock.stubs().method("getName").withNoArguments().will(returnValue("buildName"));
-    Mock projectMock = new Mock(SProject.class);
+    buildTypeMock.stubs().method("getParameters").withAnyArguments().will(returnValue(Collections.emptyMap()));
+    Mock projectMock = new Mock(ProjectEx.class);
     projectMock.stubs().method("getName").withNoArguments().will(returnValue("projectName"));
     buildTypeMock.stubs().method("getProject").withNoArguments().will(returnValue(projectMock.proxy()));
     buildPromotionMock.stubs().method("getBuildType").withNoArguments().will(returnValue(buildTypeMock.proxy()));
@@ -154,33 +146,6 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     GitHubPublisher publisher = (GitHubPublisher)myPublisher;
     assertTrue(publisher.getRevisionStatus(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost:8111/viewQueued.html?itemId=123", DefaultStatusMessages.BUILD_QUEUED, "buildName (projectName)")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
     assertFalse(publisher.getRevisionStatus(removedBuild, new CommitStatus(GitHubChangeState.Pending.getState(), "http://localhost:8111/viewQueued.html?itemId=321", DefaultStatusMessages.BUILD_QUEUED, "custom context")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
-  }
-
-  public void should_use_build_name_as_context() throws Exception {
-    final String expectedContext = "My Default Test Build Type (My Default Test Project)";
-    GitHubPublisher publisher = (GitHubPublisher)myPublisher;
-    SQueuedBuild queuedBuild = myBuildType.addToQueue("");
-    assertNotNull(queuedBuild);
-    String buildContext = publisher.getBuildContext(queuedBuild.getBuildPromotion());
-    assertEquals(expectedContext, buildContext);
-
-    RunningBuildEx startedBuild = myFixture.flushQueueAndWait();
-    buildContext = publisher.getBuildContext(startedBuild.getBuildPromotion());
-    assertEquals(expectedContext, buildContext);
-  }
-
-  public void should_use_context_from_parameters() throws Exception {
-    final String expectedContext = "My custom context name";
-    myBuildType.addBuildParameter(new SimpleParameter(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM, expectedContext));
-    GitHubPublisher publisher = (GitHubPublisher)myPublisher;
-    SQueuedBuild queuedBuild = myBuildType.addToQueue("");
-    assertNotNull(queuedBuild);
-    String buildContext = publisher.getBuildContext(queuedBuild.getBuildPromotion());
-    assertEquals(expectedContext, buildContext);
-
-    RunningBuildEx startedBuild = myFixture.flushQueueAndWait();
-    buildContext = publisher.getBuildContext(startedBuild.getBuildPromotion());
-    assertEquals(expectedContext, buildContext);
   }
 
   @Override
@@ -205,8 +170,8 @@ public class GitHubPublisherTest extends HttpPublisherTest {
 
     myPublisherSettings = new GitHubSettings(myChangeStatusUpdater, new MockPluginDescriptor(), myWebLinks, myProblems,
                                              myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext(),
-                                             myTrustStoreProvider);
-    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks, new CommitStatusesCache<>());
+                                             myTrustStoreProvider, myBuildNameProvider);
+    myPublisher = new GitHubPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myChangeStatusUpdater, params, myProblems, myWebLinks, myBuildNameProvider, new CommitStatusesCache<>());
   }
 
   @Override

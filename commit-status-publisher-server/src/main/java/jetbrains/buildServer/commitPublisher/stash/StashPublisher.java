@@ -51,6 +51,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
 
   private final Gson myGson = new Gson();
   private final CommitStatusesCache<JsonStashBuildStatus> myStatusesCache;
+  private final StatusPublisherBuildNameProvider myBuildNameProvider;
 
   private BitbucketEndpoint myBitbucketEndpoint = null;
 
@@ -60,9 +61,12 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
                  @NotNull WebLinks links,
                  @NotNull Map<String, String> params,
                  @NotNull CommitStatusPublisherProblems problems,
-                 @NotNull CommitStatusesCache<JsonStashBuildStatus> statusesCache) {
+                 @NotNull CommitStatusesCache<JsonStashBuildStatus> statusesCache,
+                 @NotNull StatusPublisherBuildNameProvider buildNameProvider
+  ) {
     super(settings, buildType, buildFeatureId, params, problems, links);
     myStatusesCache = statusesCache;
+    myBuildNameProvider = buildNameProvider;
   }
 
   @NotNull
@@ -420,7 +424,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     @NotNull
     @Override
     public String getName() {
-      return myBuild.getFullName() + " #" + myBuild.getBuildNumber();
+      return myBuildNameProvider.getBuildName(myBuild.getBuildPromotion());
     }
 
     @NotNull
@@ -464,13 +468,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     @NotNull
     @Override
     public String getName() {
-      SBuildType buildType = myBuildPromotion.getBuildType();
-      if (buildType != null) {
-        SBuild associatedBuild = myBuildPromotion.getAssociatedBuild();
-        String suffix = associatedBuild != null ? " #" + associatedBuild.getBuildNumber() : "";
-        return buildType.getFullName() + suffix;
-      }
-      return myBuildPromotion.getBuildTypeExternalId();
+      return myBuildNameProvider.getBuildName(myBuildPromotion);
     }
 
     @Nullable

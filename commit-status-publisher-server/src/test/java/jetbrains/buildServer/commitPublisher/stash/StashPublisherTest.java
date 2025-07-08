@@ -24,7 +24,6 @@ import jetbrains.buildServer.MockBuildPromotion;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.stash.data.JsonStashBuildStatus;
 import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.SQueuedBuild;
 import org.jmock.Mock;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -94,7 +93,7 @@ public class StashPublisherTest extends BaseStashPublisherTest {
   public void url_guessing_test_git() {
     Map<String, String> params = getPublisherParams();
     myVcsRoot.setProperties(Collections.singletonMap("url", "git@url.com:owner/some_/path/project.git"));
-    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myBuildNameProvider);
     assertEquals("https://url.com", myPublisherSettings.guessApiURL(myVcsRoot.getProperty("url")));
   }
 
@@ -102,7 +101,7 @@ public class StashPublisherTest extends BaseStashPublisherTest {
     Map<String, String> params = getPublisherParams();
     params.remove(Constants.STASH_BASE_URL);
     myVcsRoot.setProperties(Collections.singletonMap("url", "git@url.com:owner/some_/path/project.git"));
-    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>());
+    myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myBuildNameProvider);
     assertEquals("https://url.com", ((StashPublisher)myPublisher).getBaseUrl(myVcsRoot.getProperty("url")));
   }
 }

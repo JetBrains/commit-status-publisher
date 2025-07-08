@@ -45,8 +45,9 @@ import static org.assertj.core.api.BDDAssertions.then;
  */
 @Test
 public class TfsPublisherTest extends HttpPublisherTest {
-  private Map<String, String> myParams = getPublisherParams();
-  private Map<String, List<TfsStatusPublisher.CommitStatus>> myRevisionToStatuses = new HashMap<>();
+  private final Map<String, String> myParams = getPublisherParams();
+  private final Map<String, List<TfsStatusPublisher.CommitStatus>> myRevisionToStatuses = new HashMap<>();
+  private final TfsBuildNameProvider myBuildNameProvider = new TfsBuildNameProvider();
 
   TfsPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
@@ -70,9 +71,9 @@ public class TfsPublisherTest extends HttpPublisherTest {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
-    myPublisherSettings = new TfsPublisherSettings(new MockPluginDescriptor(), myWebLinks, myProblems,
-                                                   myOAuthConnectionsManager, myOAuthTokenStorage, myFixture.getSecurityContext(), myFixture.getUserModel(), myTrustStoreProvider);
-    myPublisher = new TfsStatusPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, myParams, myProblems, new CommitStatusesCache<>());
+    myPublisherSettings = new TfsPublisherSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myOAuthConnectionsManager, myOAuthTokenStorage,
+                                                   myFixture.getSecurityContext(), myFixture.getUserModel(), myTrustStoreProvider, myBuildNameProvider);
+    myPublisher = new TfsStatusPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, myParams, myProblems, new CommitStatusesCache<>(), myBuildNameProvider);
     myVcsURL = getServerUrl() + "/_git/" + CORRECT_REPO;
     myReadOnlyVcsURL = getServerUrl()  + "/_git/" + READ_ONLY_REPO;
     myVcsRoot.setProperties(Collections.singletonMap("url", myVcsURL));

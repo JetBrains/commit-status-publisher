@@ -66,6 +66,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   private static final Pattern TFS_GIT_PULL_REQUEST_PATTERN = Pattern.compile("^refs\\/pull\\/(\\d+)/merge");
 
   private final CommitStatusesCache<CommitStatus> myStatusesCache;
+  private final StatusPublisherBuildNameProvider myBuildNameProvider;
 
   TfsStatusPublisher(@NotNull final CommitStatusPublisherSettings settings,
                      @NotNull final SBuildType buildType,
@@ -73,9 +74,12 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
                      @NotNull final WebLinks webLinks,
                      @NotNull final Map<String, String> params,
                      @NotNull final CommitStatusPublisherProblems problems,
-                     @NotNull CommitStatusesCache<CommitStatus> statusesCache) {
+                     @NotNull CommitStatusesCache<CommitStatus> statusesCache,
+                     @NotNull StatusPublisherBuildNameProvider buildNameProvider
+  ) {
     super(settings, buildType, buildFeatureId, params, problems, webLinks);
     myStatusesCache = statusesCache;
+    myBuildNameProvider = buildNameProvider;
   }
 
   @NotNull
@@ -594,7 +598,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     boolean isCanceled = buildPromotion.isCanceled();
     StatusState state = getState(isStarting, isCanceled, build.getBuildStatus());
     String description = String.format("The build %s %s %s %s",
-                                       build.getFullName(), build.getBuildNumber(),
+                                       myBuildNameProvider.getBuildName(buildPromotion), build.getBuildNumber(),
                                        (isStarting || isCanceled) ? "is" : "has", isCanceled ? "canceled" : state.toString().toLowerCase());
     return new CommitStatus(state.getName(), description, getViewUrl(build), context);
   }
