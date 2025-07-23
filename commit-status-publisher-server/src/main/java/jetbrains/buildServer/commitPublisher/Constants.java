@@ -28,6 +28,7 @@ public class Constants {
   public static final String VCS_ROOT_ID_PARAM = "vcsRootId";
   public static final String PUBLISHER_ID_PARAM = "publisherId";
   public static final String PUBLISH_EARLY_FAILURE_PARAM = "publishEarlyFailure";
+  public static final String EARLY_FAILURES_DISABLING_FEATURE_TOGGLE = "teamcity.commitStatusPublisher.canDisableEarlyFailures";
 
   public static final String PASSWORD = "password";
   public static final String TEST_CONNECTION_PARAM = "testconnection";
@@ -94,6 +95,16 @@ public class Constants {
   @NotNull
   public String getPublisherIdParam() {
     return PUBLISHER_ID_PARAM;
+  }
+
+  @NotNull
+  public String getPublishEarlyFailureParam() {
+    return PUBLISH_EARLY_FAILURE_PARAM;
+  }
+
+  @NotNull
+  public String getEarlyFailuresDisablingFeatureToggle() {
+    return EARLY_FAILURES_DISABLING_FEATURE_TOGGLE;
   }
 
   @NotNull
