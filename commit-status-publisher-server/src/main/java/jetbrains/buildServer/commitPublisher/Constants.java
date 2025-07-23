@@ -27,6 +27,7 @@ public class Constants {
 
   public static final String VCS_ROOT_ID_PARAM = "vcsRootId";
   public static final String PUBLISHER_ID_PARAM = "publisherId";
+  public static final String PUBLISH_EARLY_FAILURE_PARAM = "publishEarlyFailure";
 
   public static final String PASSWORD = "password";
   public static final String TEST_CONNECTION_PARAM = "testconnection";

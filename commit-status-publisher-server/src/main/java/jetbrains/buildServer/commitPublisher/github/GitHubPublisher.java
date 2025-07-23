@@ -97,6 +97,9 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
 
   @Override
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
+    if (!shouldPublishEarlyFailure()) {
+      return false;
+    }
     updateBuildStatus(build, revision, false);
     return true;
   }
