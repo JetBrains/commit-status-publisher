@@ -165,6 +165,11 @@
       <span class="error" id="error_${constants.publisherIdParam}"></span>
     </td>
   </tr>
+  <tr style="display:none;">
+    <td colspan="2">
+      <props:checkboxProperty name="${constants.PUBLISH_EARLY_FAILURE_PARAM}" checked="true" />
+    </td>
+  </tr>
 <bs:dialog dialogId="testConnectionDialog" title="Test Connection" closeCommand="BS.TestConnectionDialog.close();"
            closeAttrs="showdiscardchangesmessage='false'">
   <div id="testConnectionStatus"></div>
