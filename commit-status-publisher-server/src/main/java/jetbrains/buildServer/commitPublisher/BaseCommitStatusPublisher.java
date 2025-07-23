@@ -24,6 +24,7 @@ import java.util.Map;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.util.StringUtil;
+import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.vcs.SVcsModification;
 import jetbrains.buildServer.vcs.VcsRoot;
 import org.apache.commons.lang.math.NumberUtils;
@@ -107,6 +108,10 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
 
   public void setConnectionTimeout(int timeout) {
     myConnectionTimeout = timeout;
+  }
+
+  protected boolean shouldPublishEarlyFailure() {
+    return !"false".equalsIgnoreCase(myParams.get(Constants.PUBLISH_EARLY_FAILURE_PARAM));
   }
 
   @NotNull

@@ -193,6 +193,9 @@ class SwarmPublisher extends HttpBasedCommitStatusPublisher<String> {
       return false;
     }
 
+    if (!shouldPublishEarlyFailure()) {
+      return false;
+    }
     publishCommentIfNeeded(build.getBuildPromotion(), revision, "failure was detected in build %s: " + build.getStatusDescriptor().getText(), Event.FAILURE_DETECTED);
     updateTestRunsForReviewsOnSwarm(build, revision);
     return true;
