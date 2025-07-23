@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 
 public class CommitStatusPublisherFeature extends BuildFeature {
 
@@ -104,5 +105,11 @@ public class CommitStatusPublisherFeature extends BuildFeature {
   @Override
   public boolean isRequiresAgent() {
     return false;
+  }
+
+  @Nullable
+  @Override
+  public Map<String, String> getDefaultParameters() {
+    return Collections.singletonMap(Constants.PUBLISH_EARLY_FAILURE_PARAM, "true");
   }
 }

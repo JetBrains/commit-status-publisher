@@ -22,6 +22,8 @@
 <%@ taglib prefix="bs" tagdir="/WEB-INF/tags" %>
 <%@ taglib prefix="util" uri="/WEB-INF/functions/util" %>
 <%@ taglib prefix="admin" tagdir="/WEB-INF/tags/admin" %>
+<%@ taglib prefix="intprop" uri="/WEB-INF/functions/intprop"%>
+
 
 
 <jsp:useBean id="propertiesBean" scope="request" type="jetbrains.buildServer.controllers.BasePropertiesBean"/>
@@ -165,11 +167,17 @@
       <span class="error" id="error_${constants.publisherIdParam}"></span>
     </td>
   </tr>
-  <tr style="display:none;">
-    <td colspan="2">
-      <props:checkboxProperty name="${constants.PUBLISH_EARLY_FAILURE_PARAM}" checked="true" />
+<c:if test="${intprop:getBoolean(constants.earlyFailuresDisablingFeatureToggle)}">
+  <tr>
+    <th></th>
+    <td>
+      <span>
+        <props:checkboxProperty name="${constants.publishEarlyFailureParam}" uncheckedValue="false"/>
+        <label for="${constants.publishEarlyFailureParam}">Publish build status for early failures</label>
+      </span>
     </td>
   </tr>
+</c:if>
 <bs:dialog dialogId="testConnectionDialog" title="Test Connection" closeCommand="BS.TestConnectionDialog.close();"
            closeAttrs="showdiscardchangesmessage='false'">
   <div id="testConnectionStatus"></div>
