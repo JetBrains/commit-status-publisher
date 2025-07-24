@@ -114,9 +114,6 @@ public class SpacePublisher extends HttpBasedCommitStatusPublisher<SpaceBuildSta
 
   @Override
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    if (shouldNotPublishEarlyFailure()) {
-      return false;
-    }
     publish(build, revision, SpaceBuildStatus.FAILING, build.getStatusDescriptor().getText());
     return true;
   }

@@ -138,9 +138,6 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
 
   @Override
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    if (shouldNotPublishEarlyFailure()) {
-      return false;
-    }
     vote(build, revision, StashBuildStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
   }

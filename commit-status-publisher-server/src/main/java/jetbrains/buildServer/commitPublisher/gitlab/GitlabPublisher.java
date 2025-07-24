@@ -125,9 +125,6 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
 
   @Override
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    if (shouldNotPublishEarlyFailure()) {
-      return false;
-    }
     publish(build, revision, GitlabBuildStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
   }

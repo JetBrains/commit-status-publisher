@@ -109,11 +109,6 @@ public abstract class BaseCommitStatusPublisher implements CommitStatusPublisher
     myConnectionTimeout = timeout;
   }
 
-  protected boolean shouldNotPublishEarlyFailure() {
-    return TeamCityProperties.getBoolean(Constants.EARLY_FAILURES_DISABLING_FEATURE_TOGGLE) &&
-           "false".equalsIgnoreCase(myParams.get(Constants.PUBLISH_EARLY_FAILURE_PARAM));
-  }
-
   @NotNull
   @Override
   public Collection<BuildRevision> getFallbackRevisions(@Nullable SBuild build) {

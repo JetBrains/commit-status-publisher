@@ -133,9 +133,6 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
 
   @Override
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    if (shouldNotPublishEarlyFailure()) {
-      return false;
-    }
     vote(build.getBuildPromotion(), revision, BitbucketCloudBuildStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
   }

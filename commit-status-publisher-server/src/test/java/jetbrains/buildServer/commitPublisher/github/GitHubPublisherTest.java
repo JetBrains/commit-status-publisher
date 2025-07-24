@@ -68,7 +68,7 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS, null); // not to be tested
     myExpectedRegExps.put(EventToTest.COMMENTED_INPROGRESS_FAILED, null); // not to be tested
     myExpectedRegExps.put(EventToTest.INTERRUPTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*", REVISION));
-    myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*%s.*", REVISION, DefaultStatusMessages.BUILD_FAILED));
+    myExpectedRegExps.put(EventToTest.FAILURE_DETECTED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*%s.*", REVISION, DefaultStatusMessages.BUILD_FAILED)); // not to be tested
     myExpectedRegExps.put(EventToTest.MARKED_SUCCESSFUL, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*success.*%s.*", REVISION, DefaultStatusMessages.BUILD_FINISHED)); // not to be tested
     myExpectedRegExps.put(EventToTest.MARKED_RUNNING_SUCCESSFUL, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_STARTED)); // not to be tested
     myExpectedRegExps.put(EventToTest.PAYLOAD_ESCAPED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*failure.*%s.*%s.*", REVISION, DefaultStatusMessages.BUILD_FAILED, BT_NAME_ESCAPED_REGEXP));

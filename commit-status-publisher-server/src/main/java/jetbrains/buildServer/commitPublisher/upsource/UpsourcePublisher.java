@@ -85,9 +85,6 @@ class UpsourcePublisher extends HttpBasedCommitStatusPublisher<UpsourceStatus> {
 
   @Override
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    if (shouldNotPublishEarlyFailure()) {
-      return false;
-    }
     publish(build, revision, UpsourceStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
   }

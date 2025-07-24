@@ -432,10 +432,7 @@
           </description>
         </param>
       </option>
-    <param name="publishEarlyFailure" dslName="publishEarlyFailure" type="boolean">
-      <description>
-        If set to &lt;code&gt;false&lt;/code&gt;, the build feature suppresses the early "failure-detected" status and sends only the final result after the build finishes. Default value is  &lt;code&gt;true&lt;/code&gt;.
-      </description>
+
     </param>
   </params>
   <examples>
