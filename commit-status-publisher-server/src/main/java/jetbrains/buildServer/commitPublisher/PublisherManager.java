@@ -67,6 +67,10 @@ public class PublisherManager {
 
   @NotNull
   public Map<String, CommitStatusPublisher> createConfiguredPublishers(@NotNull BuildPromotion buildPromotion) {
+    // temp solution while TW-94905 is not fixed
+    if (buildPromotion.getBuildType() != null) {
+      return createConfiguredPublishers(buildPromotion.getBuildType());
+    }
     final Map<String, CommitStatusPublisher> publishers = new LinkedHashMap<>();
     SBuild build = ((BuildPromotionEx)buildPromotion).getRealOrDummyBuild();
     for (SBuildFeatureDescriptor buildFeatureDescriptor : build.getBuildFeaturesOfType(CommitStatusPublisherConstants.CSP_BUILD_FEATURE_TYPE)) {
