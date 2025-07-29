@@ -23,10 +23,7 @@ import java.util.stream.Collectors;
 import jetbrains.buildServer.ExtensionHolder;
 import jetbrains.buildServer.ExtensionsCollection;
 import jetbrains.buildServer.pipeline.CommitStatusPublisherConstants;
-import jetbrains.buildServer.serverSide.BuildFeature;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
-import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.SVcsRootEx;
 import org.jetbrains.annotations.NotNull;
@@ -71,7 +68,8 @@ public class PublisherManager {
   @NotNull
   public Map<String, CommitStatusPublisher> createConfiguredPublishers(@NotNull BuildPromotion buildPromotion) {
     final Map<String, CommitStatusPublisher> publishers = new LinkedHashMap<>();
-    for (SBuildFeatureDescriptor buildFeatureDescriptor : buildPromotion.getBuildFeaturesOfType(CommitStatusPublisherConstants.CSP_BUILD_FEATURE_TYPE)) {
+    SBuild build = ((BuildPromotionEx)buildPromotion).getRealOrDummyBuild();
+    for (SBuildFeatureDescriptor buildFeatureDescriptor : build.getBuildFeaturesOfType(CommitStatusPublisherConstants.CSP_BUILD_FEATURE_TYPE)) {
       final BuildFeature buildFeature = buildFeatureDescriptor.getBuildFeature();
       if (buildFeature instanceof CommitStatusPublisherFeature) {
         final String featureId = buildFeatureDescriptor.getId();

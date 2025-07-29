@@ -18,10 +18,14 @@ package jetbrains.buildServer.commitPublisher;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildType;
+import jetbrains.buildServer.serverSide.SQueuedBuild;
+import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.SVcsRootEx;
@@ -38,6 +42,9 @@ import static org.assertj.core.api.BDDAssertions.then;
 public class PublisherManagerTest extends CommitStatusPublisherTestBase {
 
   private static final String SETTINGS_SUPPORTING_FEATURELESS_ID = "settings-supporting-featureless";
+  private static final String DUMMY_FEATURE_PARAM = "dummy-param";
+  private static final String BUILD_PARAM_VALUE = "dummy-param-value";
+  private static final String BUILD_PARAM_NAME = "build-param-name";
 
   private PublisherManager myPublisherManager;
 
@@ -49,6 +56,30 @@ public class PublisherManagerTest extends CommitStatusPublisherTestBase {
     myServer.registerExtension(CommitStatusPublisherSettings.class, SETTINGS_SUPPORTING_FEATURELESS_ID, new SettingsSupportingFeatureless());
 
     myPublisherManager = new PublisherManager(myServer);
+  }
+
+  @Test
+  public void createConfiguredPublishers_fromBuildType() {
+    createParametrizedFeature();
+    SQueuedBuild build = addToQueue(myBuildType);
+
+    Map<String, CommitStatusPublisher> configuredPublishers = myPublisherManager.createConfiguredPublishers(build.getBuildType());
+    then(configuredPublishers).hasSize(1);
+    Map<String, String> actualParams = ((MockPublisher)configuredPublishers.values().iterator().next()).myParams;
+
+    then(actualParams.get(DUMMY_FEATURE_PARAM)).as("Parametrized feature param should be resolved when creating publisher from build type").isEqualTo(BUILD_PARAM_VALUE);
+  }
+
+  @Test
+  public void createConfiguredPublishers_fromBuildPromotion() {
+    createParametrizedFeature();
+    SQueuedBuild build = addToQueue(myBuildType);
+
+    Map<String, CommitStatusPublisher> configuredPublishers = myPublisherManager.createConfiguredPublishers(build.getBuildPromotion());
+    then(configuredPublishers).hasSize(1);
+    Map<String, String> actualParams = ((MockPublisher)configuredPublishers.values().iterator().next()).myParams;
+
+    then(actualParams.get(DUMMY_FEATURE_PARAM)).as("Parametrized feature param should be resolved when creating publisher from build promotion").isEqualTo(BUILD_PARAM_VALUE);
   }
 
   @Test
@@ -197,6 +228,16 @@ public class PublisherManagerTest extends CommitStatusPublisherTestBase {
         return String.valueOf(vcsRootId).equals(value.getVcsRootId());
       }
     };
+  }
+
+  private void createParametrizedFeature() {
+    Map<String, String> featureParams = new HashMap<>();
+    featureParams.put(Constants.PUBLISHER_ID_PARAM, MockPublisherSettings.PUBLISHER_ID);
+    featureParams.put(DUMMY_FEATURE_PARAM, "%" + BUILD_PARAM_NAME + "%");
+
+    myBuildType.removeBuildFeature(myFeatureDescriptor.getId()); // added in the base class, but here we don't need it
+    myBuildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, featureParams);
+    myBuildType.addParameter(new SimpleParameter(BUILD_PARAM_NAME, BUILD_PARAM_VALUE));
   }
 
   static class SettingsSupportingFeatureless extends DummyPublisherSettings {
