@@ -363,12 +363,36 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     if (oldStatus.isFailed() || !newStatus.isFailed()) // we are supposed to report failures only
       return;
 
+    // we shouldn't publish intermidiate failures if test retries are configured: TW-94873
+    if (isTestRetryEnabled(build)) {
+      LOG.info("Event: " + Event.FAILURE_DETECTED.getName() + ", build " + LogUtil.describe(build) + " detected failure, but publishing is skipped due to enabled test retries");
+      return;
+    }
+
     if (shouldNotPublish(build.getBuildPromotion(), buildReason(build.getTriggeredBy())))
       return;
 
     submitTaskForBuild(Event.FAILURE_DETECTED, build);
   }
 
+  private boolean isTestRetryEnabled(@NotNull SRunningBuild build) {
+    try {
+      if (build.getBuildPromotion().getBuildSettings().getOption(BuildTypeOptions.BT_SUPPORT_TEST_RETRY)) {
+        return true;
+      }
+    } catch (BuildTypeNotFoundException e) {
+      if (BuildTypeOptions.BT_SUPPORT_TEST_RETRY.getDefaultValue()) {
+        return true;
+      }
+    }
+    if (build instanceof RunningBuildEx) {
+      final String value = ((RunningBuildEx)build).getTemporaryCustomDataStorage().getValue(BuildTypeOptions.BT_SUPPORT_TEST_RETRY.getKey());
+      if (value != null) {
+        return Boolean.parseBoolean(value);
+      }
+    }
+    return false;
+  }
 
   @Override
   public void buildProblemsChanged(@NotNull final SBuild build, @NotNull final List<BuildProblemData> before, @NotNull final List<BuildProblemData> after) {
