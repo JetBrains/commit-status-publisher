@@ -1097,6 +1097,24 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.isFailureReceived()).isTrue();
   }
 
+  // TODO: add test for test retries enabled in runtime (via service message)
+  @TestFor(issues = "TW-94873")
+  public void should_not_publish_failure_if_test_retries_are_enabled() {
+    myBuildType.setOption(BuildTypeOptions.BT_SUPPORT_TEST_RETRY, true);
+    prepareVcs();
+    addBuildToQueue();
+    waitForTasksToFinish(Event.QUEUED);
+    SRunningBuild runningBuild = myFixture.flushQueueAndWait();
+    waitForTasksToFinish(Event.STARTED);
+    myListener.buildChangedStatus(runningBuild, Status.NORMAL, Status.FAILURE);
+    assertIfNoTasks(Event.FAILURE_DETECTED);
+    myListener.buildChangedStatus(runningBuild, Status.FAILURE, Status.NORMAL);
+    assertIfNoTasks(Event.FAILURE_DETECTED);
+    myFixture.finishBuild(runningBuild, false);
+    waitForTasksToFinish(Event.FINISHED);
+    then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED));
+    then(myPublisher.isFailureReceived()).isFalse();
+  }
 
   @DataProvider
   public static Object[][] buildUrls() {
