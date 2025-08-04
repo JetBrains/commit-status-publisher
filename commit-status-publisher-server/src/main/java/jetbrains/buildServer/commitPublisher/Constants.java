@@ -85,6 +85,12 @@ public class Constants {
   public static final int STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL = 50;
   public static final String GITLAB_FEATURE_TOGGLE_MERGE_RESULTS = "commitStatusPubliser.gitlab.supportMergeResults";
 
+  /**
+   * If enabled, intermidiate failure status won't be published if test retries support is enabled
+   * @since 2025.07.01
+   */
+  public static final String CHECK_TEST_RETRIES_SUPPORT_TOGGLE = "teamcity.commitStatusPublisher.checkTestRetriesSupport";
+
   @NotNull
   public String getVcsRootIdParam() {
     return VCS_ROOT_ID_PARAM;
