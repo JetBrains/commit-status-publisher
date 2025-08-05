@@ -1100,6 +1100,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   // TODO: add test for test retries enabled in runtime (via service message)
   @TestFor(issues = "TW-94873")
   public void should_not_publish_failure_if_test_retries_are_enabled() {
+    setInternalProperty(Constants.CHECK_TEST_RETRIES_SUPPORT_TOGGLE, "true");
     myBuildType.setOption(BuildTypeOptions.BT_SUPPORT_TEST_RETRY, true);
     prepareVcs();
     addBuildToQueue();
