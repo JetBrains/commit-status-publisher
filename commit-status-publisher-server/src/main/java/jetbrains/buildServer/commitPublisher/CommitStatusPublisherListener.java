@@ -696,7 +696,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
 
   @NotNull
   private static String getDefaultComment(@NotNull BuildPromotion buildPromotion, @Nullable BuildPromotion replacingPromotion, @Nullable User user) {
-    if (replacingPromotion == null && buildPromotion.getAssociatedBuildId() != null && user == null) {
+    if (buildPromotion instanceof BuildPromotionEx) {
+      Object skippedAttribute = ((BuildPromotionEx)buildPromotion).getAttribute(BuildAttributes.TEAMCITY_SKIPPED);
+      if (skippedAttribute != null && Boolean.parseBoolean(skippedAttribute.toString())) {
+        return DefaultStatusMessages.BUILD_SKIPPED;
+      }
+    }
+    if (replacingPromotion == null && buildPromotion.getAssociatedBuildId() != null && !buildPromotion.getDependencies().isEmpty() && user == null) {
       return DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED;
     }
     return DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE;

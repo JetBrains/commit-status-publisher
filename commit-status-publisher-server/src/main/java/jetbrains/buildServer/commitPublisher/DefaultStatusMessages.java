@@ -20,6 +20,7 @@ public interface DefaultStatusMessages {
   String BUILD_QUEUED = "TeamCity build was queued";
   String BUILD_REMOVED_FROM_QUEUE = "TeamCity build was removed from queue";
   String BUILD_REMOVED_FROM_QUEUE_AS_CANCELED = "TeamCity build was canceled by a failing dependency";
+  String BUILD_SKIPPED = "TeamCity build was skipped";
   String BUILD_STARTED = "TeamCity build started";
   String BUILD_FINISHED = "TeamCity build finished";
   String BUILD_FAILED = "TeamCity build failed";
