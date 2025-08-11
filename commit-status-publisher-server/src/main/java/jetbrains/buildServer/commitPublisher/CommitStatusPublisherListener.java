@@ -364,7 +364,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
       return;
 
     // we shouldn't publish intermidiate failures if test retries are configured: TW-94873
-    if (TeamCityProperties.getBoolean(Constants.CHECK_TEST_RETRIES_SUPPORT_TOGGLE) && isTestRetryEnabled(build)) {
+    if (TeamCityProperties.getBooleanOrTrue(Constants.CHECK_TEST_RETRIES_SUPPORT_TOGGLE) && isTestRetryEnabled(build)) {
       LOG.info("Event: " + Event.FAILURE_DETECTED.getName() + ", build " + LogUtil.describe(build) + " detected failure, but publishing is skipped due to enabled test retries");
       return;
     }
