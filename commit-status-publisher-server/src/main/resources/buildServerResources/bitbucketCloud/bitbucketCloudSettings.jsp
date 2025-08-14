@@ -32,19 +32,21 @@
 
 <props:selectSectionProperty name="${keys.authType}" title="Authentication Type" style="width: 28em;">
 
-  <props:selectSectionPropertyContent value="${keys.authTypePassword}" caption="Username / App Password">
+  <props:selectSectionPropertyContent value="${keys.authTypePassword}" caption="Username / Password">
     <tr>
       <th><label for="${keys.bitbucketCloudUsername}">Bitbucket Username:<l:star/></label></th>
       <td>
         <props:textProperty name="${keys.bitbucketCloudUsername}" className="longField"/>
+        <span class="smallNote">For <a href="https://support.atlassian.com/bitbucket-cloud/docs/api-tokens/" target="_blank" rel="noopener noreferrer">API tokens</a>, use email as username.</span>
         <span class="error" id="error_${keys.bitbucketCloudUsername}"></span>
       </td>
     </tr>
 
     <tr>
-      <th><label for="${keys.bitbucketCloudPassword}">Bitbucket App Password:<l:star/></label></th>
+      <th><label for="${keys.bitbucketCloudPassword}">Bitbucket Password:<l:star/></label></th>
       <td>
         <props:passwordProperty name="${keys.bitbucketCloudPassword}" className="longField"/>
+        <span class="smallNote">API token or App Password with the <b><i>Repository &gt; Read</i></b> and <b><i>Repository &gt; Write</i></b> permission.</span>
         <span class="error" id="error_${keys.bitbucketCloudPassword}"></span>
       </td>
     </tr>
@@ -83,10 +85,8 @@
     <tr><td colspan="2">
       <em>
         TeamCity obtains App password / token based credentials from the VCS root settings.
-        This option will not work if the VCS root uses an SSH fetch URL,
-        employs anonymous authentication or uses
-        an actual password
-        of the user rather than a token.
+        This option will not work if the VCS root uses an SSH fetch URL, employs anonymous authentication,
+        or authenticates via an API token or regular user password.
       </em>
     </td></tr>
   </props:selectSectionPropertyContent>
