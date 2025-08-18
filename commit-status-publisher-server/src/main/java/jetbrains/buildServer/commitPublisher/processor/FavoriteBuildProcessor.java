@@ -7,7 +7,7 @@ import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 
 public interface FavoriteBuildProcessor {
-  boolean shouldMarkAsFavorite(@NotNull SUser user);
-  void markAsFavorite(@NotNull SBuild build, @NotNull BuildOwnerStrategy buildOwnerStrategy);
-  boolean isSupported(@NotNull SBuild build, @NotNull BuildPredicate buildPredicate);
+  boolean shouldMarkAsFavorite(@NotNull final SUser user);
+  void markAsFavorite(@NotNull final SBuild build, @NotNull final BuildOwnerStrategy buildOwnerStrategy);
+  boolean isSupported(@NotNull final SBuild build, @NotNull final BuildPredicate buildPredicate);
 }

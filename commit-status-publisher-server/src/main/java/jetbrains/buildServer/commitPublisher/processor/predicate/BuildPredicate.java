@@ -7,5 +7,5 @@ import java.util.function.Predicate;
 
 public interface BuildPredicate extends Predicate<SBuild> {
   @Override
-  boolean test(@NotNull SBuild build);
+  boolean test(@NotNull final SBuild build);
 }

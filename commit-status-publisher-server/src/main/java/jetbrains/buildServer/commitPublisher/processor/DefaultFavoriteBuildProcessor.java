@@ -21,12 +21,12 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
   }
 
   @Override
-  public boolean shouldMarkAsFavorite(@NotNull SUser user) {
+  public boolean shouldMarkAsFavorite(@NotNull final SUser user) {
     return user.getBooleanProperty(USER_PROPERTY);
   }
 
   @Override
-  public void markAsFavorite(@NotNull SBuild build, @NotNull BuildOwnerStrategy buildOwnerStrategy) {
+  public void markAsFavorite(@NotNull final SBuild build, @NotNull final BuildOwnerStrategy buildOwnerStrategy) {
     final BuildPromotion buildPromotion = build.getBuildPromotion();
     buildOwnerStrategy.apply(build)
       .stream()
@@ -35,7 +35,7 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
   }
 
   @Override
-  public boolean isSupported(@NotNull SBuild build, @NotNull BuildPredicate buildPredicate) {
+  public boolean isSupported(@NotNull final SBuild build, @NotNull final BuildPredicate buildPredicate) {
     return buildPredicate.test(build);
   }
 }

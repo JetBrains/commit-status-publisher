@@ -14,13 +14,13 @@ public class PullRequestBuildOwnerStrategy implements BuildOwnerStrategy {
 
   private final VcsRootUsernamesManager myVcsRootUsernamesManager;
 
-  public PullRequestBuildOwnerStrategy(@NotNull VcsRootUsernamesManager vcsRootUsernamesManager) {
+  public PullRequestBuildOwnerStrategy(@NotNull final VcsRootUsernamesManager vcsRootUsernamesManager) {
     myVcsRootUsernamesManager = vcsRootUsernamesManager;
   }
 
   @Override
   @NotNull
-  public Collection<SUser> apply(@NotNull SBuild build) {
+  public Collection<SUser> apply(@NotNull final SBuild build) {
     @Nullable final String pullRequestAuthor = build.getParametersProvider().get(Constants.BUILD_PULL_REQUEST_AUTHOR_PARAMETER);
     Collection<SUser> candidates = new LinkedList<>();
     if (pullRequestAuthor != null) {

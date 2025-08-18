@@ -10,5 +10,5 @@ import java.util.function.Function;
 public interface BuildOwnerStrategy extends Function<SBuild, Collection<SUser>> {
   @Override
   @NotNull
-  Collection<SUser> apply(@NotNull SBuild build);
+  Collection<SUser> apply(@NotNull final SBuild build);
 }
