@@ -29,6 +29,11 @@ public class CommitStatusPublisherBuildPredicate implements BuildPredicate {
     return !buildPromotion.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE).isEmpty();
   }
 
+  /**
+   * Determines if the Commit Status Publisher Plugin is disabled for all dependent builds.
+   * @param buildPromotion input build promotion instance, starting point for dependency traversal.
+   * @return true if the Commit Status Publisher Plugin is NOT enabled on any of the dependent builds.
+   */
   private boolean canBePromoted(@NotNull final BuildPromotionEx buildPromotion) {
     final AtomicBoolean isCommitStatusPublisherPluginUsedByDependents = new AtomicBoolean(false);
     buildPromotion.traverseDependedOnMe(dependent -> {
