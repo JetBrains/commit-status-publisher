@@ -27,7 +27,15 @@ import jetbrains.buildServer.BuildAgent;
 import jetbrains.buildServer.QueuedBuild;
 import jetbrains.buildServer.buildTriggers.vcs.ModificationDataBuilder;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
+import jetbrains.buildServer.commitPublisher.processor.DefaultFavoriteBuildProcessor;
+import jetbrains.buildServer.commitPublisher.processor.FavoriteBuildProcessor;
+import jetbrains.buildServer.commitPublisher.processor.predicate.BuildPredicate;
+import jetbrains.buildServer.commitPublisher.processor.predicate.CommitStatusPublisherBuildPredicate;
+import jetbrains.buildServer.commitPublisher.processor.strategy.BuildOwnerStrategy;
+import jetbrains.buildServer.commitPublisher.processor.strategy.PullRequestBuildOwnerStrategy;
+import jetbrains.buildServer.favoriteBuilds.FavoriteBuildsManager;
 import jetbrains.buildServer.messages.Status;
+import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.buildDistribution.*;
 import jetbrains.buildServer.serverSide.dependency.DependencyFactory;
@@ -56,6 +64,7 @@ import jetbrains.buildServer.vcs.impl.VcsRootInstanceImpl;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -63,6 +72,8 @@ import org.testng.annotations.Test;
 import static jetbrains.buildServer.commitPublisher.CommitStatusPublisherListener.*;
 import static jetbrains.buildServer.serverSide.impl.MultiNodeTasksDbImpl.PROCESS_TASKS_DELAY_MILLIS;
 import static org.assertj.core.api.BDDAssertions.then;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 @Test
 public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTestBase {
@@ -78,16 +89,24 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
   private final Consumer<Event> myEventProcessedCallback = event -> myLastEventProcessed = event;
   private Map<String, SVcsRoot> myRoots;
   private AtomicBoolean myCanStartBuilds = new AtomicBoolean(false);
+  private FavoriteBuildProcessor  myFavoriteBuildProcessor;
+  private BuildOwnerStrategy  myBuildOwnerStrategy;
+  private BuildPredicate  myBuildPredicate;
 
   @BeforeMethod
   public void setUp() throws Exception {
     super.setUp();
     myLastEventProcessed = null;
     myLogger = new PublisherLogger();
+    final FavoriteBuildsManager favoriteBuildsManager = Mockito.mock(FavoriteBuildsManager.class);
+    doNothing().when(favoriteBuildsManager).tagBuild(Mockito.any(), Mockito.any());
+    myFavoriteBuildProcessor = Mockito.spy(new DefaultFavoriteBuildProcessor(favoriteBuildsManager));
+    myBuildOwnerStrategy = Mockito.spy(new PullRequestBuildOwnerStrategy(Mockito.mock(VcsRootUsernamesManager.class)));
+    myBuildPredicate = Mockito.mock(CommitStatusPublisherBuildPredicate.class);
     myListener = new CommitStatusPublisherListener(myFixture.getEventDispatcher(), new PublisherManager(myServer), myFixture.getHistory(), myBuildsManager, myFixture.getBuildPromotionManager(), myProblems,
                                                    myFixture.getServerResponsibility(), myFixture.getSingletonService(ExecutorServices.class),
                                                    myFixture.getSingletonService(ProjectManager.class), myFixture.getSingletonService(TeamCityNodes.class),
-                                                   myFixture.getSingletonService(UserModel.class), myMultiNodeTasks);
+                                                   myFixture.getSingletonService(UserModel.class), myMultiNodeTasks, myFavoriteBuildProcessor, myBuildOwnerStrategy, myBuildPredicate);
     myListener.setEventProcessedCallback(myEventProcessedCallback);
     myPublisher = new MockPublisher(myPublisherSettings, MockPublisherSettings.PUBLISHER_ID, myBuildType, myFeatureDescriptor.getId(),
                                     Collections.emptyMap(), myProblems, myLogger, myWebLinks);
@@ -1095,6 +1114,26 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     waitForTasksToFinish(Event.FAILURE_DETECTED);
     then(myPublisher.getEventsReceived()).isEqualTo(Arrays.asList(Event.QUEUED, Event.STARTED, Event.FINISHED, Event.FAILURE_DETECTED));
     then(myPublisher.isFailureReceived()).isTrue();
+  }
+
+  public void should_always_check_if_a_build_is_supported_when_a_build_artifact_changes() {
+    final SBuild myBuild = Mockito.mock(SBuild.class);
+    when(myBuild.getParametersProvider()).thenReturn(Mockito.mock(ParametersProvider.class));
+    when(myBuild.getParametersProvider().get(Mockito.eq(Constants.BUILD_PULL_REQUEST_AUTHOR_PARAMETER))).thenReturn("author");
+    when(myBuild.getBuildPromotion()).thenReturn(Mockito.mock(BuildPromotionEx.class));
+    when(myBuildPredicate.test(Mockito.any())).thenReturn(false);
+    myListener.buildArtifactsChanged(myBuild);
+    Mockito.verify(myFavoriteBuildProcessor, Mockito.times(1)).isSupported(myBuild, myBuildPredicate);
+  }
+
+  public void should_run_marking_process_if_a_build_is_supported() {
+    final SBuild myBuild = Mockito.mock(SBuild.class);
+    when(myBuild.getBuildPromotion()).thenReturn(Mockito.mock(BuildPromotionEx.class));
+    when(myBuild.getParametersProvider()).thenReturn(Mockito.mock(ParametersProvider.class));
+    when(myBuild.getParametersProvider().get(Constants.BUILD_PULL_REQUEST_AUTHOR_PARAMETER)).thenReturn(null);
+    when(myBuildPredicate.test(Mockito.any())).thenReturn(true);
+    myListener.buildArtifactsChanged(myBuild);
+    Mockito.verify(myFavoriteBuildProcessor, Mockito.times(1)).markAsFavorite(myBuild, myBuildOwnerStrategy);
   }
 
   // TODO: add test for test retries enabled in runtime (via service message)

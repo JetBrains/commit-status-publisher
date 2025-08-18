@@ -25,6 +25,9 @@ import java.util.regex.Pattern;
 import jetbrains.buildServer.BuildAgent;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
+import jetbrains.buildServer.commitPublisher.processor.FavoriteBuildProcessor;
+import jetbrains.buildServer.commitPublisher.processor.predicate.BuildPredicate;
+import jetbrains.buildServer.commitPublisher.processor.strategy.BuildOwnerStrategy;
 import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -46,6 +49,7 @@ import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.mockito.Mockito;
 import org.testng.annotations.Test;
 
 import static org.assertj.core.api.BDDAssertions.then;
@@ -293,7 +297,8 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
     new CommitStatusPublisherListener(myFixture.getEventDispatcher(), new PublisherManager(myServer), myFixture.getHistory(), myFixture.getBuildsManager(), myFixture.getBuildPromotionManager(), myProblems,
                                                                                myFixture.getServerResponsibility(), myFixture.getSingletonService(ExecutorServices.class),
                                                                                myFixture.getSingletonService(ProjectManager.class), myFixture.getSingletonService(TeamCityNodes.class),
-                                                                               myFixture.getSingletonService(UserModel.class), myFixture.getMultiNodeTasks());
+                                                                               myFixture.getSingletonService(UserModel.class), myFixture.getMultiNodeTasks(),
+                                                                               Mockito.mock(FavoriteBuildProcessor.class), Mockito.mock(BuildOwnerStrategy.class), Mockito.mock(BuildPredicate.class));
 
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().stream().filter(root -> root.getParent().getId() == myVcsRoot.getId()).findFirst().get();
     setUpFeature();

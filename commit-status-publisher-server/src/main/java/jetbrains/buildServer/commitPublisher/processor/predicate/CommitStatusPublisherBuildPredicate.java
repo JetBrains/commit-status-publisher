@@ -30,7 +30,7 @@ public class CommitStatusPublisherBuildPredicate implements BuildPredicate {
   }
 
   private boolean canBePromoted(@NotNull final BuildPromotionEx buildPromotion) {
-    final AtomicBoolean isCommitStatusPublisherPluginUsedByDependents= new AtomicBoolean(false);
+    final AtomicBoolean isCommitStatusPublisherPluginUsedByDependents = new AtomicBoolean(false);
     buildPromotion.traverseDependedOnMe(dependent -> {
       if(supportsCommitStatusPublisherPlugin(dependent)) {
         isCommitStatusPublisherPluginUsedByDependents.set(true);

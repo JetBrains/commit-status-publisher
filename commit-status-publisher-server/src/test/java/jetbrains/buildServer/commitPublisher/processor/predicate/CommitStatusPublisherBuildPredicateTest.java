@@ -2,7 +2,9 @@ package jetbrains.buildServer.commitPublisher.processor.predicate;
 
 import jetbrains.buildServer.BaseTestCase;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
+import jetbrains.buildServer.favoriteBuilds.FavoriteBuildsManager;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.users.SUser;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -35,13 +37,17 @@ public class CommitStatusPublisherBuildPredicateTest extends BaseTestCase {
     when(myBuildWithoutCPS.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE)).thenReturn(Collections.emptySet());
 
     when(myBuildPromotionWithCPS.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE)).thenReturn(Collections.singleton(Mockito.mock(SBuildFeatureDescriptor.class)));
-
+    when(myBuildPromotionWithCPS.getTagDatas()).thenReturn(Collections.emptyList());
     myBuildPredicate = new CommitStatusPublisherBuildPredicate();
   }
 
   public void should_not_accept_build_without_csp_plugin() {
     assertFalse(myBuildPredicate.test(myBuildWithoutCPS));
-    assertTrue(myBuildPredicate.test(myBuildWithCPS));
+  }
+
+  public void should_not_accept_build_already_tagged_as_favorite() {
+    when(myBuildPromotionWithCPS.getTagDatas()).thenReturn(Collections.singletonList(TagData.createPrivateTag(FavoriteBuildsManager.FAVORITE_BUILD_TAG, Mockito.mock(SUser.class))));
+    assertFalse(myBuildPredicate.test(myBuildWithCPS));
   }
 
   public void should_decline_when_build_has_cps_and_a_dependent_build_has_cps_plugin() {
