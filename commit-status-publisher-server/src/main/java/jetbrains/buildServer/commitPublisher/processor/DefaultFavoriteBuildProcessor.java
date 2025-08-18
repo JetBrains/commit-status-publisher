@@ -1,7 +1,8 @@
 package jetbrains.buildServer.commitPublisher.processor;
 
 import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.commitPublisher.processor.suppplier.BuildOwnerStrategy;
+import jetbrains.buildServer.commitPublisher.processor.predicate.BuildPredicate;
+import jetbrains.buildServer.commitPublisher.processor.strategy.BuildOwnerStrategy;
 import jetbrains.buildServer.favoriteBuilds.FavoriteBuildsManager;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -31,5 +32,10 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
       .stream()
       .filter(this::shouldMarkAsFavorite)
       .forEach(candidate -> myFavoriteBuildsManager.tagBuild(buildPromotion, candidate));
+  }
+
+  @Override
+  public boolean isSupported(@NotNull SBuild build, @NotNull BuildPredicate buildPredicate) {
+    return buildPredicate.test(build);
   }
 }

@@ -1,4 +1,4 @@
-package jetbrains.buildServer.commitPublisher.processor.suppplier;
+package jetbrains.buildServer.commitPublisher.processor.strategy;
 
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.users.SUser;

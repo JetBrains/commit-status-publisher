@@ -1,4 +1,4 @@
-package jetbrains.buildServer.commitPublisher.processor.suppplier;
+package jetbrains.buildServer.commitPublisher.processor.strategy;
 
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -8,7 +8,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedList;
 
 public class PullRequestBuildOwnerStrategy implements BuildOwnerStrategy {
