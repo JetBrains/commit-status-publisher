@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.function.Function;
 
-public interface BuildOwnerStrategy extends Function<SBuild, Collection<SUser>> {
+public interface BuildOwnerSupplier extends Function<SBuild, Collection<SUser>> {
   @Override
   @NotNull
   Collection<SUser> apply(@NotNull final SBuild build);

@@ -10,11 +10,12 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 import java.util.LinkedList;
 
-public class PullRequestBuildOwnerStrategy implements BuildOwnerStrategy {
+//TODO: Add info regarding the use of the Pull Request Plugin
+public class PullRequestBuildOwnerSupplier implements BuildOwnerSupplier {
 
   private final VcsRootUsernamesManager myVcsRootUsernamesManager;
 
-  public PullRequestBuildOwnerStrategy(@NotNull final VcsRootUsernamesManager vcsRootUsernamesManager) {
+  public PullRequestBuildOwnerSupplier(@NotNull final VcsRootUsernamesManager vcsRootUsernamesManager) {
     myVcsRootUsernamesManager = vcsRootUsernamesManager;
   }
 

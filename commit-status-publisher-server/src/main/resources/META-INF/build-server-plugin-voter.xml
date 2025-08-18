@@ -84,7 +84,7 @@
 
   <!-- favorite build processor -->
   <bean class="jetbrains.buildServer.commitPublisher.processor.DefaultFavoriteBuildProcessor"/>
-  <bean class="jetbrains.buildServer.commitPublisher.processor.strategy.PullRequestBuildOwnerStrategy"/>
+  <bean class="jetbrains.buildServer.commitPublisher.processor.strategy.PullRequestBuildOwnerSupplier"/>
   <bean class="jetbrains.buildServer.commitPublisher.processor.predicate.CommitStatusPublisherBuildPredicate"/>
 
   <bean class="jetbrains.buildServer.commitPublisher.ServerListener">

@@ -14,16 +14,15 @@ import org.testng.annotations.Test;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
 import static org.mockito.Mockito.when;
 
 @Test
-public class PullRequestBuildOwnerStrategyTest extends BaseTestCase {
+public class PullRequestBuildOwnerSupplierTest extends BaseTestCase {
   private SBuild myBuildWithParameter;
   private SBuild myBuildWithoutParameter;
   private SUser myUser;
-  private BuildOwnerStrategy myBuildOwnerStrategy;
+  private BuildOwnerSupplier myBuildOwnerSupplier;
   private final String username = "test";
 
   @Override
@@ -53,12 +52,12 @@ public class PullRequestBuildOwnerStrategyTest extends BaseTestCase {
     when(vcsRootUsernamesManager.getUsers(Mockito.eq(vcsRootInstance), Mockito.eq(username))).thenReturn(Collections.singletonList(myUser));
 
 
-    myBuildOwnerStrategy = new PullRequestBuildOwnerStrategy(vcsRootUsernamesManager);
+    myBuildOwnerSupplier = new PullRequestBuildOwnerSupplier(vcsRootUsernamesManager);
   }
 
   public void should_return_collection_only_when_pull_request_author_parameter_is_true() {
-    assertEmpty(myBuildOwnerStrategy.apply(myBuildWithoutParameter));
-    final Collection<SUser> userList = myBuildOwnerStrategy.apply(myBuildWithParameter);
+    assertEmpty(myBuildOwnerSupplier.apply(myBuildWithoutParameter));
+    final Collection<SUser> userList = myBuildOwnerSupplier.apply(myBuildWithParameter);
     assertEquals(1, userList.size());
     assertContains(userList, myUser);
   }

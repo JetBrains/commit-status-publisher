@@ -1,7 +1,7 @@
 package jetbrains.buildServer.commitPublisher.processor;
 
 import jetbrains.buildServer.commitPublisher.processor.predicate.BuildPredicate;
-import jetbrains.buildServer.commitPublisher.processor.strategy.BuildOwnerStrategy;
+import jetbrains.buildServer.commitPublisher.processor.strategy.BuildOwnerSupplier;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
@@ -15,11 +15,11 @@ public interface FavoriteBuildProcessor {
   boolean shouldMarkAsFavorite(@NotNull final SUser user);
 
   /**
-   * Mark the input build as favorite for all the users retrieved by the {@link BuildOwnerStrategy} class.
+   * Mark the input build as favorite for all the users retrieved by the {@link BuildOwnerSupplier} class.
    * @param build input build instance.
-   * @param buildOwnerStrategy input build owner strategy for retrieving all the users from the input build.
+   * @param buildOwnerSupplier input build owner strategy for retrieving all the users from the input build.
    */
-  void markAsFavorite(@NotNull final SBuild build, @NotNull final BuildOwnerStrategy buildOwnerStrategy);
+  void markAsFavorite(@NotNull final SBuild build, @NotNull final BuildOwnerSupplier buildOwnerSupplier);
 
   /**
    * Check if a build is supported by using a {@link BuildPredicate} class.

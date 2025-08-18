@@ -15,7 +15,7 @@ public class CommitStatusPublisherBuildPredicate implements BuildPredicate {
   @Override
   public boolean test(@NotNull SBuild build) {
     final BuildPromotion buildPromotion = build.getBuildPromotion();
-    if (supportsCommitStatusPublisherPlugin(buildPromotion) && !isAlreadyTagged(buildPromotion)) {
+    if (hasCommitStatusPublisherFeature(buildPromotion) && !isAlreadyTagged(buildPromotion)) {
       return canBePromoted((BuildPromotionEx)buildPromotion);
     }
     return false;
@@ -25,7 +25,7 @@ public class CommitStatusPublisherBuildPredicate implements BuildPredicate {
     return buildPromotion.getTagDatas().stream().anyMatch(tagData -> tagData.getLabel().equals(FavoriteBuildsManager.FAVORITE_BUILD_TAG));
   }
 
-  private boolean supportsCommitStatusPublisherPlugin(@NotNull final BuildPromotion buildPromotion) {
+  private boolean hasCommitStatusPublisherFeature(@NotNull final BuildPromotion buildPromotion) {
     return !buildPromotion.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE).isEmpty();
   }
 
@@ -37,7 +37,7 @@ public class CommitStatusPublisherBuildPredicate implements BuildPredicate {
   private boolean canBePromoted(@NotNull final BuildPromotionEx buildPromotion) {
     final AtomicBoolean isCommitStatusPublisherPluginUsedByDependents = new AtomicBoolean(false);
     buildPromotion.traverseDependedOnMe(dependent -> {
-      if(supportsCommitStatusPublisherPlugin(dependent)) {
+      if(hasCommitStatusPublisherFeature(dependent)) {
         isCommitStatusPublisherPluginUsedByDependents.set(true);
         return DependencyConsumer.Result.STOP;
       }

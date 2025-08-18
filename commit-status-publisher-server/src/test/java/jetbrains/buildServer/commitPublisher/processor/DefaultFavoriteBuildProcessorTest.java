@@ -3,7 +3,7 @@ package jetbrains.buildServer.commitPublisher.processor;
 import jetbrains.buildServer.BaseTestCase;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.processor.predicate.BuildPredicate;
-import jetbrains.buildServer.commitPublisher.processor.strategy.BuildOwnerStrategy;
+import jetbrains.buildServer.commitPublisher.processor.strategy.BuildOwnerSupplier;
 import jetbrains.buildServer.favoriteBuilds.FavoriteBuildsManager;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.serverSide.BuildPromotion;
@@ -28,7 +28,7 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
   private SBuild myNotSupportedBuild;
   private SBuild mySupportedBuild;
   private FavoriteBuildsManager myFavoriteBuildsManager;
-  private BuildOwnerStrategy myBuildOwnerStrategy;
+  private BuildOwnerSupplier myBuildOwnerSupplier;
   private BuildPredicate myBuildPredicate;
   private DefaultFavoriteBuildProcessor myFavoriteBuildProcessor;
   private final Date today = new Date();
@@ -60,8 +60,8 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
     when(mySupportedBuild.getBuildId()).thenReturn(1L);
     when(myNotSupportedBuild.getBuildId()).thenReturn(2L);
 
-    myBuildOwnerStrategy= Mockito.mock(BuildOwnerStrategy.class);
-    when(myBuildOwnerStrategy.apply(mySupportedBuild)).thenReturn(Collections.singletonList(myTrueUser));
+    myBuildOwnerSupplier = Mockito.mock(BuildOwnerSupplier.class);
+    when(myBuildOwnerSupplier.apply(mySupportedBuild)).thenReturn(Collections.singletonList(myTrueUser));
 
     myBuildPredicate = Mockito.mock(BuildPredicate.class);
     when(myBuildPredicate.test(mySupportedBuild)).thenReturn(true);
@@ -85,14 +85,14 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
 
 
   public void should_mark_as_favorite_when_checkbox_is_true_and_build_is_supported() {
-    myFavoriteBuildProcessor.markAsFavorite(mySupportedBuild, myBuildOwnerStrategy);
+    myFavoriteBuildProcessor.markAsFavorite(mySupportedBuild, myBuildOwnerSupplier);
     Mockito.verify(mySupportedBuild, Mockito.atLeastOnce()).getBuildPromotion();
     Mockito.verify(myFavoriteBuildsManager, Mockito.times(1)).tagBuild(mySupportedBuild.getBuildPromotion(), myTrueUser);
   }
 
   public void should_not_mark_as_favorite_when_checkbox_is_false_and_build_is_supported() {
-    when(myBuildOwnerStrategy.apply(mySupportedBuild)).thenReturn(Collections.singletonList(myFalseUser));
-    myFavoriteBuildProcessor.markAsFavorite(mySupportedBuild, myBuildOwnerStrategy);
+    when(myBuildOwnerSupplier.apply(mySupportedBuild)).thenReturn(Collections.singletonList(myFalseUser));
+    myFavoriteBuildProcessor.markAsFavorite(mySupportedBuild, myBuildOwnerSupplier);
     Mockito.verify(myFavoriteBuildsManager, Mockito.never()).tagBuild(mySupportedBuild.getBuildPromotion(), myFalseUser);
   }
 }
