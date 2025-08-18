@@ -7,10 +7,14 @@ import jetbrains.buildServer.vcs.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
-import java.util.LinkedList;
+import java.util.HashSet;
+import java.util.Set;
 
-//TODO: Add info regarding the use of the Pull Request Plugin
+/**
+ * This {@link BuildOwnerSupplier} class uses information given by the PullRequest plugin,
+ * in order to work this supplier takes from the build's parameters the pull request author.
+ * If the Pull Request plugin is not enabled on this build, then it will always return an empty collection.
+ */
 public class PullRequestBuildOwnerSupplier implements BuildOwnerSupplier {
 
   private final VcsRootUsernamesManager myVcsRootUsernamesManager;
@@ -21,9 +25,9 @@ public class PullRequestBuildOwnerSupplier implements BuildOwnerSupplier {
 
   @Override
   @NotNull
-  public Collection<SUser> apply(@NotNull final SBuild build) {
+  public Set<SUser> apply(@NotNull final SBuild build) {
     @Nullable final String pullRequestAuthor = build.getParametersProvider().get(Constants.BUILD_PULL_REQUEST_AUTHOR_PARAMETER);
-    Collection<SUser> candidates = new LinkedList<>();
+    final Set<SUser> candidates = new HashSet<>();
     if (pullRequestAuthor != null) {
       for (final VcsRootInstanceEntry vcsRootEntry : build.getVcsRootEntries()) {
         candidates.addAll(myVcsRootUsernamesManager.getUsers(vcsRootEntry.getVcsRoot(), pullRequestAuthor));

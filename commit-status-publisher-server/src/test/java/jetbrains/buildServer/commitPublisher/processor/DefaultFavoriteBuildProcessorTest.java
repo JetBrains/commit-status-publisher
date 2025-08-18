@@ -11,12 +11,15 @@ import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
+import jetbrains.buildServer.users.UserSet;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
@@ -61,7 +64,7 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
     when(myNotSupportedBuild.getBuildId()).thenReturn(2L);
 
     myBuildOwnerSupplier = Mockito.mock(BuildOwnerSupplier.class);
-    when(myBuildOwnerSupplier.apply(mySupportedBuild)).thenReturn(Collections.singletonList(myTrueUser));
+    when(myBuildOwnerSupplier.apply(mySupportedBuild)).thenReturn(new HashSet<>(Collections.singletonList(myTrueUser)));
 
     myBuildPredicate = Mockito.mock(BuildPredicate.class);
     when(myBuildPredicate.test(mySupportedBuild)).thenReturn(true);
@@ -91,7 +94,7 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
   }
 
   public void should_not_mark_as_favorite_when_checkbox_is_false_and_build_is_supported() {
-    when(myBuildOwnerSupplier.apply(mySupportedBuild)).thenReturn(Collections.singletonList(myFalseUser));
+    when(myBuildOwnerSupplier.apply(mySupportedBuild)).thenReturn(new HashSet<>(Collections.singletonList(myFalseUser)));
     myFavoriteBuildProcessor.markAsFavorite(mySupportedBuild, myBuildOwnerSupplier);
     Mockito.verify(myFavoriteBuildsManager, Mockito.never()).tagBuild(mySupportedBuild.getBuildPromotion(), myFalseUser);
   }
