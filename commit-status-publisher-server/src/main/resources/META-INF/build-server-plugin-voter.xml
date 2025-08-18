@@ -82,6 +82,11 @@
   <bean class="jetbrains.buildServer.swarm.web.SwarmChangeLinkExtension"/>
   <bean class="jetbrains.buildServer.swarm.web.SwarmController"/>
 
+  <!-- favorite build processor -->
+  <bean class="jetbrains.buildServer.commitPublisher.processor.DefaultFavoriteBuildProcessor"/>
+  <bean class="jetbrains.buildServer.commitPublisher.processor.strategy.PullRequestBuildOwnerStrategy"/>
+  <bean class="jetbrains.buildServer.commitPublisher.processor.predicate.CommitStatusPublisherBuildPredicate"/>
+
   <bean class="jetbrains.buildServer.commitPublisher.ServerListener">
     <constructor-arg index="0" ref="configActionsDispatcher"/>
   </bean>
