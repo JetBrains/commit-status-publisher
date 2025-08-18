@@ -34,6 +34,9 @@ import jetbrains.buildServer.BuildProblemTypes;
 import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.Used;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
+import jetbrains.buildServer.commitPublisher.processor.FavoriteBuildProcessor;
+import jetbrains.buildServer.commitPublisher.processor.predicate.BuildPredicate;
+import jetbrains.buildServer.commitPublisher.processor.strategy.BuildOwnerStrategy;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.MultiNodeTasks.PerformingTask;
@@ -86,6 +89,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   private final ProjectManager myProjectManager;
   private final TeamCityNodes myTeamCityNodes;
   private final UserModel myUserModel;
+  private final FavoriteBuildProcessor myFavoriteBuildProcessor;
+  private final BuildOwnerStrategy myBuildOwnerStrategy;
+  private final BuildPredicate myBuildPredicate;
   private final Map<String, Event> myEventTypes = new HashMap<>();
   private final Striped<Lock> myPublishingLocks;
   private final Map<Long, Event> myLastEvents =
@@ -114,7 +120,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
                                        @NotNull ProjectManager projectManager,
                                        @NotNull TeamCityNodes teamCityNodes,
                                        @NotNull UserModel userModel,
-                                       @NotNull MultiNodeTasks multiNodeTasks) {
+                                       @NotNull MultiNodeTasks multiNodeTasks,
+                                       @NotNull FavoriteBuildProcessor favoriteBuildProcessor,
+                                       @NotNull BuildOwnerStrategy buildOwnerStrategy,
+                                       @NotNull BuildPredicate buildPredicate) {
     myPublisherManager = voterManager;
     myBuildHistory = buildHistory;
     myBuildsManager = buildsManager;
@@ -126,6 +135,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     myExecutorServices = executorServices;
     myProjectManager = projectManager;
     myUserModel = userModel;
+    myFavoriteBuildProcessor = favoriteBuildProcessor;
+    myBuildOwnerStrategy = buildOwnerStrategy;
+    myBuildPredicate = buildPredicate;
     myEventTypes.putAll(Arrays.stream(Event.values()).collect(Collectors.toMap(Event::getName, et -> et)));
     myPublishingLocks = Striped.lazyWeakLock(TeamCityProperties.getInteger(LOCKS_STRIPES, LOCKS_STRIPES_DEFAULT));
 
@@ -200,6 +212,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
         }
       }
     ));
+  }
+
+  @Override
+  public void buildArtifactsChanged(@NotNull SBuild build) {
+    if (myFavoriteBuildProcessor.isSupported(build, myBuildPredicate)) {
+      myFavoriteBuildProcessor.markAsFavorite(build, myBuildOwnerStrategy);
+    }
   }
 
   private Pair<String, User> getCommentWithAuthor(BuildPromotion buildPromotion) {
