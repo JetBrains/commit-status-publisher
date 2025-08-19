@@ -2,7 +2,6 @@ package jetbrains.buildServer.commitPublisher.processor;
 
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
 import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.commitPublisher.processor.predicate.BuildPredicate;
 import jetbrains.buildServer.commitPublisher.processor.strategy.BuildOwnerSupplier;
 import jetbrains.buildServer.favoriteBuilds.FavoriteBuildsManager;
 import jetbrains.buildServer.serverSide.BuildPromotion;
@@ -48,7 +47,7 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
   }
 
   private boolean isStillRunning(@NotNull final SBuild build) {
-    return build.getFinishDate() == null;
+    return !build.isFinished();
   }
 
   private boolean isSupported(@NotNull final BuildPromotion buildPromotion) {

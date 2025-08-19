@@ -26,7 +26,6 @@ import jetbrains.buildServer.BuildAgent;
 import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.processor.FavoriteBuildProcessor;
-import jetbrains.buildServer.commitPublisher.processor.predicate.BuildPredicate;
 import jetbrains.buildServer.commitPublisher.processor.strategy.BuildOwnerSupplier;
 import jetbrains.buildServer.messages.ErrorData;
 import jetbrains.buildServer.messages.Status;
@@ -298,7 +297,7 @@ public abstract class CommitStatusPublisherTest extends BaseServerTestCase {
                                                                                myFixture.getServerResponsibility(), myFixture.getSingletonService(ExecutorServices.class),
                                                                                myFixture.getSingletonService(ProjectManager.class), myFixture.getSingletonService(TeamCityNodes.class),
                                                                                myFixture.getSingletonService(UserModel.class), myFixture.getMultiNodeTasks(),
-                                                                               Mockito.mock(FavoriteBuildProcessor.class), Mockito.mock(BuildOwnerSupplier.class), Mockito.mock(BuildPredicate.class));
+                                                                               Mockito.mock(FavoriteBuildProcessor.class), Mockito.mock(BuildOwnerSupplier.class));
 
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstances().stream().filter(root -> root.getParent().getId() == myVcsRoot.getId()).findFirst().get();
     setUpFeature();

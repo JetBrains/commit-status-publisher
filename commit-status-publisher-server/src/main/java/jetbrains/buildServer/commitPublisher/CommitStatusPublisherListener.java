@@ -35,7 +35,6 @@ import jetbrains.buildServer.BuildType;
 import jetbrains.buildServer.Used;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.processor.FavoriteBuildProcessor;
-import jetbrains.buildServer.commitPublisher.processor.predicate.BuildPredicate;
 import jetbrains.buildServer.commitPublisher.processor.strategy.BuildOwnerSupplier;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
@@ -91,7 +90,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   private final UserModel myUserModel;
   private final FavoriteBuildProcessor myFavoriteBuildProcessor;
   private final BuildOwnerSupplier myBuildOwnerSupplier;
-  private final BuildPredicate myBuildPredicate;
   private final Map<String, Event> myEventTypes = new HashMap<>();
   private final Striped<Lock> myPublishingLocks;
   private final Map<Long, Event> myLastEvents =
@@ -122,8 +120,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
                                        @NotNull UserModel userModel,
                                        @NotNull MultiNodeTasks multiNodeTasks,
                                        @NotNull FavoriteBuildProcessor favoriteBuildProcessor,
-                                       @NotNull BuildOwnerSupplier buildOwnerStrategy,
-                                       @NotNull BuildPredicate buildPredicate) {
+                                       @NotNull BuildOwnerSupplier buildOwnerStrategy) {
     myPublisherManager = voterManager;
     myBuildHistory = buildHistory;
     myBuildsManager = buildsManager;
@@ -137,7 +134,6 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     myUserModel = userModel;
     myFavoriteBuildProcessor = favoriteBuildProcessor;
     myBuildOwnerSupplier = buildOwnerStrategy;
-    myBuildPredicate = buildPredicate;
     myEventTypes.putAll(Arrays.stream(Event.values()).collect(Collectors.toMap(Event::getName, et -> et)));
     myPublishingLocks = Striped.lazyWeakLock(TeamCityProperties.getInteger(LOCKS_STRIPES, LOCKS_STRIPES_DEFAULT));
 
@@ -214,11 +210,10 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
     ));
   }
 
+
   @Override
   public void buildArtifactsChanged(@NotNull SBuild build) {
-    if (myFavoriteBuildProcessor.isSupported(build, myBuildPredicate)) {
-      myFavoriteBuildProcessor.markAsFavorite(build, myBuildOwnerSupplier);
-    }
+    myFavoriteBuildProcessor.markAsFavorite(build, myBuildOwnerSupplier);
   }
 
   private Pair<String, User> getCommentWithAuthor(BuildPromotion buildPromotion) {
