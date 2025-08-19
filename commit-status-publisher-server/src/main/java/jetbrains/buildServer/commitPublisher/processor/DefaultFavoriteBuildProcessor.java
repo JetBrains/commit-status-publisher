@@ -34,7 +34,7 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
   public boolean markAsFavorite(@NotNull final SBuild build, @NotNull final BuildOwnerSupplier buildOwnerSupplier) {
     final BuildPromotion buildPromotion = build.getBuildPromotion();
     if (isStillRunning(build) && isSupported(buildPromotion)) {
-      final Collection<SUser> candidates = buildOwnerSupplier.apply(build).stream()
+      final Collection<SUser> candidates = buildOwnerSupplier.supplyFrom(build).stream()
         .filter(this::shouldMarkAsFavorite)
         .collect(Collectors.toSet());
 

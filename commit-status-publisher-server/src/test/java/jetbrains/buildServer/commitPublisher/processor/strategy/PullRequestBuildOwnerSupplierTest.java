@@ -56,8 +56,8 @@ public class PullRequestBuildOwnerSupplierTest extends BaseTestCase {
   }
 
   public void should_return_collection_only_when_pull_request_author_parameter_is_true() {
-    assertEmpty(myBuildOwnerSupplier.apply(myBuildWithoutParameter));
-    final Collection<SUser> userList = myBuildOwnerSupplier.apply(myBuildWithParameter);
+    assertEmpty(myBuildOwnerSupplier.supplyFrom(myBuildWithoutParameter));
+    final Collection<SUser> userList = myBuildOwnerSupplier.supplyFrom(myBuildWithParameter);
     assertEquals(1, userList.size());
     assertContains(userList, myUser);
   }

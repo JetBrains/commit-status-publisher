@@ -5,10 +5,8 @@ import jetbrains.buildServer.users.SUser;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
-import java.util.function.Function;
 
-public interface BuildOwnerSupplier extends Function<SBuild, Set<SUser>> {
-  @Override
+public interface BuildOwnerSupplier {
   @NotNull
-  Set<SUser> apply(@NotNull final SBuild build);
+  Set<SUser> supplyFrom(@NotNull final SBuild build);
 }

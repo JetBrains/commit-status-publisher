@@ -15,7 +15,6 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 
 import static org.mockito.Mockito.*;
@@ -59,7 +58,7 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
     when(mySupportedBuild.getBuildPromotion()).thenReturn(myBuildPromotion);
 
     myBuildOwnerSupplier = Mockito.mock(BuildOwnerSupplier.class);
-    when(myBuildOwnerSupplier.apply(mySupportedBuild)).thenReturn(new HashSet<>(Collections.singletonList(myTrueUser)));
+    when(myBuildOwnerSupplier.supplyFrom(mySupportedBuild)).thenReturn(new HashSet<>(Collections.singletonList(myTrueUser)));
     myFavoriteBuildsManager = Mockito.mock(FavoriteBuildsManager.class);
     doNothing().when(myFavoriteBuildsManager).tagBuild(Mockito.any(), Mockito.any());
 
@@ -121,9 +120,9 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
 
   public void should_return_false_if_no_users_are_provided_or_checkbox_is_false() {
     doAnswer(invocation -> null).when(myBuildPromotion).traverseDependedOnMe(Mockito.any());
-    when(myBuildOwnerSupplier.apply(Mockito.any())).thenReturn(new HashSet<>(Collections.singletonList(myFalseUser)));
+    when(myBuildOwnerSupplier.supplyFrom(Mockito.any())).thenReturn(new HashSet<>(Collections.singletonList(myFalseUser)));
     assertFalse(myFavoriteBuildProcessor.markAsFavorite(mySupportedBuild, myBuildOwnerSupplier));
-    when(myBuildOwnerSupplier.apply(Mockito.any())).thenReturn(Collections.emptySet());
+    when(myBuildOwnerSupplier.supplyFrom(Mockito.any())).thenReturn(Collections.emptySet());
     assertFalse(myFavoriteBuildProcessor.markAsFavorite(mySupportedBuild, myBuildOwnerSupplier));
   }
 }

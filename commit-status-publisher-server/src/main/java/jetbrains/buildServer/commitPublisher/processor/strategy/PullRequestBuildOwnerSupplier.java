@@ -25,7 +25,7 @@ public class PullRequestBuildOwnerSupplier implements BuildOwnerSupplier {
 
   @Override
   @NotNull
-  public Set<SUser> apply(@NotNull final SBuild build) {
+  public Set<SUser> supplyFrom(@NotNull final SBuild build) {
     @Nullable final String pullRequestAuthor = build.getParametersProvider().get(Constants.BUILD_PULL_REQUEST_AUTHOR_PARAMETER);
     final Set<SUser> candidates = new HashSet<>();
     if (pullRequestAuthor != null) {
