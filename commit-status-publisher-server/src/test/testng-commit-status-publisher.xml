@@ -60,7 +60,6 @@
       <class name="jetbrains.buildServer.commitPublisher.PublisherManagerTest" />
       <class name="jetbrains.buildServer.commitPublisher.configuration.CommitStatusPublisherFeatureBuilderFactoryTest" />
       <class name="jetbrains.buildServer.commitPublisher.processor.strategy.PullRequestBuildOwnerSupplierTest" />
-      <class name="jetbrains.buildServer.commitPublisher.processor.predicate.CommitStatusPublisherBuildPredicateTest" />
       <class name="jetbrains.buildServer.commitPublisher.processor.DefaultFavoriteBuildProcessorTest" />
     </classes>
   </test>
