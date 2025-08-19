@@ -1113,21 +1113,11 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.isFailureReceived()).isTrue();
   }
 
-  public void should_always_check_if_a_build_is_supported_when_a_build_artifact_changes() {
+  public void should_always_call_favorite_build_processor_when_build_artifacts_changed_event_is_captured() {
     final SBuild myBuild = Mockito.mock(SBuild.class);
     when(myBuild.getParametersProvider()).thenReturn(Mockito.mock(ParametersProvider.class));
     when(myBuild.getParametersProvider().get(Mockito.eq(Constants.BUILD_PULL_REQUEST_AUTHOR_PARAMETER))).thenReturn("author");
     when(myBuild.getBuildPromotion()).thenReturn(Mockito.mock(BuildPromotionEx.class));
-    myListener.buildArtifactsChanged(myBuild);
-    //TODO: Refactor this
-//    Mockito.verify(myFavoriteBuildProcessor, Mockito.times(1)).isSupported(myBuild, myBuildPredicate);
-  }
-
-  public void should_run_marking_process_if_a_build_is_supported() {
-    final SBuild myBuild = Mockito.mock(SBuild.class);
-    when(myBuild.getBuildPromotion()).thenReturn(Mockito.mock(BuildPromotionEx.class));
-    when(myBuild.getParametersProvider()).thenReturn(Mockito.mock(ParametersProvider.class));
-    when(myBuild.getParametersProvider().get(Constants.BUILD_PULL_REQUEST_AUTHOR_PARAMETER)).thenReturn(null);
     myListener.buildArtifactsChanged(myBuild);
     Mockito.verify(myFavoriteBuildProcessor, Mockito.times(1)).markAsFavorite(myBuild, myBuildOwnerSupplier);
   }
