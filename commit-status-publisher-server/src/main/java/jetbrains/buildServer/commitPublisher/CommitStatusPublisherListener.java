@@ -211,6 +211,13 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
   }
 
 
+  /**
+   * The "mark as favorite" process relies on the parameters provided by the pull request plugin (in particular the pull request author),
+   * the problem is that they will become visible on the server side only when the agent publishes the "build start properties".
+   * So right now we have to react on each `buildArtifactsChanged` event and do the check if the input build is eligible for the
+   * "mark as favorite" process.
+   * @param build input build with new artifacts.
+   */
   @Override
   public void buildArtifactsChanged(@NotNull SBuild build) {
     myFavoriteBuildProcessor.markAsFavorite(build, myBuildOwnerSupplier);
