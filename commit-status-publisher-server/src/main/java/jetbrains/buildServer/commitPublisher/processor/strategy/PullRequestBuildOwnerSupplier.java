@@ -14,6 +14,11 @@ import java.util.Set;
  * This {@link BuildOwnerSupplier} class uses information given by the PullRequest plugin,
  * in order to work this supplier takes from the build's parameters the pull request author.
  * If the Pull Request plugin is not enabled on this build, then it will always return an empty collection.
+ * The constant BUILD_PULL_REQUEST_AUTHOR_PARAMETER is set by the PullRequest plugin, more in particular this value
+ * contains the contributor username of the pull request. This value (the contributor username) is matched with a TeamCity user using the
+ * {@link VcsRootUsernamesManager} class, by using the method getUsers. We collect all the users retrieved in a Set, because
+ * It is possible to have the same user repeated (in case the same contributor username name is specified in multiple VCS usernames for the same user).
+ * The {@link VcsRootUsernamesManager} by default checks the usernames defined in: defaultKeys, usernameForVcs and usernameForRoot.
  */
 public class PullRequestBuildOwnerSupplier implements BuildOwnerSupplier {
 

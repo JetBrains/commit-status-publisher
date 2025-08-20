@@ -13,9 +13,7 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
 
