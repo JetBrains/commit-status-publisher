@@ -47,7 +47,7 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
   }
 
   private boolean isSupported(@NotNull final BuildPromotion buildPromotion) {
-    if (hasCommitStatusPublisherFeature(buildPromotion) && !isAlreadyTagged(buildPromotion)) {
+    if (hasCommitStatusPublisherFeature(buildPromotion) && !isAlreadyTagged(buildPromotion) && (buildPromotion instanceof BuildPromotionEx)) {
       // if commit status publisher build feature is enabled in one of the dependent builds, we have to skip this build.
       return !isCommitStatusPublisherFeatureEnabledInDependentBuilds((BuildPromotionEx) buildPromotion);
     }
