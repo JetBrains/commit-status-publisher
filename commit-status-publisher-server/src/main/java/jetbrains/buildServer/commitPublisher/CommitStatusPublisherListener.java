@@ -215,7 +215,11 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
    * The "mark as favorite" process relies on the parameters provided by the pull request plugin (in particular the pull request author),
    * the problem is that they will become visible on the server side only when the agent publishes the "build start properties".
    * So right now we have to react on each `buildArtifactsChanged` event and do the check if the input build is eligible for the
-   * "mark as favorite" process.
+   * "mark as favorite" process. In this way, using this event as background task we can always check if the pull request author value
+   * is present or not. From this event we are not interested in any hidden artifact (such as logs and settings), and because of that, the
+   * {@link jetbrains.buildServer.commitPublisher.processor.DefaultFavoriteBuildProcessor} ignores them.
+   *
+   * This method is called whenever a new artifacts is changed in the input build, this allows to avoid the operation of polling on the build.
    * @param build input build with new artifacts.
    */
   @Override
