@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
 
-  private static final PropertyKey USER_PROPERTY = new SimplePropertyKey(Constants.USER_AUTO_FAVORITE_IMPORTANT_BUILDS_PROPERTY);
+  private static final PropertyKey USER_AUTO_FAVORITE_PROPERTY = new SimplePropertyKey(Constants.USER_AUTO_FAVORITE_IMPORTANT_BUILDS_PROPERTY);
   private final FavoriteBuildsManager myFavoriteBuildsManager;
 
   public DefaultFavoriteBuildProcessor(@NotNull FavoriteBuildsManager favoriteBuildsManager) {
@@ -25,7 +25,7 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
   }
 
   private boolean shouldMarkAsFavorite(@NotNull final SUser user) {
-    return user.getBooleanProperty(USER_PROPERTY);
+    return user.getBooleanProperty(USER_AUTO_FAVORITE_PROPERTY);
   }
 
   @Override
