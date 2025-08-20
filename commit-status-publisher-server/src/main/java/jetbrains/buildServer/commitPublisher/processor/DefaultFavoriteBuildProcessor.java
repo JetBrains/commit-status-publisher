@@ -34,14 +34,10 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
   public boolean markAsFavorite(@NotNull final SBuild build, @NotNull final BuildOwnerSupplier buildOwnerSupplier) {
     final BuildPromotion buildPromotion = build.getBuildPromotion();
     if (isStillRunning(build) && isSupported(buildPromotion)) {
-      final Collection<SUser> candidates = buildOwnerSupplier.supplyFrom(build).stream()
+      return buildOwnerSupplier.supplyFrom(build).stream()
         .filter(this::shouldMarkAsFavorite)
-        .collect(Collectors.toSet());
-
-      for (final SUser candidate : candidates) {
-          myFavoriteBuildsManager.tagBuild(buildPromotion, candidate);
-      }
-      return !candidates.isEmpty();
+        .peek(candidate -> myFavoriteBuildsManager.tagBuild(buildPromotion, candidate))
+        .count() > 0;
     }
     return false;
   }
