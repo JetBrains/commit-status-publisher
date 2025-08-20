@@ -224,7 +224,9 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
    */
   @Override
   public void buildArtifactsChanged(@NotNull SBuild build) {
-    myFavoriteBuildProcessor.markAsFavorite(build, myBuildOwnerSupplier);
+    if (myTeamCityNodes.getCurrentNode().isMainNode()) {
+      myFavoriteBuildProcessor.markAsFavorite(build, myBuildOwnerSupplier);
+    }
   }
 
   private Pair<String, User> getCommentWithAuthor(BuildPromotion buildPromotion) {
