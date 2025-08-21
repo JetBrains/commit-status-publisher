@@ -29,6 +29,7 @@ public class Constants {
   public static final String PUBLISHER_ID_PARAM = "publisherId";
   public static final String USER_AUTO_FAVORITE_IMPORTANT_BUILDS_PROPERTY = "automaticallyMarkImportantBuildsAsFavorite";
   public static final String BUILD_PULL_REQUEST_AUTHOR_PARAMETER = "teamcity.pullRequest.author";
+  public static final String AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED = "teamcity.commitStatusPublisher.autoFavoriteBuilds.enabled";
 
   public static final String PASSWORD = "password";
   public static final String TEST_CONNECTION_PARAM = "testconnection";
