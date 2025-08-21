@@ -4,10 +4,7 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.processor.strategy.BuildOwnerSupplier;
 import jetbrains.buildServer.favoriteBuilds.FavoriteBuildsManager;
-import jetbrains.buildServer.serverSide.BuildPromotion;
-import jetbrains.buildServer.serverSide.BuildPromotionEx;
-import jetbrains.buildServer.serverSide.DependencyConsumer;
-import jetbrains.buildServer.serverSide.SBuild;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
@@ -31,7 +28,7 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
   @Override
   public boolean markAsFavorite(@NotNull final SBuild build, @NotNull final BuildOwnerSupplier buildOwnerSupplier) {
     final BuildPromotion buildPromotion = build.getBuildPromotion();
-    if (isStillRunning(build) && isSupported(buildPromotion)) {
+    if (isLogicEnabled() && isStillRunning(build) && isSupported(buildPromotion)) {
       return buildOwnerSupplier.supplyFrom(build).stream()
         .filter(this::shouldMarkAsFavorite)
         .peek(candidate -> myFavoriteBuildsManager.tagBuild(buildPromotion, candidate))
@@ -50,6 +47,10 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
       return !isCommitStatusPublisherFeatureEnabledInDependentBuilds((BuildPromotionEx) buildPromotion);
     }
     return false;
+  }
+
+  private boolean isLogicEnabled() {
+    return TeamCityProperties.getBoolean(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED);
   }
 
   private boolean isAlreadyTagged(@NotNull BuildPromotion buildPromotion) {
