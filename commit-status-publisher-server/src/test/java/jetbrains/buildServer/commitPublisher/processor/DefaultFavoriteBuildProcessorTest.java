@@ -41,7 +41,6 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
     when(myTrueUser.getBooleanProperty(userMarkImportantBuildProperty)).thenReturn(true);
     when(myFalseUser.getBooleanProperty(Mockito.any())).thenReturn(false);
 
-    //TODO: Refactor all this
     // Parameters provider
     mySupportedBuild = Mockito.mock(SBuild.class);
     myBuildPromotion = Mockito.mock(BuildPromotionEx.class);
