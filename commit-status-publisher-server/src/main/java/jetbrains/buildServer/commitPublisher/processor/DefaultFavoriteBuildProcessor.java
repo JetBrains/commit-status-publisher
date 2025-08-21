@@ -28,7 +28,7 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
   @Override
   public boolean markAsFavorite(@NotNull final SBuild build, @NotNull final BuildOwnerSupplier buildOwnerSupplier) {
     final BuildPromotion buildPromotion = build.getBuildPromotion();
-    if (isLogicEnabled() && isStillRunning(build) && isSupported(buildPromotion)) {
+    if (isAutoFavoriteEnabled() && isStillRunning(build) && isSupported(buildPromotion)) {
       return buildOwnerSupplier.supplyFrom(build).stream()
         .filter(this::shouldMarkAsFavorite)
         .peek(candidate -> myFavoriteBuildsManager.tagBuild(buildPromotion, candidate))
@@ -49,7 +49,7 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
     return false;
   }
 
-  private boolean isLogicEnabled() {
+  private boolean isAutoFavoriteEnabled() {
     return TeamCityProperties.getBoolean(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED);
   }
 
