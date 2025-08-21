@@ -64,9 +64,16 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
     myFavoriteBuildProcessor = new DefaultFavoriteBuildProcessor(myFavoriteBuildsManager);
   }
 
+  public void should_not_mark_if_teamcity_property_is_not_enabled() {
+    final SBuild runningBuild = Mockito.mock(SBuild.class);
+    when(runningBuild.isFinished()).thenReturn(false);
+    assertFalse(myFavoriteBuildProcessor.markAsFavorite(runningBuild, myBuildOwnerSupplier));
+  }
+
   public void should_not_mark_build_that_are_finished() {
     final SBuild finishedBuild = Mockito.mock(SBuild.class);
     when(finishedBuild.isFinished()).thenReturn(true);
+    setInternalProperty(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED, true);
     assertFalse(myFavoriteBuildProcessor.markAsFavorite(finishedBuild, myBuildOwnerSupplier));
   }
 
@@ -76,6 +83,7 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
     when(buildWithoutCPS.isFinished()).thenReturn(false);
     when(buildPromotion.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE)).thenReturn(Collections.emptyList());
     when(buildWithoutCPS.getBuildPromotion()).thenReturn(buildPromotion);
+    setInternalProperty(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED, true);
     assertFalse(myFavoriteBuildProcessor.markAsFavorite(buildWithoutCPS, myBuildOwnerSupplier));
   }
 
@@ -86,6 +94,7 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
     when(taggedBuild.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE)).thenReturn(Collections.singletonList(Mockito.mock(SBuildFeatureDescriptor.class)));
     when(buildPromotion.getTagDatas()).thenReturn(Collections.singletonList(TagData.createPrivateTag(FavoriteBuildsManager.FAVORITE_BUILD_TAG, Mockito.mock(SUser.class))));
     when(taggedBuild.getBuildPromotion()).thenReturn(buildPromotion);
+    setInternalProperty(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED, true);
     assertFalse(myFavoriteBuildProcessor.markAsFavorite(taggedBuild, myBuildOwnerSupplier));
   }
 
@@ -103,10 +112,11 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
       return null;
     }).when(buildPromotion).traverseDependedOnMe(Mockito.any());
     when(notSupportedBuild.getBuildPromotion()).thenReturn(buildPromotion);
+    setInternalProperty(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED, true);
     assertFalse(myFavoriteBuildProcessor.markAsFavorite(notSupportedBuild, myBuildOwnerSupplier));
   }
 
-  public void should_mark_when_build_is_running_has_cps_feature_enabled_is_not_marked_as_favorite_and_no_dependent_builds_have_cps_enabled() {
+  public void should_mark_when_build_is_running_has_cps_feature_enabled_is_not_marked_as_favorite_no_dependent_builds_have_cps_enabled_and_teamcity_property_is_enabled() {
     doAnswer(invocation -> {
       final DependencyConsumer<BuildPromotionEx> buildPromotionExDependencyConsumer = invocation.getArgument(0);
       final BuildPromotionEx innerBuildPromotionEx = Mockito.mock(BuildPromotionEx.class);
@@ -114,6 +124,7 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
       assertEquals(DependencyConsumer.Result.CONTINUE,  buildPromotionExDependencyConsumer.consume(innerBuildPromotionEx));
       return null;
     }).when(myBuildPromotion).traverseDependedOnMe(Mockito.any());
+    setInternalProperty(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED, true);
     assertTrue(myFavoriteBuildProcessor.markAsFavorite(mySupportedBuild, myBuildOwnerSupplier));
   }
 
@@ -122,6 +133,7 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
     when(myBuildOwnerSupplier.supplyFrom(Mockito.any())).thenReturn(new HashSet<>(Collections.singletonList(myFalseUser)));
     assertFalse(myFavoriteBuildProcessor.markAsFavorite(mySupportedBuild, myBuildOwnerSupplier));
     when(myBuildOwnerSupplier.supplyFrom(Mockito.any())).thenReturn(Collections.emptySet());
+    setInternalProperty(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED, true);
     assertFalse(myFavoriteBuildProcessor.markAsFavorite(mySupportedBuild, myBuildOwnerSupplier));
   }
 }
