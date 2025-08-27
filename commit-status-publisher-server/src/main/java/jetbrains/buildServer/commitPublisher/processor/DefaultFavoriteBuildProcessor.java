@@ -10,6 +10,7 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
@@ -29,10 +30,17 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
   public boolean markAsFavorite(@NotNull final SBuild build, @NotNull final BuildOwnerSupplier buildOwnerSupplier) {
     final BuildPromotion buildPromotion = build.getBuildPromotion();
     if (isAutoFavoriteEnabled() && isStillRunning(build) && isSupported(buildPromotion)) {
-      return buildOwnerSupplier.supplyFrom(build).stream()
-        .filter(this::shouldMarkAsFavorite)
-        .peek(candidate -> myFavoriteBuildsManager.tagBuild(buildPromotion, candidate))
-        .count() > 0;
+      boolean result = false;
+      final Set<SUser> candidates = buildOwnerSupplier.supplyFrom(build);
+
+      for (final SUser candidate : candidates) {
+        if (shouldMarkAsFavorite(candidate)) {
+          myFavoriteBuildsManager.tagBuild(buildPromotion, candidate);
+          result = true;
+        }
+      }
+
+      return result;
     }
     return false;
   }

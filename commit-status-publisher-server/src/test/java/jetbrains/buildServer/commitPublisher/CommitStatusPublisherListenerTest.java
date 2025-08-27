@@ -1113,13 +1113,16 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     then(myPublisher.isFailureReceived()).isTrue();
   }
 
-  public void should_always_call_favorite_build_processor_when_build_artifacts_changed_event_is_captured() {
-    final SBuild myBuild = Mockito.mock(SBuild.class);
-    when(myBuild.getParametersProvider()).thenReturn(Mockito.mock(ParametersProvider.class));
-    when(myBuild.getParametersProvider().get(Mockito.eq(Constants.BUILD_PULL_REQUEST_AUTHOR_PARAMETER))).thenReturn("author");
-    when(myBuild.getBuildPromotion()).thenReturn(Mockito.mock(BuildPromotionEx.class));
-    myListener.buildArtifactsChanged(myBuild);
-    Mockito.verify(myFavoriteBuildProcessor, Mockito.times(1)).markAsFavorite(myBuild, myBuildOwnerSupplier);
+  public void should_always_call_favorite_build_processor_when_build_starts_running() {
+    try {
+      prepareVcs();
+      addBuildToQueue();
+      SRunningBuild runningBuild = myFixture.flushQueueAndWait();
+      myFixture.finishBuild(runningBuild, false);
+      Mockito.verify(myFavoriteBuildProcessor, Mockito.times(1)).markAsFavorite(Mockito.eq(runningBuild), Mockito.eq(myBuildOwnerSupplier));
+    }catch (Exception e) {
+      fail(e.getMessage());
+    }
   }
 
   // TODO: add test for test retries enabled in runtime (via service message)
