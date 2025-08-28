@@ -37,6 +37,9 @@ import jetbrains.buildServer.serverSide.IOGuard;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.http.HttpMethod;
+import jetbrains.buildServer.vcshostings.url.InvalidUriException;
+import jetbrains.buildServer.vcshostings.url.ServerURI;
+import jetbrains.buildServer.vcshostings.url.ServerURIParser;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
 import org.apache.http.entity.ContentType;
@@ -92,10 +95,47 @@ public abstract class GitHubApiImpl implements GitHubApi {
     try {
       repoInfo = processResponse(uri, RepoInfo.class, true);
     } catch (Throwable ex) {
-      throw new PublisherException(String.format("Could not retrieve information about the \"%s\" repository", repo.url()), ex);
+      String gitHubUrlHint = validateAndAddHintForGitHubUrl(myUrls.getUrl());
+      String hintMessage = gitHubUrlHint.isEmpty() ? "" : " (" + gitHubUrlHint + ")";
+      throw new PublisherException(String.format("Could not retrieve information about the '%s' repository%s", repo.url(), hintMessage), ex);
     }
 
     checkPermissions(repo, repoInfo);
+  }
+
+  private String validateAndAddHintForGitHubUrl(@NotNull String url) {
+    ServerURI uri;
+
+    try {
+      uri = ServerURIParser.createServerURI(url);
+    } catch (InvalidUriException e) {
+      return String.format("GitHub URL is not valid: %s", e.getMessage());
+    }
+
+    String host = uri.getHost();
+    List<String> path = uri.getPath();
+
+    if (isStandardGitHubComHost(host)) {
+      if (!path.isEmpty()) {
+        return "For GitHub.com, the GitHub URL should not have any postfixes";
+      }
+    } else {
+      if (!isValidEnterprisePath(path)) {
+        return "For GitHub Enterprise, the GitHub URL should have the postfix '/api/v3'";
+      }
+    }
+
+    return "";
+  }
+
+  private boolean isStandardGitHubComHost(@NotNull String host) {
+    String[] hostParts = host.split("\\.");
+    int partsLength = hostParts.length;
+    return partsLength >= 2 && "github".equals(hostParts[partsLength - 2]) && "com".equals(hostParts[partsLength - 1]);
+  }
+
+  private boolean isValidEnterprisePath(List<String> path) {
+    return path.size() >= 2 && "api".equals(path.get(path.size() - 2)) && "v3".equals(path.get(path.size() - 1));
   }
 
   protected void checkPermissions(@NotNull final Repository repo, @NotNull RepoInfo repoInfo) throws PublisherException {

@@ -34,6 +34,11 @@ public class GitHubApiPaths {
   }
 
   @NotNull
+  public String getUrl() {
+    return myUrl;
+  }
+
+  @NotNull
   public String getRepoInfo(@NotNull final String repoOwner,
                             @NotNull final String repoName) {
     // /repos/:owner/:repo
