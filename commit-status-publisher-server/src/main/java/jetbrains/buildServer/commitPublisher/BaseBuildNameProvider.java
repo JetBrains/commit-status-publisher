@@ -27,15 +27,15 @@ public abstract class BaseBuildNameProvider implements StatusPublisherBuildNameP
 
   @Nullable
   private String getPipelineName(@NotNull SProject project, @NotNull BuildPromotionEx promotion) {
-    if (promotion.getPipelineInfo().isHead()) {
+    if (promotion.getPipelineView().isHead()) {
       return project.getFullName();
     }
-    if (promotion.getPipelineInfo().isJob()) {
+    if (promotion.getPipelineView().isJob()) {
       SProject pipelineProject = project.getParentProject();
       if (pipelineProject == null) {
-        return promotion.getPipelineInfo().getJobName();
+        return promotion.getPipelineView().getJobName();
       }
-      return pipelineProject.getFullName() + BuildTypeDescriptor.FULL_NAME_SEPARATOR + promotion.getPipelineInfo().getJobName();
+      return pipelineProject.getFullName() + BuildTypeDescriptor.FULL_NAME_SEPARATOR + promotion.getPipelineView().getJobName();
     }
     return null;
   }

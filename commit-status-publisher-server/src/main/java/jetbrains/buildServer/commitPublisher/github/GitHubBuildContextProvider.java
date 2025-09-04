@@ -65,7 +65,7 @@ public class GitHubBuildContextProvider extends BaseBuildNameProvider {
 
   @Nullable
   private String getPipelineName(@NotNull SProject project, @NotNull BuildPromotionEx promotion) {
-    if (promotion.getPipelineInfo().isHead()) {
+    if (promotion.getPipelineView().isHead()) {
       String projectName = removeMultiCharUnicodeAndTrim(project.getName());
       SProject parentProject = project.getParentProject();
       if (parentProject != null) {
@@ -75,8 +75,8 @@ public class GitHubBuildContextProvider extends BaseBuildNameProvider {
 
       return removeMultiCharUnicodeAndTrim(projectName);
     }
-    if (promotion.getPipelineInfo().isJob()) {
-      String jobName = promotion.getPipelineInfo().getJobName();
+    if (promotion.getPipelineView().isJob()) {
+      String jobName = promotion.getPipelineView().getJobName();
       SProject pipelineProject = project.getParentProject();
       if (jobName != null && pipelineProject != null) {
         return String.format("%s (%s)", removeMultiCharUnicodeAndTrim(jobName), removeMultiCharUnicodeAndTrim(pipelineProject.getName()));

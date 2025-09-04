@@ -28,7 +28,7 @@ import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.gitlab.data.*;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.impl.PipelineInfo;
+import jetbrains.buildServer.serverSide.impl.PipelineViewImpl;
 import jetbrains.buildServer.vcs.CheckoutRules;
 import jetbrains.buildServer.vcs.VcsModificationHistoryEx;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -202,8 +202,8 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     buildTypeMock.stubs().method("getProject").withNoArguments().will(returnValue(myBuildType.getProject()));
     buildPromotionMock.stubs().method("getBuildType").withNoArguments().will(returnValue(buildTypeMock.proxy()));
     buildPromotionMock.stubs().method("getAttribute").withAnyArguments().will(returnValue(null));
-    PipelineInfo pipelineInfo = new PipelineInfo((BuildPromotionEx)buildPromotionMock.proxy());
-    buildPromotionMock.stubs().method("getPipelineInfo").withNoArguments().will(returnValue(pipelineInfo));
+    PipelineViewImpl pipelineView = new PipelineViewImpl((BuildPromotionEx)buildPromotionMock.proxy());
+    buildPromotionMock.stubs().method("getPipelineView").withNoArguments().will(returnValue(pipelineView));
     BuildPromotion removedBuild = (BuildPromotion)buildPromotionMock.proxy();
 
     GitlabPublisher publisher = (GitlabPublisher)myPublisher;
