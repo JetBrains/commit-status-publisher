@@ -49,6 +49,9 @@ public class TfsPublisherTest extends HttpPublisherTest {
   private final Map<String, List<TfsStatusPublisher.CommitStatus>> myRevisionToStatuses = new HashMap<>();
   private final TfsBuildNameProvider myBuildNameProvider = new TfsBuildNameProvider();
 
+  private boolean myRespondWith203OnStatuses = false;
+  private boolean myRespondWith203OnPost = false;
+
   TfsPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
     myExpectedRegExps.put(EventToTest.REMOVED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*failed.*%s\".*", REVISION, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE));
@@ -80,6 +83,8 @@ public class TfsPublisherTest extends HttpPublisherTest {
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
+    myRespondWith203OnStatuses = false;
+    myRespondWith203OnPost = false;
   }
 
   public void should_fail_with_error_on_wrong_vcs_url() {
@@ -144,6 +149,11 @@ public class TfsPublisherTest extends HttpPublisherTest {
       httpResponse.setEntity(new StringEntity("{'message': 'error'}", StandardCharsets.UTF_8));
       return false;
     } else if (url.contains("statuses?api-version=2.1")) {
+      if (myRespondWith203OnStatuses) {
+        httpResponse.setStatusCode(203);
+        httpResponse.setEntity(new StringEntity("Insufficient credentials", StandardCharsets.UTF_8));
+        return false;
+      }
       String revision = getRevision(url, "/project/_apis/git/repositories/project/commits/");
       respondWithStatuses(httpResponse, revision);
     } else if (url.contains("/commits/" + REVISION)) {
@@ -199,6 +209,11 @@ public class TfsPublisherTest extends HttpPublisherTest {
 
   @Override
   protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    if (myRespondWith203OnPost) {
+      httpResponse.setStatusCode(203);
+      httpResponse.setEntity(new StringEntity("Insufficient credentials", StandardCharsets.UTF_8));
+      return false;
+    }
     String revision = getRevision(url, "/project/_apis/git/repositories/project/commits/");
     if (revision != null) {
       TfsStatusPublisher.CommitStatus status = gson.fromJson(requestData, TfsStatusPublisher.CommitStatus.class);
@@ -236,5 +251,26 @@ public class TfsPublisherTest extends HttpPublisherTest {
       if (matchingRequestsOrderNumbers.isEmpty()) return false;
       return matchingRequestsOrderNumbers.contains((countRequests - 1) - 1);  // last but one, counting from 0
     }, 3000);
+  }
+
+  public void should_treat_203_as_insufficient_credentials_on_status_posting() throws Exception {
+    myRespondWith203OnPost = true;
+    try {
+      myPublisher.buildStarted(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
+      fail("PublisherException wasn't thrown");
+    } catch (PublisherException ex) {
+      then(ex.getMessage()).contains("Check access token value");
+    }
+  }
+
+  public void should_treat_203_as_insufficient_credentials_on_status_retrieval() throws Exception {
+    myRespondWith203OnStatuses = true;
+    try {
+      BuildPromotion promotion = myFixture.createBuild(myBuildType, Status.NORMAL).getBuildPromotion();
+      myPublisher.getRevisionStatus(promotion, myRevision);
+      fail("PublisherException wasn't thrown");
+    } catch (PublisherException ex) {
+      then(ex.getMessage()).contains("Check access token value");
+    }
   }
 }

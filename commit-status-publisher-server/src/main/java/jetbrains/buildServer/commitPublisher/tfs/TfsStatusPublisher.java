@@ -139,7 +139,11 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
 
   @Override
   public void processResponse(@NotNull final HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
-    if (response.getStatusCode() >= 400) {
+    final int status = response.getStatusCode();
+    if (status == 401 || status == 403 || status == 203) {
+      throw new HttpPublisherException(ERROR_AUTHORIZATION);
+    }
+    if (status >= 400) {
       processErrorResponse(response);
     }
   }
@@ -176,7 +180,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
   private Collection<CommitStatus> loadStatuses(@NotNull BuildRevision revision, @NotNull String targetBuildName) throws PublisherException {
     final TfsRepositoryInfo info = getServerAndProject(revision.getRoot(), myParams);
     final String baseUrl = MessageFormat.format(COMMIT_STATUS_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository(), revision.getRevision());
-    final ResponseEntityProcessor<CommitStatuses> processor = new ResponseEntityProcessor<>(CommitStatuses.class);
+    final ResponseEntityProcessor<CommitStatuses> processor = new TfsResponseEntityProcessor<>(CommitStatuses.class);
     final int top = 25;
     int skip = 0;
     boolean shouldLoadMore;
@@ -299,35 +303,21 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
 
   @NotNull
   private Set<String> getParentCommits( @NotNull final TfsRepositoryInfo info,
-                                        @NotNull final String parentCommitId,
-                                        @NotNull final Map<String, String> params,
-                                        @Nullable final KeyStore trustStore,
-                                        @NotNull VcsRoot root) throws PublisherException {
+                                       @NotNull final String parentCommitId,
+                                       @NotNull final Map<String, String> params,
+                                       @Nullable final KeyStore trustStore,
+                                       @NotNull VcsRoot root) throws PublisherException {
     final String url = MessageFormat.format(COMMIT_URL_FORMAT, info.getServer(), info.getProject(), info.getRepository(), parentCommitId);
     final Set<String> commits = new HashSet<String>();
 
     try {
-      IOGuard.allowNetworkCall(() -> {
-        HttpHelper.get(url, getCredentials(root, params),
-                       Collections.singletonMap("Accept", "application/json"), BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT,
-                       trustStore, new DefaultHttpResponseProcessor() {
-            @Override
-            public void processResponse(HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
-              super.processResponse(response);
-
-              Commit commit = processGetResponse(response, Commit.class);
-              if (commit == null) {
-                throw new HttpPublisherException(String.format("Commit %s is not available in repository %s",
-                                                               parentCommitId, info)
-                );
-              }
-
-              if (commit.parents != null) {
-                commits.addAll(commit.parents);
-              }
-            }
-          });
-      });
+      Commit commit = get(url, getCredentials(root, params), Collections.singletonMap("Accept", "application/json"), new TfsResponseEntityProcessor<>(Commit.class));
+      if (commit == null) {
+        throw new HttpPublisherException(String.format("Commit %s is not available in repository %s", parentCommitId, info));
+      }
+      if (commit.parents != null) {
+        commits.addAll(commit.parents);
+      }
     } catch (Exception e) {
       final String message = "Azure DevOps publisher has failed to get parent commits in repository " + info;
       LOG.debug(message, e);
@@ -428,7 +418,7 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
 
   private static <T> T processGetResponse(@NotNull final HttpHelper.HttpResponse response, @NotNull final Class<T> type) throws HttpPublisherException, IOException {
     final int status = response.getStatusCode();
-    if (status == 401 || status == 403) {
+    if (status == 401 || status == 403 || status == 203) {
       throw new HttpPublisherException(ERROR_AUTHORIZATION);
     }
 
@@ -469,6 +459,22 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     }
 
     throw new HttpPublisherException(status, response.getStatusText(), message);
+  }
+
+  private static class TfsResponseEntityProcessor<T> extends ResponseEntityProcessor<T> {
+    public TfsResponseEntityProcessor(Class<T> type) { super(type); }
+    @Override
+    protected boolean handleError(@NotNull HttpHelper.HttpResponse response) throws HttpPublisherException, IOException {
+      final int status = response.getStatusCode();
+      if (status == 401 || status == 403 || status == 203) {
+        throw new HttpPublisherException(ERROR_AUTHORIZATION);
+      }
+      if (status != 200) {
+        processErrorResponse(response);
+        return false;
+      }
+      return true;
+    }
   }
 
   private boolean updateQueuedBuildStatus(@NotNull BuildPromotion buildPromotion,
