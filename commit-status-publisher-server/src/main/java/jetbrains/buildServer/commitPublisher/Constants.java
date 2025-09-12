@@ -19,6 +19,8 @@
 package jetbrains.buildServer.commitPublisher;
 
 import jetbrains.buildServer.ssh.ServerSshKeyManager;
+import jetbrains.buildServer.users.PropertyKey;
+import jetbrains.buildServer.users.SimplePropertyKey;
 import org.jetbrains.annotations.NotNull;
 
 public class Constants {
@@ -30,6 +32,9 @@ public class Constants {
   public static final String USER_AUTO_FAVORITE_IMPORTANT_BUILDS_PROPERTY = "automaticallyMarkImportantBuildsAsFavorite";
   public static final String BUILD_PULL_REQUEST_AUTHOR_PARAMETER = "teamcity.pullRequest.author";
   public static final String AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED = "teamcity.commitStatusPublisher.autoFavoriteBuilds.enabled";
+  public static final String PULL_REQUEST_TAG_LABEL = "pull-request";
+  public static final PropertyKey USER_AUTO_FAVORITE_PROPERTY = new SimplePropertyKey(Constants.USER_AUTO_FAVORITE_IMPORTANT_BUILDS_PROPERTY);
+
 
   public static final String PASSWORD = "password";
   public static final String TEST_CONNECTION_PARAM = "testconnection";

@@ -5,44 +5,45 @@ import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.processor.strategy.BuildOwnerSupplier;
 import jetbrains.buildServer.favoriteBuilds.FavoriteBuildsManager;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
-import jetbrains.buildServer.users.SimplePropertyKey;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
+  private static final List<String> TAGS_TO_ADD = Arrays.asList(FavoriteBuildsManager.FAVORITE_BUILD_TAG, Constants.PULL_REQUEST_TAG_LABEL);
 
-  private static final PropertyKey USER_AUTO_FAVORITE_PROPERTY = new SimplePropertyKey(Constants.USER_AUTO_FAVORITE_IMPORTANT_BUILDS_PROPERTY);
-  private final FavoriteBuildsManager myFavoriteBuildsManager;
-
-  public DefaultFavoriteBuildProcessor(@NotNull FavoriteBuildsManager favoriteBuildsManager) {
-    myFavoriteBuildsManager = favoriteBuildsManager;
-  }
+  public DefaultFavoriteBuildProcessor() {}
 
   private boolean shouldMarkAsFavorite(@NotNull final SUser user) {
-    return user.getBooleanProperty(USER_AUTO_FAVORITE_PROPERTY);
+    return user.getBooleanProperty(Constants.USER_AUTO_FAVORITE_PROPERTY);
   }
 
   @Override
   public boolean markAsFavorite(@NotNull final SBuild build, @NotNull final BuildOwnerSupplier buildOwnerSupplier) {
     final BuildPromotion buildPromotion = build.getBuildPromotion();
     if (isAutoFavoriteEnabled() && isStillRunning(build) && isSupported(buildPromotion)) {
-      boolean result = false;
-      final Set<SUser> candidates = buildOwnerSupplier.supplyFrom(build);
-
-      for (final SUser candidate : candidates) {
-        if (shouldMarkAsFavorite(candidate)) {
-          myFavoriteBuildsManager.tagBuild(buildPromotion, candidate);
-          result = true;
-        }
-      }
-
-      return result;
+      return addTagsToBuild(buildPromotion,
+        buildOwnerSupplier.supplyFrom(build).stream()
+        .filter(this::shouldMarkAsFavorite)
+        .collect(Collectors.toSet()));
     }
     return false;
+  }
+
+  private boolean addTagsToBuild(@NotNull final BuildPromotion buildPromotion, @NotNull final Set<SUser> users) {
+    if (users.isEmpty()) {
+      return false;
+    }
+
+    for (final SUser user : users) {
+      buildPromotion.setPrivateTags(TAGS_TO_ADD, user);
+    }
+    return true;
   }
 
   private boolean isStillRunning(@NotNull final SBuild build) {

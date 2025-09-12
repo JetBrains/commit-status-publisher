@@ -1,12 +1,14 @@
 package jetbrains.buildServer.commitPublisher.processor;
 
-import jetbrains.buildServer.BaseTestCase;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeature;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.processor.strategy.BuildOwnerSupplier;
 import jetbrains.buildServer.favoriteBuilds.FavoriteBuildsManager;
+import jetbrains.buildServer.favoriteBuilds.FavoriteBuildsManagerImpl;
 import jetbrains.buildServer.parameters.ParametersProvider;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
+import jetbrains.buildServer.serverSide.impl.DummyBuild;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.SimplePropertyKey;
@@ -14,17 +16,18 @@ import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Set;
 
 import static org.mockito.Mockito.*;
 
 @Test
-public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
+public class DefaultFavoriteBuildProcessorTest extends BaseServerTestCase {
   private SUser myTrueUser;
   private SUser myFalseUser;
   private SBuild mySupportedBuild;
-  private FavoriteBuildsManager myFavoriteBuildsManager;
   private BuildOwnerSupplier myBuildOwnerSupplier;
   private DefaultFavoriteBuildProcessor myFavoriteBuildProcessor;
   private BuildPromotionEx myBuildPromotion;
@@ -58,10 +61,8 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
 
     myBuildOwnerSupplier = Mockito.mock(BuildOwnerSupplier.class);
     when(myBuildOwnerSupplier.supplyFrom(mySupportedBuild)).thenReturn(new HashSet<>(Collections.singletonList(myTrueUser)));
-    myFavoriteBuildsManager = Mockito.mock(FavoriteBuildsManager.class);
-    doNothing().when(myFavoriteBuildsManager).tagBuild(Mockito.any(), Mockito.any());
 
-    myFavoriteBuildProcessor = new DefaultFavoriteBuildProcessor(myFavoriteBuildsManager);
+    myFavoriteBuildProcessor = new DefaultFavoriteBuildProcessor();
   }
 
   public void should_not_mark_if_teamcity_property_is_not_enabled() {
@@ -117,15 +118,23 @@ public class DefaultFavoriteBuildProcessorTest extends BaseTestCase {
   }
 
   public void should_mark_when_build_is_running_has_cps_feature_enabled_is_not_marked_as_favorite_no_dependent_builds_have_cps_enabled_and_teamcity_property_is_enabled() {
-    doAnswer(invocation -> {
-      final DependencyConsumer<BuildPromotionEx> buildPromotionExDependencyConsumer = invocation.getArgument(0);
-      final BuildPromotionEx innerBuildPromotionEx = Mockito.mock(BuildPromotionEx.class);
-      when(innerBuildPromotionEx.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE)).thenReturn(Collections.emptyList());
-      assertEquals(DependencyConsumer.Result.CONTINUE,  buildPromotionExDependencyConsumer.consume(innerBuildPromotionEx));
-      return null;
-    }).when(myBuildPromotion).traverseDependedOnMe(Mockito.any());
+    final BuildTypeEx buildType = registerBuildType("bt1", "pj1");
+    final BuildPromotionEx buildPromotion = buildType.createBuildPromotion();
+    final SBuildFeatureDescriptor commitStatusPublisherFeature = myFixture.getBuildFeatureDescriptorFactory().createNewBuildFeature(CommitStatusPublisherFeature.TYPE, Collections.emptyMap());
+    final DummyBuild dummyBuild = myFixture.getBuildFactory().createDummyBuild(buildPromotion);
+    final SUser user = createUser("matteo");
+    final FavoriteBuildsManager favoriteBuildsManager = myFixture.getSingletonService(FavoriteBuildsManagerImpl.class);
+    final Set<String> tagLabels = new HashSet<>(Arrays.asList(Constants.PULL_REQUEST_TAG_LABEL, FavoriteBuildsManager.FAVORITE_BUILD_TAG));
+
+    user.setUserProperty(Constants.USER_AUTO_FAVORITE_PROPERTY, Boolean.TRUE.toString());
+
+    buildType.addBuildFeature(commitStatusPublisherFeature);
     setInternalProperty(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED, true);
-    assertTrue(myFavoriteBuildProcessor.markAsFavorite(mySupportedBuild, myBuildOwnerSupplier));
+    when(myBuildOwnerSupplier.supplyFrom(dummyBuild)).thenReturn(Collections.singleton(user));
+    assertTrue(myFavoriteBuildProcessor.markAsFavorite(dummyBuild, myBuildOwnerSupplier));
+    assertFalse(buildPromotion.getTagDatas().isEmpty());
+    assertTrue(tagLabels.containsAll(buildPromotion.getPrivateTags(user)));
+    assertEquals(Collections.singleton(user.getId()), favoriteBuildsManager.getFavoriteOwners(buildPromotion));
   }
 
   public void should_return_false_if_no_users_are_provided_or_checkbox_is_false() {

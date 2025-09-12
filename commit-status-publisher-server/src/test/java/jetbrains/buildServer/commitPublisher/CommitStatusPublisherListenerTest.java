@@ -96,9 +96,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
     super.setUp();
     myLastEventProcessed = null;
     myLogger = new PublisherLogger();
-    final FavoriteBuildsManager favoriteBuildsManager = Mockito.mock(FavoriteBuildsManager.class);
-    doNothing().when(favoriteBuildsManager).tagBuild(Mockito.any(), Mockito.any());
-    myFavoriteBuildProcessor = Mockito.spy(new DefaultFavoriteBuildProcessor(favoriteBuildsManager));
+    myFavoriteBuildProcessor = Mockito.spy(new DefaultFavoriteBuildProcessor());
     myBuildOwnerSupplier = Mockito.spy(new PullRequestBuildOwnerSupplier(Mockito.mock(VcsRootUsernamesManager.class)));
     myListener = new CommitStatusPublisherListener(myFixture.getEventDispatcher(), new PublisherManager(myServer), myFixture.getHistory(), myBuildsManager, myFixture.getBuildPromotionManager(), myProblems,
                                                    myFixture.getServerResponsibility(), myFixture.getSingletonService(ExecutorServices.class),
