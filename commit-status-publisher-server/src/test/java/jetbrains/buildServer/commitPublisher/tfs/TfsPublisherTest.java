@@ -26,10 +26,12 @@ import jetbrains.buildServer.MockBuildPromotion;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.util.TestFor;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
+import org.assertj.core.api.Assertions;
 import org.jetbrains.annotations.NotNull;
 import org.jmock.Mock;
 import org.testng.Assert;
@@ -48,6 +50,8 @@ public class TfsPublisherTest extends HttpPublisherTest {
   private final Map<String, String> myParams = getPublisherParams();
   private final Map<String, List<TfsStatusPublisher.CommitStatus>> myRevisionToStatuses = new HashMap<>();
   private final TfsBuildNameProvider myBuildNameProvider = new TfsBuildNameProvider();
+
+  private static final String NO_PERMISSIONS_REPO = "no_permissions_repo";
 
   TfsPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format("POST /project/_apis/git/repositories/project/commits/%s/statuses.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
@@ -121,6 +125,20 @@ public class TfsPublisherTest extends HttpPublisherTest {
     assertFalse(publisher.getRevisionStatus(removedBuild, new TfsStatusPublisher.CommitStatus(TfsStatusPublisher.StatusState.Pending.getName(), DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321", new TfsStatusPublisher.StatusContext("anoterTypeExtenalId", "TeamCity"))).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
   }
 
+  @TestFor(issues = "TW-94917")
+  public void should_treat_203_as_and_error_on_status_publishing() {
+    myVcsRoot.setProperties(Collections.singletonMap("url", getServerUrl() +  "/_git/" + NO_PERMISSIONS_REPO));
+    VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
+    myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
+    SBuild build = myFixture.startBuild(myBuildType);
+    try {
+      myPublisher.buildStarted(build, myRevision);
+      fail("Expected execption on 203 response");
+    } catch (PublisherException e) {
+      Assertions.assertThat(e.getMessage()).startsWith("Failed to publish status to commit");
+    }
+  }
+
   @Override
   public void test_testConnection() throws Exception {
     try {
@@ -128,6 +146,11 @@ public class TfsPublisherTest extends HttpPublisherTest {
     } catch (PublisherException e) {
       Assert.assertTrue(e.getMessage().startsWith("Azure DevOps publisher has failed to test connection to repository"));
     }
+  }
+
+  @TestFor(issues = "TW-94917")
+  public void test_testConnection_with_203() throws Exception {
+    test_testConnection_failure("http://localhost/nouser/" + NO_PERMISSIONS_REPO, getPublisherParams());
   }
 
   @Override
@@ -139,7 +162,11 @@ public class TfsPublisherTest extends HttpPublisherTest {
 
   @Override
   protected boolean respondToGet(String url, HttpResponse httpResponse) {
-    if (url.contains(READ_ONLY_REPO)) {
+    if (url.contains(NO_PERMISSIONS_REPO)) {
+      httpResponse.setStatusCode(203);
+      httpResponse.setEntity(new StringEntity("{'message': 'error'}", StandardCharsets.UTF_8));
+      return false;
+    } else if (url.contains(READ_ONLY_REPO)) {
       httpResponse.setStatusCode(403);
       httpResponse.setEntity(new StringEntity("{'message': 'error'}", StandardCharsets.UTF_8));
       return false;
@@ -199,6 +226,11 @@ public class TfsPublisherTest extends HttpPublisherTest {
 
   @Override
   protected boolean respondToPost(String url, String requestData, final HttpRequest httpRequest, HttpResponse httpResponse) {
+    if (url.contains(NO_PERMISSIONS_REPO)) {
+      httpResponse.setStatusCode(203);
+      httpResponse.setEntity(new StringEntity("{'message': 'error'}", StandardCharsets.UTF_8));
+      return false;
+    }
     String revision = getRevision(url, "/project/_apis/git/repositories/project/commits/");
     if (revision != null) {
       TfsStatusPublisher.CommitStatus status = gson.fromJson(requestData, TfsStatusPublisher.CommitStatus.class);

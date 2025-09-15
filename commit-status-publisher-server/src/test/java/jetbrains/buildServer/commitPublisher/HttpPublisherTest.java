@@ -36,10 +36,12 @@ import org.apache.http.impl.bootstrap.HttpServer;
 import org.apache.http.impl.bootstrap.ServerBootstrap;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
+import org.assertj.core.api.Assertions;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+import org.testng.collections.Lists;
 
 import static org.assertj.core.api.BDDAssertions.then;
 
@@ -95,7 +97,13 @@ public abstract class HttpPublisherTest extends CommitStatusPublisherTest {
     try {
       myPublisher.buildFinished(createBuildInCurrentBranch(myBuildType, Status.NORMAL), myRevision);
     } catch (PublisherException e) {
-      then(e.toString()).contains("timed out");
+      boolean messageContainsTimeout = e.toString().contains("timed out");
+      boolean causeContainsTimeout = e.getCause() != null && e.getCause().toString().contains("timed out");
+
+      Assertions.assertThat(messageContainsTimeout || causeContainsTimeout)
+                .as("Either exception message '%s' or cause message '%s' should contain 'timed out'", e.toString(), e.getCause())
+                .isTrue();
+
     }
     then(getRequestAsString()).isNull();
   }
