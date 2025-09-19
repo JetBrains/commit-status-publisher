@@ -21,6 +21,7 @@ import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaCommitStatus;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaRepoInfo;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaUserInfo;
+import jetbrains.buildServer.commitPublisher.gitlab.GitLabBuildNameProvider;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.VcsRoot;
@@ -54,14 +55,17 @@ public class GiteaSettings extends BasePublisherSettings implements CommitStatus
     addAll(mySupportedEvents);
   }};
 
-  private final CommitStatusesCache<GiteaCommitStatus> myStatusesCache;
+  @NotNull private final CommitStatusesCache<GiteaCommitStatus> myStatusesCache;
+  @NotNull private final GiteaBuildNameProvider myBuildNameProvider;
 
   public GiteaSettings(@NotNull PluginDescriptor descriptor,
                        @NotNull WebLinks links,
                        @NotNull CommitStatusPublisherProblems problems,
-                       @NotNull SSLTrustStoreProvider trustStoreProvider) {
+                       @NotNull SSLTrustStoreProvider trustStoreProvider,
+                       @NotNull GiteaBuildNameProvider buildNameProvider) {
     super(descriptor, links, problems, trustStoreProvider);
     myStatusesCache = new CommitStatusesCache<>();
+    myBuildNameProvider = buildNameProvider;
   }
 
   @NotNull
@@ -85,7 +89,7 @@ public class GiteaSettings extends BasePublisherSettings implements CommitStatus
   @NotNull
   @Override
   public GiteaPublisher createPublisher(@NotNull SBuildType buildType, @NotNull String buildFeatureId, @NotNull Map<String, String> params) {
-    return new GiteaPublisher(this, buildType, buildFeatureId, params, myProblems, myLinks, myStatusesCache);
+    return new GiteaPublisher(this, buildType, buildFeatureId, params, myProblems, myLinks, myStatusesCache, myBuildNameProvider);
   }
 
   @Override

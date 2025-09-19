@@ -44,15 +44,18 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
   private static final GitRepositoryParser VCS_URL_PARSER = new GitRepositoryParser();
 
   @NotNull private final CommitStatusesCache<GiteaCommitStatus> myStatusesCache;
+  @NotNull private final GiteaBuildNameProvider myBuildNameProvider;
 
   GiteaPublisher(@NotNull CommitStatusPublisherSettings settings,
                  @NotNull SBuildType buildType, @NotNull String buildFeatureId,
                  @NotNull Map<String, String> params,
                  @NotNull CommitStatusPublisherProblems problems,
                  @NotNull WebLinks links,
-                 @NotNull CommitStatusesCache<GiteaCommitStatus> statusesCache) {
+                 @NotNull CommitStatusesCache<GiteaCommitStatus> statusesCache,
+                 @NotNull GiteaBuildNameProvider buildNameProvider) {
     super(settings, buildType, buildFeatureId, params, problems, links);
     myStatusesCache = statusesCache;
+    myBuildNameProvider = buildNameProvider;
   }
 
 
@@ -115,11 +118,6 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
     return true;
   }
 
-  private String getBuildName(BuildPromotion promotion) {
-    SBuildType buildType = promotion.getBuildType();
-    return buildType != null ? buildType.getFullName() : promotion.getBuildTypeExternalId();
-  }
-
   @Override
   public RevisionStatus getRevisionStatus(@NotNull BuildPromotion buildPromotion, @NotNull BuildRevision revision) throws PublisherException {
     SBuildType buildType = buildPromotion.getBuildType();
@@ -164,7 +162,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
       return null;
     }
     Event event = getTriggeredEvent(commitStatus);
-    boolean isSameBuildType = StringUtil.areEqual(getBuildName(buildPromotion), commitStatus.context);
+    boolean isSameBuildType = StringUtil.areEqual(myBuildNameProvider.getBuildName(buildPromotion), commitStatus.context);
     return new RevisionStatus(event, commitStatus.description, isSameBuildType, getBuildIdFromViewUrl(commitStatus.target_url));
   }
 
@@ -221,7 +219,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
                        @NotNull BuildRevision revision,
                        @NotNull GiteaBuildStatus status,
                        @NotNull String description) throws PublisherException {
-    String buildName = getBuildName(build.getBuildPromotion());
+    String buildName = myBuildNameProvider.getBuildName(build.getBuildPromotion());
     String message = createMessage(status, buildName, revision, getViewUrl(build), description);
     publish(message, revision, LogUtil.describe(build));
     myStatusesCache.removeStatusFromCache(revision, buildName);
@@ -238,7 +236,7 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
       return;
     }
     String description = additionalTaskInfo.getComment();
-    String buildName = getBuildName(buildPromotion);
+    String buildName = myBuildNameProvider.getBuildName(buildPromotion);
     String message = createMessage(status, buildName, revision, url, description);
     publish(message, revision, LogUtil.describe(buildPromotion));
     myStatusesCache.removeStatusFromCache(revision, buildName);

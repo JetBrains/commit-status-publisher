@@ -48,6 +48,7 @@ public class GiteaPublisherTest extends HttpPublisherTest {
 
   private static final String GROUP_REPO = "group_repo";
   private final Map<String, List<GiteaCommitStatus>> myRevisionToStatuses = new HashMap<>();
+  private final GiteaBuildNameProvider myBuildNameProvider = new GiteaBuildNameProvider();
 
   public GiteaPublisherTest() {
     myExpectedRegExps.put(EventToTest.QUEUED, String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*pending.*%s.*", REVISION, DefaultStatusMessages.BUILD_QUEUED));
@@ -74,7 +75,7 @@ public class GiteaPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GiteaPublisher(myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks, new CommitStatusesCache<>());
+    myPublisher = new GiteaPublisher(myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks, new CommitStatusesCache<>(), myBuildNameProvider);
     test_buildFinished_Successfully();
   }
 
@@ -85,7 +86,7 @@ public class GiteaPublisherTest extends HttpPublisherTest {
     myVcsRoot.setProperties(Collections.singletonMap("url", "https://url.com/subdir/owner/project"));
     VcsRootInstance vcsRootInstance = myBuildType.getVcsRootInstanceForParent(myVcsRoot);
     myRevision = new BuildRevision(vcsRootInstance, REVISION, "", REVISION);
-    myPublisher = new GiteaPublisher(myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks, new CommitStatusesCache<>());
+    myPublisher = new GiteaPublisher(myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks, new CommitStatusesCache<>(), myBuildNameProvider);
     test_buildFinished_Successfully();
   }
 
@@ -162,9 +163,9 @@ public class GiteaPublisherTest extends HttpPublisherTest {
     setExpectedApiPath("/api/v1");
     setExpectedEndpointPrefix("/repos/" + OWNER + "/" + CORRECT_REPO);
     super.setUp();
-    myPublisherSettings = new GiteaSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider);
+    myPublisherSettings = new GiteaSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myBuildNameProvider);
     Map<String, String> params = getPublisherParams();
-    myPublisher = new GiteaPublisher(myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks, new CommitStatusesCache<>());
+    myPublisher = new GiteaPublisher(myPublisherSettings, myBuildType, FEATURE_ID, params, myProblems, myWebLinks, new CommitStatusesCache<>(), myBuildNameProvider);
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));
   }
 

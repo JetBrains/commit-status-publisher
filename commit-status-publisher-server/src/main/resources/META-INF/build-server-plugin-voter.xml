@@ -43,6 +43,7 @@
   <bean class="jetbrains.buildServer.commitPublisher.gitlab.GitlabSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.gitlab.GitLabBuildNameProvider"/>
   <bean class="jetbrains.buildServer.commitPublisher.gitea.GiteaSettings"/>
+  <bean class="jetbrains.buildServer.commitPublisher.gitea.GiteaBuildNameProvider"/>
 
   <!-- github -->
   <bean class="jetbrains.buildServer.commitPublisher.github.ChangeStatusUpdater"/>
