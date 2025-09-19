@@ -115,22 +115,6 @@ class GiteaPublisher extends HttpBasedCommitStatusPublisher<GiteaBuildStatus> {
     return true;
   }
 
-  @Override
-  public RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @NotNull BuildRevision revision) throws PublisherException {
-    SBuildType buildType = removedBuild.getBuildType();
-    GiteaCommitStatus commitStatus = getLatestCommitStatusForBuild(revision, buildType.getFullName(), removedBuild.getBuildPromotion());
-    return getRevisionStatusForRemovedBuild(removedBuild, commitStatus);
-  }
-
-  RevisionStatus getRevisionStatusForRemovedBuild(@NotNull SQueuedBuild removedBuild, @Nullable GiteaCommitStatus commitStatus) {
-    if(commitStatus == null) {
-      return null;
-    }
-    Event event = getTriggeredEvent(commitStatus);
-    boolean isSameBuildType = StringUtil.areEqual(getBuildName(removedBuild.getBuildPromotion()), commitStatus.context);
-    return new RevisionStatus(event, commitStatus.description, isSameBuildType, getBuildIdFromViewUrl(commitStatus.target_url));
-  }
-
   private String getBuildName(BuildPromotion promotion) {
     SBuildType buildType = promotion.getBuildType();
     return buildType != null ? buildType.getFullName() : promotion.getBuildTypeExternalId();

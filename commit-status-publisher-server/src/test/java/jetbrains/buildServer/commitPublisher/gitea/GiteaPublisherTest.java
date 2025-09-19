@@ -24,6 +24,7 @@ import jetbrains.buildServer.commitPublisher.gitea.data.GiteaPermissions;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaRepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.impl.PipelineInfo;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -140,19 +141,19 @@ public class GiteaPublisherTest extends HttpPublisherTest {
   }
 
   public void should_allow_queued_depending_on_build_type() {
-    Mock removedBuildMock = new Mock(SQueuedBuild.class);
-    removedBuildMock.stubs().method("getBuildTypeId").withNoArguments().will(returnValue("buildType"));
-    removedBuildMock.stubs().method("getItemId").withNoArguments().will(returnValue("123"));
-    Mock buildPromotionMock = new Mock(BuildPromotion.class);
-    Mock buildTypeMock = new Mock(SBuildType.class);
+    Mock buildPromotionMock = new Mock(BuildPromotionEx.class);
+    Mock buildTypeMock = new Mock(BuildTypeEx.class);
     buildTypeMock.stubs().method("getFullName").withNoArguments().will(returnValue("typeFullName"));
+    buildTypeMock.stubs().method("getProject").withNoArguments().will(returnValue(myBuildType.getProject()));
     buildPromotionMock.stubs().method("getBuildType").withNoArguments().will(returnValue(buildTypeMock.proxy()));
-    removedBuildMock.stubs().method("getBuildPromotion").withNoArguments().will(returnValue(buildPromotionMock.proxy()));
-    SQueuedBuild removedBuild = (SQueuedBuild)removedBuildMock.proxy();
+    buildPromotionMock.stubs().method("getAttribute").withAnyArguments().will(returnValue(null));
+    PipelineInfo pipelineInfo = new PipelineInfo((BuildPromotionEx)buildPromotionMock.proxy());
+    buildPromotionMock.stubs().method("getPipelineInfo").withNoArguments().will(returnValue(pipelineInfo));
+    BuildPromotion removedBuild = (BuildPromotion)buildPromotionMock.proxy();
 
     GiteaPublisher publisher = (GiteaPublisher)myPublisher;
-    assertTrue(publisher.getRevisionStatusForRemovedBuild(removedBuild, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, "typeFullName", "http://localhost:8111/viewQueued.html?itemId=123")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
-    assertFalse(publisher.getRevisionStatusForRemovedBuild(removedBuild, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, "anotherTypeFullName", "http://localhost:8111/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertTrue(publisher.getRevisionStatus(removedBuild, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, "typeFullName", "http://localhost:8111/viewQueued.html?itemId=123")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
+    assertFalse(publisher.getRevisionStatus(removedBuild, new GiteaCommitStatus(null, GiteaBuildStatus.PENDING.getName(), DefaultStatusMessages.BUILD_QUEUED, "anotherTypeFullName", "http://localhost:8111/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
   }
 
   @BeforeMethod
