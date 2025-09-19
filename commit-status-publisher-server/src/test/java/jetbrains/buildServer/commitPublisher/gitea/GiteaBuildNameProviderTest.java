@@ -2,6 +2,7 @@ package jetbrains.buildServer.commitPublisher.gitea;
 
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.pipeline.PipelineProject;
+import jetbrains.buildServer.pipeline.builders.PipelineYamlBuilder;
 import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SFinishedBuild;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
@@ -17,7 +18,7 @@ public class GiteaBuildNameProviderTest extends BaseServerTestCase {
   @Test
   public void get_name_for_head() {
     final String pipelineName = "Pipeline Project";
-    PipelineProject pipelineProject = myProject.createPipelineProject("extId", pipelineName, "name: name");
+    PipelineProject pipelineProject = myProject.createPipelineProject("extId", pipelineName, PipelineYamlBuilder.BASIC_YAML);
     SBuildType pipelineHead = pipelineProject.getPipelineHead();
     SFinishedBuild build = createBuild(pipelineHead, Status.NORMAL);
     String buildName = myProvider.getBuildName(build.getBuildPromotion());
