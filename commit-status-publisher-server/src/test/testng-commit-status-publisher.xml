@@ -31,6 +31,7 @@
       <class name="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudCommitStatusPublisherFeatureBuilderTest"/>
       <class name="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudBuildNameProviderTest"/>
       <class name="jetbrains.buildServer.commitPublisher.gerrit.GerritPublisherTest" />
+      <class name="jetbrains.buildServer.commitPublisher.gitea.GiteaPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.github.GitHubPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.github.GitHubCommitStatusPublisherFeatureBuilderTest" />
       <class name="jetbrains.buildServer.commitPublisher.github.GitHubBuildContextProviderTest" />
