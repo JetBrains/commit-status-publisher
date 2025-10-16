@@ -17,26 +17,26 @@
  */
 
 dependencies {
-    compile 'org.apache.httpcomponents:httpclient:4.5.14'
-    compile "org.apache.tomcat:tomcat-servlet-api:8.5.32"
-    compile 'com.github.mwiede:jsch:0.1.67'
-    compile("org.jetbrains.teamcity:web-core:$teamcityVersion") {
-      exclude group: 'com.google.guava', module: 'guava'
-    }
-    compile "com.google.guava:guava:31.1-android"
-    testCompile("org.jetbrains.teamcity:tests-support:$teamcityVersion") {
-      exclude group: 'com.google.guava', module: 'guava'
-    }
-    testCompile("org.jetbrains.teamcity:server-test-core:$teamcityVersion") {
-      exclude group: 'com.google.guava', module: 'guava'
-    }
-    testCompile("org.jetbrains.teamcity:web-test-core:$teamcityVersion") {
-      exclude group: 'com.google.guava', module: 'guava'
-    }
-    testCompile "jmock:jmock:1.2.0"
-    testCompile 'org.assertj:assertj-core:1.7.1'
-    testCompile 'org.testng:testng:6.8'
-    testCompile "org.mockito:mockito-core:3.9.0"
+  implementation 'org.apache.httpcomponents:httpclient:4.5.14'
+  implementation "org.apache.tomcat:tomcat-servlet-api:8.5.32"
+  implementation 'com.github.mwiede:jsch:0.1.67'
+  implementation("org.jetbrains.teamcity:web-core:$teamcityVersion") {
+    exclude group: 'com.google.guava', module: 'guava'
+  }
+  implementation "com.google.guava:guava:31.1-android"
+  testImplementation("org.jetbrains.teamcity:tests-support:$teamcityVersion") {
+    exclude group: 'com.google.guava', module: 'guava'
+  }
+  testImplementation("org.jetbrains.teamcity:server-test-core:$teamcityVersion") {
+    exclude group: 'com.google.guava', module: 'guava'
+  }
+  testImplementation("org.jetbrains.teamcity:web-test-core:$teamcityVersion") {
+    exclude group: 'com.google.guava', module: 'guava'
+  }
+  testImplementation "jmock:jmock:1.2.0"
+  testImplementation 'org.assertj:assertj-core:1.7.1'
+  testImplementation 'org.testng:testng:6.8'
+  testImplementation "org.mockito:mockito-core:3.9.0"
 }
 
 sourceSets {

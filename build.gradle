@@ -70,9 +70,9 @@ subprojects {
 }
 
 task copyDependencies(type: Copy, dependsOn: ':commit-status-publisher-server:jar') {
-  project(':commit-status-publisher-server').configurations.getAt("runtime").setCanBeResolved(true)
-  println("implementation canBeResolved change to ：" + project(':commit-status-publisher-server').configurations.getAt("runtime").canBeResolved)
-  from project(':commit-status-publisher-server').configurations.getAt("runtime")
+  project(':commit-status-publisher-server').configurations.runtimeClasspath.setCanBeResolved(true)
+  println("implementation canBeResolved change to ：" + project(':commit-status-publisher-server').configurations.runtimeClasspath.canBeResolved)
+  from project(':commit-status-publisher-server').configurations.runtimeClasspath
   include 'jsch*.jar'
   into './build/dependencies'
 }
@@ -88,7 +88,7 @@ task copyPluginFiles(type: Copy, dependsOn: ':commit-status-publisher-server:jar
 task zipPlugin(type: Zip, dependsOn: ['copyDependencies', 'copyPluginFiles']) {
   destinationDir = new File(rootDir, './target')
   into('server') {
-    from project(':commit-status-publisher-server').configurations.runtime.allArtifacts.files
+    from project(':commit-status-publisher-server').configurations.runtimeClasspath.allArtifacts.files
     include '*'
     from './build/dependencies'
     include '*'
