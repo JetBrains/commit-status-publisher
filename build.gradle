@@ -88,7 +88,7 @@ task copyPluginFiles(type: Copy, dependsOn: ':commit-status-publisher-server:jar
 task zipPlugin(type: Zip, dependsOn: ['copyDependencies', 'copyPluginFiles']) {
   destinationDir = new File(rootDir, './target')
   into('server') {
-    from project(':commit-status-publisher-server').configurations.runtimeClasspath.allArtifacts.files
+    from 'commit-status-publisher-server/build/libs'
     include '*'
     from './build/dependencies'
     include '*'
