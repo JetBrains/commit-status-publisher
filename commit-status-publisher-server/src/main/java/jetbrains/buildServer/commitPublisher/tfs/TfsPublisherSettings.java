@@ -237,18 +237,6 @@ public class TfsPublisherSettings extends AuthTypeAwareSettings implements Commi
 
   @NotNull
   @Override
-  protected HttpCredentials getUsernamePasswordCredentials(@NotNull String username, @NotNull String password) throws PublisherException {
-    throw new PublisherException("Unsupported authentication type username/password");
-  }
-
-  @NotNull
-  @Override
-  protected HttpCredentials getVcsRootCredentials(@Nullable VcsRoot root, @NotNull SProject project) throws PublisherException {
-    throw new PublisherException("Unsupported authentication type VCS Root");
-  }
-
-  @NotNull
-  @Override
   protected HttpCredentials getAccessTokenCredentials(@NotNull String token) throws PublisherException {
     return new UsernamePasswordCredentials(StringUtil.EMPTY, token);
   }
