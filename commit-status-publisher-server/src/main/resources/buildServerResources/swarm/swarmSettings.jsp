@@ -34,7 +34,7 @@
 <c:set var="commentSelectively" value="${intprop:getBooleanOrTrue(propCommentSelectively)}"/>
 
 <tr>
-  <th><label for="${urlField}">Perforce Swarm URL:<l:star/></label></th>
+  <th><label for="${urlField}">Perforce P4 Code Review URL:<l:star/></label></th>
   <td>
     <props:textProperty name="${urlField}" className="longField"/>
     <span class="error" id="error_${urlField}"></span>
@@ -65,23 +65,23 @@
       <div class="checkBoxAndDescription">
         <props:checkboxProperty name="${commentOnEventsField}" uncheckedValue="false" style="margin-top: 5px" />
         <span class="error" id="error_${commentOnEventsField}"></span>
-        <span class="note">If enabled, TeamCity will add comments to a related Swarm review when a build fails or finishes successfully.</span>
+        <span class="note">If enabled, TeamCity will add comments to a related review when a build fails or finishes successfully.</span>
       </div>
     </td>
   </tr>
 </c:if>
 
 <tr>
-  <th><label for="${createSwarmTestField}">Create Swarm Tests:</label><bs:help file="integrating-with-helix-swarm"/></th>
+  <th><label for="${createSwarmTestField}">Create P4 Code Review Tests:</label><bs:help file="integrating-with-helix-swarm"/></th>
   <td>
     <div class="checkBoxAndDescription">
       <props:checkboxProperty name="${createSwarmTestField}" style="margin-top: 5px" />
       <span class="error" id="error_${createSwarmTestField}"></span>
       <span class="note">
-        Choose whether TeamCity should create new Swarm tests or use existing ones to publish build statuses.
-        Creating new Swarm tests requires a username and ticket of a user with administrative permissions.
+        Choose whether TeamCity should create new P4 Code Review tests or use existing ones to publish build statuses.
+        Creating new tests requires a username and ticket of a user with administrative permissions.
         <p>
-          See <bs:helpLink file="integrating-with-helix-swarm">this documentation article</bs:helpLink> to learn how to set up Swarm workflows and tests for TeamCity.
+          See <bs:helpLink file="integrating-with-helix-swarm">this documentation article</bs:helpLink> to learn how to set up P4 Code Review workflows and tests for TeamCity.
         </p>
     </span>
     </div>
@@ -90,7 +90,7 @@
 
 <script>
   $j(document).ready(function() {
-    PublisherFeature.showTestConnection("Successfully authenticated at the Perforce Swarm server.");
+    PublisherFeature.showTestConnection("Successfully authenticated at the Perforce P4 Code Review server.");
   });
 </script>
 

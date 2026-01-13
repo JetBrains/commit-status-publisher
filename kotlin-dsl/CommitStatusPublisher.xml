@@ -403,11 +403,11 @@
       </option>
       <option name="swarm" value="perforceSwarmPublisher">
         <description>
-          Publish build status to Perforce Helix Swarm
+          Publish build status to Perforce P4 Code Review (Helix Swarm)
         </description>
         <param name="swarmUrl" dslName="serverUrl" mandatory="true">
           <description>
-            Peforce Helix Swarm Server URL
+            Peforce P4 Code Review (Helix Swarm) Server URL
           </description>
         </param>
         <param name="swarmUser" dslName="username" mandatory="true">
@@ -417,18 +417,18 @@
         </param>
         <param name="secure:swarmPassword" dslName="token" mandatory="true">
           <description>
-            Token or password to access the Perforc Swarm server.
+            Token or password to access the Perforce P4 Code Review (Helix Swarm) server.
           </description>
         </param>
         <param name="createSwarmTest" dslName="createSwarmTest" type="boolean">
           <description>
-            If set, TeamCity will create a test run on the Helix Swarm server and update its status according to
+            If set, TeamCity will create a test run on the P4 Code Review (Helix Swarm) server and update its status according to
             the build status in TeamCity.
           </description>
         </param>
         <param name="commentOnEvents" type="boolean">
           <description>
-            If enabled, TeamCity will add comments to a related Swarm review when a build fails or finishes successfully. This defaults to &lt;code&gt;true&lt;/code&gt;.
+            If enabled, TeamCity will add comments to a related review when a build fails or finishes successfully. This defaults to &lt;code&gt;true&lt;/code&gt;.
           </description>
         </param>
       </option>
@@ -653,7 +653,7 @@
     </example>
     <example>
       <description>
-        Enables publishing build statuses to Perforce Helix Swarm.
+        Enables publishing build statuses to Perforce P4 Code Review (Helix Swarm).
         For now only personal access token authentication type is supported. It is not recommended to store secure values directly in the DSL code,
         see [Managing Tokens](https://www.jetbrains.com/help/teamcity/storing-project-settings-in-version-control.html#Managing+Tokens)
         section of our documentation.
@@ -665,7 +665,7 @@
             serverUrl = "&lt;Swarm URL>"
             username = "&lt;username>"
             token = "credentialsJSON:*****"
-            createSwarmTest = true // optional, if set, TeamCity will create a test run on the Swarm server and update its status according to the build status in TeamCity.
+            createSwarmTest = true // optional, if set, TeamCity will create a test run on the P4 Code Review (Helix Swarm) server and update its status according to the build status in TeamCity.
             commentOnEvents = true // optional
           }
         }

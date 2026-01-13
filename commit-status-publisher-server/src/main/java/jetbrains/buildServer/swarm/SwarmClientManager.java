@@ -141,7 +141,7 @@ public class SwarmClientManager {
     return revision.getRevisionDisplayName();
   }
   private class SwarmResetCacheHandler implements ResetCacheHandler {
-    private static final String CACHE_NAME = "Perforce Helix Swarm cache";
+    private static final String CACHE_NAME = "Perforce P4 Code Review (Helix Swarm) cache";
     @NotNull
     @Override
     public List<String> listCaches() {

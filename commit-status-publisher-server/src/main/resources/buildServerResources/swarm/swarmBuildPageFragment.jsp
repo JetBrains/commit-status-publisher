@@ -28,7 +28,7 @@
 </bs:executeOnce>
 
   <bs:refreshable containerId="pullRequestFullInfo" pageUrl="${pageUrl}">
-  <bs:_collapsibleBlock title="Swarm Reviews" id="smarmReviews" contentClass="swarmReviews">
+  <bs:_collapsibleBlock title="P4 Code Review (Swarm reviews)" id="smarmReviews" contentClass="swarmReviews">
 
     <c:if test="${not swarmBean.reviewsPresent}">
       No reviews found.
@@ -43,16 +43,16 @@
               <c:if test="${serverData.shelved}">
                 <c:set var="imageName" value="${'p4v-icon-pending-changelist-with-swarm_15x15.webp'}"/>
                 <img src="<c:url value="/plugins/${pluginName}/swarm/${imageName}"/>"
-                     class="swarmReviewsList__typeIcon" alt="Shelved changelist with Swarm review" title="Shelved changelist with Swarm review"/>
+                     class="swarmReviewsList__typeIcon" alt="Shelved changelist with P4 Code Review" title="Shelved changelist with P4 Code Review"/>
               </c:if>
               <c:if test="${not serverData.shelved}">
                 <c:set var="imageName" value="${'p4v-icon-submitted-changelist-with-swarm_15x15.webp'}"/>
                 <img src="<c:url value="/plugins/${pluginName}/swarm/${imageName}"/>"
-                     class="swarmReviewsList__typeIcon" alt="Submitted changelist with Swarm review" title="Submitted changelist with Swarm review"/>
+                     class="swarmReviewsList__typeIcon" alt="Submitted changelist with P4 Code Review" title="Submitted changelist with P4 Code Review"/>
               </c:if>
 
               <c:set var="url"><c:out value="${serverData.url}"/>/changes/${serverData.changelist}</c:set>
-              <a href="${url}" target="_blank" rel="noopener" title="Open Helix Swarm page for the changelist">${serverData.changelist}</a>
+              <a href="${url}" target="_blank" rel="noopener" title="Open P4 Code Review page for the changelist">${serverData.changelist}</a>
 
           </span>
 
@@ -61,7 +61,7 @@
 
               <c:forEach items="${serverData.reviews}" var="review">
                 <c:set var="url"><c:out value="${serverData.url}"/>/reviews/${review.id}</c:set>
-                <a href="${url}" target="_blank" rel="noopener" title="Open Helix Swarm page for the review">${review.id}</a>
+                <a href="${url}" target="_blank" rel="noopener" title="Open P4 Code Review page for the review">${review.id}</a>
                 (${review.statusText})
               </c:forEach>
           </span>
@@ -82,7 +82,7 @@
         <bs:actionIcon
           name="update"
           onclick="refreshSwarmInfo('${buildData.buildId}'); return false;"
-          title="Refresh Helix Swarm information"
+          title="Refresh P4 Code Review information"
         />
       </span>
       <span class="swarmReviewsAge__progressIcon"></span>
@@ -102,7 +102,7 @@
 
 <script>
   function refreshSwarmInfo(buildId) {
-    console.info("Re-read Perforce Swarm info");
+    console.info("Re-read Perforce P4 Code Review info");
     const startProgress = () => {
       document.querySelector(".swarmReviewsAge").classList.add("swarmReviewsAge--progress");
       document.querySelector(".swarmReviewsAge__error").innerHTML = '';
@@ -121,5 +121,5 @@
       }
     });
   }
-  console.info("Run Perforce Swarm page extension, empty: ${swarmBean.reviewsPresent}");
+  console.info("Run Perforce P4 Code Review page extension, empty: ${swarmBean.reviewsPresent}");
 </script>

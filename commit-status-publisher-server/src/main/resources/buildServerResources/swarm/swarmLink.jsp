@@ -30,7 +30,7 @@
     </script>
   </bs:executeOnce>
 
-  <c:set var="title" value="Open in Helix Swarm"/>
+  <c:set var="title" value="Open in P4 Code Review"/>
   <c:set var="icon" value="swarmIconClass"/>
   <c:choose>
     <c:when test="${showType == 'compact'}">

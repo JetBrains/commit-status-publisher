@@ -81,7 +81,7 @@ public class SwarmPublisherSettings extends BasePublisherSettings {
   @NotNull
   @Override
   public String getName() {
-    return "Perforce Helix Swarm";
+    return "Perforce P4 Code Review (Helix Swarm)";
   }
 
   @NotNull
