@@ -38,10 +38,12 @@
   <bean class="jetbrains.buildServer.commitPublisher.stash.StashBuildNameProvider"/>
   <bean class="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudBuildNameProvider"/>
+  <bean class="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudCommitStatusPublisherFeatureBuilderService"/>
   <bean class="jetbrains.buildServer.commitPublisher.gerrit.GerritSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.gerrit.GerritClientImpl"/>
   <bean class="jetbrains.buildServer.commitPublisher.gitlab.GitlabSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.gitlab.GitLabBuildNameProvider"/>
+  <bean class="jetbrains.buildServer.commitPublisher.gitlab.GitLabCommitStatusPublisherFeatureBuilderService"/>
 
   <!-- github -->
   <bean class="jetbrains.buildServer.commitPublisher.github.ChangeStatusUpdater"/>
@@ -49,6 +51,7 @@
   <bean class="jetbrains.buildServer.commitPublisher.github.api.impl.HttpClientWrapperImpl"/>
   <bean class="jetbrains.buildServer.commitPublisher.github.GitHubSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.github.GitHubBuildContextProvider"/>
+  <bean class="jetbrains.buildServer.commitPublisher.github.GitHubCommitStatusPublisherFeatureBuilderService"/>
 
   <!-- reports -->
   <bean class="jetbrains.buildServer.commitPublisher.github.reports.SecurityParametersReport"/>

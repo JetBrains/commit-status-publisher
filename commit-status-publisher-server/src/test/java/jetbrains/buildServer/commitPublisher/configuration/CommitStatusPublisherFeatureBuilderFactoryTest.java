@@ -2,7 +2,10 @@ package jetbrains.buildServer.commitPublisher.configuration;
 
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudCommitStatusPublisherFeatureBuilder;
+import jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudCommitStatusPublisherFeatureBuilderService;
 import jetbrains.buildServer.commitPublisher.github.GitHubCommitStatusPublisherFeatureBuilder;
+import jetbrains.buildServer.commitPublisher.github.GitHubCommitStatusPublisherFeatureBuilderService;
+import jetbrains.buildServer.commitPublisher.gitlab.GitLabCommitStatusPublisherFeatureBuilderService;
 import jetbrains.buildServer.commitPublisher.gitlab.GitLabCommitStatusPublisherFeatureBuilder;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
@@ -23,6 +26,9 @@ public class CommitStatusPublisherFeatureBuilderFactoryTest extends BaseServerTe
   public void setUp() throws Exception {
     super.setUp();
 
+    myServer.registerExtension(CommitStatusPublisherFeatureBuilderService.class, "BitbucketCloudCommitStatusPublisherFeatureBuilderService", new BitbucketCloudCommitStatusPublisherFeatureBuilderService());
+    myServer.registerExtension(CommitStatusPublisherFeatureBuilderService.class, "GitHubCommitStatusPublisherFeatureBuilderService", new GitHubCommitStatusPublisherFeatureBuilderService());
+    myServer.registerExtension(CommitStatusPublisherFeatureBuilderService.class, "GitLabCommitStatusPublisherFeatureBuilderService", new GitLabCommitStatusPublisherFeatureBuilderService());
     myFactory = new CommitStatusPublisherFeatureBuilderFactory(myServer);
   }
 
@@ -56,6 +62,12 @@ public class CommitStatusPublisherFeatureBuilderFactoryTest extends BaseServerTe
   @Test(expectedExceptions = IllegalStateException.class, expectedExceptionsMessageRegExp = "^publisher settings extension bean not found for publisher githubStatusPublisher$")
   public void createForConnection_missing_settings_bean() {
     final OAuthConnectionDescriptor connection = mockConnectionOfType("GitHub");
+    myFactory.createForConnection(connection);
+  }
+
+  @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "^No connection provider type specified for connection: .*$")
+  public void createForConnection_unspecified_connection_provider_type() {
+    final OAuthConnectionDescriptor connection = Mockito.mock(OAuthConnectionDescriptor.class);
     myFactory.createForConnection(connection);
   }
 
