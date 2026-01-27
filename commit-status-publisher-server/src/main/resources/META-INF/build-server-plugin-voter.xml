@@ -36,6 +36,7 @@
 
   <bean class="jetbrains.buildServer.commitPublisher.stash.StashSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.stash.StashBuildNameProvider"/>
+  <bean class="jetbrains.buildServer.commitPublisher.stash.BitbucketServerCommitStatusPublisherFeatureBuilderService"/>
   <bean class="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudBuildNameProvider"/>
   <bean class="jetbrains.buildServer.commitPublisher.bitbucketCloud.BitbucketCloudCommitStatusPublisherFeatureBuilderService"/>
@@ -74,6 +75,7 @@
   <!-- tfs -->
   <bean class="jetbrains.buildServer.commitPublisher.tfs.TfsPublisherSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.tfs.TfsBuildNameProvider"/>
+  <bean class="jetbrains.buildServer.commitPublisher.tfs.AzureDevOpsCommitStatusPublisherFeatureBuilderService"/>
 
   <!-- space -->
   <bean class="jetbrains.buildServer.commitPublisher.space.SpaceSettings"/>

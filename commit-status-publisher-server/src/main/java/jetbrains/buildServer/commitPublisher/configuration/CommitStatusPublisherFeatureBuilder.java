@@ -49,6 +49,11 @@ public abstract class CommitStatusPublisherFeatureBuilder extends AuthTypeAwareB
       throw new VcsHostingFeatureException("Password authentication is not supported by " + getClass().getSimpleName());
   }
 
+  @NotNull
+  public CommitStatusPublisherFeatureBuilder withPublishPullRequestStatuses(boolean publishPullRequestStatuses) {
+    throw new VcsHostingFeatureException("Publish pull request statuses is not supported by " + getClass().getSimpleName());
+  }
+
   @Override
   public void validate(@NotNull BuildTypeIdentity buildType) {
     final PropertiesProcessor parametersProcessor = mySettings.getParametersProcessor(buildType);

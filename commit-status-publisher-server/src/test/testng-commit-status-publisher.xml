@@ -40,9 +40,11 @@
       <class name="jetbrains.buildServer.commitPublisher.stash.StashPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.stash.BitbucketServer74PublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.stash.StashBuildNameProviderTest" />
+      <class name="jetbrains.buildServer.commitPublisher.stash.BitbucketServerCommitStatusPublisherFeatureBuilderTest"/>
       <class name="jetbrains.buildServer.commitPublisher.tfs.TfsPublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.tfs.TfsRepositoryInfoTest" />
       <class name="jetbrains.buildServer.commitPublisher.tfs.TfsBuildNameProviderTest" />
+      <class name="jetbrains.buildServer.commitPublisher.tfs.AzureDevOpsCommitStatusPublisherFeatureBuilderTest"/>
       <class name="jetbrains.buildServer.commitPublisher.upsource.UpsourcePublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.space.SpacePublisherTest" />
       <class name="jetbrains.buildServer.commitPublisher.space.SpaceFeatureLessPublisherTest" />

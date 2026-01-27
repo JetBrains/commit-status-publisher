@@ -7,6 +7,10 @@ import jetbrains.buildServer.commitPublisher.github.GitHubCommitStatusPublisherF
 import jetbrains.buildServer.commitPublisher.github.GitHubCommitStatusPublisherFeatureBuilderService;
 import jetbrains.buildServer.commitPublisher.gitlab.GitLabCommitStatusPublisherFeatureBuilderService;
 import jetbrains.buildServer.commitPublisher.gitlab.GitLabCommitStatusPublisherFeatureBuilder;
+import jetbrains.buildServer.commitPublisher.stash.BitbucketServerCommitStatusPublisherFeatureBuilder;
+import jetbrains.buildServer.commitPublisher.stash.BitbucketServerCommitStatusPublisherFeatureBuilderService;
+import jetbrains.buildServer.commitPublisher.tfs.AzureDevOpsCommitStatusPublisherFeatureBuilder;
+import jetbrains.buildServer.commitPublisher.tfs.AzureDevOpsCommitStatusPublisherFeatureBuilderService;
 import jetbrains.buildServer.serverSide.impl.BaseServerTestCase;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import org.jetbrains.annotations.NotNull;
@@ -29,6 +33,8 @@ public class CommitStatusPublisherFeatureBuilderFactoryTest extends BaseServerTe
     myServer.registerExtension(CommitStatusPublisherFeatureBuilderService.class, "BitbucketCloudCommitStatusPublisherFeatureBuilderService", new BitbucketCloudCommitStatusPublisherFeatureBuilderService());
     myServer.registerExtension(CommitStatusPublisherFeatureBuilderService.class, "GitHubCommitStatusPublisherFeatureBuilderService", new GitHubCommitStatusPublisherFeatureBuilderService());
     myServer.registerExtension(CommitStatusPublisherFeatureBuilderService.class, "GitLabCommitStatusPublisherFeatureBuilderService", new GitLabCommitStatusPublisherFeatureBuilderService());
+    myServer.registerExtension(CommitStatusPublisherFeatureBuilderService.class, "AzureDevOpsCommitStatusPublisherFeatureBuilderService", new AzureDevOpsCommitStatusPublisherFeatureBuilderService());
+    myServer.registerExtension(CommitStatusPublisherFeatureBuilderService.class, "BitbucketServerCommitStatusPublisherFeatureBuilderService", new BitbucketServerCommitStatusPublisherFeatureBuilderService());
     myFactory = new CommitStatusPublisherFeatureBuilderFactory(myServer);
   }
 
@@ -39,7 +45,10 @@ public class CommitStatusPublisherFeatureBuilderFactoryTest extends BaseServerTe
       {"GHE", "githubStatusPublisher", GitHubCommitStatusPublisherFeatureBuilder.class},
       {"BitBucketCloud", "bitbucketCloudPublisher",  BitbucketCloudCommitStatusPublisherFeatureBuilder.class},
       {"GitLabCom", "gitlabStatusPublisher", GitLabCommitStatusPublisherFeatureBuilder.class},
-      {"GitLabCEorEE", "gitlabStatusPublisher", GitLabCommitStatusPublisherFeatureBuilder.class}
+      {"GitLabCEorEE", "gitlabStatusPublisher", GitLabCommitStatusPublisherFeatureBuilder.class},
+      {"AzureDevOps", "tfs", AzureDevOpsCommitStatusPublisherFeatureBuilder.class},
+      {"tfs", "tfs", AzureDevOpsCommitStatusPublisherFeatureBuilder.class},
+      {"BitbucketServer", "atlassianStashPublisher",  BitbucketServerCommitStatusPublisherFeatureBuilder.class},
     };
   }
 
