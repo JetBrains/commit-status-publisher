@@ -19,7 +19,7 @@ import com.github.jk1.license.render.JsonReportRenderer
 import com.github.jk1.license.filter.LicenseBundleNormalizer
 
 plugins {
-  id "com.github.jk1.dependency-license-report" version "1.17"
+  id "com.github.jk1.dependency-license-report" version "2.9"
 }
 
 initializeWorkspace()
@@ -69,12 +69,14 @@ subprojects {
   sourceCompatibility = '1.8'
 }
 
-task copyDependencies(type: Copy, dependsOn: ':commit-status-publisher-server:jar') {
-  project(':commit-status-publisher-server').configurations.getAt("runtime").setCanBeResolved(true)
-  println("implementation canBeResolved change to ：" + project(':commit-status-publisher-server').configurations.getAt("runtime").canBeResolved)
-  from project(':commit-status-publisher-server').configurations.getAt("runtime")
-  include 'jsch*.jar'
-  into './build/dependencies'
+tasks.register('copyDependencies', Copy) {
+  dependsOn ':commit-status-publisher-server:jar'
+
+  from(project(':commit-status-publisher-server').configurations.runtimeClasspath) {
+    include 'jsch*.jar'
+  }
+
+  into layout.buildDirectory.dir('dependencies')
 }
 
 
@@ -85,22 +87,28 @@ task copyPluginFiles(type: Copy, dependsOn: ':commit-status-publisher-server:jar
   expand(PluginVersion: pluginVersion)
 }
 
-task zipPlugin(type: Zip, dependsOn: ['copyDependencies', 'copyPluginFiles']) {
-  destinationDir = new File(rootDir, './target')
-  into('server') {
-    from project(':commit-status-publisher-server').configurations.runtime.allArtifacts.files
-    include '*'
-    from './build/dependencies'
-    include '*'
-  }
-  into('kotlin-dsl') {
-    from 'kotlin-dsl'
-    include 'CommitStatusPublisher.xml'
-  }
-  from './build/plugin-files'
-  include 'teamcity-plugin.xml'
+tasks.register('zipPlugin', Zip) {
+  dependsOn 'copyDependencies', 'copyPluginFiles'
 
-  archiveName = 'commit-status-publisher.zip'
+  destinationDirectory.set(layout.projectDirectory.dir('target'))
+  archiveFileName.set('commit-status-publisher.zip')
+
+  into('server') {
+    from(project(':commit-status-publisher-server').tasks.named('jar'))
+    from(layout.buildDirectory.dir('dependencies'))
+
+    include '*'
+  }
+
+  into('kotlin-dsl') {
+    from('kotlin-dsl')
+    include('CommitStatusPublisher.xml')
+  }
+
+  from(layout.buildDirectory.dir('plugin-files'))
+  include('teamcity-plugin.xml')
+
+  archiveFileName = 'commit-status-publisher.zip'
 }
 
 build.dependsOn zipPlugin
