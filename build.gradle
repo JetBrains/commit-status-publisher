@@ -69,6 +69,7 @@ subprojects {
   sourceCompatibility = '1.8'
 }
 
+
 tasks.register('copyDependencies', Copy) {
   dependsOn ':commit-status-publisher-server:jar'
 
