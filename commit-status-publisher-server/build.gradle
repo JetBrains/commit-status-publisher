@@ -63,7 +63,10 @@ tasks.withType(Test).configureEach {
       "--add-opens=java.base/java.nio.charset=ALL-UNNAMED",
       "--add-opens=java.base/sun.security.util=ALL-UNNAMED",
       "-Djava.security.manager=allow",
+      "-XX:MaxMetaspaceSize=512m"
     ]
+    maxHeapSize = "2g"
+    minHeapSize = "512m"
   }
 }
 
