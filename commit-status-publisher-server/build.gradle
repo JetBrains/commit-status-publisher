@@ -71,5 +71,6 @@ tasks.withType(Test).configureEach {
 }
 
 jar {
-  archiveFileName = 'commit-status-publisher.zip'
+  archiveBaseName = 'commit-status-publisher'
+  archiveVersion =  "$teamcityVersion"
 }
