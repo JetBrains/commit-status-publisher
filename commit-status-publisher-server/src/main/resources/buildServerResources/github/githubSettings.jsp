@@ -49,8 +49,7 @@
       <props:textProperty name="${keys.serverKey}" className="longField"/>
       <span class="error" id="error_${keys.serverKey}"></span>
       <span class="smallNote">
-        Format: <strong>http[s]://&lt;host&gt;[:&lt;port&gt;]/api/v3</strong>
-        for <a href="https://developer.github.com/enterprise/v3/" target="_blank" rel="noreferrer">GitHub Enterprise</a>
+        Format: <strong>http[s]://&lt;host&gt;[:&lt;port&gt;]/api/v3</strong> for GitHub Enterprise
       </span>
     </td>
   </tr>
