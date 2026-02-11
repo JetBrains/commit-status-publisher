@@ -15,7 +15,8 @@
   --%>
 
 <%@ page import="jetbrains.buildServer.serverSide.oauth.azuredevops.AzureDevOpsOAuthProvider" %>
-<%@ page import="jetbrains.buildServer.serverSide.oauth.bitbucket.BitBucketOAuthProvider" %>
+<%@ page import="jetbrains.buildServer.serverSide.TeamCityProperties" %>
+<%@ page import="static jetbrains.buildServer.commitPublisher.Constants.BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE" %>
 <%@ include file="/include-internal.jsp" %>
 <%@ taglib prefix="props" tagdir="/WEB-INF/tags/props" %>
 <%@ taglib prefix="l" tagdir="/WEB-INF/tags/layout" %>
@@ -30,10 +31,32 @@
 <jsp:useBean id="azurePatConnections" scope="request" type="java.util.List"/>
 
 <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
+<%--@elvariable id="defaultBuildName" type="java.lang.Boolean"--%>
 
 <c:url value="/oauth/tfs/token.html" var="getTokenPage"/>
 <c:set var="cameFromUrl" value="${empty param['cameFromUrl'] ? pageUrl : param['cameFromUrl']}"/>
 <c:set var="getTokenPage" value="${getTokenPage}?cameFromUrl=${util:urlEscape(cameFromUrl)}"/>
+<c:set var="customBuildNameEnable" value="<%= TeamCityProperties.getBoolean(BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE) %>"/>
+
+<c:if test="${customBuildNameEnable}">
+  <tr>
+    <th><label for="${keys.buildName}">Build name (status context):</label></th>
+    <td>
+      <props:textProperty name="${keys.buildName}" className="longField"/>
+      <span class="error" id="error_${keys.buildName}"></span>
+      <span class="smallNote">
+            Specifies the name of the build displayed in the status message posted to the Azure DevOps
+          </span>
+      <script type="text/javascript">
+        $j(document).ready(function() {
+          if("${not empty defaultBuildName}" === "true") {
+            document.getElementById('${keys.buildName}').setAttribute('placeholder', '${defaultBuildName} <BUILD_NUMBER>');
+          }
+        });
+      </script>
+    </td>
+  </tr>
+</c:if>
 
 <c:set var="oauth_connection_fragment">
   <c:forEach items="${azurePatConnections}" var="PATconnection">

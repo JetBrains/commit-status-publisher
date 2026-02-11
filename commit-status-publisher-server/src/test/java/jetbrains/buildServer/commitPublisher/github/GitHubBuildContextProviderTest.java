@@ -1,6 +1,6 @@
 package jetbrains.buildServer.commitPublisher.github;
 
-import jetbrains.buildServer.commitPublisher.Constants;
+import java.util.Collections;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.pipeline.PipelineProject;
 import jetbrains.buildServer.pipeline.builders.PipelineYamlBuilder;
@@ -20,25 +20,25 @@ public class GitHubBuildContextProviderTest extends BaseServerTestCase {
     final String expectedContext = "My Default Test Build Type (My Default Test Project)";
     SQueuedBuild queuedBuild = myBuildType.addToQueue("");
     assertNotNull(queuedBuild);
-    String buildName = myProvider.getBuildName(queuedBuild.getBuildPromotion());
+    String buildName = myProvider.getBuildName(queuedBuild.getBuildPromotion(), Collections.emptyMap());
     assertEquals(expectedContext, buildName);
 
     RunningBuildEx startedBuild = myFixture.flushQueueAndWait();
 
-    buildName = myProvider.getBuildName(startedBuild.getBuildPromotion());
+    buildName = myProvider.getBuildName(startedBuild.getBuildPromotion(), Collections.emptyMap());
     assertEquals(expectedContext, buildName);
   }
 
-  public void should_use_context_from_parameters() throws Exception {
+  public void should_use_context_from_properties() throws Exception {
+    setInternalProperty("teamcity.commitStatusPublisher.buildName.customization.enable", true);
     final String expectedContext = "My custom context name";
-    myBuildType.addBuildParameter(new SimpleParameter(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM, expectedContext));
     SQueuedBuild queuedBuild = myBuildType.addToQueue("");
     assertNotNull(queuedBuild);
-    String buildName = myProvider.getBuildName(queuedBuild.getBuildPromotion());
+    String buildName = myProvider.getBuildName(queuedBuild.getBuildPromotion(), Collections.singletonMap("build_custom_name", "My custom context name"));
     assertEquals(expectedContext, buildName);
 
     RunningBuildEx startedBuild = myFixture.flushQueueAndWait();
-    buildName = myProvider.getBuildName(startedBuild.getBuildPromotion());
+    buildName = myProvider.getBuildName(startedBuild.getBuildPromotion(), Collections.singletonMap("build_custom_name", "My custom context name"));
     assertEquals(expectedContext, buildName);
   }
 
@@ -49,7 +49,7 @@ public class GitHubBuildContextProviderTest extends BaseServerTestCase {
     char[] prjNameCharCodes =  { 0x45, 0x263A,  0x09, 0xd841, 0xdd20 };
     myBuildType.getProject().setName(new String(prjNameCharCodes));
     SBuild build = createBuild(myBuildType, Status.NORMAL);
-    String buildName = myProvider.getBuildName(build.getBuildPromotion());
+    String buildName = myProvider.getBuildName(build.getBuildPromotion(), Collections.emptyMap());
     char[] expectedBTNameCharCodes = { 0x41, 0x42b, 0x20, 0x3042, 0x231a, 0x39};
     char[] expectedPrjNameCharCodes =  { 0x45, 0x263A };
     then(buildName).isEqualTo(new String(expectedBTNameCharCodes) + " (" + new String(expectedPrjNameCharCodes) + ")");
@@ -61,7 +61,7 @@ public class GitHubBuildContextProviderTest extends BaseServerTestCase {
     PipelineProject pipelineProject = myProject.createPipelineProject("extId", pipelineName, PipelineYamlBuilder.BASIC_YAML);
     SBuildType pipelineHead = pipelineProject.getPipelineHead();
     SFinishedBuild build = createBuild(pipelineHead, Status.NORMAL);
-    String buildName = myProvider.getBuildName(build.getBuildPromotion());
+    String buildName = myProvider.getBuildName(build.getBuildPromotion(), Collections.emptyMap());
     then(buildName).isEqualTo(String.format("%s (%s)", pipelineName, myProject.getName()));
   }
 }

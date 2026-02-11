@@ -120,6 +120,12 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
   }
 
   @Nullable
+  @Override
+  public String getDefaultBuildName(@NotNull SBuildType buildType) {
+    return myBuildNameProvider.getDefaultBuildName(buildType);
+  }
+
+  @Nullable
   public PropertiesProcessor getParametersProcessor(@NotNull BuildTypeIdentity buildTypeOrTemplate) {
     return new PropertiesProcessor() {
       public Collection<InvalidProperty> process(Map<String, String> params) {

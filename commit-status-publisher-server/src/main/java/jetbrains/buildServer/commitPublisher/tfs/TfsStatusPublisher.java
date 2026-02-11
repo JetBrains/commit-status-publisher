@@ -560,8 +560,16 @@ class TfsStatusPublisher extends HttpBasedCommitStatusPublisher<TfsStatusPublish
     BuildPromotion buildPromotion = build.getBuildPromotion();
     boolean isCanceled = buildPromotion.isCanceled();
     StatusState state = getState(isStarting, isCanceled, build.getBuildStatus());
-    String description = String.format("The build %s %s %s %s",
-                                       myBuildNameProvider.getBuildName(buildPromotion), build.getBuildNumber(),
+
+    boolean publishBuildNumber = false;
+    String buildName = myBuildNameProvider.getBuildName(buildPromotion, myParams);
+    SBuildType buildType = build.getBuildType();
+    if (buildType != null && buildName.equals(myBuildNameProvider.getDefaultBuildName(buildType))) {
+      publishBuildNumber = true;
+    }
+
+    String description = String.format("The build %s%s %s %s",
+                                       myBuildNameProvider.getBuildName(buildPromotion, myParams), publishBuildNumber ? (" " + build.getBuildNumber()) : "",
                                        (isStarting || isCanceled) ? "is" : "has", isCanceled ? "canceled" : state.toString().toLowerCase());
     return new CommitStatus(state.getName(), description, getViewUrl(build), context);
   }

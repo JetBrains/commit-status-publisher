@@ -26,7 +26,9 @@ import javax.servlet.http.HttpServletResponse;
 import jetbrains.buildServer.controllers.BaseController;
 import jetbrains.buildServer.controllers.BasePropertiesBean;
 import jetbrains.buildServer.controllers.admin.projects.BuildTypeForm;
+import jetbrains.buildServer.controllers.admin.projects.EditableBuildTypeSettingsForm;
 import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.serverSide.SBuildType;
 import jetbrains.buildServer.serverSide.SProject;
 import jetbrains.buildServer.serverSide.auth.AuthUtil;
 import jetbrains.buildServer.serverSide.auth.SecurityContext;
@@ -139,9 +141,27 @@ public class CommitStatusPublisherFeatureController extends BaseController {
 
     if (settings != null) {
       settings.getSpecificAttributes(project, params).forEach(mv::addObject);
+
+      SBuildType buildType = getBuildType(request);
+      if (buildType != null) {
+        String defaultBuildName = settings.getDefaultBuildName(buildType);
+        if (defaultBuildName != null) {
+          mv.addObject("defaultBuildName", defaultBuildName);
+        }
+      }
     }
 
     return mv;
+  }
+
+  @Nullable
+  private static SBuildType getBuildType(@NotNull HttpServletRequest request) {
+    BuildTypeForm buildForm = (BuildTypeForm)request.getAttribute("buildForm");
+    if(!(buildForm instanceof EditableBuildTypeSettingsForm)) {
+      return null;
+    }
+    BuildTypeForm buildTypeForm = (EditableBuildTypeSettingsForm) request.getAttribute("buildForm");
+    return ((EditableBuildTypeSettingsForm)buildTypeForm).getSettingsBuildType();
   }
 
   private void transformParameters(@NotNull BasePropertiesBean props, @NotNull String publisherId, @NotNull ModelAndView mv) {

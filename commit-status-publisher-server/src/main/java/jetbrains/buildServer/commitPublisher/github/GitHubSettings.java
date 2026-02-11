@@ -284,6 +284,12 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
     };
   }
 
+  @Nullable
+  @Override
+  public String getDefaultBuildName(@NotNull SBuildType buildType) {
+    return myBuildNameProvider.getDefaultBuildName(buildType);
+  }
+
   @Override
   public boolean isPublishingForVcsRoot(final VcsRoot vcsRoot) {
     return "jetbrains.git".equals(vcsRoot.getVcsName());

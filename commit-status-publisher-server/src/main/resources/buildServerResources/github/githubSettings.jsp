@@ -24,8 +24,13 @@
 <jsp:useBean id="oauthConnections" scope="request" type="java.util.List"/>
 <jsp:useBean id="refreshTokenSupported" scope="request" type="java.lang.Boolean"/>
 
+<%@ page import="jetbrains.buildServer.serverSide.TeamCityProperties" %>
+<%@ page import="static jetbrains.buildServer.commitPublisher.Constants.BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE" %>
+<c:set var="customBuildNameEnable" value="<%= TeamCityProperties.getBoolean(BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE) %>"/>
+
 <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
 <%--@elvariable id="project" type="jetbrains.buildServer.serverSide.SProject"--%>
+<%--@elvariable id="defaultBuildName" type="java.lang.String"--%>
 
 <c:url value="/oauth/github/token.html" var="getTokenPage"/>
 <c:set var="cameFromUrl" value="${empty param['cameFromUrl'] ? pageUrl : param['cameFromUrl']}"/>
@@ -42,6 +47,26 @@
     </c:if>
   </c:forEach>
 </c:set>
+
+<c:if test="${customBuildNameEnable}">
+  <tr>
+    <th><label for="${keys.statusContext}">Build name (status context):</label></th>
+    <td>
+      <props:textProperty name="${keys.statusContext}" className="longField"/>
+      <span class="error" id="error_${keys.statusContext}"></span>
+      <span class="smallNote">
+        ${customBuildNameEnable} Specifies the name of the build displayed in the status message posted to the GitHub
+      </span>
+      <script type="text/javascript">
+        $j(document).ready(function() {
+          if("${not empty defaultBuildName}" === "true") {
+            document.getElementById('${keys.statusContext}').setAttribute('placeholder', '${defaultBuildName}');
+          }
+        });
+      </script>
+    </td>
+  </tr>
+</c:if>
 
   <tr>
     <th><label for="${keys.serverKey}">GitHub URL:<l:star/></label></th>

@@ -79,8 +79,7 @@ public class Constants {
   public static final String GITHUB_TOKEN = "secure:github_access_token";
   public static final String GITHUB_OAUTH_USER = "github_oauth_user";
   public static final String GITHUB_OAUTH_PROVIDER_ID = "github_oauth_provider_id";
-  public static final String GITHUB_CUSTOM_CONTEXT_BUILD_PARAM = "teamcity.commitStatusPublisher.githubContext";
-  public static final String GITHUB_CONTEXT = "github_context";
+  public static final String BUILD_CUSTOM_NAME = "build_custom_name";
 
   public static final String BITBUCKET_PUBLISHER_ID = "bitbucketCloudPublisher";
   public static final String BITBUCKET_CLOUD_USERNAME = "bitbucketUsername";
@@ -92,6 +91,8 @@ public class Constants {
   public static final String STATUSES_TO_LOAD_THRESHOLD_PROPERTY = "teamcity.commitStatusPubliser.statusesToLoad.threshold";
   public static final int STATUSES_TO_LOAD_THRESHOLD_DEFAULT_VAL = 50;
   public static final String GITLAB_FEATURE_TOGGLE_MERGE_RESULTS = "commitStatusPubliser.gitlab.supportMergeResults";
+
+  public static final String BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE = "teamcity.commitStatusPublisher.buildName.customization.enable";
 
   /**
    * If enabled, intermidiate failure status won't be published if test retries support is enabled
@@ -232,5 +233,10 @@ public class Constants {
   @NotNull
   public String getGitlabToken() {
     return GITLAB_TOKEN;
+  }
+
+  @NotNull
+  public String getBuildName() {
+    return BUILD_CUSTOM_NAME;
   }
 }

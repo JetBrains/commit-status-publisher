@@ -175,6 +175,12 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
     }
   }
 
+  @Nullable
+  @Override
+  public String getDefaultBuildName(@NotNull SBuildType buildType) {
+    return myBuildNameProvider.getDefaultBuildName(buildType);
+  }
+
   @NotNull
   @Override
   protected String getDefaultAuthType() {

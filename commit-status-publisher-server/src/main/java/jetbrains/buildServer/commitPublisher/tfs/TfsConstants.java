@@ -20,6 +20,8 @@ package jetbrains.buildServer.commitPublisher.tfs;
 
 import jetbrains.buildServer.agent.Constants;
 
+import static jetbrains.buildServer.commitPublisher.Constants.BUILD_CUSTOM_NAME;
+
 public class TfsConstants {
   public static final String ID = "tfs";
   public static final String AUTHENTICATION_TYPE = "tfsAuthType";
@@ -39,6 +41,10 @@ public class TfsConstants {
 
   public String getAuthenticationTypeKey() {
     return AUTHENTICATION_TYPE;
+  }
+
+  public String getBuildName() {
+    return BUILD_CUSTOM_NAME;
   }
 
   public String getAuthTypeToken() {

@@ -153,6 +153,10 @@ public class TfsPublisherTest extends HttpPublisherTest {
     test_testConnection_failure("http://localhost/nouser/" + NO_PERMISSIONS_REPO, getPublisherParams());
   }
 
+  public void default_build_name_test() {
+    assertEquals("My Default Test Project / My Default Test Build Type", myPublisherSettings.getDefaultBuildName(myBuildType));
+  }
+
   @Override
   protected Map<String, String> getPublisherParams() {
     return new HashMap<String, String>() {{

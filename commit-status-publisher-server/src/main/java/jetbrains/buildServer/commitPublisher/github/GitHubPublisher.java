@@ -126,7 +126,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
   private boolean isSameBuildType(BuildPromotion buildPromotion, CommitStatus commitStatus) {
     String buildName;
     try {
-      buildName = myBuildNameProvider.getBuildName(buildPromotion);
+      buildName = myBuildNameProvider.getBuildName(buildPromotion, myParams);
     } catch (GitHubContextResolveException e) {
       LOG.debug("Context was not resolved for promotion #" + buildPromotion.getId(), e);
       return false;
@@ -209,7 +209,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       h.changeCompleted(revision, build, viewUrl);
     }
 
-    String context = params.get(Constants.GITHUB_CONTEXT);
+    String context = params.get(Constants.BUILD_CUSTOM_NAME);
     myStatusesCache.removeStatusFromCache(revision, context);
   }
 
@@ -228,7 +228,7 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
       return null;
     }
 
-    final String context = params.get(Constants.GITHUB_CONTEXT);
+    final String context = params.get(Constants.BUILD_CUSTOM_NAME);
     if (context == null) {
       return null;
     }
@@ -281,17 +281,17 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
     }
 
     if (statusUpdated) {
-      String context = params.get(Constants.GITHUB_CONTEXT);
+      String context = params.get(Constants.BUILD_CUSTOM_NAME);
       myStatusesCache.removeStatusFromCache(revision, context);
     }
     return statusUpdated;
   }
 
   @NotNull
-  private Map<String, String> getParams(@NotNull BuildPromotion buildPromotion) throws GitHubContextResolveException {
-    String buildName = myBuildNameProvider.getBuildName(buildPromotion);
+  private Map<String, String> getParams(@NotNull BuildPromotion buildPromotion) throws GitHubContextResolveException, PublisherException {
+    String buildName = myBuildNameProvider.getBuildName(buildPromotion, myParams);
     Map<String, String> result = new HashMap<String, String>(myParams);
-    result.put(Constants.GITHUB_CONTEXT, buildName);
+    result.put(Constants.BUILD_CUSTOM_NAME, buildName);
     return result;
   }
 }

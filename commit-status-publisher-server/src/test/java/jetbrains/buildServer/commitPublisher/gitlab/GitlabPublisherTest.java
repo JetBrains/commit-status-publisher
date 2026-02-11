@@ -265,6 +265,11 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     assertEquals("https://url.com/api/v4", ((GitlabPublisher)myPublisher).getApiUrl(myVcsRoot.getProperty("url")));
   }
 
+  public void default_build_name_test() {
+    assertEquals("My Default Test Project / My Default Test Build Type", myPublisherSettings.getDefaultBuildName(myBuildType));
+    assertEquals(myBuildType.getFullName(), myPublisherSettings.getDefaultBuildName(myBuildType));
+  }
+
   @Override
   protected boolean isStatusCacheNotImplemented() {
     return false;

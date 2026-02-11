@@ -1,9 +1,9 @@
 package jetbrains.buildServer.commitPublisher.github;
 
+import java.util.Map;
 import jetbrains.buildServer.commitPublisher.BaseBuildNameProvider;
-import jetbrains.buildServer.commitPublisher.Constants;
-import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -11,38 +11,15 @@ public class GitHubBuildContextProvider extends BaseBuildNameProvider {
 
   @NotNull
   @Override
-  public String getBuildName(@NotNull BuildPromotion promotion) throws GitHubContextResolveException {
-    String context = getCustomContextFromParameter(promotion);
-    return context != null ? context : getDefaultBuildName(promotion);
-  }
-
-  @Nullable
-  private String getCustomContextFromParameter(@NotNull BuildPromotion buildPromotion) throws GitHubContextResolveException {
-    SBuild build = buildPromotion.getAssociatedBuild();
-    if (build != null) {
-      String value = build.getParametersProvider().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM);
-      if (value == null) return null;
-
-      if (isRemovedFromQueue(build) && ReferencesResolverUtil.mayContainReference(value)) {
-        throw new GitHubContextResolveException("Variables in the custom context for removed from queue build cannot be resolved");
-      }
-      return build.getValueResolver().resolve(value).getResult();
+  public String getBuildName(@NotNull BuildPromotion promotion, Map<String, String> params) throws GitHubContextResolveException {
+    String context;
+    try {
+      context = getCustomBuildNameFromParameters(params);
+    } catch (IllegalStateException e) {
+      throw new GitHubContextResolveException(e.getMessage());
     }
 
-    SBuildType buildType = buildPromotion.getBuildType();
-    if (buildType == null) return null;
-
-    String value = buildType.getParameters().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM);
-    if (value == null) return null;
-
-    if(ReferencesResolverUtil.mayContainReference(value)) {
-      throw new GitHubContextResolveException("Variables in the custom context for build cannot be resolved");
-    }
-    return value;
-  }
-
-  private boolean isRemovedFromQueue(@NotNull SBuild build) {
-    return build.isFinished() && build.getCanceledInfo() != null;
+    return StringUtil.isEmptyOrSpaces(context) ? getDefaultBuildName(promotion) : context;
   }
 
   @NotNull
@@ -61,6 +38,18 @@ public class GitHubBuildContextProvider extends BaseBuildNameProvider {
     } else {
       return "<Removed build configuration>";
     }
+  }
+
+  /**
+   * The default Build Name (context) for Pipelines is calculated differently than for common Build configurations,
+   * so if this value is used in the Pipelines, the separate calculation approach should be implemented.
+   */
+  @NotNull
+  @Override
+  public String getDefaultBuildName(@NotNull SBuildType buildType) {
+    String btName = removeMultiCharUnicodeAndTrim(buildType.getName());
+    String prjName = removeMultiCharUnicodeAndTrim(buildType.getProject().getName());
+    return String.format("%s (%s)", btName, prjName);
   }
 
   @Nullable

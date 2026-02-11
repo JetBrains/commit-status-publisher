@@ -128,6 +128,10 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     assertFalse(publisher.getRevisionStatus(removedBuild, new BitbucketCloudCommitBuildStatus("anotherBuildType", BitbucketCloudBuildStatus.INPROGRESS.name(), null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
   }
 
+  public void default_build_name_test() {
+    assertEquals("My Default Test Project / My Default Test Build Type", myPublisherSettings.getDefaultBuildName(myBuildType));
+  }
+
   @Override
   protected boolean respondToGet(String url, HttpResponse httpResponse) {
     if (url.contains("/statuses/build/")) {

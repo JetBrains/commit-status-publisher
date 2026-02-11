@@ -104,4 +104,8 @@ public class StashPublisherTest extends BaseStashPublisherTest {
     myPublisher = new StashPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myBuildNameProvider);
     assertEquals("https://url.com", ((StashPublisher)myPublisher).getBaseUrl(myVcsRoot.getProperty("url")));
   }
+
+  public void default_build_name_test() {
+    assertEquals("My Default Test Project / My Default Test Build Type #<BUILD_NUMBER>", myPublisherSettings.getDefaultBuildName(myBuildType));
+  }
 }

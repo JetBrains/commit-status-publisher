@@ -211,6 +211,12 @@ public class TfsPublisherSettings extends AuthTypeAwareSettings implements Commi
     return isBuildQueuedSupported(buildType) ? mySupportedEventsWithQueued : mySupportedEvents;
   }
 
+  @Nullable
+  @Override
+  public String getDefaultBuildName(@NotNull SBuildType buildType) {
+    return myBuildNameProvider.getDefaultBuildName(buildType);
+  }
+
   @NotNull
   @Override
   protected String getDefaultAuthType() {

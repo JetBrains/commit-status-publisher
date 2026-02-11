@@ -241,7 +241,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
                                                          @NotNull BitbucketCloudBuildStatus status,
                                                          @NotNull String comment,
                                                          @NotNull String url) {
-    String buildName = myBuildNameProvider.getBuildName(promotion);
+    String buildName = myBuildNameProvider.getBuildName(promotion, myParams);
     return new BitbucketCloudCommitBuildStatus(buildKey(promotion), status.name(), buildName, comment, url);
   }
 

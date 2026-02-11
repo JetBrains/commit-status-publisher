@@ -272,6 +272,12 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
     }
   }
 
+  @Nullable
+  @Override
+  public String getDefaultBuildName(@NotNull SBuildType buildType) {
+    return myBuildNameProvider.getDefaultBuildName(buildType);
+  }
+
   @NotNull
   @Override
   public List<OAuthConnectionDescriptor> getOAuthConnections(@NotNull SProject project, @NotNull SUser user) {

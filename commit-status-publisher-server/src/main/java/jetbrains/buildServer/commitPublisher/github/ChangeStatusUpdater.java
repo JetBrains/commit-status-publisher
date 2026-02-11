@@ -197,7 +197,7 @@ public class ChangeStatusUpdater {
       @Override
       public CommitStatus getStatus(@NotNull BuildRevision revision) throws PublisherException {
         RepositoryVersion version = revision.getRepositoryVersion();
-        String buildContext = params.get(Constants.GITHUB_CONTEXT);
+        String buildContext = params.get(Constants.BUILD_CUSTOM_NAME);
         LOG.debug("Requesting statuses for " +
                   "hash: " + version.getVersion() + ", " +
                   "branch: " + version.getVcsBranch() + ", " +
@@ -217,7 +217,7 @@ public class ChangeStatusUpdater {
       @Override
       public Collection<CommitStatus> getStatuses(@NotNull BuildRevision revision) throws PublisherException {
         RepositoryVersion version = revision.getRepositoryVersion();
-        String buildContext = params.get(Constants.GITHUB_CONTEXT);
+        String buildContext = params.get(Constants.BUILD_CUSTOM_NAME);
         LOG.debug("Requesting statuses for " +
                   "hash: " + version.getVersion() + ", " +
                   "branch: " + version.getVcsBranch() + ", " +
@@ -301,7 +301,7 @@ public class ChangeStatusUpdater {
 
     GitHubCommonStatusClient(Map<String, String> params, GitHubPublisher publisher, @NotNull VcsRoot root) {
       myPublisher = publisher;
-      String ctx = params.get(Constants.GITHUB_CONTEXT);
+      String ctx = params.get(Constants.BUILD_CUSTOM_NAME);
       myContext = StringUtil.isEmpty(ctx) ? DEFAULT_CONTEXT : ctx;
       myApi = getGitHubApi(params, publisher.getBuildType().getProject(), root);
     }

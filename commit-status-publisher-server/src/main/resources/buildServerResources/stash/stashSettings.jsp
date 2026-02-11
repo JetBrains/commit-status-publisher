@@ -27,8 +27,31 @@
 <jsp:useBean id="oauthConnections" scope="request" type="java.util.List<jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor>"/>
 <jsp:useBean id="project" scope="request" type="jetbrains.buildServer.serverSide.SProject"/>
 
-<%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
 
+<%@ page import="jetbrains.buildServer.serverSide.TeamCityProperties" %>
+<%@ page import="static jetbrains.buildServer.commitPublisher.Constants.BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE" %>
+<c:set var="customBuildNameEnable" value="<%= TeamCityProperties.getBoolean(BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE) %>"/>
+
+<%--@elvariable id="defaultBuildName" type="java.lang.Boolean"--%>
+<c:if test="${customBuildNameEnable}">
+  <tr>
+    <th><label for="${keys.buildName}">Build name (status context):</label></th>
+    <td>
+      <props:textProperty name="${keys.buildName}" className="longField"/>
+      <span class="error" id="error_${keys.buildName}"></span>
+      <span class="smallNote">
+          Specifies the name of the build displayed in the status message posted to the Bitbucket Data Center
+        </span>
+      <script type="text/javascript">
+        $j(document).ready(function() {
+          if("${not empty defaultBuildName}" === "true") {
+            document.getElementById('${keys.buildName}').setAttribute('placeholder', '${defaultBuildName}');
+          }
+        });
+      </script>
+    </td>
+  </tr>
+</c:if>
   <tr>
     <!-- must be inside a html tag, as otherwhise jQuery "nextSiblings" from selectProperty tag chokes on the script tag -->
     <script type="text/javascript">

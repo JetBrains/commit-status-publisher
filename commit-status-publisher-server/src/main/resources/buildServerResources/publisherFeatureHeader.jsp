@@ -49,7 +49,7 @@
     },
     showPublisherSettings: function() {
       PublisherFeature.hideTestConnection();
-      var url = '${settingsUrl}?${constants.publisherIdParam}=' + $('${constants.publisherIdParam}').value  + "&projectId=${projectId}";
+      var url = '${settingsUrl}?${constants.publisherIdParam}=' + $('${constants.publisherIdParam}').value  + "&projectId=${projectId}&settingId=${buildForm.settingsId}";
       $j('#publisherSettingsProgress').show();
       $j.get(url, function(xhr) {
         $j('#publisherSettingsProgress').hide();

@@ -41,6 +41,9 @@ public class UpdateChangesConstants {
   public String getTokenIdKey() {
     return Constants.TOKEN_ID;
   }
+  public String getStatusContext() {
+    return Constants.BUILD_CUSTOM_NAME;
+  }
 
   public String getVcsRootId() {
     return Constants.VCS_ROOT_ID_PARAM;

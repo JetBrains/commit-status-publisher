@@ -29,6 +29,31 @@
 <jsp:useBean id="oauthConnections" scope="request" type="java.util.List"/>
 <jsp:useBean id="refreshTokenSupported" scope="request" type="java.lang.Boolean"/>
 
+<%@ page import="jetbrains.buildServer.serverSide.TeamCityProperties" %>
+<%@ page import="static jetbrains.buildServer.commitPublisher.Constants.BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE" %>
+<c:set var="customBuildNameEnable" value="<%= TeamCityProperties.getBoolean(BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE) %>"/>
+
+<%--@elvariable id="defaultBuildName" type="java.lang.String"--%>
+
+<c:if test="${customBuildNameEnable}">
+  <tr>
+    <th><label for="${keys.buildName}">Build name (status context):</label></th>
+    <td>
+      <props:textProperty name="${keys.buildName}" className="longField"/>
+      <span class="error" id="error_${keys.buildName}"></span>
+      <span class="smallNote">
+        Specifies the name of the build displayed in the status message posted to the GitLab
+      </span>
+      <script type="text/javascript">
+        $j(document).ready(function() {
+          if("${not empty defaultBuildName}" === "true") {
+            document.getElementById('${keys.buildName}').setAttribute('placeholder', '${defaultBuildName}');
+          }
+        });
+      </script>
+    </td>
+  </tr>
+</c:if>
 
 <props:selectSectionProperty name="authType" title="Authentication Type:" style="width: 28em;">
   <props:selectSectionPropertyContent value="token" caption="Personal access token">

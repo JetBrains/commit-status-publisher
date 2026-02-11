@@ -424,7 +424,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     @NotNull
     @Override
     public String getName() {
-      return myBuildNameProvider.getBuildName(myBuild.getBuildPromotion());
+      return myBuildNameProvider.getBuildName(myBuild.getBuildPromotion(), myParams);
     }
 
     @NotNull
@@ -468,7 +468,7 @@ class StashPublisher extends HttpBasedCommitStatusPublisher<StashBuildStatus> {
     @NotNull
     @Override
     public String getName() {
-      return myBuildNameProvider.getBuildName(myBuildPromotion);
+      return myBuildNameProvider.getBuildName(myBuildPromotion, myParams);
     }
 
     @Nullable

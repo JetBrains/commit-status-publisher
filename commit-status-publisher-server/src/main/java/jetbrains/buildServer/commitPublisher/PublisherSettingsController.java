@@ -130,6 +130,14 @@ public class PublisherSettingsController extends BaseController {
 
     if (project != null) {
       settings.getSpecificAttributes(project, Collections.emptyMap()).forEach((k, v) -> request.setAttribute(k, v));
+      String btIdInShowSetting =  request.getParameter("settingId").substring("buildType:".length());
+      SBuildType buildType = myProjectManager.findBuildTypeByExternalId(btIdInShowSetting);
+      if (buildType != null) {
+        String buildName = settings.getDefaultBuildName(buildType);
+        if (buildName != null) {
+          request.setAttribute("defaultBuildName", buildName);
+        }
+      }
     }
 
     request.setAttribute("propertiesBean", new BasePropertiesBean(params));

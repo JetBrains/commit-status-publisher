@@ -186,7 +186,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
       return null;
     }
     Event event = getTriggeredEvent(commitStatus);
-    boolean isSameBuildType = StringUtil.areEqual(myBuildNameProvider.getBuildName(buildPromotion), commitStatus.name);
+    boolean isSameBuildType = StringUtil.areEqual(myBuildNameProvider.getBuildName(buildPromotion, myParams), commitStatus.name);
     return new RevisionStatus(event, commitStatus.description, isSameBuildType, getBuildIdFromViewUrl(commitStatus.target_url));
   }
 
@@ -238,7 +238,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
                        @NotNull BuildRevision revision,
                        @NotNull GitlabBuildStatus status,
                        @NotNull String description) throws PublisherException {
-    String buildName = myBuildNameProvider.getBuildName(build.getBuildPromotion());
+    String buildName = myBuildNameProvider.getBuildName(build.getBuildPromotion(), myParams);
     String message = createMessage(status, buildName, build.getBuildType(), revision, getViewUrl(build), description);
     publish(message, revision, LogUtil.describe(build));
     myStatusesCache.removeStatusFromCache(revision, buildName);
@@ -255,7 +255,7 @@ class GitlabPublisher extends HttpBasedCommitStatusPublisher<GitlabBuildStatus> 
       return;
     }
     String description = additionalTaskInfo.getComment();
-    String buildName = myBuildNameProvider.getBuildName(buildPromotion);
+    String buildName = myBuildNameProvider.getBuildName(buildPromotion, myParams);
     String message = createMessage(status, buildName, buildPromotion.getBuildType(), revision, url, description);
     publish(message, revision, LogUtil.describe(buildPromotion));
     myStatusesCache.removeStatusFromCache(revision, buildName);

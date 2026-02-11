@@ -24,10 +24,7 @@ import java.util.List;
 import java.util.Map;
 import jetbrains.buildServer.TeamCityExtension;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisher.Event;
-import jetbrains.buildServer.serverSide.BuildTypeIdentity;
-import jetbrains.buildServer.serverSide.PropertiesProcessor;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SProject;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.oauth.OAuthConnectionDescriptor;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.SVcsRoot;
@@ -131,6 +128,9 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
   default Map<String, Object> getSpecificAttributes(@NotNull SProject project, @NotNull Map<String, String> params) {
     return Collections.emptyMap();
   }
+
+  @Nullable
+  default String getDefaultBuildName(@NotNull SBuildType buildType) { return null; };
 
   boolean isFeatureLessPublishingSupported(@NotNull SBuildType buildType);
 
