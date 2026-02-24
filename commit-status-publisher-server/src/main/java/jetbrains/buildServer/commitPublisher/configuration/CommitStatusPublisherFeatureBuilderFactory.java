@@ -42,6 +42,5 @@ public class CommitStatusPublisherFeatureBuilderFactory {
     }
 
     return service.get().createFeatureBuilder(maybeSettings.get());
-
   }
 }

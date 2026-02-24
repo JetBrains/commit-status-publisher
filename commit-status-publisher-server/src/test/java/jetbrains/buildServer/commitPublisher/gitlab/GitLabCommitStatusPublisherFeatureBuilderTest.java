@@ -56,6 +56,7 @@ public class GitLabCommitStatusPublisherFeatureBuilderTest extends BaseServerTes
 
     then(feature.getType()).isEqualTo("commit-status-publisher");
     then(feature.getParameters()).containsOnly(
+      entry("publisherId", "gitlabStatusPublisher"),
       entry("authType", "token"),
       entry("secure:gitlabAccessToken", token)
     );
@@ -72,6 +73,7 @@ public class GitLabCommitStatusPublisherFeatureBuilderTest extends BaseServerTes
 
     then(feature.getType()).isEqualTo("commit-status-publisher");
     then(feature.getParameters()).containsOnly(
+      entry("publisherId", "gitlabStatusPublisher"),
       entry("gitlabApiUrl", url),
       entry("authType", "token"),
       entry("secure:gitlabAccessToken", token)
@@ -87,6 +89,7 @@ public class GitLabCommitStatusPublisherFeatureBuilderTest extends BaseServerTes
 
     then(feature.getType()).isEqualTo("commit-status-publisher");
     then(feature.getParameters()).containsOnly(
+      entry("publisherId", "gitlabStatusPublisher"),
       entry("authType", "storedToken"),
       entry("tokenId", tokenId)
     );
@@ -105,6 +108,7 @@ public class GitLabCommitStatusPublisherFeatureBuilderTest extends BaseServerTes
 
     then(feature.getType()).isEqualTo("commit-status-publisher");
     then(feature.getParameters()).containsOnly(
+      entry("publisherId", "gitlabStatusPublisher"),
       entry("authType", "vcsRoot"),
       entry("vcsRootId", vcsRoot.getExternalId())
     );

@@ -1,6 +1,5 @@
 package jetbrains.buildServer.commitPublisher.tfs;
 
-import com.google.common.collect.ImmutableMap;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherProblems;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.MockPluginDescriptor;
@@ -32,7 +31,7 @@ public class AzureDevOpsCommitStatusPublisherFeatureBuilderTest extends BaseServ
     final CommitStatusPublisherSettings settings =
       new TfsPublisherSettings(new MockPluginDescriptor(), myWebLinks, problems, myFixture.getSingletonService(OAuthConnectionsManager.class),
                                myFixture.getSingletonService(OAuthTokensStorage.class), myFixture.getSecurityContext(), myFixture.getUserModel(), trustStoreProvider,
-                               new TfsBuildNameProvider());
+                               new TfsBuildNameProvider(), myFixture.getProjectManager());
     myAzureDevOpsFeatureBuilder = new AzureDevOpsCommitStatusPublisherFeatureBuilder(settings);
   }
 
@@ -45,6 +44,7 @@ public class AzureDevOpsCommitStatusPublisherFeatureBuilderTest extends BaseServ
 
     then(feature.getType()).isEqualTo("commit-status-publisher");
     then(feature.getParameters()).containsOnly(
+      entry("publisherId", "tfs"),
       entry("tfsAuthType", "token"),
       entry("secure:accessToken", token)
     );
@@ -61,6 +61,7 @@ public class AzureDevOpsCommitStatusPublisherFeatureBuilderTest extends BaseServ
 
     then(feature.getType()).isEqualTo("commit-status-publisher");
     then(feature.getParameters()).containsOnly(
+      entry("publisherId", "tfs"),
       entry("tfsServerUrl", url),
       entry("tfsAuthType", "token"),
       entry("secure:accessToken", token)
@@ -78,6 +79,7 @@ public class AzureDevOpsCommitStatusPublisherFeatureBuilderTest extends BaseServ
 
     then(feature.getType()).isEqualTo("commit-status-publisher");
     then(feature.getParameters()).containsOnly(
+      entry("publisherId", "tfs"),
       entry("publish.pull.requests", Boolean.toString(publishPullRequests)),
       entry("tfsAuthType", "token"),
       entry("secure:accessToken", token)
@@ -93,19 +95,18 @@ public class AzureDevOpsCommitStatusPublisherFeatureBuilderTest extends BaseServ
 
     then(feature.getType()).isEqualTo("commit-status-publisher");
     then(feature.getParameters()).containsOnly(
+      entry("publisherId", "tfs"),
       entry("tfsAuthType", "storedToken"),
       entry("tokenId", tokenId)
     );
   }
 
-  @Test(expectedExceptions = VcsHostingFeatureException.class, expectedExceptionsMessageRegExp = "VCS Root Authentication is not suppored by AzureDevOpsCommitStatusPublisherFeatureBuilder")
-  public void buildForVcsRootAuthentication_not_supported() {
+  @Test(expectedExceptions = VcsHostingFeatureException.class, expectedExceptionsMessageRegExp = "Password authentication is not supported by AzureDevOpsCommitStatusPublisherFeatureBuilder")
+  public void buildForPassword_not_supported() {
     final SVcsRootEx vcsRoot = createVcsRoot("test", myProject);
-    vcsRoot.setProperties(ImmutableMap.of("authMethod", "PASSWORD"));
     myBuildType.addVcsRoot(vcsRoot);
 
-
-    myAzureDevOpsFeatureBuilder.withVcsRootAuthentication()
+    myAzureDevOpsFeatureBuilder.withPassword("username", "password")
                                .withVcsRoot(vcsRoot)
                                .build(myBuildType);
   }

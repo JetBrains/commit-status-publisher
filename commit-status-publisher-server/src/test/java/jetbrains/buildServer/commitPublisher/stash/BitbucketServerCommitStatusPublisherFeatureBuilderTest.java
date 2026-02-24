@@ -11,7 +11,6 @@ import jetbrains.buildServer.serverSide.systemProblems.BuildProblemsTicketManage
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
 import jetbrains.buildServer.vcs.SVcsRootEx;
 import jetbrains.buildServer.vcshostings.features.VcsHostingBuildFeature;
-import org.assertj.core.api.Assertions;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -47,6 +46,7 @@ public class BitbucketServerCommitStatusPublisherFeatureBuilderTest extends Base
 
     then(feature.getType()).isEqualTo("commit-status-publisher");
     then(feature.getParameters()).containsOnly(
+      entry("publisherId", "atlassianStashPublisher"),
       entry("stashBaseUrl", url),
       entry("authType", "storedToken"),
       entry("tokenId", tokenId)
@@ -62,9 +62,10 @@ public class BitbucketServerCommitStatusPublisherFeatureBuilderTest extends Base
 
     then(feature.getType()).isEqualTo("commit-status-publisher");
     then(feature.getParameters()).containsOnly(
-      Assertions.entry("authType", "password"),
-      Assertions.entry("stashUsername", username),
-      Assertions.entry("secure:stashPassword", password)
+      entry("publisherId", "atlassianStashPublisher"),
+      entry("authType", "password"),
+      entry("stashUsername", username),
+      entry("secure:stashPassword", password)
     );
   }
 
@@ -77,6 +78,7 @@ public class BitbucketServerCommitStatusPublisherFeatureBuilderTest extends Base
 
     then(feature.getType()).isEqualTo("commit-status-publisher");
     then(feature.getParameters()).containsOnly(
+      entry("publisherId", "atlassianStashPublisher"),
       entry("authType", "storedToken"),
       entry("tokenId", tokenId)
     );
@@ -95,8 +97,9 @@ public class BitbucketServerCommitStatusPublisherFeatureBuilderTest extends Base
 
     then(feature.getType()).isEqualTo("commit-status-publisher");
     then(feature.getParameters()).containsOnly(
+      entry("publisherId", "atlassianStashPublisher"),
       entry("authType", "vcsRoot"),
-      Assertions.entry("vcsRootId", vcsRoot.getExternalId())
+      entry("vcsRootId", vcsRoot.getExternalId())
     );
   }
 }

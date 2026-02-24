@@ -35,6 +35,7 @@ import jetbrains.buildServer.users.User;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsException;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -45,6 +46,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
+import static jetbrains.buildServer.commitPublisher.tfs.TfsConstants.AUTH_TYPE_VCS_ROOT;
 
 /**
  * Settings for TFS Git commit status publisher.
@@ -65,6 +67,7 @@ public class TfsPublisherSettings extends AuthTypeAwareSettings implements Commi
 
   private final CommitStatusesCache<TfsStatusPublisher.CommitStatus> myStatusesCache;
   private final TfsBuildNameProvider myBuildNameProvider;
+  private final ProjectManager myProjectManager;
 
   public TfsPublisherSettings(@NotNull PluginDescriptor descriptor,
                               @NotNull WebLinks links,
@@ -74,9 +77,11 @@ public class TfsPublisherSettings extends AuthTypeAwareSettings implements Commi
                               @NotNull SecurityContext securityContext,
                               @NotNull UserModel userModel,
                               @NotNull SSLTrustStoreProvider trustStoreProvider,
-                              @NotNull TfsBuildNameProvider buildNameProvider
+                              @NotNull TfsBuildNameProvider buildNameProvider,
+                              @NotNull ProjectManager projectManager
   ) {
     super(descriptor, links, problems, trustStoreProvider, oauthTokensStorage, userModel, oauthConnectionsManager, securityContext);
+    myProjectManager = projectManager;
     myStatusesCache = new CommitStatusesCache<>();
     myBuildNameProvider = buildNameProvider;
   }
@@ -188,6 +193,18 @@ public class TfsPublisherSettings extends AuthTypeAwareSettings implements Commi
           p.remove(TfsConstants.TOKEN_ID);
         } else if (TfsConstants.AUTH_TYPE_STORED_TOKEN.equals(authType)) {
           checkNotEmpty(p, TfsConstants.TOKEN_ID, "No token configured", result);
+
+          p.remove(TfsConstants.ACCESS_TOKEN);
+          p.remove(TfsConstants.AUTH_USER);
+          p.remove(TfsConstants.AUTH_PROVIDER_ID);
+        } else if (AUTH_TYPE_VCS_ROOT.equals(authType)) {
+          String vcsRootId = p.get(Constants.VCS_ROOT_ID_PARAM);
+          SVcsRoot vcsRoot = null == vcsRootId ? null : myProjectManager.findVcsRootByExternalId(vcsRootId);
+          if (null != vcsRoot) {
+            String vcsUrl = vcsRoot.getProperty("url");
+            if (!StringUtil.isEmptyOrSpaces(vcsUrl) && !vcsUrl.trim().toLowerCase().startsWith("http"))
+              result.add(new InvalidProperty(TfsConstants.AUTHENTICATION_TYPE, "Credentials can not be extracted as the selected VCS root uses non-HTTP(S) fetch URL"));
+          }
 
           p.remove(TfsConstants.ACCESS_TOKEN);
           p.remove(TfsConstants.AUTH_USER);

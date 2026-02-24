@@ -3,7 +3,6 @@ package jetbrains.buildServer.commitPublisher.tfs;
 import jetbrains.buildServer.commitPublisher.CommitStatusPublisherSettings;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.commitPublisher.configuration.CommitStatusPublisherFeatureBuilder;
-import jetbrains.buildServer.vcshostings.features.VcsHostingFeatureException;
 import org.jetbrains.annotations.NotNull;
 
 public class AzureDevOpsCommitStatusPublisherFeatureBuilder extends CommitStatusPublisherFeatureBuilder {
@@ -32,11 +31,6 @@ public class AzureDevOpsCommitStatusPublisherFeatureBuilder extends CommitStatus
     putParameter(TfsConstants.AUTHENTICATION_TYPE, Constants.AUTH_TYPE_ACCESS_TOKEN);
     putParameter(TfsConstants.ACCESS_TOKEN, token);
     return this;
-  }
-
-  @NotNull
-  public AzureDevOpsCommitStatusPublisherFeatureBuilder withVcsRootAuthentication() {
-    throw new VcsHostingFeatureException("VCS Root Authentication is not suppored by " + getClass().getSimpleName());
   }
 
   @Override

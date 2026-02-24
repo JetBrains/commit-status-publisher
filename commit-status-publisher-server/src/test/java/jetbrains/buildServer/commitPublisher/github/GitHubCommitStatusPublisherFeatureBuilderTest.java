@@ -60,7 +60,8 @@ public class GitHubCommitStatusPublisherFeatureBuilderTest extends BaseServerTes
     then(feature.getParameters()).containsOnly(
       entry("github_host", "https://api.github.com"),
       entry("github_authentication_type", "token"),
-      entry("secure:github_access_token", "my-token")
+      entry("secure:github_access_token", "my-token"),
+      entry("publisherId","githubStatusPublisher")
     );
   }
 
@@ -75,7 +76,8 @@ public class GitHubCommitStatusPublisherFeatureBuilderTest extends BaseServerTes
     then(feature.getParameters()).containsOnly(
       entry("github_host", customUrl),
       entry("github_authentication_type", "token"),
-      entry("secure:github_access_token", "my-token")
+      entry("secure:github_access_token", "my-token"),
+      entry("publisherId","githubStatusPublisher")
     );
   }
 
@@ -91,7 +93,8 @@ public class GitHubCommitStatusPublisherFeatureBuilderTest extends BaseServerTes
       entry("github_host", "https://api.github.com"),
       entry("github_authentication_type", "password"),
       entry("github_username", username),
-      entry("secure:github_password", password)
+      entry("secure:github_password", password),
+      entry("publisherId","githubStatusPublisher")
     );
   }
 
@@ -108,7 +111,8 @@ public class GitHubCommitStatusPublisherFeatureBuilderTest extends BaseServerTes
     then(feature.getType()).isEqualTo("commit-status-publisher");
     then(feature.getParameters()).containsOnly(
       entry("github_host", "https://api.github.com"),
-      entry("github_authentication_type", "vcsRoot")
+      entry("github_authentication_type", "vcsRoot"),
+      entry("publisherId","githubStatusPublisher")
     );
   }
 
@@ -126,7 +130,8 @@ public class GitHubCommitStatusPublisherFeatureBuilderTest extends BaseServerTes
     then(feature.getParameters()).containsOnly(
       entry("github_host", "https://api.github.com"),
       entry("github_authentication_type", "vcsRoot"),
-      entry("vcsRootId", vcsRoot.getExternalId())
+      entry("vcsRootId", vcsRoot.getExternalId()),
+      entry("publisherId","githubStatusPublisher")
     );
   }
 
@@ -150,7 +155,8 @@ public class GitHubCommitStatusPublisherFeatureBuilderTest extends BaseServerTes
       entry("github_host", "https://api.github.com"),
       entry("github_authentication_type", "storedToken"),
       entry("vcsRootId", vcsRoot.getExternalId()),
-      entry("tokenId", tokenId)
+      entry("tokenId", tokenId),
+      entry("publisherId","githubStatusPublisher")
     );
   }
 }

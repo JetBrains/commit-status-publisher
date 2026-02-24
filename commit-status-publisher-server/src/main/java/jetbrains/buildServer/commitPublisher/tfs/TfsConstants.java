@@ -25,10 +25,9 @@ import static jetbrains.buildServer.commitPublisher.Constants.BUILD_CUSTOM_NAME;
 public class TfsConstants {
   public static final String ID = "tfs";
   public static final String AUTHENTICATION_TYPE = "tfsAuthType";
-
   public static final String AUTH_TYPE_TOKEN = "token";
-
   public static final String AUTH_TYPE_STORED_TOKEN = "storedToken";
+  public static final String AUTH_TYPE_VCS_ROOT = "vcsRoot";
 
   public static final String TOKEN_ID = "tokenId";
   public static final String ACCESS_TOKEN = Constants.SECURE_PROPERTY_PREFIX + "accessToken";

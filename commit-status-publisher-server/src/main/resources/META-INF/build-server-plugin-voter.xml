@@ -33,6 +33,7 @@
   <bean class="jetbrains.buildServer.commitPublisher.CommitStatusPublisherFeatureController"/>
   <bean class="jetbrains.buildServer.commitPublisher.PublisherManager"/>
   <bean class="jetbrains.buildServer.commitPublisher.configuration.CommitStatusPublisherFeatureBuilderFactory"/>
+  <bean class="jetbrains.buildServer.commitPublisher.configuration.CommitStatusPublisherFeatureManager"/>
 
   <bean class="jetbrains.buildServer.commitPublisher.stash.StashSettings"/>
   <bean class="jetbrains.buildServer.commitPublisher.stash.StashBuildNameProvider"/>

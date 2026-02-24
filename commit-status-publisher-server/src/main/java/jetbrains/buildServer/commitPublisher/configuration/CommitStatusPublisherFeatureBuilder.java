@@ -20,6 +20,7 @@ public abstract class CommitStatusPublisherFeatureBuilder extends AuthTypeAwareB
   protected CommitStatusPublisherFeatureBuilder(@NotNull CommitStatusPublisherSettings settings) {
     super(CommitStatusPublisherFeature.TYPE);
     mySettings = settings;
+    putParameter(Constants.PUBLISHER_ID_PARAM, mySettings.getId());
   }
 
   @NotNull

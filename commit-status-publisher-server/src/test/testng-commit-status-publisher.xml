@@ -61,6 +61,7 @@
       <class name="jetbrains.buildServer.commitPublisher.reports.MissingVcsRootReportTest" />
       <class name="jetbrains.buildServer.commitPublisher.PublisherManagerTest" />
       <class name="jetbrains.buildServer.commitPublisher.configuration.CommitStatusPublisherFeatureBuilderFactoryTest" />
+      <class name="jetbrains.buildServer.commitPublisher.configuration.CommitStatusPublisherFeatureManagerTest" />
       <class name="jetbrains.buildServer.commitPublisher.processor.strategy.PullRequestBuildOwnerSupplierTest" />
       <class name="jetbrains.buildServer.commitPublisher.processor.DefaultFavoriteBuildProcessorTest" />
     </classes>

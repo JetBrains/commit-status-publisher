@@ -51,6 +51,7 @@ public class BitbucketCloudCommitStatusPublisherFeatureBuilderTest extends BaseS
 
     then(feature.getType()).isEqualTo("commit-status-publisher");
     then(feature.getParameters()).containsOnly(
+      entry("publisherId", "bitbucketCloudPublisher"),
       entry("authType", "password"),
       entry("bitbucketUsername", username),
       entry("secure:bitbucketPassword", password));
