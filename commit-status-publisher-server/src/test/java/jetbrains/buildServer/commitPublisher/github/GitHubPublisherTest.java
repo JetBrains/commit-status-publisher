@@ -132,8 +132,11 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     buildPromotionMock.stubs().method("getBuildTypeExternalId").withNoArguments().will(returnValue("buildTypeExtenalId"));
     buildPromotionMock.stubs().method("getAssociatedBuild").withNoArguments().will(returnValue(null));
     buildPromotionMock.stubs().method("getAttribute").withAnyArguments().will(returnValue(null));
-    PipelineViewImpl pipelineView = new PipelineViewImpl((BuildPromotionEx)buildPromotionMock.proxy());
-    buildPromotionMock.stubs().method("getPipelineView").withNoArguments().will(returnValue(pipelineView));
+    Mock pipelineViewMock = new Mock(PipelineView.class);
+    pipelineViewMock.stubs().method("isHead").will(returnValue(false));
+    pipelineViewMock.stubs().method("isJob").will(returnValue(false));
+    pipelineViewMock.stubs().method("getJobName").will(returnValue(null));
+    buildPromotionMock.stubs().method("getPipelineView").withNoArguments().will(returnValue(pipelineViewMock.proxy()));
     Mock buildTypeMock = new Mock(BuildTypeEx.class);
     buildTypeMock.stubs().method("getName").withNoArguments().will(returnValue("buildName"));
     buildTypeMock.stubs().method("getParameters").withAnyArguments().will(returnValue(Collections.emptyMap()));

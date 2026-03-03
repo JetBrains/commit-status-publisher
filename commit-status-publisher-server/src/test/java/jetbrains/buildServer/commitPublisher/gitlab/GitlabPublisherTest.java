@@ -202,8 +202,11 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     buildTypeMock.stubs().method("getProject").withNoArguments().will(returnValue(myBuildType.getProject()));
     buildPromotionMock.stubs().method("getBuildType").withNoArguments().will(returnValue(buildTypeMock.proxy()));
     buildPromotionMock.stubs().method("getAttribute").withAnyArguments().will(returnValue(null));
-    PipelineViewImpl pipelineView = new PipelineViewImpl((BuildPromotionEx)buildPromotionMock.proxy());
-    buildPromotionMock.stubs().method("getPipelineView").withNoArguments().will(returnValue(pipelineView));
+    Mock pipelineViewMock = new Mock(PipelineView.class);
+    pipelineViewMock.stubs().method("isHead").will(returnValue(false));
+    pipelineViewMock.stubs().method("isJob").will(returnValue(false));
+    pipelineViewMock.stubs().method("getJobName").will(returnValue(null));
+    buildPromotionMock.stubs().method("getPipelineView").withNoArguments().will(returnValue(pipelineViewMock.proxy()));
     BuildPromotion removedBuild = (BuildPromotion)buildPromotionMock.proxy();
 
     GitlabPublisher publisher = (GitlabPublisher)myPublisher;
