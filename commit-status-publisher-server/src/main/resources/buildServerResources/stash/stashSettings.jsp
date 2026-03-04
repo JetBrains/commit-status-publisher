@@ -39,7 +39,7 @@
     <td>
       <props:textProperty name="${keys.buildName}" className="longField"/>
       <span class="error" id="error_${keys.buildName}"></span>
-      <span class="smallNote">
+        <span class="smallNote">
           Specifies the name of the build displayed in the status message posted to the Bitbucket Data Center
         </span>
       <script type="text/javascript">

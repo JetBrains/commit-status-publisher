@@ -45,8 +45,8 @@
       <props:textProperty name="${keys.buildName}" className="longField"/>
       <span class="error" id="error_${keys.buildName}"></span>
       <span class="smallNote">
-            Specifies the name of the build displayed in the status message posted to the Azure DevOps
-          </span>
+        Specifies the name of the build displayed in the status message posted to the Azure DevOps
+      </span>
       <script type="text/javascript">
         $j(document).ready(function() {
           if("${not empty defaultBuildName}" === "true") {

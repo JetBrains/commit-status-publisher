@@ -55,7 +55,7 @@
       <props:textProperty name="${keys.statusContext}" className="longField"/>
       <span class="error" id="error_${keys.statusContext}"></span>
       <span class="smallNote">
-        ${customBuildNameEnable} Specifies the name of the build displayed in the status message posted to the GitHub
+        Specifies the name of the build displayed in the status message posted to the GitHub
       </span>
       <script type="text/javascript">
         $j(document).ready(function() {
