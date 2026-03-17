@@ -44,6 +44,8 @@ import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static jetbrains.buildServer.commitPublisher.Constants.BUILD_CUSTOM_NAME;
+
 public class GitHubSettings extends BasePublisherSettings implements CommitStatusPublisherSettings {
 
   private final ChangeStatusUpdater myUpdater;
@@ -167,8 +169,12 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
   public String describeParameters(@NotNull Map<String, String> params) {
     String result = super.describeParameters(params);
     String url = params.get(Constants.GITHUB_SERVER);
-    if (null != url && !url.equals(GitHubApiFactory.DEFAULT_URL)) {
-      result += ": " + WebUtil.escapeXml(url);
+    if (!StringUtil.isEmptyOrSpaces(url) && !url.equals(GitHubApiFactory.DEFAULT_URL)) {
+      result += " (" + WebUtil.escapeXml(url) + ")";
+    }
+    String buildCustomName = params.get(BUILD_CUSTOM_NAME);
+    if (!StringUtil.isEmptyOrSpaces(buildCustomName)) {
+      result += " under the \"" + buildCustomName + "\" name";
     }
     return result;
   }

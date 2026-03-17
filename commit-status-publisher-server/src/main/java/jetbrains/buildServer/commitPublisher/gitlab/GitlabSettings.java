@@ -54,6 +54,8 @@ import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static jetbrains.buildServer.commitPublisher.Constants.BUILD_CUSTOM_NAME;
+
 public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatusPublisherSettings {
 
   private static final Pattern URL_WITH_API_SUFFIX = Pattern.compile("(.*)/api/v.");
@@ -251,7 +253,11 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
     String result = super.describeParameters(params);
     String url = params.get(Constants.GITLAB_API_URL);
     if (url != null)
-      result += " " + WebUtil.escapeXml(url);
+      result += " (" + WebUtil.escapeXml(url) + ")";
+    String buildCustomName = params.get(BUILD_CUSTOM_NAME);
+    if (!StringUtil.isEmptyOrSpaces(buildCustomName)) {
+      result += " under the \"" + buildCustomName + "\" name";
+    }
     return result;
   }
 

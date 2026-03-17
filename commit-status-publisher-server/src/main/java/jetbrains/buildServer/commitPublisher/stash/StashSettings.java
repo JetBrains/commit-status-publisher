@@ -50,6 +50,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
 import static jetbrains.buildServer.commitPublisher.BaseCommitStatusPublisher.DEFAULT_CONNECTION_TIMEOUT;
+import static jetbrains.buildServer.commitPublisher.Constants.BUILD_CUSTOM_NAME;
 import static jetbrains.buildServer.commitPublisher.PropertyChecks.mandatoryString;
 import static jetbrains.buildServer.commitPublisher.stash.StashPublisher.PROP_PUBLISH_QUEUED_BUILD_STATUS;
 
@@ -123,20 +124,12 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
 
     final String url = params.get(Constants.STASH_BASE_URL);
     if (url != null) {
-      sb.append(": ").append(WebUtil.escapeXml(url));
+      sb.append(" (").append(WebUtil.escapeXml(url)).append(")");
     }
 
-    sb.append(", authenticating via ");
-    final String authType = getAuthType(params);
-    switch (authType) {
-      case Constants.PASSWORD:
-        sb.append("username / password credentials");
-        break;
-      case Constants.AUTH_TYPE_STORED_TOKEN:
-        sb.append("access token");
-        break;
-      default:
-        sb.append("unknown authentication type");
+    String buildCustomName = params.get(BUILD_CUSTOM_NAME);
+    if (!StringUtil.isEmptyOrSpaces(buildCustomName)) {
+      sb.append(" under the \"").append(buildCustomName).append("\" name");
     }
 
     return sb.toString();

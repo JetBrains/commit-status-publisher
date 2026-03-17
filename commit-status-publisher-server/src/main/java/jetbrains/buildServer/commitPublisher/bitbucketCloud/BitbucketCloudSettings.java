@@ -45,10 +45,13 @@ import jetbrains.buildServer.vcshostings.http.credentials.BearerTokenCredentials
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+
+import static jetbrains.buildServer.commitPublisher.Constants.BUILD_CUSTOM_NAME;
 
 public class BitbucketCloudSettings extends AuthTypeAwareSettings implements CommitStatusPublisherSettings {
 
@@ -258,23 +261,9 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
   public String describeParameters(@NotNull Map<String, String> params) {
     final StringBuilder sb = new StringBuilder(super.describeParameters(params));
 
-    sb.append(", authenticating via ");
-    final String authType = getAuthType(params);
-    switch (authType) {
-      case Constants.PASSWORD:
-        sb.append("username / password credentials");
-        break;
-
-      case Constants.AUTH_TYPE_STORED_TOKEN:
-        sb.append("access token");
-        break;
-
-      case Constants.AUTH_TYPE_VCS:
-        sb.append("VCS Root credentials");
-        break;
-
-      default:
-        sb.append("unknown authentication type");
+    String buildCustomName = params.get(BUILD_CUSTOM_NAME);
+    if (!StringUtil.isEmptyOrSpaces(buildCustomName)) {
+      sb.append(" under the \"").append(buildCustomName).append("\" name");
     }
 
     return sb.toString();

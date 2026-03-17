@@ -38,11 +38,22 @@
     <th><label for="${keys.buildName}">Build name (status context):</label></th>
     <td>
       <props:textProperty name="${keys.buildName}" className="longField"/>
+      <span class="url-copy-btn clipboard-btn tc-icon icon16 tc-icon_copy" data-clipboard-action="copy"></span>
       <span class="error" id="error_${keys.buildName}"></span>
         <span class="smallNote">
           Specifies the name of the build displayed in the status message posted to the Bitbucket Data Center
         </span>
       <script type="text/javascript">
+        BS.Clipboard('.clipboard-btn', {
+          text: function(trigger) {
+            const buildName = document.getElementById('${keys.buildName}').value;
+            if (!buildName) {
+              return '${defaultBuildName}';
+            }
+            return buildName;
+          }
+        });
+
         $j(document).ready(function() {
           if("${not empty defaultBuildName}" === "true") {
             document.getElementById('${keys.buildName}').setAttribute('placeholder', '${defaultBuildName}');

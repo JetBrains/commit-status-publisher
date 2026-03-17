@@ -74,7 +74,7 @@ public abstract class BasePublisherSettings implements CommitStatusPublisherSett
   @NotNull
   @Override
   public String describeParameters(@NotNull final Map<String, String> params) {
-    return String.format("Post commit status to %s", getName());
+    return String.format("Post build statuses to %s", getName());
   }
 
   @NotNull

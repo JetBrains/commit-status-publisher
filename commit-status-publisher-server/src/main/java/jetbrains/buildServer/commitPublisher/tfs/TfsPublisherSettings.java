@@ -42,9 +42,11 @@ import jetbrains.buildServer.vcs.VcsRootInstance;
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
+import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static jetbrains.buildServer.commitPublisher.Constants.BUILD_CUSTOM_NAME;
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 import static jetbrains.buildServer.commitPublisher.tfs.TfsConstants.AUTH_TYPE_VCS_ROOT;
 
@@ -143,7 +145,15 @@ public class TfsPublisherSettings extends AuthTypeAwareSettings implements Commi
 
   @NotNull
   public String describeParameters(@NotNull Map<String, String> params) {
-    return String.format("Post commit status to %s", getName());
+    String result = super.describeParameters(params);
+    String url = params.get(TfsConstants.SERVER_URL);
+    if (url != null)
+      result += " (" + WebUtil.escapeXml(url) + ")";
+    String buildCustomName = params.get(BUILD_CUSTOM_NAME);
+    if (!StringUtil.isEmptyOrSpaces(buildCustomName)) {
+      result += " under the \"" + buildCustomName + "\" name";
+    }
+    return result;
   }
 
   @Nullable
