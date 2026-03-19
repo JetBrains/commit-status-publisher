@@ -129,6 +129,11 @@ public interface CommitStatusPublisherSettings extends TeamCityExtension {
     return Collections.emptyMap();
   }
 
+  @NotNull
+  default Map<String, Object> getSpecificAttributesForBuildType(@NotNull SBuildType buildType, @NotNull Map<String, String> params) {
+    return Collections.emptyMap();
+  }
+
   @Nullable
   default String getDefaultBuildName(@NotNull SBuildType buildType) { return null; };
 

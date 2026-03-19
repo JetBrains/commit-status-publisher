@@ -94,6 +94,8 @@ public class Constants {
 
   public static final String BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE = "teamcity.commitStatusPublisher.buildName.customization.enable";
 
+  public static final String GITHUB_CUSTOM_CONTEXT_BUILD_PARAM_OUTDATED = "teamcity.commitStatusPublisher.githubContext";
+
   /**
    * If enabled, intermidiate failure status won't be published if test retries support is enabled
    * @since 2025.07.01

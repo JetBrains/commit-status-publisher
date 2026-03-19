@@ -44,6 +44,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.web.servlet.ModelAndView;
 
+/**
+ * settings controller for editing configured commit status publisher
+ */
 public class CommitStatusPublisherFeatureController extends BaseController {
 
   private final String myUrl;
@@ -144,6 +147,8 @@ public class CommitStatusPublisherFeatureController extends BaseController {
 
       SBuildType buildType = getBuildType(request);
       if (buildType != null) {
+        settings.getSpecificAttributesForBuildType(buildType, params).forEach(mv::addObject);
+
         String defaultBuildName = settings.getDefaultBuildName(buildType);
         if (defaultBuildName != null) {
           mv.addObject("defaultBuildName", defaultBuildName);

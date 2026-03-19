@@ -345,6 +345,17 @@ public class GitHubSettings extends BasePublisherSettings implements CommitStatu
     return result;
   }
 
+  @NotNull
+  @Override
+  public Map<String, Object> getSpecificAttributesForBuildType(@NotNull SBuildType buildType, @NotNull Map<String, String> params) {
+    String outdatedGitHubContext = buildType.getParameters().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM_OUTDATED);
+    if(StringUtil.isEmptyOrSpaces(outdatedGitHubContext)) {
+      return Collections.emptyMap();
+    }
+
+    return Collections.singletonMap("outdatedGitHubContext", outdatedGitHubContext);
+  }
+
   @Nullable
   @Override
   public Map<String, Object> checkHealth(@NotNull SBuildType buildType, @NotNull Map<String, String> params) {

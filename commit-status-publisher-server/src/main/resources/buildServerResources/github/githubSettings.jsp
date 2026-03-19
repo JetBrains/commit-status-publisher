@@ -31,6 +31,7 @@
 <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
 <%--@elvariable id="project" type="jetbrains.buildServer.serverSide.SProject"--%>
 <%--@elvariable id="defaultBuildName" type="java.lang.String"--%>
+<%--@elvariable id="outdatedGitHubContext" type="java.lang.String"--%>
 
 <c:url value="/oauth/github/token.html" var="getTokenPage"/>
 <c:set var="cameFromUrl" value="${empty param['cameFromUrl'] ? pageUrl : param['cameFromUrl']}"/>
@@ -70,7 +71,11 @@
         });
 
         $j(document).ready(function() {
-          if("${not empty defaultBuildName}" === "true") {
+          if("${not empty outdatedGitHubContext}" === "true") {
+            document.getElementById('${keys.statusContext}').setAttribute('placeholder', '${outdatedGitHubContext}');
+            document.getElementById('error_${keys.statusContext}').textContent = 'Warning: This configuration is using the outdated \"teamcity.commitStatusPublisher.githubContext\" parameter. Please remove it and use this build feature property instead.';
+          }
+          else if("${not empty defaultBuildName}" === "true") {
             document.getElementById('${keys.statusContext}').setAttribute('placeholder', '${defaultBuildName}');
           }
         });

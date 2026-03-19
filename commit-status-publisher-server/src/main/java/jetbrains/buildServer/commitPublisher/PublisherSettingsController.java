@@ -47,6 +47,9 @@ import org.springframework.web.servlet.ModelAndView;
 
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
+/**
+ * settings controller for configuring new commit status publisher
+ */
 public class PublisherSettingsController extends BaseController {
 
   private final String myUrl;
@@ -130,9 +133,11 @@ public class PublisherSettingsController extends BaseController {
 
     if (project != null) {
       settings.getSpecificAttributes(project, Collections.emptyMap()).forEach((k, v) -> request.setAttribute(k, v));
-      String btIdInShowSetting =  request.getParameter("settingId").substring("buildType:".length());
+      String btIdInShowSetting = request.getParameter("settingId").substring("buildType:".length());
       SBuildType buildType = myProjectManager.findBuildTypeByExternalId(btIdInShowSetting);
       if (buildType != null) {
+        settings.getSpecificAttributesForBuildType(buildType, params).forEach((k, v) -> request.setAttribute(k, v));
+
         String buildName = settings.getDefaultBuildName(buildType);
         if (buildName != null) {
           request.setAttribute("defaultBuildName", buildName);
@@ -144,7 +149,7 @@ public class PublisherSettingsController extends BaseController {
     request.setAttribute("currentUser", SessionUser.getUser(request));
     request.setAttribute("testConnectionSupported", settings.isTestConnectionSupported());
 
-    if (project != null && user != null) {
+    if (project != null) {
       List<OAuthConnectionDescriptor> oauthConnections = settings.getOAuthConnections(project, user);
       request.setAttribute("oauthConnections", oauthConnections);
       request.setAttribute("refreshTokenSupported", oauthConnections.stream().anyMatch(c -> c.getOauthProvider().isTokenRefreshSupported()));

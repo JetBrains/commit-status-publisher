@@ -2,6 +2,8 @@ package jetbrains.buildServer.commitPublisher.github;
 
 import java.util.Map;
 import jetbrains.buildServer.commitPublisher.BaseBuildNameProvider;
+import jetbrains.buildServer.commitPublisher.Constants;
+import jetbrains.buildServer.parameters.ReferencesResolverUtil;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
@@ -19,7 +21,48 @@ public class GitHubBuildContextProvider extends BaseBuildNameProvider {
       throw new GitHubContextResolveException(e.getMessage());
     }
 
-    return StringUtil.isEmptyOrSpaces(context) ? getDefaultBuildName(promotion) : context;
+    if (StringUtil.isEmptyOrSpaces(context)) {
+      String outdatedBuildName = getCustomContextFromOutdatedParameter(promotion);
+      if (StringUtil.isNotEmpty(outdatedBuildName)) {
+        return outdatedBuildName;
+      }
+
+      return getDefaultBuildName(promotion);
+    }
+
+    return context;
+  }
+
+  @Deprecated
+  @Nullable
+  private String getCustomContextFromOutdatedParameter(@NotNull BuildPromotion buildPromotion) throws GitHubContextResolveException {
+    SBuild build = buildPromotion.getAssociatedBuild();
+    if (build != null) {
+      String value = build.getParametersProvider().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM_OUTDATED);
+      if (value == null) return null;
+
+      if (isRemovedFromQueue(build) && ReferencesResolverUtil.mayContainReference(value)) {
+        throw new GitHubContextResolveException("Variables in the custom context for removed from queue build cannot be resolved");
+      }
+      return build.getValueResolver().resolve(value).getResult();
+    }
+
+    SBuildType buildType = buildPromotion.getBuildType();
+    if (buildType == null) return null;
+
+    String value = buildType.getParameters().get(Constants.GITHUB_CUSTOM_CONTEXT_BUILD_PARAM_OUTDATED);
+    if (value == null) return null;
+
+    if(ReferencesResolverUtil.mayContainReference(value)) {
+      throw new GitHubContextResolveException("Variables in the custom context for build cannot be resolved");
+    }
+    return value;
+  }
+
+
+
+  private boolean isRemovedFromQueue(@NotNull SBuild build) {
+    return build.isFinished() && build.getCanceledInfo() != null;
   }
 
   @NotNull
