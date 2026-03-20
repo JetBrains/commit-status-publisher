@@ -37,7 +37,7 @@
 <c:url value="/oauth/tfs/token.html" var="getTokenPage"/>
 <c:set var="cameFromUrl" value="${empty param['cameFromUrl'] ? pageUrl : param['cameFromUrl']}"/>
 <c:set var="getTokenPage" value="${getTokenPage}?cameFromUrl=${util:urlEscape(cameFromUrl)}"/>
-<c:set var="customBuildNameEnable" value="<%= TeamCityProperties.getBoolean(BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE) %>"/>
+<c:set var="customBuildNameEnable" value="<%= TeamCityProperties.getBooleanOrTrue(BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE) %>"/>
 
 <c:if test="${customBuildNameEnable}">
   <tr>
