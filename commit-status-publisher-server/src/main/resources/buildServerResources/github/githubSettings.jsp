@@ -26,7 +26,7 @@
 
 <%@ page import="jetbrains.buildServer.serverSide.TeamCityProperties" %>
 <%@ page import="static jetbrains.buildServer.commitPublisher.Constants.BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE" %>
-<c:set var="customBuildNameEnable" value="<%= TeamCityProperties.getBoolean(BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE) %>"/>
+<c:set var="customBuildNameEnable" value="<%= TeamCityProperties.getBooleanOrTrue(BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE) %>"/>
 
 <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
 <%--@elvariable id="project" type="jetbrains.buildServer.serverSide.SProject"--%>

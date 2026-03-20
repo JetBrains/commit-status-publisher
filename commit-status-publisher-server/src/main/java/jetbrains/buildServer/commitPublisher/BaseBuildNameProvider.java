@@ -50,7 +50,7 @@ public abstract class BaseBuildNameProvider implements StatusPublisherBuildNameP
 
   @Nullable
   protected String getCustomBuildNameFromParameters(@NotNull Map<String, String> params) {
-    if (!TeamCityProperties.getBoolean(BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE)) {
+    if (!TeamCityProperties.getBooleanOrTrue(BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE)) {
       return null;
     }
 
