@@ -35,7 +35,7 @@
 <%--@elvariable id="defaultBuildName" type="java.lang.Boolean"--%>
 <c:if test="${customBuildNameEnable}">
   <tr>
-    <th><label for="${keys.buildName}">Build name (status context):</label></th>
+    <th><label for="${keys.buildName}">Build name:</label></th>
     <td>
       <props:textProperty name="${keys.buildName}" className="longField"/>
       <span class="url-copy-btn clipboard-btn tc-icon icon16 tc-icon_copy" data-clipboard-action="copy"></span>

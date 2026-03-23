@@ -515,7 +515,7 @@
     <example>
       <description>
         Publishes build statuses to GitHub.com / GitHub Enterprise.
-        Sets the buildName value as a build name displayed in the status message posted to the VCS.
+        Sets the buildName value as a status check name displayed in the status message posted to the VCS.
       </description>
       <code>
         commitStatusPublisher {
