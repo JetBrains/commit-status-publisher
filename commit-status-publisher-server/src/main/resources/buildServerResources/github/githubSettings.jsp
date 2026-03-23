@@ -51,13 +51,13 @@
 
 <c:if test="${customBuildNameEnable}">
   <tr>
-    <th><label for="${keys.statusContext}">Build name (status context):</label></th>
+    <th><label for="${keys.statusContext}">Build name:</label></th>
     <td>
       <props:textProperty name="${keys.statusContext}" className="longField"/>
       <span class="url-copy-btn clipboard-btn tc-icon icon16 tc-icon_copy" data-clipboard-action="copy"></span>
       <span class="error" id="error_${keys.statusContext}"></span>
       <span class="smallNote">
-        Specifies the name of the build displayed in the status message posted to the GitHub
+        The <b>Status check name</b> value for GitHub. Specifies the name of the build displayed in the status message posted to the GitHub.
       </span>
       <script type="text/javascript">
         BS.Clipboard('.clipboard-btn', {
