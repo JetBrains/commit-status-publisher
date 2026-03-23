@@ -148,7 +148,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
         @Override
         public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
           publisher.buildStarted(build, revision);
-          myFavoriteBuildProcessor.markAsFavorite(build, myBuildOwnerSupplier);
+          myFavoriteBuildProcessor.markAsFavorite(build.getBuildPromotion(), myBuildOwnerSupplier);
         }
       }
     ));
@@ -158,6 +158,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
          @Override
          public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision) throws PublisherException {
            publisher.buildFinished(build, revision);
+           myFavoriteBuildProcessor.markAsFavorite(build.getBuildPromotion(), myBuildOwnerSupplier);
          }
        }
     ));
@@ -206,6 +207,7 @@ public class CommitStatusPublisherListener extends BuildServerAdapter implements
         @Override
         public void run(@NotNull CommitStatusPublisher publisher, @NotNull BuildRevision revision, @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
           publisher.buildQueued(buildPromotion, revision, additionalTaskInfo);
+          myFavoriteBuildProcessor.markAsFavorite(buildPromotion, myBuildOwnerSupplier);
         }
       }
     ));

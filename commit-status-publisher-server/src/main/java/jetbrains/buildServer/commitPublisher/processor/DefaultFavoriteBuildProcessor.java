@@ -24,11 +24,10 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
   }
 
   @Override
-  public boolean markAsFavorite(@NotNull final SBuild build, @NotNull final BuildOwnerSupplier buildOwnerSupplier) {
-    final BuildPromotion buildPromotion = build.getBuildPromotion();
-    if (isAutoFavoriteEnabled() && isStillRunning(build) && isSupported(buildPromotion)) {
+  public boolean markAsFavorite(@NotNull final BuildPromotion buildPromotion, @NotNull final BuildOwnerSupplier buildOwnerSupplier) {
+    if (isAutoFavoriteEnabled() && isSupported(buildPromotion)) {
       return addTagsToBuild(buildPromotion,
-        buildOwnerSupplier.supplyFrom(build).stream()
+        buildOwnerSupplier.supplyFrom(((BuildPromotionEx)buildPromotion).getRealOrDummyBuild()).stream()
         .filter(this::shouldMarkAsFavorite)
         .collect(Collectors.toSet()));
     }
@@ -46,13 +45,9 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
     return true;
   }
 
-  private boolean isStillRunning(@NotNull final SBuild build) {
-    return !build.isFinished();
-  }
-
   private boolean isSupported(@NotNull final BuildPromotion buildPromotion) {
     if (hasCommitStatusPublisherFeature(buildPromotion) && !isAlreadyTagged(buildPromotion) && (buildPromotion instanceof BuildPromotionEx)) {
-      // if commit status publisher build feature is enabled in one of the dependent builds, we have to skip this build.
+      // if a commit status publisher build feature is enabled in one of the dependent builds, we have to skip this build.
       return !isCommitStatusPublisherFeatureEnabledInDependentBuilds((BuildPromotionEx) buildPromotion);
     }
     return false;
@@ -73,7 +68,7 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
   private boolean isCommitStatusPublisherFeatureEnabledInDependentBuilds(@NotNull final BuildPromotionEx buildPromotion) {
     final AtomicBoolean isCommitStatusPublisherFeatureUsedByDependents = new AtomicBoolean(false);
     buildPromotion.traverseDependedOnMe(dependent -> {
-      if(hasCommitStatusPublisherFeature(dependent)) {
+      if (hasCommitStatusPublisherFeature(dependent)) {
         isCommitStatusPublisherFeatureUsedByDependents.set(true);
         return DependencyConsumer.Result.STOP;
       }

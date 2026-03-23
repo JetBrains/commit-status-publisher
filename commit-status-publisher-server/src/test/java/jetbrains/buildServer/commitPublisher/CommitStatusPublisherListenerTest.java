@@ -1117,7 +1117,7 @@ public class CommitStatusPublisherListenerTest extends CommitStatusPublisherTest
       addBuildToQueue();
       SRunningBuild runningBuild = myFixture.flushQueueAndWait();
       myFixture.finishBuild(runningBuild, false);
-      Mockito.verify(myFavoriteBuildProcessor, Mockito.times(1)).markAsFavorite(Mockito.eq(runningBuild), Mockito.eq(myBuildOwnerSupplier));
+      Mockito.verify(myFavoriteBuildProcessor, Mockito.atLeastOnce()).markAsFavorite(Mockito.eq(runningBuild.getBuildPromotion()), Mockito.eq(myBuildOwnerSupplier));
     }catch (Exception e) {
       fail(e.getMessage());
     }

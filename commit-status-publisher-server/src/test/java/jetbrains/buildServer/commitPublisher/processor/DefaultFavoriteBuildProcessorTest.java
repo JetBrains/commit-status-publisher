@@ -68,14 +68,14 @@ public class DefaultFavoriteBuildProcessorTest extends BaseServerTestCase {
   public void should_not_mark_if_teamcity_property_is_not_enabled() {
     final SBuild runningBuild = Mockito.mock(SBuild.class);
     when(runningBuild.isFinished()).thenReturn(false);
-    assertFalse(myFavoriteBuildProcessor.markAsFavorite(runningBuild, myBuildOwnerSupplier));
+    assertFalse(myFavoriteBuildProcessor.markAsFavorite(runningBuild.getBuildPromotion(), myBuildOwnerSupplier));
   }
 
   public void should_not_mark_build_that_are_finished() {
     final SBuild finishedBuild = Mockito.mock(SBuild.class);
     when(finishedBuild.isFinished()).thenReturn(true);
     setInternalProperty(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED, true);
-    assertFalse(myFavoriteBuildProcessor.markAsFavorite(finishedBuild, myBuildOwnerSupplier));
+    assertFalse(myFavoriteBuildProcessor.markAsFavorite(finishedBuild.getBuildPromotion(), myBuildOwnerSupplier));
   }
 
   public void should_not_mark_build_without_cps_build_feature_enabled() {
@@ -85,7 +85,7 @@ public class DefaultFavoriteBuildProcessorTest extends BaseServerTestCase {
     when(buildPromotion.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE)).thenReturn(Collections.emptyList());
     when(buildWithoutCPS.getBuildPromotion()).thenReturn(buildPromotion);
     setInternalProperty(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED, true);
-    assertFalse(myFavoriteBuildProcessor.markAsFavorite(buildWithoutCPS, myBuildOwnerSupplier));
+    assertFalse(myFavoriteBuildProcessor.markAsFavorite(buildWithoutCPS.getBuildPromotion(), myBuildOwnerSupplier));
   }
 
   public void should_not_mark_builds_that_are_already_tagged() {
@@ -96,7 +96,7 @@ public class DefaultFavoriteBuildProcessorTest extends BaseServerTestCase {
     when(buildPromotion.getTagDatas()).thenReturn(Collections.singletonList(TagData.createPrivateTag(FavoriteBuildsManager.FAVORITE_BUILD_TAG, Mockito.mock(SUser.class))));
     when(taggedBuild.getBuildPromotion()).thenReturn(buildPromotion);
     setInternalProperty(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED, true);
-    assertFalse(myFavoriteBuildProcessor.markAsFavorite(taggedBuild, myBuildOwnerSupplier));
+    assertFalse(myFavoriteBuildProcessor.markAsFavorite(taggedBuild.getBuildPromotion(), myBuildOwnerSupplier));
   }
 
   public void should_not_mark_build_with_one_of_its_dependent_builds_have_cps_build_feature_enabled() {
@@ -114,7 +114,7 @@ public class DefaultFavoriteBuildProcessorTest extends BaseServerTestCase {
     }).when(buildPromotion).traverseDependedOnMe(Mockito.any());
     when(notSupportedBuild.getBuildPromotion()).thenReturn(buildPromotion);
     setInternalProperty(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED, true);
-    assertFalse(myFavoriteBuildProcessor.markAsFavorite(notSupportedBuild, myBuildOwnerSupplier));
+    assertFalse(myFavoriteBuildProcessor.markAsFavorite(notSupportedBuild.getBuildPromotion(), myBuildOwnerSupplier));
   }
 
   public void should_mark_when_build_is_running_has_cps_feature_enabled_is_not_marked_as_favorite_no_dependent_builds_have_cps_enabled_and_teamcity_property_is_enabled() {
@@ -131,7 +131,7 @@ public class DefaultFavoriteBuildProcessorTest extends BaseServerTestCase {
     buildType.addBuildFeature(commitStatusPublisherFeature);
     setInternalProperty(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED, true);
     when(myBuildOwnerSupplier.supplyFrom(dummyBuild)).thenReturn(Collections.singleton(user));
-    assertTrue(myFavoriteBuildProcessor.markAsFavorite(dummyBuild, myBuildOwnerSupplier));
+    assertTrue(myFavoriteBuildProcessor.markAsFavorite(dummyBuild.getBuildPromotion(), myBuildOwnerSupplier));
     assertFalse(buildPromotion.getTagDatas().isEmpty());
     assertTrue(tagLabels.containsAll(buildPromotion.getPrivateTags(user)));
     assertEquals(Collections.singleton(user.getId()), favoriteBuildsManager.getFavoriteOwners(buildPromotion));
@@ -140,9 +140,9 @@ public class DefaultFavoriteBuildProcessorTest extends BaseServerTestCase {
   public void should_return_false_if_no_users_are_provided_or_checkbox_is_false() {
     doAnswer(invocation -> null).when(myBuildPromotion).traverseDependedOnMe(Mockito.any());
     when(myBuildOwnerSupplier.supplyFrom(Mockito.any())).thenReturn(new HashSet<>(Collections.singletonList(myFalseUser)));
-    assertFalse(myFavoriteBuildProcessor.markAsFavorite(mySupportedBuild, myBuildOwnerSupplier));
+    assertFalse(myFavoriteBuildProcessor.markAsFavorite(mySupportedBuild.getBuildPromotion(), myBuildOwnerSupplier));
     when(myBuildOwnerSupplier.supplyFrom(Mockito.any())).thenReturn(Collections.emptySet());
     setInternalProperty(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED, true);
-    assertFalse(myFavoriteBuildProcessor.markAsFavorite(mySupportedBuild, myBuildOwnerSupplier));
+    assertFalse(myFavoriteBuildProcessor.markAsFavorite(mySupportedBuild.getBuildPromotion(), myBuildOwnerSupplier));
   }
 }
