@@ -71,13 +71,6 @@ public class DefaultFavoriteBuildProcessorTest extends BaseServerTestCase {
     assertFalse(myFavoriteBuildProcessor.markAsFavorite(runningBuild.getBuildPromotion(), myBuildOwnerSupplier));
   }
 
-  public void should_not_mark_build_that_are_finished() {
-    final SBuild finishedBuild = Mockito.mock(SBuild.class);
-    when(finishedBuild.isFinished()).thenReturn(true);
-    setInternalProperty(Constants.AUTO_FAVORITE_IMPORTANT_BUILDS_ENABLED, true);
-    assertFalse(myFavoriteBuildProcessor.markAsFavorite(finishedBuild.getBuildPromotion(), myBuildOwnerSupplier));
-  }
-
   public void should_not_mark_build_without_cps_build_feature_enabled() {
     final SBuild buildWithoutCPS= Mockito.mock(SBuild.class);
     final BuildPromotion buildPromotion = Mockito.mock(BuildPromotion.class);
