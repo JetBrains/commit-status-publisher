@@ -3,6 +3,7 @@ package jetbrains.buildServer.commitPublisher.processor.strategy;
 import jetbrains.buildServer.BaseTestCase;
 import jetbrains.buildServer.commitPublisher.Constants;
 import jetbrains.buildServer.parameters.ParametersProvider;
+import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -31,6 +32,7 @@ public class PullRequestBuildOwnerSupplierTest extends BaseTestCase {
     super.setUp();
     myBuildWithoutParameter = Mockito.mock(SBuild.class);
     myBuildWithParameter = Mockito.mock(SBuild.class);
+    BuildPromotion buildPromotion = Mockito.mock(BuildPromotion.class);
     myUser = Mockito.mock(SUser.class);
 
     when(myUser.getName()).thenReturn(username);
@@ -39,6 +41,10 @@ public class PullRequestBuildOwnerSupplierTest extends BaseTestCase {
     final ParametersProvider parametersProvider = Mockito.mock(ParametersProvider.class);
     when(myBuildWithoutParameter.getParametersProvider()).thenReturn(emptyParametersProvider);
     when(myBuildWithParameter.getParametersProvider()).thenReturn(parametersProvider);
+
+    when(buildPromotion.hasBuildFeatureOfType(Mockito.any(String.class))).thenReturn(true);
+    when(myBuildWithoutParameter.getBuildPromotion()).thenReturn(buildPromotion);
+    when(myBuildWithParameter.getBuildPromotion()).thenReturn(buildPromotion);
 
     when(emptyParametersProvider.get(Constants.BUILD_PULL_REQUEST_AUTHOR_PARAMETER)).thenReturn(null);
     when(parametersProvider.get(Constants.BUILD_PULL_REQUEST_AUTHOR_PARAMETER)).thenReturn(username);

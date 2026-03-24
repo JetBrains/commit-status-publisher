@@ -62,7 +62,7 @@ public class DefaultFavoriteBuildProcessor implements FavoriteBuildProcessor{
   }
 
   private boolean hasCommitStatusPublisherFeature(@NotNull final BuildPromotion buildPromotion) {
-    return !buildPromotion.getBuildFeaturesOfType(CommitStatusPublisherFeature.TYPE).isEmpty();
+    return buildPromotion.hasBuildFeatureOfType(CommitStatusPublisherFeature.TYPE);
   }
 
   private boolean isCommitStatusPublisherFeatureEnabledInDependentBuilds(@NotNull final BuildPromotionEx buildPromotion) {
