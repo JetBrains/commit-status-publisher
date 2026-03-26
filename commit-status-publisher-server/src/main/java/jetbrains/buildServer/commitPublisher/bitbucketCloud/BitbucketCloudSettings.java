@@ -45,7 +45,6 @@ import jetbrains.buildServer.vcshostings.http.credentials.BearerTokenCredentials
 import jetbrains.buildServer.vcshostings.http.credentials.HttpCredentials;
 import jetbrains.buildServer.vcshostings.http.credentials.UsernamePasswordCredentials;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
-import jetbrains.buildServer.web.util.WebUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
@@ -165,9 +164,8 @@ public class BitbucketCloudSettings extends AuthTypeAwareSettings implements Com
             String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
             SVcsRoot vcsRoot = null == vcsRootId ? null : myProjectManager.findVcsRootByExternalId(vcsRootId);
             if (null != vcsRoot) {
-              String vcsUrl = vcsRoot.getProperty("url");
-              if (!StringUtil.isEmpty(vcsUrl) && !vcsUrl.trim().toLowerCase().startsWith("http"))
-                errors.add(new InvalidProperty(Constants.AUTH_TYPE, "Credentials can not be extracted as the selected VCS root uses non-HTTP(S) fetch URL"));
+              ParametersProcessorUtil.processVcsRootUrl(vcsRoot, errors);
+              ParametersProcessorUtil.processVcsRootAuthMethod(vcsRoot, errors);
             }
 
             break;

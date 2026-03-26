@@ -286,7 +286,7 @@ public class GitlabPublisherTest extends HttpPublisherTest {
     super.setUp();
     myVcsModificationHistory = myFixture.getVcsHistory();
     myPublisherSettings = new GitlabSettings(new MockPluginDescriptor(), myWebLinks, myProblems, myTrustStoreProvider, myVcsModificationHistory, myOAuthConnectionsManager, myOAuthTokenStorage, getUserModelEx(),
-                                             myFixture.getSecurityContext(), myFixture, myBuildNameProvider);
+                                             myFixture.getSecurityContext(), myFixture, myBuildNameProvider, myFixture.getProjectManager());
     Map<String, String> params = getPublisherParams();
     myPublisher = new GitlabPublisher(myPublisherSettings, myBuildType, FEATURE_ID, myWebLinks, params, myProblems, new CommitStatusesCache<>(), myVcsModificationHistory, null, myBuildNameProvider);
     myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.publishQueuedBuildStatus", "true"));

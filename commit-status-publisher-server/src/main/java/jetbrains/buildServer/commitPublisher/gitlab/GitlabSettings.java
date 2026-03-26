@@ -45,6 +45,7 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.StringUtil;
 import jetbrains.buildServer.util.ssl.SSLTrustStoreProvider;
+import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsModificationHistoryEx;
 import jetbrains.buildServer.vcs.VcsRoot;
 import jetbrains.buildServer.vcshostings.http.HttpHelper;
@@ -78,6 +79,7 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
   @NotNull private final VcsModificationHistoryEx myVcsModificationHistory;
   @NotNull private final ServiceLocator myServiceLocator;
   @NotNull private final GitLabBuildNameProvider myBuildNameProvider;
+  @NotNull final ProjectManager myProjectManager;
 
   public GitlabSettings(@NotNull PluginDescriptor descriptor,
                         @NotNull WebLinks links,
@@ -89,10 +91,12 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
                         @NotNull UserModel userModel,
                         @NotNull SecurityContext securityContext,
                         @NotNull ServiceLocator serviceLocator,
-                        @NotNull GitLabBuildNameProvider buildNameProvider
+                        @NotNull GitLabBuildNameProvider buildNameProvider,
+                        @NotNull ProjectManager projectManager
   ) {
     super(descriptor, links, problems, trustStoreProvider, oAuthTokensStorage, userModel, oAuthConnectionsManager, securityContext);
     myVcsModificationHistory = vcsModificationHistory;
+    myProjectManager = projectManager;
     myStatusesCache = new CommitStatusesCache<>();
     myServiceLocator = serviceLocator;
     myBuildNameProvider = buildNameProvider;
@@ -283,6 +287,15 @@ public class GitlabSettings extends AuthTypeAwareSettings implements CommitStatu
         }
         else {
           params.remove(Constants.GITLAB_TOKEN);
+        }
+
+        if (Constants.AUTH_TYPE_VCS.equalsIgnoreCase(authenticationType)) {
+          String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
+          SVcsRoot vcsRoot = null == vcsRootId ? null : myProjectManager.findVcsRootByExternalId(vcsRootId);
+          if (null != vcsRoot) {
+            ParametersProcessorUtil.processVcsRootUrl(vcsRoot, errors);
+            ParametersProcessorUtil.processVcsRootAuthMethod(vcsRoot, errors);
+          }
         }
 
         return errors;

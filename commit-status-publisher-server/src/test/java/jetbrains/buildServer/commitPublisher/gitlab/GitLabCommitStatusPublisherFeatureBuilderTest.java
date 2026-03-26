@@ -42,7 +42,8 @@ public class GitLabCommitStatusPublisherFeatureBuilderTest extends BaseServerTes
                          getUserModelEx(),
                          myFixture.getSecurityContext(),
                          myFixture,
-                         new GitLabBuildNameProvider()
+                         new GitLabBuildNameProvider(),
+                         myFixture.getProjectManager()
       );
     myGitLabFeatureBuilder = new GitLabCommitStatusPublisherFeatureBuilder(settings);
   }

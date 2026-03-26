@@ -202,6 +202,32 @@ public class CommitStatusPublisherFeatureManagerTest extends BaseServerTestCase 
     then(myManager.isBuildFeatureSupported(connection)).isEqualTo(expectedResult);
   }
 
+  @DataProvider
+  public static Object[][] configureBuildFeatureWithVcsRootAnonymousAuthArgs() {
+    return new Object[][]{
+      {GitHubOAuthProvider.TYPE},
+      {GHEOAuthProvider.TYPE},
+      {"GitHubApp"},
+      {BitBucketOAuthProvider.TYPE},
+      {GitLabComOAuthProvider.TYPE},
+      {GitLabCEorEEOAuthProvider.TYPE},
+      {AzureDevOpsOAuthProvider.TYPE},
+      {TfsAuthProvider.TYPE},
+      {"BitbucketServer"},
+    };
+  }
+
+  @Test(dataProvider = "configureBuildFeatureWithVcsRootAnonymousAuthArgs")
+  public void configureBuildFeature_withVcsRootAnonymousAuth(@NotNull String providerType) {
+    final SVcsRootEx vcsRoot = createVcsRoot("test", myProject);
+    vcsRoot.setProperties(ImmutableMap.of("authMethod", "ANONYMOUS"));
+    myBuildType.addVcsRoot(vcsRoot);
+    when(myVcsHostingTypeProvider.getHostingType(Mockito.eq(myBuildType), Mockito.eq(vcsRoot))).thenReturn(providerType);
+
+    SBuildFeatureDescriptor configuredBuildFeature = myManager.configureMinimalBuildFeature(myBuildType, vcsRoot);
+    then(configuredBuildFeature).isNull();
+  }
+
   @NotNull
   private OAuthConnectionDescriptor mockConnectionOfType(@NotNull String type) {
     final OAuthConnectionDescriptor mockConnection = Mockito.mock(OAuthConnectionDescriptor.class);
@@ -250,7 +276,8 @@ public class CommitStatusPublisherFeatureManagerTest extends BaseServerTestCase 
                          getUserModelEx(),
                          myFixture.getSecurityContext(),
                          myFixture,
-                         new GitLabBuildNameProvider()
+                         new GitLabBuildNameProvider(),
+                         myFixture.getProjectManager()
       );
 
     @SuppressWarnings("deprecation") final CommitStatusPublisherSettings bitbucketCloudSettings = new BitbucketCloudSettings(
