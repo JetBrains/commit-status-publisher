@@ -163,9 +163,8 @@ public class StashSettings extends AuthTypeAwareSettings implements CommitStatus
             String vcsRootId = params.get(Constants.VCS_ROOT_ID_PARAM);
             SVcsRoot vcsRoot = null == vcsRootId ? null : myProjectManager.findVcsRootByExternalId(vcsRootId);
             if (null != vcsRoot) {
-              String vcsUrl = vcsRoot.getProperty("url");
-              if (!StringUtil.isEmpty(vcsUrl) && !vcsUrl.trim().toLowerCase().startsWith("http"))
-                errors.add(new InvalidProperty(Constants.AUTH_TYPE, "Credentials can not be extracted as the selected VCS root uses non-HTTP(S) fetch URL"));
+              ParametersProcessorUtil.processVcsRootUrl(vcsRoot, errors);
+              ParametersProcessorUtil.processVcsRootAuthMethod(vcsRoot, errors);
             }
             break;
 

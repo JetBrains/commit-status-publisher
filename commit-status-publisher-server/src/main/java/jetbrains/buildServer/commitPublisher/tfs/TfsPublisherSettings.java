@@ -211,9 +211,8 @@ public class TfsPublisherSettings extends AuthTypeAwareSettings implements Commi
           String vcsRootId = p.get(Constants.VCS_ROOT_ID_PARAM);
           SVcsRoot vcsRoot = null == vcsRootId ? null : myProjectManager.findVcsRootByExternalId(vcsRootId);
           if (null != vcsRoot) {
-            String vcsUrl = vcsRoot.getProperty("url");
-            if (!StringUtil.isEmptyOrSpaces(vcsUrl) && !vcsUrl.trim().toLowerCase().startsWith("http"))
-              result.add(new InvalidProperty(TfsConstants.AUTHENTICATION_TYPE, "Credentials can not be extracted as the selected VCS root uses non-HTTP(S) fetch URL"));
+            ParametersProcessorUtil.processVcsRootUrl(vcsRoot, result);
+            ParametersProcessorUtil.processVcsRootAuthMethod(vcsRoot, result);
           }
 
           p.remove(TfsConstants.ACCESS_TOKEN);
