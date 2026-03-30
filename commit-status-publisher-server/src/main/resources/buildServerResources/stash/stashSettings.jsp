@@ -33,6 +33,8 @@
 <c:set var="customBuildNameEnable" value="<%= TeamCityProperties.getBoolean(BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE) %>"/>
 
 <%--@elvariable id="defaultBuildName" type="java.lang.Boolean"--%>
+<%--@elvariable id="isNew" type="java.lang.Boolean"--%>
+
 <c:if test="${customBuildNameEnable}">
   <tr>
     <th><label for="${keys.buildName}">Build name:</label></th>
@@ -57,6 +59,9 @@
         $j(document).ready(function() {
           if("${not empty defaultBuildName}" === "true") {
             document.getElementById('${keys.buildName}').setAttribute('placeholder', '${defaultBuildName}');
+          }
+          if ("${isNew}" && !document.getElementById('${keys.buildName}').value) {
+            document.getElementById('${keys.buildName}').setAttribute('value', '${defaultBuildName}'.replace(/ #<BUILD_NUMBER>$/, ''));
           }
         });
       </script>

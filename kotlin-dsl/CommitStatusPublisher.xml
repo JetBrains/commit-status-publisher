@@ -190,9 +190,9 @@
         <description>
           Publish build statuses to GitHub.
         </description>
-        <param name="build_custom_name" dslName="buildName">
+        <param name="build_custom_name" dslName="statusCheckName">
           <description>
-            Specifies the name of the build displayed in the status message posted to the GitHub.
+            The status check name value for GitHub. Specifies the name of the check name displayed in the status message posted to the GitHub.
           </description>
         </param>
         <param name="github_host" dslName="githubUrl" mandatory="true">
@@ -252,9 +252,9 @@
         <description>
           Publish build statuses to GitLab.
         </description>
-        <param name="build_custom_name" dslName="buildName">
+        <param name="build_custom_name" dslName="jobName">
           <description>
-            Specifies the name of the build displayed in the status message posted to the GitLab.
+            The external job name value for GitLab. Specifies the name of the job displayed in the status message posted to the GitLab.
           </description>
         </param>
         <param name="gitlabApiUrl">
@@ -522,7 +522,7 @@
           vcsRootExtId = "${&lt;VCS root object>.id}" // A VCS root must be specified to use this authentication type
             publisher = github {
               githubUrl = "&lt;GitHub URL, https://api.github.com for github.com>"
-              buildName = "Customized GitHub status build name" // optional
+              statusCheckName = "Customized GitHub status check name" // optional, can be used for branch protection rules
               authType = storedToken {
                 tokenId = "tc_token_id:*****"
             }
@@ -559,7 +559,7 @@
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
           publisher = gitlab {
-            buildName = "Customized GitLab status build name" // optional
+            jobName = "Customized GitLab status job name" // optional
             gitlabApiUrl = "https://&lt;GitLab URL>/api/v4" // optional, the URL will be composed based on the VCS root fetch URL if omitted (https://gitlab.com/api/v4 for gitlab.com)
             authType = storedToken {
               tokenId = "tc_token_id:*****"

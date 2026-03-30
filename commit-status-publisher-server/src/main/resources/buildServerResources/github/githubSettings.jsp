@@ -32,6 +32,7 @@
 <%--@elvariable id="project" type="jetbrains.buildServer.serverSide.SProject"--%>
 <%--@elvariable id="defaultBuildName" type="java.lang.String"--%>
 <%--@elvariable id="outdatedGitHubContext" type="java.lang.String"--%>
+<%--@elvariable id="isNew" type="java.lang.Boolean"--%>
 
 <c:url value="/oauth/github/token.html" var="getTokenPage"/>
 <c:set var="cameFromUrl" value="${empty param['cameFromUrl'] ? pageUrl : param['cameFromUrl']}"/>
@@ -51,13 +52,13 @@
 
 <c:if test="${customBuildNameEnable}">
   <tr>
-    <th><label for="${keys.statusContext}">Build name:</label></th>
+    <th><label for="${keys.statusContext}">Status check name:</label></th>
     <td>
       <props:textProperty name="${keys.statusContext}" className="longField"/>
       <span class="url-copy-btn clipboard-btn tc-icon icon16 tc-icon_copy" data-clipboard-action="copy"></span>
       <span class="error" id="error_${keys.statusContext}"></span>
       <span class="smallNote">
-        The <b>Status check name</b> value for GitHub. Specifies the name of the build displayed in the status message posted to the GitHub.
+        The <b>Status check name</b> value for GitHub. Specifies the name of the check name displayed in the status message posted to the GitHub.
       </span>
       <script type="text/javascript">
         BS.Clipboard('.clipboard-btn', {
@@ -71,12 +72,20 @@
         });
 
         $j(document).ready(function() {
-          if("${not empty outdatedGitHubContext}" === "true") {
+          if("${empty outdatedGitHubContext}" === "true") {
+            if("${not empty defaultBuildName}" === "true") {
+              document.getElementById('${keys.statusContext}').setAttribute('placeholder', '${defaultBuildName}');
+            }
+            if ("${isNew}" && !document.getElementById('${keys.statusContext}').value) {
+              document.getElementById('${keys.statusContext}').setAttribute('value', '${defaultBuildName}');
+            }
+          } else {
             document.getElementById('${keys.statusContext}').setAttribute('placeholder', '${outdatedGitHubContext}');
+            if("${isNew}" && !document.getElementById('${keys.statusContext}').value) {
+              document.getElementById('${keys.statusContext}').setAttribute('value', '${outdatedGitHubContext}');
+            }
+
             document.getElementById('error_${keys.statusContext}').textContent = 'Warning: This configuration is using the outdated \"teamcity.commitStatusPublisher.githubContext\" parameter. Please remove it and use this build feature property instead.';
-          }
-          else if("${not empty defaultBuildName}" === "true") {
-            document.getElementById('${keys.statusContext}').setAttribute('placeholder', '${defaultBuildName}');
           }
         });
       </script>
