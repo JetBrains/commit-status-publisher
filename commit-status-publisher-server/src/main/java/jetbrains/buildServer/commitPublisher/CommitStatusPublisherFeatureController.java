@@ -45,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
 import org.springframework.web.servlet.ModelAndView;
 
 /**
- * settings controller for editing configured commit status publisher
+ * settings controller for editing a configured commit status publisher and creating a new one before selecting the hosting type
  */
 public class CommitStatusPublisherFeatureController extends BaseController {
 

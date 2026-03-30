@@ -32,6 +32,7 @@
 
 <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
 <%--@elvariable id="defaultBuildName" type="java.lang.Boolean"--%>
+<%--@elvariable id="isNew" type="java.lang.Boolean"--%>
 
 <c:url value="/oauth/tfs/token.html" var="getTokenPage"/>
 <c:set var="cameFromUrl" value="${empty param['cameFromUrl'] ? pageUrl : param['cameFromUrl']}"/>
@@ -62,6 +63,9 @@
         $j(document).ready(function() {
           if("${not empty defaultBuildName}" === "true") {
             document.getElementById('${keys.buildName}').setAttribute('placeholder', '${defaultBuildName} <BUILD_NUMBER>');
+          }
+          if ("${isNew}" && !document.getElementById('${keys.buildName}').value) {
+            document.getElementById('${keys.buildName}').setAttribute('value', '${defaultBuildName}');
           }
         });
       </script>

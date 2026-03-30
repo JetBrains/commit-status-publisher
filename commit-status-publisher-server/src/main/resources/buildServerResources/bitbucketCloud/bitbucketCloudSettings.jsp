@@ -34,6 +34,7 @@
 
 <%--@elvariable id="canEditProject" type="java.lang.Boolean"--%>
 <%--@elvariable id="defaultBuildName" type="java.lang.String"--%>
+<%--@elvariable id="isNew" type="java.lang.Boolean"--%>
 
 <c:if test="${customBuildNameEnable}">
   <tr>
@@ -60,6 +61,9 @@
         $j(document).ready(function() {
           if("${not empty defaultBuildName}" === "true") {
             document.getElementById('${keys.buildName}').setAttribute('placeholder', '${defaultBuildName}');
+          }
+          if ("${isNew}" && !document.getElementById('${keys.buildName}').value) {
+            document.getElementById('${keys.buildName}').setAttribute('value', '${defaultBuildName}'.replace(/ #<BUILD_NUMBER>$/, ''));
           }
         });
       </script>

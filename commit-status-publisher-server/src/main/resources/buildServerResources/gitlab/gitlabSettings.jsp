@@ -34,16 +34,17 @@
 <c:set var="customBuildNameEnable" value="<%= TeamCityProperties.getBooleanOrTrue(BUILD_NAME_CUSTOMIZATION_TOGGLE_ENABLE) %>"/>
 
 <%--@elvariable id="defaultBuildName" type="java.lang.String"--%>
+<%--@elvariable id="isNew" type="java.lang.Boolean"--%>
 
 <c:if test="${customBuildNameEnable}">
   <tr>
-    <th><label for="${keys.buildName}">Build name:</label></th>
+    <th><label for="${keys.buildName}">External job name:</label></th>
     <td>
       <props:textProperty name="${keys.buildName}" className="longField"/>
       <span class="url-copy-btn clipboard-btn tc-icon icon16 tc-icon_copy" data-clipboard-action="copy"></span>
       <span class="error" id="error_${keys.buildName}"></span>
       <span class="smallNote">
-        Specifies the name of the build displayed in the status message posted to the GitLab
+        The <b>External job name</b> value for GitLab. Specifies the name of the job displayed in the status message posted to the GitLab
       </span>
       <script type="text/javascript">
         BS.Clipboard('.clipboard-btn', {
@@ -59,6 +60,9 @@
         $j(document).ready(function() {
           if("${not empty defaultBuildName}" === "true") {
             document.getElementById('${keys.buildName}').setAttribute('placeholder', '${defaultBuildName}');
+          }
+          if ("${isNew}" && !document.getElementById('${keys.buildName}').value) {
+            document.getElementById('${keys.buildName}').setAttribute('value', '${defaultBuildName}');
           }
         });
       </script>

@@ -48,7 +48,7 @@ import org.springframework.web.servlet.ModelAndView;
 import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 
 /**
- * settings controller for configuring new commit status publisher
+ * settings controller for configuring a new commit status publisher
  */
 public class PublisherSettingsController extends BaseController {
 
@@ -155,6 +155,8 @@ public class PublisherSettingsController extends BaseController {
       request.setAttribute("refreshTokenSupported", oauthConnections.stream().anyMatch(c -> c.getOauthProvider().isTokenRefreshSupported()));
       request.setAttribute("canEditProject", AuthUtil.hasPermissionToManageProject(mySecurityContext.getAuthorityHolder(), project.getProjectId()));
     }
+
+    request.setAttribute("isNew", true);
 
     if (settingsUrl != null) {
       return new ModelAndView(settingsUrl);
