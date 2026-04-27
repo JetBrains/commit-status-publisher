@@ -24,7 +24,7 @@ import jetbrains.buildServer.commitPublisher.gitea.data.GiteaPermissions;
 import jetbrains.buildServer.commitPublisher.gitea.data.GiteaRepoInfo;
 import jetbrains.buildServer.messages.Status;
 import jetbrains.buildServer.serverSide.*;
-import jetbrains.buildServer.serverSide.impl.PipelineInfo;
+import jetbrains.buildServer.serverSide.impl.PipelineViewImpl;
 import jetbrains.buildServer.vcs.VcsRootInstance;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -148,8 +148,8 @@ public class GiteaPublisherTest extends HttpPublisherTest {
     buildTypeMock.stubs().method("getProject").withNoArguments().will(returnValue(myBuildType.getProject()));
     buildPromotionMock.stubs().method("getBuildType").withNoArguments().will(returnValue(buildTypeMock.proxy()));
     buildPromotionMock.stubs().method("getAttribute").withAnyArguments().will(returnValue(null));
-    PipelineInfo pipelineInfo = new PipelineInfo((BuildPromotionEx)buildPromotionMock.proxy());
-    buildPromotionMock.stubs().method("getPipelineInfo").withNoArguments().will(returnValue(pipelineInfo));
+    PipelineViewImpl pipelineView = new PipelineViewImpl((BuildPromotionEx)buildPromotionMock.proxy());
+    buildPromotionMock.stubs().method("getPipelineView").withNoArguments().will(returnValue(pipelineView));
     BuildPromotion removedBuild = (BuildPromotion)buildPromotionMock.proxy();
 
     GiteaPublisher publisher = (GiteaPublisher)myPublisher;
