@@ -154,7 +154,7 @@
   </tr>
   <tr>
     <th>
-      <label for="${constants.publisherIdParam}">Publisher:<l:star/></label>
+      <label for="${constants.publisherIdParam}">VCS Provider:<l:star/></label>
     </th>
     <td>
       <props:selectProperty name="${constants.publisherIdParam}" onchange="PublisherFeature.showPublisherSettings()" enableFilter="true" className="longField" style="width: 28em;">
