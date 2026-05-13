@@ -21,6 +21,14 @@
         Set to an empty string to publish status for all VCS roots attached to a build configuration.
       </description>
     </param>
+    <param name="publisherId" dslName="publisher">
+      <description>
+        The type of the VCS provider to which the build status should be published.
+      </description>
+      <deprecated replaceWith="vcsProvider">
+        Use vcsProvider property instead.
+      </deprecated>
+    </param>
     <param name="publisherId" dslName="vcsProvider" type="compound" mandatory="true">
       <description>
         The type of the VCS provider to which the build status should be published.
