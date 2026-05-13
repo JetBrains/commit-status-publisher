@@ -21,7 +21,15 @@
         Set to an empty string to publish status for all VCS roots attached to a build configuration.
       </description>
     </param>
-    <param name="publisherId" dslName="publisher" type="compound" mandatory="true">
+    <param name="publisherId" dslName="publisher">
+      <description>
+        The type of the VCS provider to which the build status should be published.
+      </description>
+      <deprecated replaceWith="vcsProvider">
+        Use vcsProvider property instead.
+      </deprecated>
+    </param>
+    <param name="publisherId" dslName="vcsProvider" type="compound" mandatory="true">
       <description>
         The type of the VCS provider to which the build status should be published.
       </description>
@@ -471,7 +479,7 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
-          publisher = github {
+          vcsProvider = github {
             githubUrl = "&lt;GitHub URL, https://api.github.com for github.com>"
             authType = personalToken { // authType = password { ... } to use username and password
               token = "credentialsJSON:*****"
@@ -488,7 +496,7 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
-          publisher = github {
+          vcsProvider = github {
             githubUrl = "&lt;GitHub URL, https://api.github.com for github.com>"
             authType = vcsRoot()
           }
@@ -503,7 +511,7 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // A VCS root must be specified to use this authentication type
-          publisher = github {
+          vcsProvider = github {
             githubUrl = "&lt;GitHub URL, https://api.github.com for github.com>"
             authType = storedToken {
               tokenId = "tc_token_id:*****"
@@ -520,7 +528,7 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // A VCS root must be specified to use this authentication type
-            publisher = github {
+            vcsProvider = github {
               githubUrl = "&lt;GitHub URL, https://api.github.com for github.com>"
               statusCheckName = "Customized GitHub status check name" // optional, can be used for branch protection rules
               authType = storedToken {
@@ -540,7 +548,7 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
-          publisher = gitlab {
+          vcsProvider = gitlab {
             gitlabApiUrl = "https://&lt;GitLab URL>/api/v4" // optional, the URL will be composed based on the VCS root fetch URL if omitted (https://gitlab.com/api/v4 for gitlab.com)
             accessToken = personalToken { // authType = vcsRoot() to take credentials from the VCS root
               accessToken = "credentialsJSON:*****"
@@ -558,7 +566,7 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
-          publisher = gitlab {
+          vcsProvider = gitlab {
             jobName = "Customized GitLab status job name" // optional
             gitlabApiUrl = "https://&lt;GitLab URL>/api/v4" // optional, the URL will be composed based on the VCS root fetch URL if omitted (https://gitlab.com/api/v4 for gitlab.com)
             authType = storedToken {
@@ -579,7 +587,7 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
-          publisher = bitbucketCloud {
+          vcsProvider = bitbucketCloud {
             authType = password { // authType = vcsRoot() to take credentials from the VCS root
               userName = "&lt;username>"
               password = "credentialsJSON:*****"
@@ -597,7 +605,7 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
-          publisher = bitbucketCloud {
+          vcsProvider = bitbucketCloud {
             buildName = "Customized Bitbucket Cloud status build name" // optional
             authType = storedToken {
               tokenId = "tc_token_id:*****"
@@ -617,7 +625,7 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
-          publisher = bitbucketServer {
+          vcsProvider = bitbucketServer {
               url = "&lt;Bitbucket Server Base URL>" // optional, the URL will be composed based on the VCS root fetch URL if omitted
               authType = password { // authType = vcsRoot() to take credentials from the VCS root
                 userName = "&lt;username>"
@@ -636,7 +644,7 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
-          publisher = bitbucketServer {
+          vcsProvider = bitbucketServer {
             buildName = "Customized Bitbucket Server / Data Center status build name" // optional
             url = "&lt;Bitbucket Server Base URL>"
             authType = storedToken {
@@ -656,7 +664,7 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
-          publisher = azureDevOps {
+          vcsProvider = azureDevOps {
             serverUrl = "&lt;Azure DevOps URL>" // optional
             authType = personalToken {
               accessToken = "tc_token_id:*****"
@@ -675,7 +683,7 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
-          publisher = azureDevOps {
+          vcsProvider = azureDevOps {
             buildName = "Customized Azure DevOps status build name" // optional
             serverUrl = "&lt;Azure DevOps URL>" // optional
             authType = storedToken {
@@ -696,7 +704,7 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
-          publisher = swarm {
+          vcsProvider = swarm {
             serverUrl = "&lt;Swarm URL>"
             username = "&lt;username>"
             token = "credentialsJSON:*****"
@@ -713,7 +721,7 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
-          publisher = gerrit {
+          vcsProvider = gerrit {
             server = "&lt;Gerrit server URL>"
             gerritProject = "&lt;Gerrit project name>"
             label = "&lt;label>" // e.g. Verified
@@ -735,7 +743,7 @@
       <code>
         commitStatusPublisher {
           vcsRootExtId = "${&lt;VCS root object>.id}" // optional, publishes to all attached git VCS roots if omitted
-          publisher = upsource {
+          vcsProvider = upsource {
             serverUrl = "&lt;Upsource URL>"
             projectId = "&lt;Upsource project id>"
             userName = "&lt;username>"
