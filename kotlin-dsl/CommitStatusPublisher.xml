@@ -21,13 +21,445 @@
         Set to an empty string to publish status for all VCS roots attached to a build configuration.
       </description>
     </param>
-    <param name="publisherId" dslName="publisher">
+    <param name="publisherId" dslName="publisher" type="compound">
       <description>
         The type of the VCS provider to which the build status should be published.
       </description>
       <deprecated replaceWith="vcsProvider">
         Use vcsProvider property instead.
       </deprecated>
+      <option name="bitbucketCloud" value="bitbucketCloudPublisher">
+        <description>
+          Publish status to Bitbucket Cloud
+        </description>
+        <param name="build_custom_name" dslName="buildName">
+          <description>
+            Specifies the name of the build displayed in the status message posted to the Bitbucket Cloud.
+          </description>
+        </param>
+        <param name="bitbucketUsername" dslName="userName" deprecated="true">
+          <description>
+            A username for the Bitbucket Cloud connection.
+          </description>
+          <deprecated>
+            Use authType property instead
+          </deprecated>
+        </param>
+        <param name="secure:bitbucketPassword" dslName="password" deprecated="true">
+          <description>
+            A password for the Bitbucket Cloud connection.
+          </description>
+          <deprecated>
+            Use the authType property instead.
+          </deprecated>
+        </param>
+        <param name="authType" type="compound">
+          <description>
+            Use username / password credentials.
+          </description>
+          <option name="password" value="password">
+            <param name="bitbucketUsername" dslName="userName" mandatory="true">
+              <description>
+                A username for the Bitbucket Cloud connection.
+              </description>
+            </param>
+            <param name="secure:bitbucketPassword" dslName="password" mandatory="true">
+              <description>
+                A password for the Bitbucket Cloud connection.
+              </description>
+            </param>
+          </option>
+          <option name="storedToken" value="storedToken">
+            <description>
+              Use token credentials stored in TeamCity.
+            </description>
+            <param name="tokenId" mandatory="true">
+              <description>
+                The internal ID of the token that the VCS connection should use.
+              </description>
+            </param>
+          </option>
+          <option name="vcsRoot" value="vcsRoot">
+            <description>
+              Use VCS root credentials.
+            </description>
+          </option>
+        </param>
+      </option>
+      <option name="bitbucketServer" value="atlassianStashPublisher">
+        <description>
+          Publish build statuses to Bitbucket Server / Data Center.
+        </description>
+        <param name="build_custom_name" dslName="buildName">
+          <description>
+            Specifies the name of the build displayed in the status message posted to the Bitbucket Server / Data Center
+          </description>
+        </param>
+        <param name="stashBaseUrl" dslName="url">
+          <description>
+            Bitbucket Server URL
+          </description>
+        </param>
+        <param name="stashUsername" dslName="userName">
+          <description>
+            A username for the Bitbucket Server / Data Center connection.
+          </description>
+          <deprecated>
+            Use the authType property instead.
+          </deprecated>
+        </param>
+        <param name="secure:stashPassword" dslName="password">
+          <description>
+            A password for the Bitbucket Server / Data Center connection.
+          </description>
+          <deprecated>
+            Use authType property instead.
+          </deprecated>
+        </param>
+        <param name="authType" type="compound">
+          <option name="password" value="password">
+            <description>
+              Use username / password credentials.
+            </description>
+            <param name="stashUsername" dslName="userName" mandatory="true">
+              <description>
+                A username for the Bitbucket Server / Data Center connection.
+              </description>
+            </param>
+            <param name="secure:stashPassword" dslName="password" mandatory="true">
+              <description>
+                A password for the Bitbucket Server / Data Center connection.
+              </description>
+            </param>
+          </option>
+          <option name="storedToken" value="storedToken">
+            <description>
+              Use token credentials stored in TeamCity.
+            </description>
+            <param name="tokenId" mandatory="true">
+              <description>
+                The internal ID of the token that the VCS connection should use.
+              </description>
+            </param>
+          </option>
+          <option name="vcsRoot" value="vcsRoot">
+            <description>
+              Use VCS root credentials.
+            </description>
+          </option>
+        </param>
+      </option>
+      <option name="gerrit" value="gerritStatusPublisher">
+        <description>
+          Publish status to Gerrit Code Review.
+        </description>
+        <param name="gerritServer" dslName="server" mandatory="true">
+          <description>
+            Gerrit server in the format: {server}[:{port}]
+          </description>
+        </param>
+        <param name="gerritProject" dslName="gerritProject" mandatory="true">
+          <description>
+            Gerrit project name
+          </description>
+        </param>
+        <param name="label">
+          <description>
+            A custom Gerrit label. Defaults to "Verified" if not set.
+          </description>
+        </param>
+        <param name="failureVote" mandatory="true">
+          <description>
+            A failed build vote, e.g. "-1".
+          </description>
+        </param>
+        <param name="successVote" mandatory="true">
+          <description>
+            A successful build vote, e.g. "+1".
+          </description>
+        </param>
+        <param name="gerritUsername" dslName="userName" mandatory="true">
+          <description>
+            A username for the Gerrit connection.
+          </description>
+        </param>
+        <param name="teamcitySshKey" dslName="uploadedKey">
+          <description>
+            Name of the [uploaded key](https://www.jetbrains.com/help/teamcity/?SSH+Keys+Management) to use for Gerrit connection.
+          </description>
+        </param>
+      </option>
+      <option name="github" value="githubStatusPublisher">
+        <description>
+          Publish build statuses to GitHub.
+        </description>
+        <param name="build_custom_name" dslName="statusCheckName">
+          <description>
+            The status check name value for GitHub. Specifies the name of the check name displayed in the status message posted to the GitHub.
+          </description>
+        </param>
+        <param name="github_host" dslName="githubUrl" mandatory="true">
+          <description>
+            GitHub server URL.
+            Use "https://api.github.com" for projects hosted at github.com. For GitHub enterprise use the URL in the
+            following format: http{s}://{host}:{port}/api/v3.
+          </description>
+        </param>
+        <param name="github_authentication_type" dslName="authType" type="compound">
+          <description>
+            The authentication type.
+          </description>
+          <option name="personalToken" value="token">
+            <description>
+              Authenticate using a personal token.
+            </description>
+            <param name="secure:github_access_token" dslName="token" mandatory="true">
+              <description>
+                The personal token to use.
+              </description>
+            </param>
+          </option>
+          <option name="password" value="password">
+            <description>
+              Authenticate using a password.
+            </description>
+            <param name="github_username" dslName="userName" mandatory="true">
+              <description>
+                A username for the GitHub connection.
+              </description>
+            </param>
+            <param name="secure:github_password" dslName="password" mandatory="true">
+              <description>
+                A password for the GitHub connection.
+              </description>
+            </param>
+          </option>
+          <option name="vcsRoot" value="vcsRoot">
+            <description>
+              Use VCS root credentials.
+            </description>
+          </option>
+          <option name="storedToken" value="storedToken">
+            <description>
+              Use GitHub App credentials.
+            </description>
+            <param name="tokenId" dslName="tokenId" mandatory="true">
+              <description>
+                The internal ID of a token in TeamCity token storage.
+              </description>
+            </param>
+          </option>
+        </param>
+      </option>
+      <option name="gitlab" value="gitlabStatusPublisher">
+        <description>
+          Publish build statuses to GitLab.
+        </description>
+        <param name="build_custom_name" dslName="jobName">
+          <description>
+            The external job name value for GitLab. Specifies the name of the job displayed in the status message posted to the GitLab.
+          </description>
+        </param>
+        <param name="gitlabApiUrl">
+          <description>
+            GitLab URL in the format http[s]://{hostname}[:port]/api/v4. If unspecified, the URL will be composed based on the VCS root fetch URL.
+          </description>
+        </param>
+        <param name="secure:gitlabAccessToken" dslName="accessToken" deprecated="true">
+          <description>
+            Access token to use for GitLab connection. Can be found at /profile/account in GitLab.
+          </description>
+          <deprecated>
+            Use the authType property instead.
+          </deprecated>
+        </param>
+        <param name="authType" dslName="authType" type="compound">
+          <option name="personalToken" value="token">
+            <description>
+              Authenticate using a personal token.
+            </description>
+            <param name="secure:gitlabAccessToken" dslName="accessToken" mandatory="true">
+              <description>
+                The access token that the GitLab connection should use. Can be found at /profile/account in GitLab.
+              </description>
+            </param>
+          </option>
+          <option name="storedToken" value="storedToken">
+            <description>
+              Use GitLab OAuth credentials.
+            </description>
+            <param name="tokenId" dslName="tokenId" mandatory="true">
+              <description>
+                The internal ID of a token in TeamCity token storage.
+              </description>
+            </param>
+          </option>
+          <option name="vcsRoot" value="vcsRoot">
+            <description>
+              Use VCS root credentials.
+            </description>
+          </option>
+        </param>
+      </option>
+      <option name="upsource" value="upsourcePublisher">
+        <description>
+          Publish build statuses to Upsource.
+        </description>
+        <param name="upsourceServerUrl" dslName="serverUrl" mandatory="true">
+          <description>
+            The Upsource server URL.
+          </description>
+        </param>
+        <param name="upsourceProjectId" dslName="projectId" mandatory="true">
+          <description>
+            The Upsource project ID.
+          </description>
+        </param>
+        <param name="upsourceUsername" dslName="userName" mandatory="true">
+          <description>
+            A username for the Upsource connection.
+          </description>
+        </param>
+        <param name="secure:upsourcePassword" dslName="password" mandatory="true">
+          <description>
+            A password for the Upsource connection.
+          </description>
+        </param>
+      </option>
+      <option name="azureDevOps" value="tfs">
+        <description>
+          Publish build statuses to Azure DevOps / TFS.
+        </description>
+        <param name="build_custom_name" dslName="buildName">
+          <description>
+            Specifies the name of the build displayed in the status message posted to the Azure DevOps.
+          </description>
+        </param>
+        <param name="tfsServerUrl" dslName="serverUrl">
+          <description>
+            Azure DevOps / TFS Server URL.
+          </description>
+        </param>
+        <param name="tfsAuthType" dslName="authType" type="compound">
+          <description>
+            The authentication type.
+          </description>
+          <option name="personalToken" value="token">
+            <description>
+              Authenticate using a personal token.
+            </description>
+            <param name="secure:accessToken" dslName="accessToken" mandatory="true">
+              <description>
+                A Personal Access Token value.
+              </description>
+            </param>
+          </option>
+          <option name="storedToken" value="storedToken">
+            <description>
+              Use token credentials stored in TeamCity.
+            </description>
+            <param name="tokenId" mandatory="true">
+              <description>
+                The internal ID of the token that the VCS connection should use.
+              </description>
+            </param>
+          </option>
+        </param>
+        <param name="publish.pull.requests" dslName="publishPullRequests" type="boolean" trueValue="true" falseValue="">
+          <description>
+            Enables publishing build status for pull requests.
+          </description>
+        </param>
+      </option>
+      <option name="tfs" value="tfs">
+        <deprecated>
+          Use the 'azureDevOps' option instead.
+        </deprecated>
+        <description>
+          Publish build status to Azure DevOps / TFS.
+        </description>
+        <param name="tfsServerUrl" dslName="serverUrl">
+          <description>
+            Azure DevOps / TFS Server URL.
+          </description>
+        </param>
+        <param name="tfsAuthType" dslName="authType" mandatory="true">
+          <description>
+            The authentication type.
+          </description>
+        </param>
+        <param name="secure:accessToken" dslName="accessToken" mandatory="true">
+          <description>
+            A Personal Access Token value.
+          </description>
+        </param>
+        <param name="publish.pull.requests" dslName="publishPullRequests" type="boolean" trueValue="true" falseValue="">
+          <description>
+            Enables publishing build status for pull requests.
+          </description>
+        </param>
+      </option>
+      <option name="space" value="spaceStatusPublisher">
+        <description>
+          Publish build statuses to JetBrains Space.
+        </description>
+        <param name="spaceCredentialsType" dslName="authType" type="compound">
+          <description>
+            The authentication type.
+          </description>
+          <option name="connection" value="spaceCredentialsConnection">
+            <description>
+              Authenticate using JetBrains Space Connection.
+            </description>
+            <param name="spaceConnectionId" dslName="connectionId" mandatory="true">
+              <description>
+                The project feature ID of a JetBrains Space connection.
+              </description>
+            </param>
+          </option>
+        </param>
+        <param name="spaceProjectKey" dslName="projectKey">
+          <description>
+            The JetBrains Space Project Key.
+          </description>
+        </param>
+        <param name="spaceCommitStatusPublisherDisplayName" dslName="displayName">
+          <description>
+            The display name.
+          </description>
+        </param>
+      </option>
+      <option name="swarm" value="perforceSwarmPublisher">
+        <description>
+          Publish build statuses to Perforce P4 Code Review (Helix Swarm).
+        </description>
+        <param name="swarmUrl" dslName="serverUrl" mandatory="true">
+          <description>
+            The URL of the Peforce P4 Code Review (Helix Swarm) server.
+          </description>
+        </param>
+        <param name="swarmUser" dslName="username" mandatory="true">
+          <description>
+            The username to access the server.
+          </description>
+        </param>
+        <param name="secure:swarmPassword" dslName="token" mandatory="true">
+          <description>
+            The token or password to access the Perforce P4 Code Review (Helix Swarm) server.
+          </description>
+        </param>
+        <param name="createSwarmTest" dslName="createSwarmTest" type="boolean">
+          <description>
+            If set, TeamCity will create a test run on the P4 Code Review (Helix Swarm) server and update its status according to
+            the build status in TeamCity.
+          </description>
+        </param>
+        <param name="commentOnEvents" type="boolean">
+          <description>
+            If enabled, TeamCity will add comments to a related review when a build fails or finishes successfully. This defaults to &lt;code&gt;true&lt;/code&gt;.
+          </description>
+        </param>
+      </option>
     </param>
     <param name="publisherId" dslName="vcsProvider" type="compound" mandatory="true">
       <description>
