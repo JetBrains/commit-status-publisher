@@ -228,6 +228,16 @@ public class CommitStatusPublisherFeatureManagerTest extends BaseServerTestCase 
     then(configuredBuildFeature).isNull();
   }
 
+  @Test(dataProvider = "configureBuildFeatureWithVcsRootAnonymousAuthArgs")
+  public void isBuildFeatureSupported_withVcsRootAnonymousAuth(@NotNull String providerType) {
+    final SVcsRootEx vcsRoot = createVcsRoot("test", myProject);
+    vcsRoot.setProperties(ImmutableMap.of("authMethod", "ANONYMOUS"));
+    myBuildType.addVcsRoot(vcsRoot);
+    when(myVcsHostingTypeProvider.getHostingType(Mockito.eq(myBuildType), Mockito.eq(vcsRoot))).thenReturn(providerType);
+
+    then(myManager.isBuildFeatureSupported(myBuildType, vcsRoot)).isFalse();
+  }
+
   @NotNull
   private OAuthConnectionDescriptor mockConnectionOfType(@NotNull String type) {
     final OAuthConnectionDescriptor mockConnection = Mockito.mock(OAuthConnectionDescriptor.class);

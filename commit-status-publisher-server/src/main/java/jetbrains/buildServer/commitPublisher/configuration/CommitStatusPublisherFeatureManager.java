@@ -73,6 +73,10 @@ public class CommitStatusPublisherFeatureManager extends AbstractVcsHostingBuild
 
   @Override
   public boolean isBuildFeatureSupported(@NotNull SBuildType buildType, @NotNull SVcsRoot vcsRoot) {
+    if(isAnonymousAuthMethod(vcsRoot)) {
+      return false;
+    }
+
     try {
       String vcsHostingType = getVcsHostingType(buildType, vcsRoot);
       if (vcsHostingType == null) {
