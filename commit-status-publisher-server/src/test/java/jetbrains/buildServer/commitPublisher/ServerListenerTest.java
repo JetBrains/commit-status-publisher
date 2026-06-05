@@ -26,6 +26,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.util.*;
+import jetbrains.buildServer.serverSide.ConfigActionFactory;
 
 @Test
 public class ServerListenerTest extends BaseServerTestCase {
@@ -73,6 +74,24 @@ public class ServerListenerTest extends BaseServerTestCase {
     Map<String, String> params = buildFeatures.iterator().next().getParameters();
     assertEquals(1, params.size());
     assertEquals(vcsRootCopy.getExternalId(), params.get(Constants.VCS_ROOT_ID_PARAM));
+  }
+
+  public void must_change_vcs_root_in_build_features_if_replaced() {
+    SVcsRoot newVcsRoot = myFixture.addVcsRoot("vcs", "newVcs");
+    final String NEW_VCS_ID = "NEW_VCS_ID";
+    newVcsRoot.setExternalId(NEW_VCS_ID);
+
+    myBuildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, Collections.singletonMap(Constants.VCS_ROOT_ID_PARAM, MY_VCS_ID));
+
+    ConfigAction cause = myFixture.getSingletonService(ConfigActionFactory.class).createAction();
+    ServerListener listener = new ServerListener(myFixture.getSingletonService(ConfigActionsEventDispatcher.class));
+    listener.vcsRootReplaced(cause, myVcsRoot, newVcsRoot, myBuildType);
+
+    Collection<SBuildFeatureDescriptor> buildFeatures = myBuildType.getBuildFeatures();
+    assertEquals(1, buildFeatures.size());
+    Map<String, String> params = buildFeatures.iterator().next().getParameters();
+    assertEquals(1, params.size());
+    assertEquals(NEW_VCS_ID, params.get(Constants.VCS_ROOT_ID_PARAM));
   }
 
   public void must_change_vcs_root_internal_id_to_external_if_copied() {
