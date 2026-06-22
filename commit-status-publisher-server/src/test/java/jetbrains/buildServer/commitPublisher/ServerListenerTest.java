@@ -26,6 +26,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.util.*;
+import jetbrains.buildServer.serverSide.ConfigActionFactory;
 
 @Test
 public class ServerListenerTest extends BaseServerTestCase {
@@ -73,6 +74,19 @@ public class ServerListenerTest extends BaseServerTestCase {
     Map<String, String> params = buildFeatures.iterator().next().getParameters();
     assertEquals(1, params.size());
     assertEquals(vcsRootCopy.getExternalId(), params.get(Constants.VCS_ROOT_ID_PARAM));
+  }
+
+  public void must_change_vcs_root_in_build_features_if_replaced() {
+    SVcsRoot newVcsRoot = myFixture.addVcsRoot("vcs", "newVcs");
+    newVcsRoot.setExternalId("NEW_VCS_ID");
+    myBuildType.addBuildFeature(CommitStatusPublisherFeature.TYPE, Collections.singletonMap(Constants.VCS_ROOT_ID_PARAM, MY_VCS_ID));
+
+    ConfigAction cause = myFixture.getSingletonService(ConfigActionFactory.class).createAction();
+    myFixture.getSingletonService(ConfigActionsEventDispatcher.class).getMulticaster()
+        .vcsRootReplaced(cause, myVcsRoot, newVcsRoot, myBuildType);
+
+    Map<String, String> params = myBuildType.getBuildFeatures().iterator().next().getParameters();
+    assertEquals("NEW_VCS_ID", params.get(Constants.VCS_ROOT_ID_PARAM));
   }
 
   public void must_change_vcs_root_internal_id_to_external_if_copied() {

@@ -25,11 +25,17 @@ import jetbrains.buildServer.util.EventDispatcher;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
 
 public class ServerListener  extends ConfigActionsServerAdapter implements CustomSettingsMapper  {
 
   public ServerListener(@NotNull EventDispatcher<ConfigActionsServerListener> dispatcher) {
     dispatcher.addListener(this);
+  }
+
+  @Override
+  public void vcsRootReplaced(@NonNull ConfigAction cause, @NonNull SVcsRoot oldVcsRoot, @NonNull SVcsRoot newVcsRoot, @NonNull BuildTypeSettings settingsToBeUpdated) {
+    updateFeatures(oldVcsRoot.getExternalId(), oldVcsRoot.getId(), newVcsRoot.getExternalId(), settingsToBeUpdated);
   }
 
   @Override
