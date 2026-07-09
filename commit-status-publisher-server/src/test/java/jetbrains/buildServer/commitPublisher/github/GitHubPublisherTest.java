@@ -125,6 +125,17 @@ public class GitHubPublisherTest extends HttpPublisherTest {
     assertEquals(CommitStatusPublisher.Event.QUEUED, publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Pending.getState(), null, DefaultStatusMessages.BUILD_QUEUED, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Failure.getState(), null, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, null)).getTriggeredEvent());
     assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Failure.getState(), null, DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE_AS_CANCELED, null)).getTriggeredEvent());
+    assertEquals(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, publisher.getRevisionStatus(promotion, new CommitStatus(GitHubChangeState.Success.getState(), null, DefaultStatusMessages.BUILD_SKIPPED, null)).getTriggeredEvent());
+  }
+
+  public void test_buildRemovedFromQueue_skipped() throws Exception {
+    SQueuedBuild build = addBuildToQueue();
+    build.removeFromQueue(myUser, null);
+    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision,
+                                       new AdditionalTaskInfo(build.getBuildPromotion(), DefaultStatusMessages.BUILD_SKIPPED, myUser, null));
+    then(getRequestAsString()).isNotNull()
+                               .matches(String.format(".*/repos/owner/project/statuses/%s.*ENTITY:.*success.*%s\".*", REVISION, DefaultStatusMessages.BUILD_SKIPPED))
+                               .doesNotMatch(".*failure.*");
   }
 
   public void should_allow_queued_depending_on_build_type() {

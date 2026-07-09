@@ -165,6 +165,10 @@ class GitHubPublisher extends BaseCommitStatusPublisher {
         LOG.warn("Can not define event for \"Pending\" Github build status and description: \"" + description + "\"");
         break;
       case Success:
+        if (description != null && description.contains(DefaultStatusMessages.BUILD_SKIPPED)) {
+          return Event.REMOVED_FROM_QUEUE;
+        }
+        return null;
       case Error:
         return null;
       case Failure:

@@ -277,7 +277,14 @@ public class ChangeStatusUpdater {
                                            @NotNull String viewUrl,
                                            boolean deletedFromQueue) throws PublisherException {
         final RepositoryVersion version = revision.getRepositoryVersion();
-        final GitHubChangeState targetStatus = deletedFromQueue ? GitHubChangeState.Failure : GitHubChangeState.Pending;
+        final GitHubChangeState targetStatus;
+        if (deletedFromQueue && additionalTaskInfo.commentContains(DefaultStatusMessages.BUILD_SKIPPED)) {
+          targetStatus = GitHubChangeState.Success;
+        } else if (deletedFromQueue) {
+          targetStatus = GitHubChangeState.Failure;
+        } else {
+          targetStatus = GitHubChangeState.Pending;
+        }
         LOG.debug("Scheduling GitHub status update for " +
                  "hash: " + version.getVersion() + ", " +
                  "branch: " + version.getVcsBranch() + ", " +
