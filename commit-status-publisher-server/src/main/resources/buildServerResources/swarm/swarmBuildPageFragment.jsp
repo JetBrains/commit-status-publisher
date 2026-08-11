@@ -51,8 +51,8 @@
                      class="swarmReviewsList__typeIcon" alt="Submitted changelist with P4 Code Review" title="Submitted changelist with P4 Code Review"/>
               </c:if>
 
-              <c:set var="url"><c:out value="${serverData.url}"/>/changes/${serverData.changelist}</c:set>
-              <a href="${url}" target="_blank" rel="noopener" title="Open P4 Code Review page for the changelist">${serverData.changelist}</a>
+              <c:set var="url" value="${serverData.url}/changes/${serverData.changelist}"/>
+              <a href="<c:out value="${url}"/>" target="_blank" rel="noopener" title="Open P4 Code Review page for the changelist">${serverData.changelist}</a>
 
           </span>
 
@@ -60,9 +60,9 @@
               Review<bs:s val="${fn:length(serverData.reviews)}"/>:
 
               <c:forEach items="${serverData.reviews}" var="review">
-                <c:set var="url"><c:out value="${serverData.url}"/>/reviews/${review.id}</c:set>
-                <a href="${url}" target="_blank" rel="noopener" title="Open P4 Code Review page for the review">${review.id}</a>
-                (${review.statusText})
+                <c:set var="url" value="${serverData.url}/reviews/${review.id}"/>
+                <a href="<c:out value="${url}"/>" target="_blank" rel="noopener" title="Open P4 Code Review page for the review">${review.id}</a>
+                (<c:out value="${review.statusText}"/>)
               </c:forEach>
           </span>
           
