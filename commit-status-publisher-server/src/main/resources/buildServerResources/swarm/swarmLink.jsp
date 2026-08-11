@@ -34,12 +34,12 @@
   <c:set var="icon" value="swarmIconClass"/>
   <c:choose>
     <c:when test="${showType == 'compact'}">
-      <a href="${swarmChangeUrl}" title="${title}" class="noUnderline" target="_blank" rel="noreferrer"><i class="icon16 ${icon}"></i></a>
+      <a href="<c:out value="${swarmChangeUrl}"/>" title="${title}" class="noUnderline" target="_blank" rel="noreferrer"><i class="icon16 ${icon}"></i></a>
     </c:when>
     <c:otherwise>
       <dt>
         <span class="icon16 ${icon}"></span>
-        <a href="${swarmChangeUrl}" target="_blank" rel="noreferrer">${title}</a>
+        <a href="<c:out value="${swarmChangeUrl}"/>" target="_blank" rel="noreferrer">${title}</a>
       </dt>
     </c:otherwise>
   </c:choose>
