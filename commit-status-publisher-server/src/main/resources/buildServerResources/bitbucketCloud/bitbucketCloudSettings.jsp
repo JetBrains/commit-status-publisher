@@ -47,25 +47,28 @@
           Specifies the name of the build displayed in the status message posted to the Bitbucket Cloud
       </span>
       <script type="text/javascript">
-        BS.Clipboard('.clipboard-btn', {
-          text: function(trigger) {
-            const buildName = document.getElementById('${keys.buildName}').value;
-            if (!buildName) {
-              return '${defaultBuildName}';
+        (() => {
+          const defaultBuildName = '<bs:escapeForJs text="${defaultBuildName}"/>';
+          BS.Clipboard('.clipboard-btn', {
+            text: function(trigger) {
+              const buildName = document.getElementById('${keys.buildName}').value;
+              if (!buildName) {
+                return defaultBuildName;
+              }
+              return buildName;
             }
-            return buildName;
-          }
-        });
+          });
 
 
-        $j(document).ready(function() {
-          if("${not empty defaultBuildName}" === "true") {
-            document.getElementById('${keys.buildName}').setAttribute('placeholder', '${defaultBuildName}');
-          }
-          if ("${isNew}" && !document.getElementById('${keys.buildName}').value) {
-            document.getElementById('${keys.buildName}').setAttribute('value', '${defaultBuildName}'.replace(/ #<BUILD_NUMBER>$/, ''));
-          }
-        });
+          $j(document).ready(function() {
+            if("${not empty defaultBuildName}" === "true") {
+              document.getElementById('${keys.buildName}').setAttribute('placeholder', defaultBuildName);
+            }
+            if ("${isNew}" && !document.getElementById('${keys.buildName}').value) {
+              document.getElementById('${keys.buildName}').setAttribute('value', defaultBuildName.replace(/ #<BUILD_NUMBER>$/, ''));
+            }
+          });
+        })();
       </script>
     </td>
   </tr>
