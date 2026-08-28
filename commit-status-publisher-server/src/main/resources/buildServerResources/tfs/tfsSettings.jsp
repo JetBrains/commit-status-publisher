@@ -50,24 +50,27 @@
         Specifies the name of the build displayed in the status message posted to the Azure DevOps
       </span>
       <script type="text/javascript">
-        BS.Clipboard('.clipboard-btn', {
-          text: function(trigger) {
-            const buildName = document.getElementById('${keys.buildName}').value;
-            if (!buildName) {
-              return '${defaultBuildName} <BUILD_NUMBER>';
+        (() => {
+          const defaultBuildName = '<bs:escapeForJs text="${defaultBuildName}"/>';
+          BS.Clipboard('.clipboard-btn', {
+            text: function(trigger) {
+              const buildName = document.getElementById('${keys.buildName}').value;
+              if (!buildName) {
+                return defaultBuildName + ' <BUILD_NUMBER>';
+              }
+              return buildName;
             }
-            return buildName;
-          }
-        });
+          });
 
-        $j(document).ready(function() {
-          if("${not empty defaultBuildName}" === "true") {
-            document.getElementById('${keys.buildName}').setAttribute('placeholder', '${defaultBuildName} <BUILD_NUMBER>');
-          }
-          if ("${isNew}" && !document.getElementById('${keys.buildName}').value) {
-            document.getElementById('${keys.buildName}').setAttribute('value', '${defaultBuildName}');
-          }
-        });
+          $j(document).ready(function() {
+            if("${not empty defaultBuildName}" === "true") {
+              document.getElementById('${keys.buildName}').setAttribute('placeholder', defaultBuildName + ' <BUILD_NUMBER>');
+            }
+            if ("${isNew}" && !document.getElementById('${keys.buildName}').value) {
+              document.getElementById('${keys.buildName}').setAttribute('value', defaultBuildName);
+            }
+          });
+        })();
       </script>
     </td>
   </tr>
