@@ -61,33 +61,38 @@
         The <b>Status check name</b> value for GitHub. Specifies the name of the check name displayed in the status message posted to the GitHub.
       </span>
       <script type="text/javascript">
-        BS.Clipboard('.clipboard-btn', {
-          text: function(trigger) {
-            const buildName = document.getElementById('${keys.statusContext}').value;
-            if (!buildName) {
-              return '${defaultBuildName}';
-            }
-            return buildName;
-          }
-        });
+        (() => {
+          const defaultBuildName = '<bs:escapeForJs text="${defaultBuildName}"/>';
+          const outdatedGitHubContext = '<bs:escapeForJs text="${outdatedGitHubContext}"/>';
 
-        $j(document).ready(function() {
-          if("${empty outdatedGitHubContext}" === "true") {
-            if("${not empty defaultBuildName}" === "true") {
-              document.getElementById('${keys.statusContext}').setAttribute('placeholder', '${defaultBuildName}');
+          BS.Clipboard('.clipboard-btn', {
+            text: function(trigger) {
+              const buildName = document.getElementById('${keys.statusContext}').value;
+              if (!buildName) {
+                return defaultBuildName;
+              }
+              return buildName;
             }
-            if ("${isNew}" && !document.getElementById('${keys.statusContext}').value) {
-              document.getElementById('${keys.statusContext}').setAttribute('value', '${defaultBuildName}');
-            }
-          } else {
-            document.getElementById('${keys.statusContext}').setAttribute('placeholder', '${outdatedGitHubContext}');
-            if("${isNew}" && !document.getElementById('${keys.statusContext}').value) {
-              document.getElementById('${keys.statusContext}').setAttribute('value', '${outdatedGitHubContext}');
-            }
+          });
 
-            document.getElementById('error_${keys.statusContext}').textContent = 'Warning: This configuration is using the outdated \"teamcity.commitStatusPublisher.githubContext\" parameter. Please remove it and use this build feature property instead.';
-          }
-        });
+          $j(document).ready(function() {
+            if("${empty outdatedGitHubContext}" === "true") {
+              if("${not empty defaultBuildName}" === "true") {
+                document.getElementById('${keys.statusContext}').setAttribute('placeholder', defaultBuildName);
+              }
+              if ("${isNew}" && !document.getElementById('${keys.statusContext}').value) {
+                document.getElementById('${keys.statusContext}').setAttribute('value', defaultBuildName);
+              }
+            } else {
+              document.getElementById('${keys.statusContext}').setAttribute('placeholder', outdatedGitHubContext);
+              if("${isNew}" && !document.getElementById('${keys.statusContext}').value) {
+                document.getElementById('${keys.statusContext}').setAttribute('value', outdatedGitHubContext);
+              }
+
+              document.getElementById('error_${keys.statusContext}').textContent = 'Warning: This configuration is using the outdated \"teamcity.commitStatusPublisher.githubContext\" parameter. Please remove it and use this build feature property instead.';
+            }
+          });
+        })();
       </script>
     </td>
   </tr>
