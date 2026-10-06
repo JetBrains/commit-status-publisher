@@ -48,7 +48,7 @@ subprojects {
 
   repositories {
     if (localRepo) {
-      maven {
+      mavenLocal {
         name = "local-teamcity-artifacts"
         url "file:///${localRepo}"
       }
