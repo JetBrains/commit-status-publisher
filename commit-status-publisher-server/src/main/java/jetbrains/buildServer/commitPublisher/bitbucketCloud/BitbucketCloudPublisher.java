@@ -42,6 +42,7 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCloudBuildStatus> {
 
   private static final int DEFAULT_PAGE_SIZE = 25;
+  private static final String REPORT_CANCELED_AS_FAILED_FEATURE_TOGGLE = "commitStatusPublisher.bitbucket.reportCanceledAsFailed.enabled";
   private String myBaseUrl = BitbucketCloudSettings.DEFAULT_API_URL;
   private final Gson myGson = new Gson();
 
@@ -85,7 +86,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
   public boolean buildRemovedFromQueue(@NotNull BuildPromotion buildPromotion,
                                        @NotNull BuildRevision revision,
                                        @NotNull AdditionalTaskInfo additionalTaskInfo) throws PublisherException {
-    return vote(buildPromotion, revision, BitbucketCloudBuildStatus.STOPPED, additionalTaskInfo.getComment());
+    return vote(buildPromotion, revision, getCanceledBuildStatus(), additionalTaskInfo.getComment());
   }
 
   @Override
@@ -127,7 +128,7 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
 
   @Override
   public boolean buildInterrupted(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
-    vote(build.getBuildPromotion(), revision, BitbucketCloudBuildStatus.STOPPED, build.getStatusDescriptor().getText());
+    vote(build.getBuildPromotion(), revision, getCanceledBuildStatus(), build.getStatusDescriptor().getText());
     return true;
   }
 
@@ -135,6 +136,12 @@ class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCl
   public boolean buildFailureDetected(@NotNull SBuild build, @NotNull BuildRevision revision) throws PublisherException {
     vote(build.getBuildPromotion(), revision, BitbucketCloudBuildStatus.FAILED, build.getStatusDescriptor().getText());
     return true;
+  }
+
+  @NotNull
+  private BitbucketCloudBuildStatus getCanceledBuildStatus() {
+    boolean reportCanceledAsFailed = myBuildType instanceof BuildTypeEx && ((BuildTypeEx)myBuildType).getBooleanInternalParameter(REPORT_CANCELED_AS_FAILED_FEATURE_TOGGLE);
+    return reportCanceledAsFailed ? BitbucketCloudBuildStatus.FAILED : BitbucketCloudBuildStatus.STOPPED;
   }
 
   @Override

@@ -20,6 +20,7 @@ package jetbrains.buildServer.commitPublisher.bitbucketCloud;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import jetbrains.buildServer.BuildProblemData;
 import jetbrains.buildServer.MockBuildPromotion;
 import jetbrains.buildServer.commitPublisher.*;
 import jetbrains.buildServer.commitPublisher.bitbucketCloud.data.BitbucketCloudBuildStatuses;
@@ -30,6 +31,8 @@ import jetbrains.buildServer.pullRequests.VcsAuthType;
 import jetbrains.buildServer.serverSide.BuildPromotion;
 import jetbrains.buildServer.serverSide.BuildPromotionEx;
 import jetbrains.buildServer.serverSide.BuildRevision;
+import jetbrains.buildServer.serverSide.SFinishedBuild;
+import jetbrains.buildServer.serverSide.SQueuedBuild;
 import jetbrains.buildServer.serverSide.SimpleParameter;
 import jetbrains.buildServer.vcs.SVcsRoot;
 import jetbrains.buildServer.vcs.VcsRootInstance;
@@ -128,6 +131,28 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     assertFalse(publisher.getRevisionStatus(removedBuild, new BitbucketCloudCommitBuildStatus("anotherBuildType", BitbucketCloudBuildStatus.INPROGRESS.name(), null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
   }
 
+  @Override
+  public void test_buildRemovedFromQueue() throws Exception {
+    super.test_buildRemovedFromQueue();
+    // also check that builds removed from queue are reported as failed when reportCanceledAsFailed.enabled
+    myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.bitbucket.reportCanceledAsFailed.enabled", "true"));
+    SQueuedBuild build = addBuildToQueue();
+    build.removeFromQueue(myUser, null);
+    myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(build.getBuildPromotion(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, myUser, null));
+    then(getRequestAsString()).isNotNull().matches(expectedStatusRegexp(BitbucketCloudBuildStatus.FAILED.name(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE));
+  }
+
+  @Override
+  public void test_buildInterrupted() throws Exception {
+    super.test_buildInterrupted();
+    // also check that interrupted builds are reported as failed when reportCanceledAsFailed.enabled
+    myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.bitbucket.reportCanceledAsFailed.enabled", "true"));
+    SFinishedBuild finishedBuild = createBuildInCurrentBranch(myBuildType, Status.NORMAL);
+    finishedBuild.addBuildProblem(BuildProblemData.createBuildProblem("problem", "type", PROBLEM_DESCR));
+    myPublisher.buildInterrupted(finishedBuild, myRevision);
+    then(getRequestAsString()).isNotNull().matches(expectedStatusRegexp(BitbucketCloudBuildStatus.FAILED.name(), PROBLEM_DESCR));
+  }
+
   public void default_build_name_test() {
     assertEquals("My Default Test Project / My Default Test Build Type", myPublisherSettings.getDefaultBuildName(myBuildType));
   }
@@ -186,9 +211,12 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
   }
 
   private void addExpectation(EventToTest event, String expectedStatus, String expectedStatusMessage) {
-    myExpectedRegExps.put(event, String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*\"key\":\"%s\".*%s.*%s.*",
-                                                            REVISION, myBuildType.getBuildTypeId(), expectedStatus, expectedStatusMessage));
+    myExpectedRegExps.put(event, expectedStatusRegexp(expectedStatus, expectedStatusMessage));
+  }
 
+  private String expectedStatusRegexp(String expectedStatus, String expectedStatusMessage) {
+    return String.format(".*/2.0/repositories/owner/project/commit/%s.*ENTITY:.*\"key\":\"%s\".*%s.*%s.*",
+                         REVISION, myBuildType.getBuildTypeId(), expectedStatus, expectedStatusMessage);
   }
 
   @BeforeMethod
