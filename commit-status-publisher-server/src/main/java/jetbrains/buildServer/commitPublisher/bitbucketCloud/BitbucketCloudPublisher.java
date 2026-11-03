@@ -42,7 +42,7 @@ import static jetbrains.buildServer.commitPublisher.LoggerUtil.LOG;
 class BitbucketCloudPublisher extends HttpBasedCommitStatusPublisher<BitbucketCloudBuildStatus> {
 
   private static final int DEFAULT_PAGE_SIZE = 25;
-  private static final String REPORT_CANCELED_AS_FAILED_FEATURE_TOGGLE = "commitStatusPublisher.bitbucket.reportCanceledAsFailed.enabled";
+  static final String REPORT_CANCELED_AS_FAILED_FEATURE_TOGGLE = "commitStatusPublisher.bitbucket.reportCanceledAsFailed.enabled";
   private String myBaseUrl = BitbucketCloudSettings.DEFAULT_API_URL;
   private final Gson myGson = new Gson();
 

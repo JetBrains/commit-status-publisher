@@ -131,22 +131,16 @@ public class BitbucketCloudPublisherTest extends HttpPublisherTest {
     assertFalse(publisher.getRevisionStatus(removedBuild, new BitbucketCloudCommitBuildStatus("anotherBuildType", BitbucketCloudBuildStatus.INPROGRESS.name(), null, DefaultStatusMessages.BUILD_QUEUED, "http://localhost:8111/viewQueued.html?itemId=321")).isEventAllowed(CommitStatusPublisher.Event.REMOVED_FROM_QUEUE, Long.MAX_VALUE));
   }
 
-  @Override
-  public void test_buildRemovedFromQueue() throws Exception {
-    super.test_buildRemovedFromQueue();
-    // also check that builds removed from queue are reported as failed when reportCanceledAsFailed.enabled
-    myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.bitbucket.reportCanceledAsFailed.enabled", "true"));
+  public void test_buildRemovedFromQueue_reportFailureWithParameter() throws Exception {
+    setInternalProperty("teamcity." + BitbucketCloudPublisher.REPORT_CANCELED_AS_FAILED_FEATURE_TOGGLE, "true");
     SQueuedBuild build = addBuildToQueue();
     build.removeFromQueue(myUser, null);
     myPublisher.buildRemovedFromQueue(build.getBuildPromotion(), myRevision, new AdditionalTaskInfo(build.getBuildPromotion(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE, myUser, null));
     then(getRequestAsString()).isNotNull().matches(expectedStatusRegexp(BitbucketCloudBuildStatus.FAILED.name(), DefaultStatusMessages.BUILD_REMOVED_FROM_QUEUE));
   }
 
-  @Override
-  public void test_buildInterrupted() throws Exception {
-    super.test_buildInterrupted();
-    // also check that interrupted builds are reported as failed when reportCanceledAsFailed.enabled
-    myBuildType.getProject().addParameter(new SimpleParameter("teamcity.commitStatusPublisher.bitbucket.reportCanceledAsFailed.enabled", "true"));
+  public void test_buildInterrupted_reportFailureWithParameter() throws Exception {
+    setInternalProperty("teamcity." + BitbucketCloudPublisher.REPORT_CANCELED_AS_FAILED_FEATURE_TOGGLE, "true");
     SFinishedBuild finishedBuild = createBuildInCurrentBranch(myBuildType, Status.NORMAL);
     finishedBuild.addBuildProblem(BuildProblemData.createBuildProblem("problem", "type", PROBLEM_DESCR));
     myPublisher.buildInterrupted(finishedBuild, myRevision);
